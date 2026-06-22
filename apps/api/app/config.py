@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     # Server
     api_port: int = 4000
     cors_origins: list[str] = ["http://localhost:3000"]
+    # Hard cap on generated-SQL execution time (Postgres only).
+    statement_timeout_ms: int = 10_000
 
     # Demo
     demo: bool = False
