@@ -12,6 +12,7 @@ from typing import Any
 
 from .. import llm
 from ..config import settings
+from ..mock_nl2sql import mock_narrate
 
 SYSTEM = (
     "Write a one or two sentence answer to the NFL question using ONLY the "
@@ -22,6 +23,9 @@ SYSTEM = (
 async def narrate(*, question: str, rows: list[dict[str, Any]]) -> str:
     if not rows:
         return "No matching results found."
+
+    if settings.demo_mode:
+        return mock_narrate(question, rows)
 
     user = (
         f"Question: {question}\n"

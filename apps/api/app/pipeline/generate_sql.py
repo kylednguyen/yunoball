@@ -10,6 +10,7 @@ import re
 
 from .. import llm
 from ..config import settings
+from ..mock_nl2sql import mock_generate_sql
 from ..schemas import ResolvedEntity
 from .retrieve import RetrievedContext
 
@@ -28,6 +29,10 @@ Schema:
 async def generate_sql(
     *, question: str, entities: list[ResolvedEntity], context: RetrievedContext
 ) -> str:
+    # Demo mode: deterministic rule-based generation, no API key required.
+    if settings.demo_mode:
+        return mock_generate_sql(question)
+
     few_shot = "\n\n".join(
         f"Q: {e['question']}\nSQL: {e['sql']}" for e in context.examples
     )
