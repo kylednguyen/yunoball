@@ -32,5 +32,11 @@ def get_engine() -> Engine:
 def get_readonly_engine() -> Engine:
     global _ro_engine
     if _ro_engine is None:
-        _ro_engine = create_engine(_normalize(settings.effective_readonly_url))
+        url = _normalize(settings.effective_readonly_url)
+        connect_args = {}
+        # Hard cap query time for LLM-generated SQL on Postgres (defense-in-depth
+        # alongside the read-only role). SQLite ignores this.
+        if url.startswith("postgresql"):
+            connect_args["options"] = f"-c statement_timeout={settings.statement_timeout_ms}"
+        _ro_engine = create_engine(url, connect_args=connect_args)
     return _ro_engine
