@@ -1,0 +1,27 @@
+[project]
+name = "yunoball-ingest"
+version = "0.0.0"
+description = "Load nflverse data into the YunoBall Postgres warehouse."
+requires-python = ">=3.11"
+dependencies = [
+    "nfl_data_py>=0.3.3",
+    "pandas>=2.2",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "python-dotenv>=1.0",
+    "tqdm>=4.66",
+    # Shared warehouse schema + engine (install editable in dev):
+    #   pip install -e ../db
+    "yunoball-db",
+]
+
+[project.scripts]
+yunoball-ingest = "yunoball_ingest.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["yunoball_ingest*"]
