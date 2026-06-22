@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env.*.local
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python-version
+*.egg-info/
+
+# data artifacts (raw downloads / parquet caches)
+packages/ingest/data/
+*.parquet
+
+# turbo
+.turbo/
+
+# logs / os
+*.log
+.DS_Store
