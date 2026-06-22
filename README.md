@@ -35,7 +35,23 @@ docs/
 docker-compose.yml   local Postgres (pgvector) + Redis
 ```
 
-## Quick start (local)
+## Try the prototype now (demo mode — no Docker, no keys)
+
+Demo mode runs on SQLite with a rule-based NL→SQL engine and seeded sample
+2022–2023 stats — zero external services. One command:
+
+```bash
+./scripts/demo.sh
+# then open http://localhost:4000  and ask:
+#   "Who threw the most touchdowns in 2023?"
+#   "Patrick Mahomes career passing yards"
+#   "Most rushing yards in a single game"
+```
+
+Every answer shows the exact SQL it ran. Set `OPENAI_API_KEY` + a Postgres
+`DATABASE_URL` to switch to the real LLM + warehouse path automatically.
+
+## Quick start (full stack, local)
 
 ```bash
 cp .env.example .env          # fill in OPENAI_API_KEY and DB/Redis URLs

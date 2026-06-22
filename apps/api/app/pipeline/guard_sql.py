@@ -10,6 +10,8 @@ from __future__ import annotations
 import sqlglot
 from sqlglot import exp
 
+from ..config import settings
+
 DEFAULT_LIMIT = 100
 MAX_LIMIT = 1000
 
@@ -31,9 +33,10 @@ class UnsafeSqlError(ValueError):
 
 def guard_sql(raw_sql: str) -> str:
     sql = raw_sql.strip().rstrip(";").strip()
+    dialect = settings.sql_dialect
 
     try:
-        statements = sqlglot.parse(sql, read="postgres")
+        statements = sqlglot.parse(sql, read=dialect)
     except Exception as err:  # noqa: BLE001
         raise UnsafeSqlError(f"Could not parse SQL: {err}") from err
 
@@ -73,4 +76,4 @@ def _enforce_limit(stmt: exp.Select) -> str:
                 stmt = stmt.limit(MAX_LIMIT)
         except (AttributeError, ValueError):
             stmt = stmt.limit(MAX_LIMIT)
-    return stmt.sql(dialect="postgres")
+    return stmt.sql(dialect=settings.sql_dialect)

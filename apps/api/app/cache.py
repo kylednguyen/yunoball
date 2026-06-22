@@ -9,18 +9,22 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from typing import Any
-
-import redis.asyncio as redis
+from typing import TYPE_CHECKING, Any
 
 from .config import settings
 
-_client: redis.Redis | None = None
+if TYPE_CHECKING:
+    import redis.asyncio as redis
+
+_client: "redis.Redis | None" = None
 
 
-def get_client() -> redis.Redis:
+def get_client() -> "redis.Redis":
+    # Imported lazily so demo mode runs without the redis package configured.
     global _client
     if _client is None:
+        import redis.asyncio as redis
+
         _client = redis.from_url(settings.redis_url, decode_responses=True)
     return _client
 
@@ -36,11 +40,22 @@ def _key(question: str) -> str:
 
 
 async def get_cached(question: str) -> dict[str, Any] | None:
-    raw = await get_client().get(_key(question))
-    return json.loads(raw) if raw else None
+    # Demo mode runs without Redis; failures degrade gracefully to a cache miss.
+    if settings.demo_mode:
+        return None
+    try:
+        raw = await get_client().get(_key(question))
+        return json.loads(raw) if raw else None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 async def set_cached(question: str, payload: dict[str, Any]) -> None:
-    await get_client().set(
-        _key(question), json.dumps(payload), ex=settings.answer_cache_ttl_seconds
-    )
+    if settings.demo_mode:
+        return
+    try:
+        await get_client().set(
+            _key(question), json.dumps(payload), ex=settings.answer_cache_ttl_seconds
+        )
+    except Exception:  # noqa: BLE001
+        pass
