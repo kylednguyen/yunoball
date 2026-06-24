@@ -37,27 +37,48 @@ docker-compose.yml   local Postgres (pgvector) + Redis
 
 ## Quick start (local)
 
-```bash
-cp .env.example .env          # fill in OPENAI_API_KEY and DB/Redis URLs
+> **Python 3.11 required.** `nfl_data_py` pins `pandas<2` / `numpy<2`, whose
+> wheels only exist through CPython 3.11.
 
-# 1. Infra
+```bash
+cp .env.example .env          # local-Docker defaults are pre-filled; add OPENAI_API_KEY
+
+# Python deps — one shared venv (compat editable mode avoids PEP660 finder issues)
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install --config-settings editable_mode=compat \
+    -e packages/db -e packages/ingest -e apps/api
+
+# 1. Infra — Postgres (pgvector) + Redis.
+#    If host port 5432 is taken, drop a docker-compose.override.yml remapping it
+#    (e.g. "5433:5432") and point DATABASE_URL at the new port.
 docker compose up -d
 
-# 2. Schema (Python venv in packages/db)
-cd packages/db && pip install -e . && alembic upgrade head && cd -
+# 2. Schema + least-privilege read-only role
+( cd packages/db && alembic upgrade head )
+yunoball-provision-readonly
 
-# 3. Data (Python venv in packages/ingest)
-cd packages/ingest && pip install -e . && yunoball-ingest --years 2022 2023 2024 && cd -
+# 3. Data (2022–2024). Box score + play-by-play; --skip-plays for box score only.
+yunoball-ingest --years 2022 2023 2024
 
-# 4. Backend
-cd apps/api && pip install -e . && pip install -e ../../packages/db
-uvicorn app.main:app --reload --port 4000
+# 4. RAG: entity aliases + few-shot library (embeddings computed if a key is set)
+yunoball-seed-rag
 
-# 5. Frontend
-pnpm install && pnpm dev:web
+# 5. Accuracy eval
+yunoball-eval --reference-only       # validates golden SQL; no key needed
+yunoball-eval --min-accuracy 0.8     # full execution accuracy (needs OPENAI_API_KEY)
+
+# 6. Backend + frontend
+( cd apps/api && uvicorn app.main:app --reload --port 4000 )
+pnpm install && pnpm dev:web         # http://localhost:3000
 ```
 
 ## Status
 
-Phase 0 — scaffold. The pipeline stages (entity resolution, few-shot retrieval,
-eval harness) are stubbed and land in subsequent phases per the roadmap.
+Phases 1–4 implemented on a local warehouse with real nflverse data (2022–2024):
+warehouse + ingest + **eval harness** (Phase 1), entity resolution + few-shot
+retrieval (Phase 2), charts + leaderboards + shareable answers + Redis cache
+(Phase 3), play-by-play + situational/EPA metrics (Phase 4). The NL→SQL,
+narration, and embedding paths require `OPENAI_API_KEY`; everything else
+(warehouse, leaderboards, shareable pages, reference eval) runs without one. Full
+1999–present backfill is a matter of widening `--years`. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

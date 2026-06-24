@@ -34,3 +34,4 @@ class SearchResponse(BaseModel):
     columns: list[str]
     entities: list[ResolvedEntity]
     cached: bool
+    share_id: str | None = None  # stable handle for the shareable answer page
