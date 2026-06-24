@@ -14,6 +14,7 @@ from .generate_sql import generate_sql
 from .guard_sql import guard_sql
 from .execute import execute_sql
 from .narrate import narrate
+from .enrich import enrich
 
 
 async def run_query_pipeline(req: SearchRequest, *, use_cache: bool = True) -> SearchResponse:
@@ -33,6 +34,10 @@ async def run_query_pipeline(req: SearchRequest, *, use_cache: bool = True) -> S
     rows, columns = await execute_sql(safe_sql)
     narration = await narrate(question=question, rows=rows)
 
+    extras = enrich(
+        question=question, sql=safe_sql, rows=rows, columns=columns, entities=entities
+    )
+
     response = SearchResponse(
         question=question,
         narration=narration,
@@ -42,6 +47,7 @@ async def run_query_pipeline(req: SearchRequest, *, use_cache: bool = True) -> S
         entities=entities,
         cached=False,
         share_id=cache.share_id(question),
+        **extras,
     )
 
     if use_cache:

@@ -2,12 +2,12 @@
 name = "yunoball-ingest"
 version = "0.0.0"
 description = "Load nflverse data into the YunoBall Postgres warehouse."
-# nfl_data_py 0.3.3 hard-pins pandas<2.0 / numpy<2.0, whose wheels only exist
-# through CPython 3.11 — so this package (and the shared dev venv) runs on 3.11.
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11"
 dependencies = [
-    "nfl_data_py>=0.3.3",
-    "pandas>=1.5,<2.0",
+    # nflreadpy is the maintained nflverse loader (polars-based; no pandas pin).
+    "nflreadpy>=0.1.5",
+    "pandas>=1.5",
+    "pyarrow>=14",  # polars.to_pandas()
     "sqlalchemy>=2.0",
     "psycopg[binary]>=3.2",
     "python-dotenv>=1.0",

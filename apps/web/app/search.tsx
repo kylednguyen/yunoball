@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AnswerCard } from "./components/AnswerCard";
 import { ask, type AnswerResult } from "./lib/api";
@@ -8,7 +8,8 @@ import { ask, type AnswerResult } from "./lib/api";
 const EXAMPLES = [
   "Who threw the most touchdowns in 2023?",
   "Patrick Mahomes career passing yards",
-  "Most rushing yards in a single playoff game",
+  "Most rushing yards in a single game",
+  "Did the Cowboys beat the Eagles in 2023?",
 ];
 
 export function Search() {
@@ -18,6 +19,7 @@ export function Search() {
   const [result, setResult] = useState<AnswerResult | null>(null);
 
   async function run(q: string) {
+    setQuestion(q);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -30,9 +32,17 @@ export function Search() {
     }
   }
 
+  // Auto-run a question passed via ?q= (e.g. a follow-up from a shared page).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) run(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div>
       <form
+        className="search"
         onSubmit={(e) => {
           e.preventDefault();
           if (question.trim()) run(question.trim());
@@ -42,34 +52,22 @@ export function Search() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask an NFL question…"
-          style={{
-            width: "100%",
-            padding: "14px 16px",
-            fontSize: 18,
-            background: "var(--panel)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            color: "var(--text)",
-          }}
+          aria-label="Ask an NFL question"
+          autoFocus
         />
+        <button className="go" type="submit" aria-label="Search" disabled={loading}>
+          <ArrowIcon />
+        </button>
       </form>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+      <div className="chips">
         {EXAMPLES.map((ex) => (
           <button
             key={ex}
+            className="chip"
             onClick={() => {
               setQuestion(ex);
               run(ex);
-            }}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-              borderRadius: 999,
-              padding: "6px 12px",
-              fontSize: 13,
-              cursor: "pointer",
             }}
           >
             {ex}
@@ -77,10 +75,24 @@ export function Search() {
         ))}
       </div>
 
-      {loading && <p style={{ color: "var(--muted)" }}>Thinking…</p>}
-      {error && <p style={{ color: "#f87171" }}>{error}</p>}
+      {loading && <p className="thinking">Crunching the numbers…</p>}
+      {error && <p className="error">{error}</p>}
 
-      {result && <AnswerCard result={result} />}
+      {result && <AnswerCard result={result} onAsk={run} />}
     </div>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 12h14M13 6l6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

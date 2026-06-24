@@ -18,7 +18,7 @@ database is the *source of truth*; the vector store handles the fuzzy bits
 | Backend | FastAPI (Python) |
 | Database | Postgres + pgvector (Supabase) |
 | Cache | Redis (answer cache, rate limiting, follow-up state) |
-| Data | nflverse via `nfl_data_py` (NFL-only for now) |
+| Data | nflverse via `nflreadpy` (polars; NFL-only for now) |
 | LLM + embeddings | OpenAI (`gpt-4o` for SQL, `gpt-4o-mini` to narrate, `text-embedding-3-small`) |
 
 The backend and the data/ML layer are both Python, so ingestion, the NL→SQL
@@ -64,7 +64,7 @@ pipeline, and embeddings share one language and one schema definition.
 | Postgres + pgvector | One datastore for relational facts *and* embeddings. Supabase-hosted. |
 | Redis cache | Hot answers, rate limiting, conversation/follow-up state. Not the vector store. |
 | SQLAlchemy + Alembic | One schema definition, owned by the Python backend, shared with ingest. |
-| nflverse / `nfl_data_py` | Free, open, comprehensive (PBP back to 1999). No scraping/ToS risk. |
+| nflverse / `nflreadpy` | Free, open, comprehensive (PBP back to 1999). Maintained polars-based loader; no scraping/ToS risk. |
 | Read-only role + sqlglot guard | Defense-in-depth so generated SQL can't write or escape the allowlist. |
 
 ## What makes it "more advanced" than StatMuse
@@ -85,10 +85,11 @@ pipeline, and embeddings share one language and one schema definition.
 - **Later** — multi-sport (the NL→SQL engine is sport-agnostic; add per-sport schema + data source, e.g. `pybaseball` for MLB).
 
 > **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
-> nflverse data. `nfl_data_py` constrains the toolchain to Python 3.11
-> (`pandas<2`/`numpy<2`). The LLM-dependent stages (NL→SQL, narration,
-> embeddings) activate when `OPENAI_API_KEY` is set; trigram resolution, keyword
-> few-shot, leaderboards, shareable pages, and the reference eval run without it.
+> nflverse data pulled via `nflreadpy` (polars). The LLM stages (NL→SQL,
+> narration, embeddings) use any OpenAI-compatible endpoint — set
+> `OPENAI_API_KEY` for OpenAI, or `LLM_BASE_URL=http://localhost:11434/v1` to run
+> locally on Ollama. Trigram resolution, keyword few-shot, leaderboards,
+> shareable pages, and the reference eval run with no LLM at all.
 
 ## Eval (non-negotiable)
 

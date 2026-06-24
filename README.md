@@ -18,7 +18,7 @@ few-shot retrieval. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - **Backend:** FastAPI (Python) — `apps/api`
 - **Database:** Postgres + pgvector (Supabase) — schema in `packages/db`
 - **Cache:** Redis
-- **Data:** nflverse via `nfl_data_py` — `packages/ingest`
+- **Data:** nflverse via `nflreadpy` (polars) — `packages/ingest`
 - **LLM + embeddings:** OpenAI
 
 ## Repository layout
@@ -37,8 +37,8 @@ docker-compose.yml   local Postgres (pgvector) + Redis
 
 ## Quick start (local)
 
-> **Python 3.11 required.** `nfl_data_py` pins `pandas<2` / `numpy<2`, whose
-> wheels only exist through CPython 3.11.
+> **Python 3.11+.** The data loader is `nflreadpy` (polars-based), so the old
+> `pandas<2` / CPython-3.11 ceiling is gone; the dev venv here uses 3.11.
 
 ```bash
 cp .env.example .env          # local-Docker defaults are pre-filled; add OPENAI_API_KEY

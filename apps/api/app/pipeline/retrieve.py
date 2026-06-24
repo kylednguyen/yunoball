@@ -58,7 +58,7 @@ _WORD = re.compile(r"[a-z0-9]+")
 
 
 async def retrieve_context(question: str, k: int = DEFAULT_K) -> RetrievedContext:
-    if settings.openai_api_key and has_embeddings("query_examples"):
+    if settings.embeddings_active and has_embeddings("query_examples"):
         examples = await _vector_examples(question, k)
     else:
         examples = _keyword_examples(question, k)

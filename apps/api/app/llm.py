@@ -12,7 +12,12 @@ _client: AsyncOpenAI | None = None
 def get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=settings.openai_api_key)
+        # base_url lets us target any OpenAI-compatible server (e.g. Ollama).
+        # Local Ollama ignores the key, but the SDK requires a non-empty one.
+        _client = AsyncOpenAI(
+            api_key=settings.openai_api_key or "not-needed",
+            base_url=settings.llm_base_url,
+        )
     return _client
 
 

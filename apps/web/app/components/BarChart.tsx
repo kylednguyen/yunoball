@@ -5,17 +5,17 @@ export interface BarDatum {
   value: number;
 }
 
-/** Minimal dependency-free horizontal bar chart (SVG). */
+/** Minimal dependency-free horizontal bar chart (SVG), StatMuse-clean. */
 export function BarChart({ data, unit = "" }: { data: BarDatum[]; unit?: string }) {
   if (data.length === 0) return null;
   const max = Math.max(...data.map((d) => d.value), 0) || 1;
-  const rowH = 28;
-  const gap = 8;
-  const labelW = 150;
-  const valueW = 64;
-  const width = 640;
+  const rowH = 30;
+  const gap = 9;
+  const labelW = 168;
+  const valueW = 74;
+  const width = 660;
   const barArea = width - labelW - valueW;
-  const height = data.length * (rowH + gap);
+  const height = data.length * (rowH + gap) - gap;
 
   return (
     <svg
@@ -23,40 +23,35 @@ export function BarChart({ data, unit = "" }: { data: BarDatum[]; unit?: string 
       width="100%"
       role="img"
       aria-label="bar chart"
-      style={{ maxWidth: width, marginTop: 12 }}
+      style={{ maxWidth: width, marginTop: 14, display: "block" }}
     >
       {data.map((d, i) => {
         const y = i * (rowH + gap);
-        const w = Math.max((d.value / max) * barArea, 2);
+        const w = Math.max((d.value / max) * barArea, 3);
         return (
           <g key={`${d.label}-${i}`}>
             <text
-              x={labelW - 10}
+              x={labelW - 12}
               y={y + rowH / 2}
               textAnchor="end"
-              dominantBaseline="middle"
-              fontSize="13"
+              dominantBaseline="central"
+              fontSize="13.5"
+              fontWeight="500"
               fill="var(--muted)"
             >
-              {d.label.length > 22 ? d.label.slice(0, 21) + "…" : d.label}
+              {d.label.length > 24 ? d.label.slice(0, 23) + "…" : d.label}
             </text>
-            <rect
-              x={labelW}
-              y={y}
-              width={w}
-              height={rowH}
-              rx={4}
-              fill="var(--accent)"
-              opacity={0.85}
-            />
+            <rect x={labelW} y={y} width={barArea} height={rowH} rx={7} fill="var(--bg-soft)" />
+            <rect x={labelW} y={y} width={w} height={rowH} rx={7} fill="var(--accent)" />
             <text
-              x={labelW + w + 8}
+              x={labelW + w + 10}
               y={y + rowH / 2}
-              dominantBaseline="middle"
-              fontSize="13"
+              dominantBaseline="central"
+              fontSize="13.5"
+              fontWeight="700"
               fill="var(--text)"
             >
-              {formatValue(d.value)}
+              {fmtValue(d.value)}
               {unit ? ` ${unit}` : ""}
             </text>
           </g>
@@ -66,6 +61,6 @@ export function BarChart({ data, unit = "" }: { data: BarDatum[]; unit?: string 
   );
 }
 
-function formatValue(v: number): string {
-  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+function fmtValue(v: number): string {
+  return v.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }

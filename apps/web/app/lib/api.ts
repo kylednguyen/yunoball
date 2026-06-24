@@ -7,6 +7,38 @@ export interface ResolvedEntity {
   confidence: number;
 }
 
+export interface StatChip {
+  label: string;
+  category: string;
+}
+
+export interface PrimaryStat {
+  subject: string | null;
+  subject_type: string | null;
+  value: string | null;
+  unit: string | null;
+  context: string | null;
+}
+
+export interface ComparisonCard {
+  label: string;
+  value: string;
+  note: string | null;
+}
+
+export interface Suggestion {
+  label: string;
+  query: string;
+}
+
+export interface SourceInfo {
+  label: string;
+  coverage: string;
+  freshness: string;
+  updated: string | null;
+  warnings: string[];
+}
+
 export interface AnswerResult {
   question: string;
   narration: string;
@@ -16,6 +48,14 @@ export interface AnswerResult {
   entities?: ResolvedEntity[];
   cached: boolean;
   share_id?: string | null;
+  query_type?: string | null;
+  interpretation?: string | null;
+  primary?: PrimaryStat | null;
+  chips?: StatChip[];
+  comparisons?: ComparisonCard[];
+  alternatives?: Suggestion[];
+  followups?: string[];
+  source?: SourceInfo | null;
 }
 
 export async function ask(question: string): Promise<AnswerResult> {

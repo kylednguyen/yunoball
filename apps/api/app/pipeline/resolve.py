@@ -142,7 +142,7 @@ async def resolve_entities(question: str) -> list[ResolvedEntity]:
             elif phrase[:1].isupper():
                 unmatched.append((phrase, positions))
 
-        if settings.openai_api_key and has_embeddings("entity_aliases"):
+        if settings.embeddings_active and has_embeddings("entity_aliases"):
             fresh = [(p, pos) for p, pos in unmatched if not (pos & consumed)]
             await _vector_backstop(conn, fresh, best, consumed)
 

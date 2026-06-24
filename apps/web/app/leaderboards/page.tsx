@@ -25,38 +25,32 @@ export default function LeaderboardsPage() {
   }, [season]);
 
   return (
-    <main style={{ maxWidth: 820, margin: "0 auto", padding: "48px 20px 120px" }}>
+    <main className="wrap">
       <Nav />
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <h1 style={{ fontSize: 32, margin: 0 }}>Leaderboards</h1>
+      <div className="page-head">
+        <h1>Leaderboards</h1>
         {data && (
-          <select
-            value={data.season}
-            onChange={(e) => setSeason(Number(e.target.value))}
-            style={{
-              background: "var(--panel)",
-              color: "var(--text)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              padding: "6px 10px",
-              fontSize: 14,
-            }}
-          >
+          <div className="seasons" role="tablist" aria-label="Season">
             {data.seasons.map((s) => (
-              <option key={s} value={s}>
-                {s} season
-              </option>
+              <button
+                key={s}
+                className={s === data.season ? "active" : ""}
+                onClick={() => setSeason(s)}
+                aria-selected={s === data.season}
+              >
+                {s}
+              </button>
             ))}
-          </select>
+          </div>
         )}
       </div>
 
-      {loading && <p style={{ color: "var(--muted)" }}>Loading…</p>}
-      {error && <p style={{ color: "#f87171" }}>{error}</p>}
+      {loading && <p className="thinking">Loading…</p>}
+      {error && <p className="error">{error}</p>}
 
       {data?.boards.map((board) => (
-        <section key={board.key} style={{ marginTop: 36 }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{board.label}</h2>
+        <section key={board.key} className="board">
+          <h2>{board.label}</h2>
           <BarChart
             data={board.rows.map((r) => ({ label: r.name, value: r.value }))}
             unit={board.unit}

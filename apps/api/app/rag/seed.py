@@ -131,9 +131,9 @@ def main() -> None:
                     help="Insert NULL embeddings even if a key is set.")
     args = ap.parse_args()
 
-    use_embeddings = bool(settings.openai_api_key) and not args.no_embeddings
+    use_embeddings = settings.embeddings_active and not args.no_embeddings
     if not use_embeddings and not args.no_embeddings:
-        print("[seed-rag] OPENAI_API_KEY not set — seeding without embeddings.")
+        print("[seed-rag] embeddings disabled/unconfigured — seeding without embeddings.")
     asyncio.run(_run(use_embeddings))
 
 

@@ -176,9 +176,9 @@ def main() -> None:
     ap.add_argument("--json", action="store_true", help="Emit JSON report.")
     args = ap.parse_args()
 
-    reference_only = args.reference_only or not settings.openai_api_key
+    reference_only = args.reference_only or not settings.llm_configured
     if reference_only and not args.reference_only:
-        print("[eval] OPENAI_API_KEY not set — running reference-only.\n")
+        print("[eval] no LLM configured — running reference-only.\n")
 
     report = asyncio.run(run_reference_only() if reference_only else evaluate())
 

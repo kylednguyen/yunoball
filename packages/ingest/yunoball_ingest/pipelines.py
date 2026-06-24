@@ -1,8 +1,9 @@
-"""nflverse -> warehouse load pipelines.
+"""nflverse -> warehouse load pipelines (via nflreadpy).
 
-Each pipeline pulls a dataset via nfl_data_py, reshapes it to match the
-SQLAlchemy schema in `yunoball_db`, and upserts it into Postgres. Pipelines are
-idempotent: re-running a season replaces its rows (ON CONFLICT DO UPDATE).
+Each pipeline pulls a dataset with nflreadpy (polars), converts to pandas, reshapes
+it to match the SQLAlchemy schema in `yunoball_db`, and upserts it into Postgres.
+Pipelines are idempotent: re-running a season replaces its rows (ON CONFLICT DO
+UPDATE).
 
 Load order matters (FKs): teams -> seasons -> players -> games ->
 player_game_stats -> team_game_stats -> player_season_stats -> plays.
@@ -11,7 +12,7 @@ player_game_stats -> team_game_stats -> player_season_stats -> plays.
 from __future__ import annotations
 
 import numpy as np
-import nfl_data_py as nfl
+import nflreadpy as nr
 import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
@@ -19,8 +20,8 @@ from tqdm import tqdm
 
 
 def _drop_preseason(df: pd.DataFrame) -> pd.DataFrame:
-    # nflverse codes preseason as PRE; the warehouse only tracks REG + postseason
-    # (which is what weekly/seasonal player data covers).
+    # nflverse codes preseason as PRE; the warehouse tracks REG + postseason only
+    # (which is what the weekly/seasonal player data covers).
     return df[df["season_type"].ne("PRE")] if "season_type" in df else df
 
 
@@ -30,7 +31,7 @@ def _drop_preseason(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_teams(engine: Engine) -> int:
-    desc = nfl.import_team_desc()
+    desc = nr.load_teams().to_pandas()
     df = pd.DataFrame(
         {
             "team_id": desc["team_abbr"],
@@ -62,11 +63,11 @@ def load_seasons(engine: Engine, years: list[int]) -> int:
 
 
 def load_players(engine: Engine, years: list[int]) -> int:
-    rosters = nfl.import_seasonal_rosters(years)
+    rosters = nr.load_rosters(years).to_pandas()
     df = pd.DataFrame(
         {
-            "player_id": rosters["player_id"],
-            "full_name": rosters["player_name"],
+            "player_id": rosters["gsis_id"],
+            "full_name": rosters.get("full_name"),
             "first_name": rosters.get("first_name"),
             "last_name": rosters.get("last_name"),
             "position": rosters.get("position"),
@@ -77,7 +78,7 @@ def load_players(engine: Engine, years: list[int]) -> int:
             "rookie_season": pd.to_numeric(rosters.get("rookie_year"), errors="coerce"),
         }
     )
-    df = df[df["player_id"].notna()]
+    df = df[df["player_id"].notna() & df["full_name"].notna()]
     # A player can appear across multiple seasons; keep the most recent row.
     df = df.drop_duplicates(subset=["player_id"], keep="last")
     _upsert(engine, "players", df, conflict=["player_id"])
@@ -113,24 +114,18 @@ def load_games(engine: Engine, years: list[int]) -> int:
 
 
 def load_player_game_stats(engine: Engine, years: list[int]) -> int:
-    wk = _drop_preseason(nfl.import_weekly_data(years))
-    gmap = _team_week_game_map(_schedule(years))
-
-    game_id = [
-        gmap.get((s, w, t), (None,))[0]
-        for s, w, t in zip(wk["season"], wk["week"], wk["recent_team"])
-    ]
+    wk = _drop_preseason(nr.load_player_stats(years, summary_level="week").to_pandas())
     df = pd.DataFrame(
         {
-            "player_id": wk["player_id"].values,
-            "game_id": game_id,
-            "team_id": wk["recent_team"].values,
+            "player_id": wk["player_id"],
+            "game_id": wk["game_id"],  # nflreadpy provides game_id directly
+            "team_id": wk["team"],
             "completions": wk.get("completions"),
             "attempts": wk.get("attempts"),
             "passing_yards": wk.get("passing_yards"),
             "passing_tds": wk.get("passing_tds"),
-            "interceptions": wk.get("interceptions"),
-            "sacks": wk.get("sacks"),
+            "interceptions": wk.get("passing_interceptions"),
+            "sacks": wk.get("sacks_suffered"),
             "carries": wk.get("carries"),
             "rushing_yards": wk.get("rushing_yards"),
             "rushing_tds": wk.get("rushing_tds"),
@@ -148,8 +143,7 @@ def load_player_game_stats(engine: Engine, years: list[int]) -> int:
     df = df[df["player_id"].notna() & df["game_id"].notna()]
     df = df.drop_duplicates(subset=["player_id", "game_id"], keep="last")
 
-    # FK safety: a handful of weekly players may not be in seasonal rosters
-    # (mid-week call-ups). Backfill them with the names weekly provides.
+    # FK safety: backfill any weekly player not present in the roster pull.
     backfill = (
         pd.DataFrame(
             {
@@ -169,8 +163,8 @@ def load_player_game_stats(engine: Engine, years: list[int]) -> int:
 
 def load_team_game_stats(engine: Engine, years: list[int]) -> int:
     """Per-team box score. Points/result come from the schedule (exact); passing/
-    rushing yards and turnovers are summed from the player box (accurate team
-    totals). total_yards / time_of_possession derive from PBP in Phase 4.
+    rushing yards and turnovers are summed from the player box. total_yards /
+    time_of_possession derive from PBP in Phase 4.
     """
     sql = text(
         """
@@ -229,26 +223,17 @@ def load_team_game_stats(engine: Engine, years: list[int]) -> int:
 
 
 def load_player_season_stats(engine: Engine, years: list[int]) -> int:
-    seas = nfl.import_seasonal_data(years)  # regular season totals
-    # Primary team per (player, season) from rosters (the rollup has none).
-    rosters = nfl.import_seasonal_rosters(years)[["player_id", "season", "team"]].dropna()
-    team_map = (
-        rosters.groupby(["player_id", "season"])["team"]
-        .agg(lambda s: s.mode().iat[0] if not s.mode().empty else s.iloc[0])
-        .reset_index()
-    )
-    seas = seas.merge(team_map, on=["player_id", "season"], how="left")
-
+    seas = nr.load_player_stats(years, summary_level="reg").to_pandas()  # regular-season totals
     df = pd.DataFrame(
         {
             "player_id": seas["player_id"],
             "season": seas["season"],
             "season_type": seas.get("season_type", "REG"),
-            "team_id": seas.get("team"),
+            "team_id": seas.get("recent_team"),
             "games_played": seas.get("games"),
             "passing_yards": seas.get("passing_yards"),
             "passing_tds": seas.get("passing_tds"),
-            "interceptions": seas.get("interceptions"),
+            "interceptions": seas.get("passing_interceptions"),
             "rushing_yards": seas.get("rushing_yards"),
             "rushing_tds": seas.get("rushing_tds"),
             "receptions": seas.get("receptions"),
@@ -268,15 +253,15 @@ def load_player_season_stats(engine: Engine, years: list[int]) -> int:
 def load_plays(engine: Engine, years: list[int]) -> int:
     """Play-by-play — the engine for situational/advanced queries (Phase 4).
 
-    Pulls only the lean column subset the `plays` table needs (the full nflverse
-    PBP is ~370 columns); upserts in chunks. This is the heavy dataset.
+    Selects the lean column subset the `plays` table needs in polars (the full
+    nflverse PBP is ~370 columns) before converting; upserts in chunks.
     """
-    cols = [
+    src = [
         "play_id", "game_id", "posteam", "defteam", "qtr", "down", "ydstogo",
         "yardline_100", "play_type", "yards_gained", "epa", "wp", "success",
         "passer_player_id", "rusher_player_id", "receiver_player_id", "desc",
     ]
-    pbp = nfl.import_pbp_data(years, columns=cols, downcast=True)
+    pbp = nr.load_pbp(years).select(src).to_pandas()
     valid_teams = _existing_ids(engine, "teams", "team_id")
     valid_games = _existing_ids(engine, "games", "game_id")
 
@@ -315,17 +300,8 @@ def load_plays(engine: Engine, years: list[int]) -> int:
 
 
 def _schedule(years: list[int]) -> pd.DataFrame:
-    sched = nfl.import_schedules(years)
+    sched = nr.load_schedules(years).to_pandas()
     return sched[sched["game_type"].ne("PRE")].copy()
-
-
-def _team_week_game_map(sched: pd.DataFrame) -> dict[tuple, tuple]:
-    """(season, week, team) -> (game_id, is_home). Each team plays once per week."""
-    out: dict[tuple, tuple] = {}
-    for r in sched.itertuples(index=False):
-        out[(r.season, r.week, r.home_team)] = (r.game_id, True)
-        out[(r.season, r.week, r.away_team)] = (r.game_id, False)
-    return out
 
 
 def _sum_cols(df: pd.DataFrame, *cols: str) -> pd.Series:

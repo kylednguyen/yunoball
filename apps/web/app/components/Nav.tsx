@@ -1,14 +1,15 @@
 import Link from "next/link";
 
-export function Nav() {
+export function Nav({ showWordmark = true }: { showWordmark?: boolean }) {
   return (
-    <nav style={{ display: "flex", gap: 18, marginBottom: 28, fontSize: 14 }}>
-      <Link href="/" style={{ textDecoration: "none", color: "var(--muted)" }}>
-        Search
+    <nav className="nav">
+      <Link href="/" className="wordmark" style={{ visibility: showWordmark ? "visible" : "hidden" }}>
+        Yuno<span>Ball</span>
       </Link>
-      <Link href="/leaderboards" style={{ textDecoration: "none", color: "var(--muted)" }}>
-        Leaderboards
-      </Link>
+      <div className="nav-links">
+        <Link href="/">Search</Link>
+        <Link href="/leaderboards">Leaderboards</Link>
+      </div>
     </nav>
   );
 }
