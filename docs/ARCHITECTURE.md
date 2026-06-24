@@ -77,12 +77,18 @@ pipeline, and embeddings share one language and one schema definition.
 
 ## Roadmap
 
-- **Phase 0 (this)** — monorepo, star schema, FastAPI pipeline skeleton, ingest CLI, search UI, local infra (docker-compose).
-- **Phase 1** — wire real Supabase + ingest 2022–2024; player/team season & game queries end-to-end; **eval harness** (golden Q→result set measuring SQL execution accuracy).
-- **Phase 2** — entity resolution (trgm + pgvector) and few-shot retrieval.
-- **Phase 3** — charts, leaderboards, shareable pages, Redis answer cache.
-- **Phase 4** — play-by-play / situational + advanced metrics; full 1999–present backfill.
+- **Phase 0** ✅ — monorepo, star schema, FastAPI pipeline skeleton, ingest CLI, search UI, local infra (docker-compose).
+- **Phase 1** ✅ — warehouse + ingest 2022–2024 (box score + rollups), least-privilege read-only role, player/team season & game queries, **eval harness** (golden Q→reference SQL; reference-only + execution-accuracy modes).
+- **Phase 2** ✅ — entity resolution (pg_trgm GIN + pgvector backstop over `entity_aliases`) and few-shot retrieval (pgvector over `query_examples`, keyword fallback without embeddings).
+- **Phase 3** ✅ — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis answer cache + Postgres write-through.
+- **Phase 4** ✅ — play-by-play ingest + situational/EPA metrics and golden examples. Full 1999–present backfill is a one-command widening of `--years` (loaded window: 2022–2024).
 - **Later** — multi-sport (the NL→SQL engine is sport-agnostic; add per-sport schema + data source, e.g. `pybaseball` for MLB).
+
+> **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
+> nflverse data. `nfl_data_py` constrains the toolchain to Python 3.11
+> (`pandas<2`/`numpy<2`). The LLM-dependent stages (NL→SQL, narration,
+> embeddings) activate when `OPENAI_API_KEY` is set; trigram resolution, keyword
+> few-shot, leaderboards, shareable pages, and the reference eval run without it.
 
 ## Eval (non-negotiable)
 
