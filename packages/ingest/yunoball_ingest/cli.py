@@ -22,9 +22,23 @@ def main() -> None:
     )
     parser.add_argument(
         "--only",
-        choices=["teams", "seasons", "players", "games", "player_game_stats"],
+        choices=[
+            "teams",
+            "seasons",
+            "players",
+            "games",
+            "player_game_stats",
+            "team_game_stats",
+            "player_season_stats",
+            "plays",
+        ],
         nargs="*",
         help="Run only specific pipelines (default: all, in order).",
+    )
+    parser.add_argument(
+        "--skip-plays",
+        action="store_true",
+        help="Skip the heavy play-by-play load (Phase 4 data).",
     )
     args = parser.parse_args()
 
@@ -37,11 +51,17 @@ def main() -> None:
         ("players", lambda: pipelines.load_players(engine, years)),
         ("games", lambda: pipelines.load_games(engine, years)),
         ("player_game_stats", lambda: pipelines.load_player_game_stats(engine, years)),
+        ("team_game_stats", lambda: pipelines.load_team_game_stats(engine, years)),
+        ("player_season_stats", lambda: pipelines.load_player_season_stats(engine, years)),
+        ("plays", lambda: pipelines.load_plays(engine, years)),
     ]
 
     selected = set(args.only) if args.only else None
     for name, fn in steps:
         if selected and name not in selected:
+            continue
+        if name == "plays" and args.skip_plays and not selected:
+            print("[ingest] plays: skipped (--skip-plays)")
             continue
         count = fn()
         print(f"[ingest] {name}: {count} rows")
