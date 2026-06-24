@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import search
+from .routers import leaderboards, search
 
 app = FastAPI(title="YunoBall API", version="0.0.0")
 
@@ -21,6 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(search.router)
+app.include_router(leaderboards.router)
 
 
 @app.get("/health")

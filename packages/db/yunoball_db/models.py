@@ -227,7 +227,14 @@ class EntityAlias(Base):
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
 
     __table_args__ = (
-        Index("entity_aliases_alias_idx", "alias"),
+        # GIN trigram index powers fuzzy `alias % :mention` lookups.
+        Index(
+            "entity_aliases_alias_trgm_idx",
+            "alias",
+            postgresql_using="gin",
+            postgresql_ops={"alias": "gin_trgm_ops"},
+        ),
+        Index("entity_aliases_canonical_idx", "entity_type", "canonical_id"),
         Index(
             "entity_aliases_embedding_idx",
             "embedding",
@@ -265,6 +272,8 @@ class AnswerCache(Base):
 
     __tablename__ = "answer_cache"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Stable, shareable handle (digest of the normalized question) for /a/<id>.
+    share_id: Mapped[str | None] = mapped_column(String, unique=True)
     question: Mapped[str] = mapped_column(Text, nullable=False)
     normalized_question: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     sql: Mapped[str | None] = mapped_column(Text)
