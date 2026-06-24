@@ -57,8 +57,9 @@ docker compose up -d
 ( cd packages/db && alembic upgrade head )
 yunoball-provision-readonly
 
-# 3. Data (2022–2024). Box score + play-by-play; --skip-plays for box score only.
-yunoball-ingest --years 2022 2023 2024
+# 3. Data. Box score + play-by-play; --skip-plays for box score only.
+#    Full modern era (1999–present), or a smaller window to start:
+yunoball-ingest --years $(seq 1999 2024)     # or: --years 2022 2023 2024
 
 # 4. RAG: entity aliases + few-shot library (embeddings computed if a key is set)
 yunoball-seed-rag
@@ -74,11 +75,15 @@ pnpm install && pnpm dev:web         # http://localhost:3000
 
 ## Status
 
-Phases 1–4 implemented on a local warehouse with real nflverse data (2022–2024):
-warehouse + ingest + **eval harness** (Phase 1), entity resolution + few-shot
-retrieval (Phase 2), charts + leaderboards + shareable answers + Redis cache
-(Phase 3), play-by-play + situational/EPA metrics (Phase 4). The NL→SQL,
-narration, and embedding paths require `OPENAI_API_KEY`; everything else
-(warehouse, leaderboards, shareable pages, reference eval) runs without one. Full
-1999–present backfill is a matter of widening `--years`. See
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Phases 1–4 implemented on a local warehouse with real nflverse data, backfilled
+to the full modern era (**1999–2024**): warehouse + ingest + **eval harness**
+(Phase 1), entity resolution + few-shot retrieval (Phase 2), charts + leaderboards
++ shareable answers + Redis cache (Phase 3), play-by-play + situational/EPA +
+defensive stats (Phase 4).
+
+The NL→SQL path uses **intent classification first** — the LLM classifies a
+question into a known intent + slots, which map to vetted, parameterized SQL
+templates (safer than free-form SQL); free-form NL→SQL is the fallback. LLM stages
+work with any OpenAI-compatible endpoint (OpenAI or local Ollama); trigram
+resolution, leaderboards, shareable pages, and the reference eval run with no LLM.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

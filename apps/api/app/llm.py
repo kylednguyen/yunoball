@@ -33,6 +33,45 @@ async def complete(*, model: str, system: str, user: str, max_tokens: int) -> st
     return (resp.choices[0].message.content or "").strip()
 
 
+async def complete_json(*, model: str, system: str, user: str, max_tokens: int) -> dict:
+    """Chat completion constrained to a JSON object. Tolerant of models that wrap
+    the object in prose/fences — extracts the first {...} and parses it."""
+    import json
+    import re
+
+    try:
+        resp = await get_client().chat.completions.create(
+            model=model,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        )
+    except Exception:
+        # Some endpoints reject response_format; retry without it.
+        resp = await get_client().chat.completions.create(
+            model=model,
+            max_tokens=max_tokens,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        )
+    text = (resp.choices[0].message.content or "").strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+    return {}
+
+
 async def embed(text: str) -> list[float]:
     resp = await get_client().embeddings.create(
         model=settings.embedding_model, input=text

@@ -23,7 +23,21 @@ from ..schemas import (
     Suggestion,
 )
 
-LOADED_SEASONS = (2022, 2023, 2024)
+_RANGE: tuple[int, int] | None = None
+
+
+def loaded_range() -> tuple[int, int]:
+    """(min, max) loaded season, cached. Drives coverage + out-of-range warnings."""
+    global _RANGE
+    if _RANGE is None:
+        try:
+            with read_engine().connect() as conn:
+                lo, hi = conn.execute(text("SELECT MIN(season), MAX(season) FROM seasons")).first()
+            _RANGE = (int(lo), int(hi)) if lo is not None else (1999, 2024)
+        except Exception:
+            _RANGE = (1999, 2024)
+    return _RANGE
+
 
 # Season-rollup stat columns we can build comparison cards for.
 PSS_STAT_COLS = {
@@ -150,7 +164,8 @@ def _context_label(seasons: list[int], stype: str | None) -> str:
         span = str(seasons[0]) if len(seasons) == 1 else f"{seasons[0]}–{seasons[-1]}"
         default_phase = "season" if len(seasons) == 1 else "seasons"
     else:
-        span = "2022–2024"
+        lo, hi = loaded_range()
+        span = f"{lo}–{hi}"
         default_phase = "seasons"
     phase = {"REG": "regular season", "POST": "playoffs"}.get(stype or "", default_phase)
     return f"{span} {phase}".strip()
@@ -175,12 +190,13 @@ def build_chips(row: dict, numeric: list[str]) -> list[StatChip]:
 
 def build_source(question: str, query_type: str, n_rows: int) -> SourceInfo:
     warnings: list[str] = []
+    lo, hi = loaded_range()
     years = [int(y) for y in re.findall(r"\b(19\d{2}|20\d{2})\b", question)]
-    if any(y not in LOADED_SEASONS for y in years):
-        warnings.append("Only the 2022–2024 seasons are loaded; other years aren't available yet.")
+    if any(y < lo or y > hi for y in years):
+        warnings.append(f"Only the {lo}–{hi} seasons are loaded; other years aren't available yet.")
     if re.search(r"\b(live|today|tonight|projected|projection|fantasy projection)\b", question.lower()):
         warnings.append("This warehouse is historical (final stats only) — no live or projected data.")
-    coverage = "2022–2024 · regular & postseason"
+    coverage = f"{lo}–{hi} · regular & postseason"
     if query_type == "play":
         coverage += " · play-by-play"
     return SourceInfo(
@@ -221,7 +237,7 @@ def build_alternatives(seasons: list[int], stype: str | None, primary, question:
     if stype != "POST":
         alts.append(Suggestion(label="Playoffs only", query=f"{subj} {unit} in the playoffs"))
     if len(seasons) == 1:
-        alts.append(Suggestion(label="Career (2022–24)", query=f"{subj} total {unit} from 2022 to 2024"))
+        alts.append(Suggestion(label="Career", query=f"{subj} career {unit}"))
         alts.append(Suggestion(label="Per game", query=f"{subj} {unit} per game in {seasons[0]}"))
     return alts[:4]
 
@@ -302,7 +318,8 @@ def _comparisons(player_id: str, col: str, season: int, season_value: float) -> 
         if rank and total:
             cards.append(ComparisonCard(label="League rank", value=f"#{int(rank)}", note=f"of {int(total)}"))
         if career is not None:
-            cards.append(ComparisonCard(label="2022–24 total", value=_fmt(career), note="loaded seasons"))
+            lo, hi = loaded_range()
+            cards.append(ComparisonCard(label="Career total", value=_fmt(career), note=f"{lo}–{hi}"))
     except Exception:
         return []
     return cards

@@ -36,7 +36,8 @@ pipeline, and embeddings share one language and one schema definition.
             │    0. cache lookup      (Redis: hot/repeat queries skip the LLM)     │
             │    1. resolve_entities  (pg_trgm + pgvector → canonical ids)         │
             │    2. retrieve_context  (schema slice + few-shot Q→SQL via pgvector) │
-            │    3. generate_sql      (OpenAI: NL → read-only SELECT)              │
+            │    3. plan/generate_sql (classify intent → templated SQL;            │
+            │                          fallback: LLM free-form NL → SELECT)        │
             │    4. guard_sql         (sqlglot: parse, allowlist tables, LIMIT)    │
             │    5. execute_sql       (read-only role + statement_timeout)         │
             │    6. narrate           (OpenAI: one-line answer from rows)          │
@@ -81,7 +82,8 @@ pipeline, and embeddings share one language and one schema definition.
 - **Phase 1** ✅ — warehouse + ingest 2022–2024 (box score + rollups), least-privilege read-only role, player/team season & game queries, **eval harness** (golden Q→reference SQL; reference-only + execution-accuracy modes).
 - **Phase 2** ✅ — entity resolution (pg_trgm GIN + pgvector backstop over `entity_aliases`) and few-shot retrieval (pgvector over `query_examples`, keyword fallback without embeddings).
 - **Phase 3** ✅ — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis answer cache + Postgres write-through.
-- **Phase 4** ✅ — play-by-play ingest + situational/EPA metrics and golden examples. Full 1999–present backfill is a one-command widening of `--years` (loaded window: 2022–2024).
+- **Phase 4** ✅ — play-by-play ingest + situational/EPA + defensive stats (tackles, sacks, INTs). Backfilled to the full modern era **1999–2024** (one-command `--years $(seq 1999 2024)`).
+- **NL→SQL** ✅ — intent classification (question → intent + slots → vetted parameterized SQL templates) with free-form NL→SQL as fallback; runs on OpenAI or local Ollama.
 - **Later** — multi-sport (the NL→SQL engine is sport-agnostic; add per-sport schema + data source, e.g. `pybaseball` for MLB).
 
 > **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real

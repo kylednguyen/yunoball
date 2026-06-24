@@ -223,7 +223,7 @@ function EmptyState({ result, onAsk }: { result: AnswerResult; onAsk?: (q: strin
       <h3>No exact match for that</h3>
       <p>
         {result.source?.warnings?.[0] ??
-          "I couldn’t find data for that query. The warehouse covers the 2022–2024 seasons. Try one of these:"}
+          "I couldn’t find data for that query. Try one of these:"}
       </p>
       <div className="followups" style={{ justifyContent: "center" }}>
         {examples.map((q) => (

@@ -120,6 +120,10 @@ class PlayerGameStats(Base):
     receptions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     receiving_yards: Mapped[int | None] = mapped_column(Integer, default=0)
     receiving_tds: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    # defense  (`sacks` above is QB sacks *suffered*; these are defensive)
+    tackles: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    def_sacks: Mapped[float | None] = mapped_column(Float, default=0)
+    def_interceptions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     # shared
     fumbles: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     fumbles_lost: Mapped[int | None] = mapped_column(SmallInteger, default=0)
@@ -205,6 +209,10 @@ class PlayerSeasonStats(Base):
     receptions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     receiving_yards: Mapped[int | None] = mapped_column(Integer, default=0)
     receiving_tds: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    # defense
+    tackles: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    def_sacks: Mapped[float | None] = mapped_column(Float, default=0)
+    def_interceptions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     fantasy_points_ppr: Mapped[float | None] = mapped_column(Float, default=0)
 
     __table_args__ = (Index("pss_season_idx", "season"),)

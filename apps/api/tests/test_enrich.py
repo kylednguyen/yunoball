@@ -43,15 +43,15 @@ def test_primary_and_chips_derive_from_rows():
 
 def test_empty_rows_yield_followups_and_warning():
     out = enrich(
-        question="Who led the league in rushing in 1999?",
-        sql="SELECT p.full_name FROM player_season_stats s JOIN players p USING (player_id) WHERE s.season=1999",
+        question="Who led the league in rushing in 1990?",  # out of the loaded range
+        sql="SELECT p.full_name FROM player_season_stats s JOIN players p USING (player_id) WHERE s.season=1990",
         rows=[],
         columns=["full_name"],
         entities=[],
     )
     assert out["primary"] is None
     assert len(out["followups"]) >= 3
-    assert any("2022" in w for w in out["source"].warnings)
+    assert any("loaded" in w.lower() for w in out["source"].warnings)
 
 
 def test_value_never_invented_uses_row_value():

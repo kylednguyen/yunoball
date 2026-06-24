@@ -11,6 +11,8 @@ player_game_stats -> team_game_stats -> player_season_stats -> plays.
 
 from __future__ import annotations
 
+import time
+
 import numpy as np
 import nflreadpy as nr
 import pandas as pd
@@ -114,51 +116,64 @@ def load_games(engine: Engine, years: list[int]) -> int:
 
 
 def load_player_game_stats(engine: Engine, years: list[int]) -> int:
-    wk = _drop_preseason(nr.load_player_stats(years, summary_level="week").to_pandas())
-    df = pd.DataFrame(
-        {
-            "player_id": wk["player_id"],
-            "game_id": wk["game_id"],  # nflreadpy provides game_id directly
-            "team_id": wk["team"],
-            "completions": wk.get("completions"),
-            "attempts": wk.get("attempts"),
-            "passing_yards": wk.get("passing_yards"),
-            "passing_tds": wk.get("passing_tds"),
-            "interceptions": wk.get("passing_interceptions"),
-            "sacks": wk.get("sacks_suffered"),
-            "carries": wk.get("carries"),
-            "rushing_yards": wk.get("rushing_yards"),
-            "rushing_tds": wk.get("rushing_tds"),
-            "targets": wk.get("targets"),
-            "receptions": wk.get("receptions"),
-            "receiving_yards": wk.get("receiving_yards"),
-            "receiving_tds": wk.get("receiving_tds"),
-            "fumbles": _sum_cols(wk, "rushing_fumbles", "receiving_fumbles", "sack_fumbles"),
-            "fumbles_lost": _sum_cols(
-                wk, "rushing_fumbles_lost", "receiving_fumbles_lost", "sack_fumbles_lost"
-            ),
-            "fantasy_points_ppr": wk.get("fantasy_points_ppr"),
-        }
-    )
-    df = df[df["player_id"].notna() & df["game_id"].notna()]
-    df = df.drop_duplicates(subset=["player_id", "game_id"], keep="last")
-
-    # FK safety: backfill any weekly player not present in the roster pull.
-    backfill = (
-        pd.DataFrame(
+    total = 0
+    for year in years:  # per-season keeps a multi-decade backfill memory-bounded
+        wk = _drop_preseason(nr.load_player_stats([year], summary_level="week").to_pandas())
+        # Older seasons' weekly stats lack game_id — reconstruct it from the
+        # schedule ((season, week, team) is unique: each team plays once a week).
+        if "game_id" not in wk.columns or wk["game_id"].isna().any():
+            gmap = _game_id_map(engine, year)
+            mapped = pd.Series(
+                [gmap.get(k) for k in zip(wk["season"], wk["week"], wk["team"])], index=wk.index
+            )
+            wk["game_id"] = wk["game_id"].fillna(mapped) if "game_id" in wk.columns else mapped
+        df = pd.DataFrame(
             {
                 "player_id": wk["player_id"],
-                "full_name": wk.get("player_display_name", wk.get("player_name")),
-                "position": wk.get("position"),
+                "game_id": wk["game_id"],
+                "team_id": wk["team"],
+                "completions": wk.get("completions"),
+                "attempts": wk.get("attempts"),
+                "passing_yards": wk.get("passing_yards"),
+                "passing_tds": wk.get("passing_tds"),
+                "interceptions": wk.get("passing_interceptions"),
+                "sacks": wk.get("sacks_suffered"),
+                "carries": wk.get("carries"),
+                "rushing_yards": wk.get("rushing_yards"),
+                "rushing_tds": wk.get("rushing_tds"),
+                "targets": wk.get("targets"),
+                "receptions": wk.get("receptions"),
+                "receiving_yards": wk.get("receiving_yards"),
+                "receiving_tds": wk.get("receiving_tds"),
+                "tackles": _sum_cols(wk, "def_tackles_solo", "def_tackle_assists"),
+                "def_sacks": wk.get("def_sacks"),
+                "def_interceptions": wk.get("def_interceptions"),
+                "fumbles": _sum_cols(wk, "rushing_fumbles", "receiving_fumbles", "sack_fumbles"),
+                "fumbles_lost": _sum_cols(
+                    wk, "rushing_fumbles_lost", "receiving_fumbles_lost", "sack_fumbles_lost"
+                ),
+                "fantasy_points_ppr": wk.get("fantasy_points_ppr"),
             }
         )
-        .dropna(subset=["player_id", "full_name"])
-        .drop_duplicates(subset=["player_id"])
-    )
-    _upsert(engine, "players", backfill, conflict=["player_id"], do_update=False)
+        df = df[df["player_id"].notna() & df["game_id"].notna()]
+        df = df.drop_duplicates(subset=["player_id", "game_id"], keep="last")
 
-    _upsert(engine, "player_game_stats", df, conflict=["player_id", "game_id"])
-    return len(df)
+        # FK safety: every weekly player_id must exist in players. Backfill any
+        # missing one, falling back to the id as the name when nflverse has none
+        # (full_name is NOT NULL), so no stat row can dangle.
+        names = wk.get("player_display_name")
+        if names is None:
+            names = wk.get("player_name")
+        backfill = pd.DataFrame(
+            {"player_id": wk["player_id"], "full_name": names, "position": wk.get("position")}
+        )
+        backfill = backfill[backfill["player_id"].notna()]
+        backfill["full_name"] = backfill["full_name"].fillna(backfill["player_id"])
+        backfill = backfill.drop_duplicates(subset=["player_id"])
+        _upsert(engine, "players", backfill, conflict=["player_id"], do_update=False)
+        _upsert(engine, "player_game_stats", df, conflict=["player_id", "game_id"])
+        total += len(df)
+    return total
 
 
 def load_team_game_stats(engine: Engine, years: list[int]) -> int:
@@ -223,75 +238,87 @@ def load_team_game_stats(engine: Engine, years: list[int]) -> int:
 
 
 def load_player_season_stats(engine: Engine, years: list[int]) -> int:
-    seas = nr.load_player_stats(years, summary_level="reg").to_pandas()  # regular-season totals
-    df = pd.DataFrame(
-        {
-            "player_id": seas["player_id"],
-            "season": seas["season"],
-            "season_type": seas.get("season_type", "REG"),
-            "team_id": seas.get("recent_team"),
-            "games_played": seas.get("games"),
-            "passing_yards": seas.get("passing_yards"),
-            "passing_tds": seas.get("passing_tds"),
-            "interceptions": seas.get("passing_interceptions"),
-            "rushing_yards": seas.get("rushing_yards"),
-            "rushing_tds": seas.get("rushing_tds"),
-            "receptions": seas.get("receptions"),
-            "receiving_yards": seas.get("receiving_yards"),
-            "receiving_tds": seas.get("receiving_tds"),
-            "fantasy_points_ppr": seas.get("fantasy_points_ppr"),
-        }
-    )
-    df["season_type"] = df["season_type"].fillna("REG")
-    df = df[df["player_id"].notna()].drop_duplicates(
-        subset=["player_id", "season", "season_type"], keep="last"
-    )
-    _upsert(engine, "player_season_stats", df, conflict=["player_id", "season", "season_type"])
-    return len(df)
+    total = 0
+    for year in years:  # per-season keeps a multi-decade backfill memory-bounded
+        seas = nr.load_player_stats([year], summary_level="reg").to_pandas()  # regular-season totals
+        df = pd.DataFrame(
+            {
+                "player_id": seas["player_id"],
+                "season": seas["season"],
+                "season_type": seas.get("season_type", "REG"),
+                "team_id": seas.get("recent_team"),
+                "games_played": seas.get("games"),
+                "passing_yards": seas.get("passing_yards"),
+                "passing_tds": seas.get("passing_tds"),
+                "interceptions": seas.get("passing_interceptions"),
+                "rushing_yards": seas.get("rushing_yards"),
+                "rushing_tds": seas.get("rushing_tds"),
+                "receptions": seas.get("receptions"),
+                "receiving_yards": seas.get("receiving_yards"),
+                "receiving_tds": seas.get("receiving_tds"),
+                "tackles": _sum_cols(seas, "def_tackles_solo", "def_tackle_assists"),
+                "def_sacks": seas.get("def_sacks"),
+                "def_interceptions": seas.get("def_interceptions"),
+                "fantasy_points_ppr": seas.get("fantasy_points_ppr"),
+            }
+        )
+        df["season_type"] = df["season_type"].fillna("REG")
+        df = df[df["player_id"].notna()].drop_duplicates(
+            subset=["player_id", "season", "season_type"], keep="last"
+        )
+        _upsert(engine, "player_season_stats", df, conflict=["player_id", "season", "season_type"])
+        total += len(df)
+    return total
 
 
 def load_plays(engine: Engine, years: list[int]) -> int:
-    """Play-by-play — the engine for situational/advanced queries (Phase 4).
+    """Play-by-play — the engine for situational/advanced queries.
 
-    Selects the lean column subset the `plays` table needs in polars (the full
-    nflverse PBP is ~370 columns) before converting; upserts in chunks.
+    Loads one season at a time (the full nflverse PBP is ~370 cols and ~50k
+    rows/season) so a multi-decade backfill stays memory-bounded; selects the
+    lean subset in polars before converting and upserts in chunks.
     """
     src = [
         "play_id", "game_id", "posteam", "defteam", "qtr", "down", "ydstogo",
         "yardline_100", "play_type", "yards_gained", "epa", "wp", "success",
         "passer_player_id", "rusher_player_id", "receiver_player_id", "desc",
     ]
-    pbp = nr.load_pbp(years).select(src).to_pandas()
     valid_teams = _existing_ids(engine, "teams", "team_id")
     valid_games = _existing_ids(engine, "games", "game_id")
-
-    success = pbp.get("success")
-    df = pd.DataFrame(
-        {
-            # play_id is only unique within a game in nflverse; key by game+play.
-            "play_id": pbp["game_id"].astype(str) + "_" + pbp["play_id"].astype("Int64").astype(str),
-            "game_id": pbp["game_id"],
-            "posteam": pbp["posteam"].where(pbp["posteam"].isin(valid_teams)),
-            "defteam": pbp["defteam"].where(pbp["defteam"].isin(valid_teams)),
-            "qtr": pbp.get("qtr"),
-            "down": pbp.get("down"),
-            "yards_to_go": pbp.get("ydstogo"),
-            "yardline_100": pbp.get("yardline_100"),
-            "play_type": pbp.get("play_type"),
-            "yards_gained": pbp.get("yards_gained"),
-            "epa": pbp.get("epa"),
-            "wp": pbp.get("wp"),
-            "success": success.map({1: True, 0: False}) if success is not None else None,
-            "passer_player_id": pbp.get("passer_player_id"),
-            "rusher_player_id": pbp.get("rusher_player_id"),
-            "receiver_player_id": pbp.get("receiver_player_id"),
-            "description": pbp.get("desc"),
-        }
-    )
-    df = df[pbp["play_id"].notna().values & pbp["game_id"].isin(valid_games).values]
-    df = df.drop_duplicates(subset=["play_id"], keep="last")
-    _upsert(engine, "plays", df, conflict=["play_id"], chunk=2000)
-    return len(df)
+    total = 0
+    for year in years:
+        pbp = _load_pbp_year(year, src)
+        if pbp is None:  # transient download failure — don't abort the backfill
+            print(f"[ingest] plays {year}: SKIPPED (download failed; re-run --only plays)")
+            continue
+        success = pbp.get("success")
+        df = pd.DataFrame(
+            {
+                # play_id is only unique within a game; key by game+play.
+                "play_id": pbp["game_id"].astype(str) + "_" + pbp["play_id"].astype("Int64").astype(str),
+                "game_id": pbp["game_id"],
+                "posteam": pbp["posteam"].where(pbp["posteam"].isin(valid_teams)),
+                "defteam": pbp["defteam"].where(pbp["defteam"].isin(valid_teams)),
+                "qtr": pbp.get("qtr"),
+                "down": pbp.get("down"),
+                "yards_to_go": pbp.get("ydstogo"),
+                "yardline_100": pbp.get("yardline_100"),
+                "play_type": pbp.get("play_type"),
+                "yards_gained": pbp.get("yards_gained"),
+                "epa": pbp.get("epa"),
+                "wp": pbp.get("wp"),
+                "success": success.map({1: True, 0: False}) if success is not None else None,
+                "passer_player_id": pbp.get("passer_player_id"),
+                "rusher_player_id": pbp.get("rusher_player_id"),
+                "receiver_player_id": pbp.get("receiver_player_id"),
+                "description": pbp.get("desc"),
+            }
+        )
+        df = df[pbp["play_id"].notna().values & pbp["game_id"].isin(valid_games).values]
+        df = df.drop_duplicates(subset=["play_id"], keep="last")
+        _upsert(engine, "plays", df, conflict=["play_id"], chunk=2000)
+        total += len(df)
+    return total
 
 
 # --------------------------------------------------------------------------- #
@@ -342,6 +369,36 @@ def _date(value):
 def _existing_ids(engine: Engine, table: str, col: str) -> set:
     with engine.connect() as conn:
         return {r[0] for r in conn.execute(text(f"SELECT {col} FROM {table}"))}
+
+
+def _load_pbp_year(year: int, columns: list[str], attempts: int = 3):
+    """Download one season of PBP with retries (nflverse parquet fetches can time
+    out); returns the lean pandas frame, or None if all attempts fail."""
+    for attempt in range(1, attempts + 1):
+        try:
+            return nr.load_pbp([year]).select(columns).to_pandas()
+        except Exception as err:  # noqa: BLE001 — transient network/IO
+            if attempt == attempts:
+                print(f"[ingest] plays {year}: download failed after {attempts} tries ({err})")
+                return None
+            time.sleep(3 * attempt)
+    return None
+
+
+def _game_id_map(engine: Engine, year: int) -> dict[tuple, str]:
+    """(season, week, team) -> game_id, from the already-loaded games table."""
+    out: dict[tuple, str] = {}
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT season, week, home_team, away_team, game_id FROM games WHERE season = :y"
+            ),
+            {"y": year},
+        )
+        for season, week, home, away, gid in rows:
+            out[(season, week, home)] = gid
+            out[(season, week, away)] = gid
+    return out
 
 
 def _py(value):
