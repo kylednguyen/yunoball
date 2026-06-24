@@ -28,6 +28,12 @@ packages/ingest/data/
 # turbo
 .turbo/
 
+# local docker override (machine-specific port remap)
+docker-compose.override.yml
+
+# next.js generated
+next-env.d.ts
+
 # logs / os
 *.log
 .DS_Store

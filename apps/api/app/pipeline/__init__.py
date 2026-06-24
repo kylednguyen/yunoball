@@ -16,12 +16,13 @@ from .execute import execute_sql
 from .narrate import narrate
 
 
-async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
+async def run_query_pipeline(req: SearchRequest, *, use_cache: bool = True) -> SearchResponse:
     question = req.question
 
-    cached = await cache.get_cached(question)
-    if cached is not None:
-        return SearchResponse(**{**cached, "cached": True})
+    if use_cache:
+        cached = await cache.get_cached(question)
+        if cached is not None:
+            return SearchResponse(**{**cached, "cached": True})
 
     entities = await resolve_entities(question)
     context = await retrieve_context(question)
@@ -40,7 +41,10 @@ async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
         columns=columns,
         entities=entities,
         cached=False,
+        share_id=cache.share_id(question),
     )
 
-    await cache.set_cached(question, response.model_dump())
+    if use_cache:
+        await cache.set_cached(question, response.model_dump())
+        cache.persist_answer(response.model_dump())  # durable + shareable
     return response
