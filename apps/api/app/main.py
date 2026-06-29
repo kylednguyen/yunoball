@@ -25,15 +25,17 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if settings.demo_mode:
+    if settings.use_sqlite:
         from .database import get_engine
         from .seed import is_seeded, seed_demo
 
         engine = get_engine()
         if not is_seeded(engine):
-            log.warning("DEMO MODE: seeding sample NFL data into %s", settings.demo_db_path)
+            log.warning("DEMO: seeding sample NFL data into %s", settings.demo_db_path)
             seed_demo(engine)
-        log.warning("DEMO MODE active (SQLite + rule-based NL->SQL, no API keys).")
+    llm = "rule-based" if settings.use_mock_llm else "OpenAI"
+    db = "SQLite demo" if settings.use_sqlite else "Postgres"
+    log.warning("YunoBall up: LLM=%s, DB=%s", llm, db)
     yield
 
 
@@ -51,7 +53,13 @@ app.include_router(search.router)
 
 @app.get("/health")
 async def health() -> dict[str, object]:
-    return {"ok": True, "service": "yunoball-api", "demo_mode": settings.demo_mode}
+    return {
+        "ok": True,
+        "service": "yunoball-api",
+        "demo_mode": settings.demo_mode,
+        "mock_llm": settings.use_mock_llm,
+        "sqlite": settings.use_sqlite,
+    }
 
 
 @app.get("/")
