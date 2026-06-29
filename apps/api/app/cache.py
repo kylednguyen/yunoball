@@ -55,7 +55,11 @@ async def set_cached(question: str, payload: dict[str, Any]) -> None:
         return
     try:
         await get_client().set(
-            _key(question), json.dumps(payload), ex=settings.answer_cache_ttl_seconds
+            _key(question),
+            # default=str so date/Decimal values from Postgres rows serialize
+            # instead of raising and silently disabling the cache.
+            json.dumps(payload, default=str),
+            ex=settings.answer_cache_ttl_seconds,
         )
     except Exception:  # noqa: BLE001
         pass
