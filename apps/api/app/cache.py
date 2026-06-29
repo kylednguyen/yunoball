@@ -40,8 +40,8 @@ def _key(question: str) -> str:
 
 
 async def get_cached(question: str) -> dict[str, Any] | None:
-    # Demo mode runs without Redis; failures degrade gracefully to a cache miss.
-    if settings.demo_mode:
+    # The SQLite demo runs without Redis; failures degrade to a cache miss.
+    if settings.use_sqlite:
         return None
     try:
         raw = await get_client().get(_key(question))
@@ -51,7 +51,7 @@ async def get_cached(question: str) -> dict[str, Any] | None:
 
 
 async def set_cached(question: str, payload: dict[str, Any]) -> None:
-    if settings.demo_mode:
+    if settings.use_sqlite:
         return
     try:
         await get_client().set(

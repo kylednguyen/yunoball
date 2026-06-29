@@ -29,8 +29,9 @@ Schema:
 async def generate_sql(
     *, question: str, entities: list[ResolvedEntity], context: RetrievedContext
 ) -> str:
-    # Demo mode: deterministic rule-based generation, no API key required.
-    if settings.demo_mode:
+    # No API key: deterministic rule-based generation (works against the
+    # SQLite demo or a real Postgres alike).
+    if settings.use_mock_llm:
         return mock_generate_sql(question)
 
     few_shot = "\n\n".join(

@@ -43,26 +43,41 @@ class Settings(BaseSettings):
     demo_db_path: str = os.path.join(os.getcwd(), "yunoball_demo.db")
 
     # ---- derived ----
+    #
+    # Two independent axes:
+    #   use_mock_llm — no OpenAI key (or DEMO=1) → rule-based NL->SQL
+    #   use_sqlite   — no DATABASE_URL → seeded SQLite demo file
+    # This lets the rule-based engine serve a real, fully-loaded Postgres
+    # (DATABASE_URL set, no OpenAI key) — real data with zero API cost.
 
     @property
-    def demo_mode(self) -> bool:
+    def use_mock_llm(self) -> bool:
         return self.demo or not self.openai_api_key
 
     @property
+    def use_sqlite(self) -> bool:
+        return not self.database_url
+
+    @property
+    def demo_mode(self) -> bool:
+        """Backwards-compatible flag: true when either side is in demo."""
+        return self.use_mock_llm or self.use_sqlite
+
+    @property
     def effective_database_url(self) -> str:
-        if self.demo_mode:
+        if self.use_sqlite:
             return f"sqlite:///{self.demo_db_path}"
         return self.database_url or ""
 
     @property
     def effective_readonly_url(self) -> str:
-        if self.demo_mode:
+        if self.use_sqlite:
             return f"sqlite:///{self.demo_db_path}"
         return self.readonly_database_url or self.database_url or ""
 
     @property
     def sql_dialect(self) -> str:
-        return "sqlite" if self.demo_mode else "postgres"
+        return "sqlite" if self.use_sqlite else "postgres"
 
 
 settings = Settings()
