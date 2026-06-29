@@ -24,7 +24,7 @@ async def narrate(*, question: str, rows: list[dict[str, Any]]) -> str:
     if not rows:
         return "No matching results found."
 
-    if settings.demo_mode:
+    if settings.use_mock_llm:
         return mock_narrate(question, rows)
 
     user = (
