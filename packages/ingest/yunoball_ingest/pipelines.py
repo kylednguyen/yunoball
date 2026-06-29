@@ -1,8 +1,8 @@
 """nflverse -> warehouse load pipelines.
 
-Each pipeline pulls a dataset via nfl_data_py, reshapes it to match the Drizzle
-schema, and upserts it into Postgres. Pipelines are idempotent: re-running a
-season replaces its rows.
+Each pipeline pulls a dataset via nfl_data_py, reshapes it to match the
+warehouse schema (packages/db), and upserts it into Postgres. Pipelines are
+idempotent: re-running a season replaces its rows.
 
 NOTE: column mappings below are the common case and will be tightened as the
 schema is exercised against real data in Phase 1.
@@ -27,7 +27,7 @@ def load_teams(engine: Engine) -> int:
             "division": desc["team_division"],
         }
     ).drop_duplicates(subset=["team_id"])
-    _replace(engine, "teams", df)
+    _upsert(engine, "teams", df, conflict=["team_id"])
     return len(df)
 
 
@@ -79,10 +79,19 @@ def load_games(engine: Engine, years: list[int]) -> int:
 
 def load_player_game_stats(engine: Engine, years: list[int]) -> int:
     wk = nfl.import_weekly_data(years)
+    # Resolve the canonical nflverse game_id from the schedule by
+    # (season, week, team) — a team plays one game per week, so this is
+    # unambiguous and avoids guessing home/away ordering.
+    game_ids = _game_id_lookup(years)
+    keys = zip(
+        wk["season"].astype(int),
+        wk["week"].astype(int),
+        wk["recent_team"].astype(str),
+    )
     df = pd.DataFrame(
         {
             "player_id": wk["player_id"],
-            "game_id": _build_game_id(wk),
+            "game_id": [game_ids.get(k) for k in keys],
             "team_id": wk["recent_team"],
             "completions": wk.get("completions"),
             "attempts": wk.get("attempts"),
@@ -99,7 +108,10 @@ def load_player_game_stats(engine: Engine, years: list[int]) -> int:
             "fantasy_points_ppr": wk.get("fantasy_points_ppr"),
         }
     )
-    df = df[df["player_id"].notna() & df["game_id"].notna()]
+    # game_id and team_id are NOT NULL FKs; drop any row missing either.
+    df = df[
+        df["player_id"].notna() & df["game_id"].notna() & df["team_id"].notna()
+    ]
     _upsert(engine, "player_game_stats", df, conflict=["player_id", "game_id"])
     return len(df)
 
@@ -107,21 +119,24 @@ def load_player_game_stats(engine: Engine, years: list[int]) -> int:
 # --------------------------------------------------------------------------- #
 
 
-def _build_game_id(wk: pd.DataFrame) -> pd.Series:
-    """nflverse weekly data lacks game_id directly; reconstruct from parts."""
-    return (
-        wk["season"].astype(str)
-        + "_"
-        + wk["week"].astype(str).str.zfill(2)
-        + "_"
-        + wk["opponent_team"].astype(str)
-        + "_"
-        + wk["recent_team"].astype(str)
-    )
+def _game_id_lookup(years: list[int]) -> dict[tuple[int, int, str], str]:
+    """Map (season, week, team) -> canonical nflverse game_id, from the schedule.
 
-
-def _replace(engine: Engine, table: str, df: pd.DataFrame) -> None:
-    df.to_sql(table, engine, if_exists="append", index=False, method="multi")
+    Each game contributes two entries (home and away team) so a player's
+    recent_team resolves to the right game regardless of side.
+    """
+    sched = nfl.import_schedules(years)
+    lookup: dict[tuple[int, int, str], str] = {}
+    for season, week, home, away, game_id in zip(
+        sched["season"].astype(int),
+        sched["week"].astype(int),
+        sched["home_team"].astype(str),
+        sched["away_team"].astype(str),
+        sched["game_id"].astype(str),
+    ):
+        lookup[(season, week, home)] = game_id
+        lookup[(season, week, away)] = game_id
+    return lookup
 
 
 def _upsert(
