@@ -7,13 +7,17 @@ import { BarChart, type BarDatum } from "./BarChart";
 
 const MAX_BARS = 15;
 
+/** A column is numeric if every non-empty cell parses as a number. */
+function isNumericColumn(rows: AnswerResult["rows"], c: string): boolean {
+  return rows.every((r) => r[c] === null || r[c] === undefined || r[c] === "" || !isNaN(Number(r[c])));
+}
+
 /** Pick a (label, value) pair from the result for charting, if one fits. */
 function chartData(result: AnswerResult): { data: BarDatum[]; label: string } | null {
   const { rows, columns } = result;
   if (rows.length < 2 || columns.length < 2) return null;
 
-  const isNum = (c: string) =>
-    rows.every((r) => r[c] === null || r[c] === undefined || !isNaN(Number(r[c])));
+  const isNum = (c: string) => isNumericColumn(rows, c);
   const numeric = columns.filter(isNum);
   const labelCol = columns.find((c) => !numeric.includes(c));
   if (!labelCol) return null;
@@ -43,6 +47,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const [showSql, setShowSql] = useState(false);
   const [copied, setCopied] = useState(false);
   const chart = chartData(result);
+  const numericCols = new Set(result.columns.filter((c) => isNumericColumn(result.rows, c)));
 
   async function copyShareLink() {
     if (!result.share_id) return;
@@ -53,7 +58,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   }
 
   return (
-    <section className="yb-card" style={{ marginTop: 28 }}>
+    <section className="yb-card yb-enter" style={{ marginTop: 28 }}>
       <p className="yb-answer">{result.narration}</p>
 
       {result.entities && result.entities.length > 0 && (
@@ -73,12 +78,14 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
       {chart && <BarChart data={chart.data} />}
 
       {result.rows.length > 0 && (
-        <div style={{ overflowX: "auto", marginTop: 16 }}>
+        <div className="yb-table-scroll" style={{ marginTop: 16 }}>
           <table className="yb-table">
             <thead>
               <tr>
                 {result.columns.map((c) => (
-                  <th key={c}>{c.replace(/_/g, " ")}</th>
+                  <th key={c} className={numericCols.has(c) ? "num" : undefined} scope="col">
+                    {c.replace(/_/g, " ")}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -86,7 +93,9 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
               {result.rows.map((row, i) => (
                 <tr key={i}>
                   {result.columns.map((c) => (
-                    <td key={c}>{String(row[c] ?? "")}</td>
+                    <td key={c} className={numericCols.has(c) ? "num" : undefined}>
+                      {String(row[c] ?? "")}
+                    </td>
                   ))}
                 </tr>
               ))}

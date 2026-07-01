@@ -6,6 +6,7 @@ export default function Home() {
     <>
       <Nav />
       <main
+        id="main"
         style={{
           maxWidth: 720,
           margin: "0 auto",
