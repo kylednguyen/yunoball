@@ -13,7 +13,7 @@ pgvector for scale; the interface stays the same.
 from __future__ import annotations
 
 import re
-from difflib import SequenceMatcher
+from difflib import SequenceMatcher, get_close_matches
 
 import anyio
 from sqlalchemy import text
@@ -33,24 +33,29 @@ _STOP = {
 _MIN_SPAN = 4
 _THRESHOLD = 0.84
 
-# name cache keyed by connection URL so tests with fresh DBs don't collide
-_players_cache: dict[str, list[tuple[str, str]]] = {}
+# Index cache keyed by connection URL so tests with fresh DBs don't collide.
+# Maps a lowercased match target (full name and last name) -> (player_id, name).
+_index_cache: dict[str, dict[str, tuple[str, str]]] = {}
 
 
-def _load_players() -> list[tuple[str, str]]:
+def _load_index() -> dict[str, tuple[str, str]]:
     key = settings.effective_readonly_url
-    cached = _players_cache.get(key)
+    cached = _index_cache.get(key)
     if cached is not None:
         return cached
     with get_readonly_engine().connect() as conn:
         rows = conn.execute(text("SELECT player_id, full_name FROM players"))
         players = [(str(r[0]), str(r[1])) for r in rows]
-    _players_cache[key] = players
-    return players
+    index: dict[str, tuple[str, str]] = {}
+    for pid, name in players:
+        index[name.lower()] = (pid, name)                     # full name
+        index.setdefault(name.lower().split()[-1], (pid, name))  # last name
+    _index_cache[key] = index
+    return index
 
 
 def clear_cache() -> None:
-    _players_cache.clear()
+    _index_cache.clear()
 
 
 def _spans(question: str) -> list[str]:
@@ -67,28 +72,30 @@ def _spans(question: str) -> list[str]:
     return spans
 
 
-def _best(question: str, players: list[tuple[str, str]]) -> ResolvedEntity | None:
+def _best(question: str, index: dict[str, tuple[str, str]]) -> ResolvedEntity | None:
     spans = _spans(question)
     if not spans:
         return None
-    best: tuple[float, str, str, str] | None = None  # (score, pid, name, span)
-    for pid, name in players:
-        targets = {name.lower(), name.lower().split()[-1]}
-        for span in spans:
-            for tgt in targets:
-                score = SequenceMatcher(None, span, tgt).ratio()
-                if best is None or score > best[0]:
-                    best = (score, pid, name, span)
-    if best and best[0] >= _THRESHOLD:
-        score, pid, name, span = best
-        return ResolvedEntity(
-            mention=span, entity_type="player", canonical_id=pid,
-            display_name=name, confidence=round(score, 3),
-        )
-    return None
+    keys = list(index.keys())
+    best: tuple[float, str, str] | None = None  # (score, target, span)
+    for span in spans:
+        # get_close_matches uses quick_ratio short-circuits, so it prunes most
+        # candidates cheaply instead of a full O(n) ratio() over every name.
+        for target in get_close_matches(span, keys, n=1, cutoff=_THRESHOLD):
+            score = SequenceMatcher(None, span, target).ratio()
+            if best is None or score > best[0]:
+                best = (score, target, span)
+    if best is None:
+        return None
+    score, target, span = best
+    pid, name = index[target]
+    return ResolvedEntity(
+        mention=span, entity_type="player", canonical_id=pid,
+        display_name=name, confidence=round(score, 3),
+    )
 
 
 async def resolve_entities(question: str) -> list[ResolvedEntity]:
-    players = await anyio.to_thread.run_sync(_load_players)
-    match = _best(question, players)
+    index = await anyio.to_thread.run_sync(_load_index)
+    match = _best(question, index)
     return [match] if match else []

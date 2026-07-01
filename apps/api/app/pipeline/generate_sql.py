@@ -10,7 +10,6 @@ import re
 
 from .. import llm
 from ..config import settings
-from ..mock_nl2sql import mock_generate_sql
 from ..schemas import ResolvedEntity
 from .retrieve import RetrievedContext
 
@@ -29,11 +28,8 @@ Schema:
 async def generate_sql(
     *, question: str, entities: list[ResolvedEntity], context: RetrievedContext
 ) -> str:
-    # No API key: deterministic rule-based generation (works against the
-    # SQLite demo or a real Postgres alike).
-    if settings.use_mock_llm:
-        return mock_generate_sql(question)
-
+    # Long-tail raw NL->SQL. Only reached when a real LLM is configured; the
+    # rule-based (key-less) path answers via the structured QuerySpec pipeline.
     few_shot = "\n\n".join(
         f"Q: {e['question']}\nSQL: {e['sql']}" for e in context.examples
     )

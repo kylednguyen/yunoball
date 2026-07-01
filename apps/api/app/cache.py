@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any
 
@@ -27,20 +28,27 @@ if TYPE_CHECKING:
 
 
 class _MemoryCache:
-    """Tiny async-compatible LRU with TTL ignored (process-lifetime)."""
+    """Tiny async-compatible LRU with TTL, so cached answers expire like Redis
+    (otherwise a long-lived process serves stale data after re-ingestion)."""
 
     def __init__(self, maxsize: int = 1024):
-        self._store: OrderedDict[str, str] = OrderedDict()
+        self._store: OrderedDict[str, tuple[str, float | None]] = OrderedDict()
         self._maxsize = maxsize
 
     async def get(self, key: str) -> str | None:
-        if key in self._store:
-            self._store.move_to_end(key)
-            return self._store[key]
-        return None
+        item = self._store.get(key)
+        if item is None:
+            return None
+        value, expiry = item
+        if expiry is not None and expiry <= time.time():
+            del self._store[key]
+            return None
+        self._store.move_to_end(key)
+        return value
 
     async def set(self, key: str, value: str, ex: int | None = None) -> None:
-        self._store[key] = value
+        expiry = time.time() + ex if ex else None
+        self._store[key] = (value, expiry)
         self._store.move_to_end(key)
         while len(self._store) > self._maxsize:
             self._store.popitem(last=False)
@@ -69,7 +77,10 @@ def _get_backend():
 
 
 def normalize_question(q: str) -> str:
-    return re.sub(r"\s+", " ", q.strip().lower())
+    # Lowercase and drop punctuation so "...touchdowns?" and "...touchdowns"
+    # share a cache entry.
+    q = re.sub(r"[^\w\s]", " ", q.lower())
+    return re.sub(r"\s+", " ", q).strip()
 
 
 def _hash(s: str) -> str:
