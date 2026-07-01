@@ -58,9 +58,11 @@ class QuerySpec(BaseModel):
         return STATS[self.stat][1]
 
     def cache_key(self) -> str:
+        # Must include every field build_sql() depends on — notably player_id,
+        # since two players can share a display name.
         return "|".join(
             str(x) for x in (
                 self.intent.value, self.stat, self.season, self.season_type,
-                (self.player or "").lower(), self.scope, self.limit,
+                (self.player or "").lower(), self.player_id, self.scope, self.limit,
             )
         )

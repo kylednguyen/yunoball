@@ -69,6 +69,24 @@ async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
         await cache.set(skey, payload)
         return response
 
+    # --- Nothing parsed to a spec ---
+    # The key-less rule-based engine can only answer structured shapes; be
+    # honest rather than guess. The raw NL->SQL fallback needs a real LLM.
+    if settings.use_mock_llm:
+        return SearchResponse(
+            question=question,
+            narration=(
+                "I can't answer that one yet — try a stats question like "
+                "\"most passing yards in 2023\" or \"Patrick Mahomes career "
+                "passing touchdowns\"."
+            ),
+            sql="",
+            rows=[],
+            columns=[],
+            entities=entities,
+            cached=False,
+        )
+
     # --- Long-tail fallback: raw NL -> SQL (guarded) ---
     context = await retrieve_context(question)
     raw_sql = await generate_sql(question=question, entities=entities, context=context)
