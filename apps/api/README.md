@@ -4,20 +4,37 @@ FastAPI backend — the natural-language → SQL query pipeline over the NFL war
 
 ## Pipeline
 
+Structured-first — the common path never touches raw SQL and often skips the LLM:
+
 ```
-cache → resolve_entities → retrieve_context → generate_sql
-      → guard_sql → execute_sql → narrate
+L1 cache (text/semantic)
+ → resolve (fuzzy name → player_id)
+ → parse to QuerySpec (rules fast-path; else LLM function-call)
+ → validate (allowlisted stat, bounded params)
+ → L2 cache (spec key)
+ → build (deterministic template, bound params)
+ → execute (read-only, timeout)
+ → narrate (templated — no 2nd LLM call)
+ └ fallback: raw NL→SQL → sqlglot guard → execute → LLM narrate
 ```
 
-`guard_sql` (sqlglot) enforces a single read-only SELECT over an allowlist of
-tables with a forced LIMIT — defense-in-depth on top of the read-only DB role.
+- **`app/query/`** — `spec.py` (QuerySpec), `build.py` (SQL builder + narration),
+  `parse_rules.py` (rules), `parse_llm.py` (LLM function-call + JSON validation).
+- **`app/pipeline/`** — orchestration, `resolve.py` (fuzzy entities), `execute.py`.
+- The structured path needs **no SQL guard** (SQL is templated with bound params);
+  `guard_sql` (sqlglot) only guards the raw-SQL fallback.
 
 ## Run modes
 
-The app auto-selects based on the environment:
+The app auto-selects on two independent axes (see `config.py`):
 
-- **Demo** (no `OPENAI_API_KEY`, or `DEMO=1`): SQLite + rule-based NL→SQL +
-  seeded sample data. Seeds on startup; serves a test UI at `/`.
+- **LLM**: rule-based when no `OPENAI_API_KEY` (or `DEMO=1`), else OpenAI.
+- **DB**: seeded SQLite when no `DATABASE_URL`, else Postgres.
+
+So a real Postgres with **no** OpenAI key runs the rule-based engine over real
+data at zero LLM cost.
+
+- **Demo** (no key, no DB): SQLite + rule-based + seeded data; serves a test UI at `/`.
 - **Production**: Postgres + pgvector (`DATABASE_URL`), OpenAI, Redis.
 
 ## Run
