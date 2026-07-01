@@ -28,24 +28,17 @@ export default function LeaderboardsPage() {
   return (
     <>
       <Nav />
-      <main style={{ maxWidth: 980, margin: "0 auto", padding: "40px 20px 120px" }}>
+      <main id="main" style={{ maxWidth: 980, margin: "0 auto", padding: "40px 20px 120px" }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
           <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em", margin: 0 }}>
             Leaderboards
           </h1>
           {data && (
             <select
+              className="yb-select"
+              aria-label="Select season"
               value={data.season}
               onChange={(e) => setSeason(Number(e.target.value))}
-              style={{
-                background: "var(--panel)",
-                color: "var(--text)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                padding: "8px 12px",
-                fontSize: 14,
-                fontFamily: "inherit",
-              }}
             >
               {data.seasons.map((s) => (
                 <option key={s} value={s}>
@@ -59,7 +52,25 @@ export default function LeaderboardsPage() {
           Season leaders across the board — the same warehouse that powers search.
         </p>
 
-        {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+        {error && (
+          <div className="yb-state error" role="alert">
+            <div className="yb-glyph" aria-hidden="true">
+              ⚠️
+            </div>
+            <h2>Couldn&apos;t load leaderboards</h2>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && data && data.boards.every((b) => b.rows.length === 0) && (
+          <div className="yb-state">
+            <div className="yb-glyph" aria-hidden="true">
+              📊
+            </div>
+            <h2>No leaders for this season yet</h2>
+            <p>There&apos;s no data ingested for {data.season}. Try another season.</p>
+          </div>
+        )}
 
         <div
           style={{
