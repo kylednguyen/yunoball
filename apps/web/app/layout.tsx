@@ -13,7 +13,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <a href="#main" className="yb-skip">
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

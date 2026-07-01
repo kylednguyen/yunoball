@@ -1,34 +1,30 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const LINKS = [
+  { href: "/", label: "Search" },
+  { href: "/leaderboards", label: "Leaderboards" },
+];
 
 export function Nav() {
+  const pathname = usePathname();
+
   return (
-    <nav
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderBottom: "1px solid var(--border)",
-        padding: "14px 22px",
-        position: "sticky",
-        top: 0,
-        background: "rgba(255,255,255,0.85)",
-        backdropFilter: "saturate(180%) blur(8px)",
-        zIndex: 10,
-      }}
-    >
-      <Link
-        href="/"
-        style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em", color: "var(--text)" }}
-      >
-        Yuno<span style={{ color: "var(--accent)" }}>Ball</span>
+    <nav className="yb-nav" aria-label="Primary">
+      <Link href="/" className="yb-brand">
+        Yuno<span>Ball</span>
       </Link>
-      <div style={{ display: "flex", gap: 22, fontSize: 14, fontWeight: 500 }}>
-        <Link href="/" style={{ color: "var(--muted)" }}>
-          Search
-        </Link>
-        <Link href="/leaderboards" style={{ color: "var(--muted)" }}>
-          Leaderboards
-        </Link>
+      <div className="yb-nav-links">
+        {LINKS.map(({ href, label }) => {
+          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          return (
+            <Link key={href} href={href} aria-current={active ? "page" : undefined}>
+              {label}
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
