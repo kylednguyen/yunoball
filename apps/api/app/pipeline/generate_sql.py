@@ -28,6 +28,8 @@ Schema:
 async def generate_sql(
     *, question: str, entities: list[ResolvedEntity], context: RetrievedContext
 ) -> str:
+    # Long-tail raw NL->SQL. Only reached when a real LLM is configured; the
+    # rule-based (key-less) path answers via the structured QuerySpec pipeline.
     few_shot = "\n\n".join(
         f"Q: {e['question']}\nSQL: {e['sql']}" for e in context.examples
     )
