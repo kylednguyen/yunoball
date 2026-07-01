@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AnswerCard } from "./components/AnswerCard";
 import { AnswerSkeleton } from "./components/Skeleton";
@@ -14,11 +14,30 @@ const EXAMPLES = [
 
 export function Search() {
   const [question, setQuestion] = useState("");
+  const [active, setActive] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Global shortcut: "/" or ⌘K / Ctrl-K focuses the search from anywhere.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const typing =
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement;
+      if ((e.key === "/" && !typing) || ((e.metaKey || e.ctrlKey) && e.key === "k")) {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   async function run(q: string) {
+    setActive(q);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -31,6 +50,10 @@ export function Search() {
     }
   }
 
+  // Truly empty only when there is neither a narrated answer nor any rows.
+  const empty =
+    !loading && result !== null && result.rows.length === 0 && !result.narration?.trim();
+
   return (
     <div>
       <form
@@ -39,28 +62,68 @@ export function Search() {
           if (question.trim()) run(question.trim());
         }}
       >
-        <input
-          className="yb-search"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Search NFL stats, players, teams…"
-          autoFocus
-        />
+        <div className="yb-search-wrap">
+          <input
+            ref={inputRef}
+            className="yb-search"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Search NFL stats, players, teams…"
+            aria-label="Search NFL stats, players, and teams"
+            autoFocus
+          />
+          <span className="yb-kbd-hint" aria-hidden="true">
+            /
+          </span>
+        </div>
       </form>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, justifyContent: "center" }}>
+      <div
+        style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, justifyContent: "center" }}
+      >
         {EXAMPLES.map((ex) => (
-          <button key={ex} className="yb-chip" onClick={() => { setQuestion(ex); run(ex); }}>
+          <button
+            key={ex}
+            className="yb-chip"
+            aria-pressed={active === ex}
+            onClick={() => {
+              setQuestion(ex);
+              run(ex);
+            }}
+          >
             {ex}
           </button>
         ))}
       </div>
 
-      {loading && <AnswerSkeleton />}
-      {error && (
-        <p style={{ color: "#dc2626", marginTop: 24 }}>{error}</p>
-      )}
-      {!loading && result && <AnswerCard result={result} />}
+      <div aria-live="polite" aria-busy={loading}>
+        {loading && <AnswerSkeleton />}
+
+        {error && (
+          <div className="yb-state error" role="alert">
+            <div className="yb-glyph" aria-hidden="true">
+              ⚠️
+            </div>
+            <h2>Something went wrong</h2>
+            <p>{error}. Your question is fine — this one is on us.</p>
+            <button className="yb-btn" onClick={() => active && run(active)}>
+              Try again
+            </button>
+          </div>
+        )}
+
+        {empty && (
+          <div className="yb-state">
+            <div className="yb-glyph" aria-hidden="true">
+              🔍
+            </div>
+            <h2>No data for that question yet</h2>
+            <p>We couldn&apos;t find stats matching your query. Try a different season, player, or phrasing.</p>
+          </div>
+        )}
+
+        {!loading && !error && !empty && result && <AnswerCard result={result} />}
+      </div>
     </div>
   );
 }
