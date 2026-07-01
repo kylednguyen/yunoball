@@ -20,6 +20,8 @@ SYSTEM = (
 
 
 async def narrate(*, question: str, rows: list[dict[str, Any]]) -> str:
+    # Only reached on the raw-SQL fallback (real LLM). The structured path
+    # narrates deterministically via query.narrate_spec.
     if not rows:
         return "No matching results found."
 

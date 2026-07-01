@@ -25,6 +25,9 @@ venv/
 packages/ingest/data/
 *.parquet
 
+# demo database (regenerated on startup)
+*.db
+
 # turbo
 .turbo/
 

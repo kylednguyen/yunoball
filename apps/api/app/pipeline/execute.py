@@ -1,33 +1,33 @@
-"""Stage 4 — Execute validated SQL through the read-only client.
+"""Stage 4 — Execute validated SQL through the read-only engine.
 
-The read-only role enforces a statement_timeout (set at provisioning); we run
-in a single short-lived connection and return rows + column order for rendering.
+In production the read-only role enforces a statement_timeout; in demo it runs
+against the seeded SQLite file. Returns rows + column order for rendering.
+
+SQLAlchemy core is synchronous, so the blocking call is offloaded to a worker
+thread to avoid stalling the event loop under concurrent requests.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+import anyio
 from sqlalchemy import text
 
-from yunoball_db.base import get_engine
-
-# Module-level engine bound to the least-privilege role.
-_engine = None
+from ..database import get_readonly_engine
 
 
-def _ro_engine():
-    global _engine
-    if _engine is None:
-        _engine = get_engine(readonly=True)
-    return _engine
-
-
-async def execute_sql(safe_sql: str) -> tuple[list[dict[str, Any]], list[str]]:
-    # SQLAlchemy core is sync; the queries are short and the route is async,
-    # so this is fine for now. Swap to an async driver if it becomes a bottleneck.
-    with _ro_engine().connect() as conn:
-        result = conn.execute(text(safe_sql))
+def _run(
+    safe_sql: str, params: dict[str, Any] | None
+) -> tuple[list[dict[str, Any]], list[str]]:
+    with get_readonly_engine().connect() as conn:
+        result = conn.execute(text(safe_sql), params or {})
         columns = list(result.keys())
         rows = [dict(row._mapping) for row in result]
     return rows, columns
+
+
+async def execute_sql(
+    safe_sql: str, params: dict[str, Any] | None = None
+) -> tuple[list[dict[str, Any]], list[str]]:
+    return await anyio.to_thread.run_sync(_run, safe_sql, params)
