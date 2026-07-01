@@ -1,180 +1,101 @@
-"""Stage 1 — Entity resolution.
+"""Stage 1 — Fuzzy entity resolution.
 
-Map free-text mentions ("Mahomes", "the Chiefs", "Pat Mahomes") to canonical
-player/team ids. Strategy: pg_trgm fuzzy match against `entity_aliases`,
-backstopped by pgvector cosine similarity when embeddings are present, so the
-NL->SQL prompt can filter on stable ids instead of guessing string matches.
+Map free-text mentions ("Mahomes", "Pat Mahomes", a typo'd name) to a canonical
+player id + display name, so downstream SQL filters on a stable key instead of a
+brittle string match.
+
+Strategy here is portable (works on SQLite demo and Postgres): pull candidate
+names once, cache them, and fuzzy-match n-gram spans of the question with
+difflib. In production this is the place to swap in pg_trgm similarity +
+pgvector for scale; the interface stays the same.
 """
 
 from __future__ import annotations
 
 import re
+from difflib import SequenceMatcher, get_close_matches
 
+import anyio
 from sqlalchemy import text
 
-from .. import llm
+from ..database import get_readonly_engine
 from ..config import settings
-from ..rag.store import has_embeddings, read_engine, vector_literal
 from ..schemas import ResolvedEntity
 
-# Minimum trigram similarity for a mention->alias match (0-1).
-TRGM_THRESHOLD = 0.45
-VECTOR_THRESHOLD = 0.45  # 1 - cosine_distance
-MAX_ENTITIES = 6
-
-# Words that never name an entity — skip as 1-gram candidates.
+# Words that should never anchor a player match (stats, question words, etc.).
 _STOP = {
-    "the", "a", "an", "of", "in", "on", "for", "and", "or", "to", "by", "with",
-    "who", "what", "which", "how", "many", "much", "most", "least", "more",
-    "best", "top", "did", "do", "does", "had", "has", "have", "was", "were",
-    "is", "are", "season", "seasons", "game", "games", "regular", "playoff",
-    "playoffs", "yards", "yard", "touchdowns", "touchdown", "tds", "points",
-    "career", "single", "total", "league", "nfl", "throw", "threw", "score",
-    "scored", "led", "lead", "win", "wins", "won", "vs", "versus", "beat",
-    "against", "over", "between", "passing", "rushing", "receiving",
-    "receptions", "interceptions", "sacks", "fantasy", "completions",
-    "compare", "show", "list", "find", "give", "tell", "name", "rank",
-    "count", "average", "avg", "per", "during", "when", "where",
+    "most", "the", "in", "a", "an", "single", "game", "career", "who", "what",
+    "of", "and", "vs", "with", "for", "season", "year", "all", "time", "best",
+    "top", "led", "leader", "leaders", "threw", "throw", "passing", "rushing",
+    "receiving", "yards", "yard", "touchdowns", "touchdown", "tds", "td",
+    "interceptions", "receptions", "catches", "points", "how", "many",
 }
+_MIN_SPAN = 4
+_THRESHOLD = 0.84
 
-_WORD = re.compile(r"[A-Za-z0-9'.\-]+")
-
-
-def _trimmable(token: str) -> bool:
-    """Tokens that are never part of an entity name (stopwords, years)."""
-    return token.lower() in _STOP or token.isdigit()
-
-
-def _candidates(question: str) -> list[tuple[str, frozenset[int]]]:
-    """1-3 word phrases drawn from contiguous runs of non-stopword tokens.
-
-    Splitting on stopwords/numbers keeps a span from bridging a connector
-    ("Hill vs Travis"); returning longest-first lets the greedy matcher prefer
-    'Patrick Mahomes' over the bare surname 'Mahomes'.
-    """
-    words = _WORD.findall(question)
-    segments: list[list[tuple[int, str]]] = []
-    current: list[tuple[int, str]] = []
-    for idx, word in enumerate(words):
-        if _trimmable(word):
-            if current:
-                segments.append(current)
-                current = []
-        else:
-            current.append((idx, word))
-    if current:
-        segments.append(current)
-
-    spans: list[tuple[int, int, str, frozenset[int]]] = []
-    seen: set[str] = set()
-    for seg in segments:
-        m = len(seg)
-        for i in range(m):
-            for size in (3, 2, 1):
-                if i + size > m:
-                    continue
-                chunk = seg[i : i + size]
-                phrase = " ".join(w for _, w in chunk)
-                if len(phrase) < 3:
-                    continue
-                key = phrase.lower()
-                if key in seen:
-                    continue
-                seen.add(key)
-                positions = frozenset(idx for idx, _ in chunk)
-                spans.append((size, min(positions), phrase, positions))
-    spans.sort(key=lambda s: (-s[0], s[1]))
-    return [(phrase, positions) for _, _, phrase, positions in spans]
+# Index cache keyed by connection URL so tests with fresh DBs don't collide.
+# Maps a lowercased match target (full name and last name) -> (player_id, name).
+_index_cache: dict[str, dict[str, tuple[str, str]]] = {}
 
 
-_TRGM_SQL = text(
-    """
-    SELECT ea.entity_type,
-           ea.canonical_id,
-           MAX(similarity(ea.alias, :c)) AS sim,
-           COALESCE(t.name, p.full_name) AS display
-    FROM entity_aliases ea
-    LEFT JOIN teams t ON ea.entity_type = 'team' AND t.team_id = ea.canonical_id
-    LEFT JOIN players p ON ea.entity_type = 'player' AND p.player_id = ea.canonical_id
-    WHERE ea.alias % :c
-    GROUP BY ea.entity_type, ea.canonical_id, display
-    ORDER BY sim DESC
-    LIMIT 3
-    """
-)
+def _load_index() -> dict[str, tuple[str, str]]:
+    key = settings.effective_readonly_url
+    cached = _index_cache.get(key)
+    if cached is not None:
+        return cached
+    with get_readonly_engine().connect() as conn:
+        rows = conn.execute(text("SELECT player_id, full_name FROM players"))
+        players = [(str(r[0]), str(r[1])) for r in rows]
+    index: dict[str, tuple[str, str]] = {}
+    for pid, name in players:
+        index[name.lower()] = (pid, name)                     # full name
+        index.setdefault(name.lower().split()[-1], (pid, name))  # last name
+    _index_cache[key] = index
+    return index
 
-_VECTOR_SQL = text(
-    """
-    SELECT ea.entity_type,
-           ea.canonical_id,
-           1 - (ea.embedding <=> CAST(:qv AS vector)) AS score,
-           COALESCE(t.name, p.full_name) AS display
-    FROM entity_aliases ea
-    LEFT JOIN teams t ON ea.entity_type = 'team' AND t.team_id = ea.canonical_id
-    LEFT JOIN players p ON ea.entity_type = 'player' AND p.player_id = ea.canonical_id
-    WHERE ea.embedding IS NOT NULL
-    ORDER BY ea.embedding <=> CAST(:qv AS vector)
-    LIMIT 1
-    """
-)
+
+def clear_cache() -> None:
+    _index_cache.clear()
+
+
+def _spans(question: str) -> list[str]:
+    words = re.findall(r"[A-Za-z.'-]+", question)
+    spans: list[str] = []
+    for n in (2, 1, 3):  # prefer "first last", then last name, then longer
+        for i in range(len(words) - n + 1):
+            group = words[i : i + n]
+            if all(w.lower() in _STOP for w in group):
+                continue
+            span = " ".join(group).lower()
+            if len(span) >= _MIN_SPAN:
+                spans.append(span)
+    return spans
+
+
+def _best(question: str, index: dict[str, tuple[str, str]]) -> ResolvedEntity | None:
+    spans = _spans(question)
+    if not spans:
+        return None
+    keys = list(index.keys())
+    best: tuple[float, str, str] | None = None  # (score, target, span)
+    for span in spans:
+        # get_close_matches uses quick_ratio short-circuits, so it prunes most
+        # candidates cheaply instead of a full O(n) ratio() over every name.
+        for target in get_close_matches(span, keys, n=1, cutoff=_THRESHOLD):
+            score = SequenceMatcher(None, span, target).ratio()
+            if best is None or score > best[0]:
+                best = (score, target, span)
+    if best is None:
+        return None
+    score, target, span = best
+    pid, name = index[target]
+    return ResolvedEntity(
+        mention=span, entity_type="player", canonical_id=pid,
+        display_name=name, confidence=round(score, 3),
+    )
 
 
 async def resolve_entities(question: str) -> list[ResolvedEntity]:
-    candidates = _candidates(question)
-    if not candidates:
-        return []
-
-    # best[canonical_id] = (entity_type, display, confidence, mention)
-    best: dict[str, tuple[str, str, float, str]] = {}
-    consumed: set[int] = set()
-    unmatched: list[tuple[str, frozenset[int]]] = []
-
-    with read_engine().connect() as conn:
-        # Longest spans first; a matched span consumes its words so the bare
-        # surname/first-name fragments don't re-resolve to other players.
-        for phrase, positions in candidates:
-            if positions & consumed:
-                continue
-            top = conn.execute(_TRGM_SQL, {"c": phrase}).first()
-            if top and top.sim is not None and top.sim >= TRGM_THRESHOLD:
-                consumed |= positions
-                _record(best, top.entity_type, top.canonical_id, top.display, float(top.sim), phrase)
-            elif phrase[:1].isupper():
-                unmatched.append((phrase, positions))
-
-        if settings.openai_api_key and has_embeddings("entity_aliases"):
-            fresh = [(p, pos) for p, pos in unmatched if not (pos & consumed)]
-            await _vector_backstop(conn, fresh, best, consumed)
-
-    entities = [
-        ResolvedEntity(
-            mention=mention,
-            entity_type=entity_type,  # type: ignore[arg-type]
-            canonical_id=canonical_id,
-            display_name=display,
-            confidence=round(confidence, 3),
-        )
-        for canonical_id, (entity_type, display, confidence, mention) in best.items()
-    ]
-    entities.sort(key=lambda e: e.confidence, reverse=True)
-    return entities[:MAX_ENTITIES]
-
-
-def _record(best: dict, entity_type, canonical_id, display, score: float, mention: str) -> None:
-    prev = best.get(canonical_id)
-    if prev is None or score > prev[2]:
-        best[canonical_id] = (entity_type, display or canonical_id, score, mention)
-
-
-async def _vector_backstop(conn, mentions, best: dict, consumed: set) -> None:
-    if not mentions:
-        return
-    vecs = await llm.embed_many([m for m, _ in mentions])
-    for (mention, positions), vec in zip(mentions, vecs):
-        if positions & consumed:
-            continue
-        row = conn.execute(_VECTOR_SQL, {"qv": vector_literal(vec)}).first()
-        if not row or row.score is None or row.score < VECTOR_THRESHOLD:
-            continue
-        consumed |= positions
-        _record(best, row.entity_type, row.canonical_id, row.display, float(row.score), mention)
+    index = await anyio.to_thread.run_sync(_load_index)
+    match = _best(question, index)
+    return [match] if match else []

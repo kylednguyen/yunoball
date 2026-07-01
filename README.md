@@ -6,20 +6,23 @@ authoritative warehouse and shows you the exact query behind it.
 
 ## How it works
 
-Natural-language questions are translated into **read-only SQL** over a curated
-NFL warehouse — not free-form RAG over text — so the numbers are computed from
-facts, not hallucinated. An LLM translates the question and narrates the result;
-the database is the source of truth; pgvector handles fuzzy entity matching and
-few-shot retrieval. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+A question is parsed into a typed **`QuerySpec`** (a small JSON intent), not raw
+SQL — by rules for common shapes (zero LLM), or an LLM function-call for the long
+tail. A deterministic builder turns the spec into safe, parameterized SQL over a
+curated NFL warehouse, so numbers are **computed from facts, never hallucinated**,
+and the SQL is injection-proof by construction. Fuzzy resolution maps names to
+canonical ids; a two-tier cache lets repeats skip the LLM entirely; narration is
+templated from the result. The head of the distribution answers in **≤1 LLM call
+(often 0)**. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Stack
 
 - **Frontend:** Next.js (TypeScript) — `apps/web`
 - **Backend:** FastAPI (Python) — `apps/api`
 - **Database:** Postgres + pgvector (Supabase) — schema in `packages/db`
-- **Cache:** Redis
+- **Cache:** two-tier answer cache — Redis, or in-memory when Redis is absent
 - **Data:** nflverse via `nfl_data_py` — `packages/ingest`
-- **LLM + embeddings:** OpenAI
+- **LLM + embeddings:** OpenAI (optional — rule-based engine runs key-less)
 
 ## Repository layout
 
@@ -35,7 +38,23 @@ docs/
 docker-compose.yml   local Postgres (pgvector) + Redis
 ```
 
-## Quick start (local)
+## Try the prototype now (demo mode — no Docker, no keys)
+
+Demo mode runs on SQLite with a rule-based NL→SQL engine and seeded sample
+2022–2023 stats — zero external services. One command:
+
+```bash
+./scripts/demo.sh
+# then open http://localhost:4000  and ask:
+#   "Who threw the most touchdowns in 2023?"
+#   "Patrick Mahomes career passing yards"
+#   "Most rushing yards in a single game"
+```
+
+Every answer shows the exact SQL it ran. Set `OPENAI_API_KEY` + a Postgres
+`DATABASE_URL` to switch to the real LLM + warehouse path automatically.
+
+## Quick start (full stack, local)
 
 > **Python 3.11 required.** `nfl_data_py` pins `pandas<2` / `numpy<2`, whose
 > wheels only exist through CPython 3.11.
@@ -57,8 +76,9 @@ docker compose up -d
 ( cd packages/db && alembic upgrade head )
 yunoball-provision-readonly
 
-# 3. Data (2022–2024). Box score + play-by-play; --skip-plays for box score only.
-yunoball-ingest --years 2022 2023 2024
+# 3. Data — box score + season/game stats. Drop --skip to include play-by-play;
+#    use --all instead of --years for every season since 1999.
+yunoball-ingest --years 2022 2023 2024 --skip plays
 
 # 4. RAG: entity aliases + few-shot library (embeddings computed if a key is set)
 yunoball-seed-rag
@@ -74,11 +94,12 @@ pnpm install && pnpm dev:web         # http://localhost:3000
 
 ## Status
 
-Phases 1–4 implemented on a local warehouse with real nflverse data (2022–2024):
-warehouse + ingest + **eval harness** (Phase 1), entity resolution + few-shot
-retrieval (Phase 2), charts + leaderboards + shareable answers + Redis cache
-(Phase 3), play-by-play + situational/EPA metrics (Phase 4). The NL→SQL,
-narration, and embedding paths require `OPENAI_API_KEY`; everything else
-(warehouse, leaderboards, shareable pages, reference eval) runs without one. Full
-1999–present backfill is a matter of widening `--years`. See
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Working prototype combining a **structured `QuerySpec` query engine** (rules +
+LLM function-call → deterministic SQL, fuzzy entity resolution, two-tier cache,
+templated narration, ≤1 LLM call) with a **real local warehouse** (nflverse
+2022–2024): ingest + eval harness, pg_trgm/pgvector resolution + few-shot
+retrieval, charts + leaderboards + shareable answer pages + Redis/Postgres cache,
+and play-by-play + situational/EPA metrics. Everything except the LLM/embedding
+paths runs without an `OPENAI_API_KEY`; try it key-free with `./scripts/demo.sh`.
+Full 1999–present backfill is a one-command widening of `--years` (or `--all`).
+See the roadmap in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

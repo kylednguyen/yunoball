@@ -32,14 +32,16 @@ pipeline, and embeddings share one language and one schema definition.
             └──────────────────────────────────┬───────────────────────────────────┘
                                                 │  POST /api/search
             ┌──────────────────────── apps/api (FastAPI) ────────────────────────┐
-            │  run_query_pipeline:                                                 │
-            │    0. cache lookup      (Redis: hot/repeat queries skip the LLM)     │
-            │    1. resolve_entities  (pg_trgm + pgvector → canonical ids)         │
-            │    2. retrieve_context  (schema slice + few-shot Q→SQL via pgvector) │
-            │    3. generate_sql      (OpenAI: NL → read-only SELECT)              │
-            │    4. guard_sql         (sqlglot: parse, allowlist tables, LIMIT)    │
-            │    5. execute_sql       (read-only role + statement_timeout)         │
-            │    6. narrate           (OpenAI: one-line answer from rows)          │
+            │  run_query_pipeline (structured-first):                              │
+            │    L1 cache      (text; semantic slot) ── hit ─► response            │
+            │    resolve       (fuzzy name → canonical player_id)                  │
+            │    parse         (rules fast-path; else LLM function-call → JSON)    │
+            │    validate      (QuerySpec: allowlisted stat, bounded params)       │
+            │    L2 cache      (spec key) ── hit ─► response                       │
+            │    build         (deterministic template, bound params — no guard)   │
+            │    execute       (read-only role + statement_timeout, threaded)      │
+            │    narrate       (templated from spec + rows — no 2nd LLM call)      │
+            │    └ long-tail fallback: raw NL→SQL → sqlglot guard → execute        │
             └──────────────────────────────────┬───────────────────────────────────┘
                                                 │
             ┌──────────── Supabase Postgres + pgvector (packages/db) ─────────────┐
@@ -59,13 +61,33 @@ pipeline, and embeddings share one language and one schema definition.
 
 | Decision | Rationale |
 |---|---|
-| Text-to-SQL, not document RAG | Numbers must be computed from facts, not retrieved from prose. |
+| Structured intent, not raw SQL | LLM emits a typed `QuerySpec` (tiny JSON), not SQL → faster, cacheable, and injection-proof: we build the SQL. |
+| Numbers from facts, not RAG | Answers are computed from the warehouse, never retrieved from prose. |
 | FastAPI (Python) backend | Collapses backend + data/ML into one language; no Node↔Python seam. |
 | Postgres + pgvector | One datastore for relational facts *and* embeddings. Supabase-hosted. |
-| Redis cache | Hot answers, rate limiting, conversation/follow-up state. Not the vector store. |
+| Two-tier cache (L1 text, L2 spec) | Front-loaded so repeats skip the LLM entirely; in-memory when Redis is absent. |
 | SQLAlchemy + Alembic | One schema definition, owned by the Python backend, shared with ingest. |
 | nflverse / `nfl_data_py` | Free, open, comprehensive (PBP back to 1999). No scraping/ToS risk. |
-| Read-only role + sqlglot guard | Defense-in-depth so generated SQL can't write or escape the allowlist. |
+| Read-only role + sqlglot guard | Guards the raw-SQL *fallback*; the structured path needs no guard (SQL is templated). |
+
+## Query pipeline
+
+The common path never touches raw SQL and often skips the LLM entirely:
+
+1. **L1 cache** — normalized text (+ semantic slot). Repeat/near-duplicate → instant.
+2. **Resolve** — fuzzy-match names to a canonical `player_id` (last-name / typo tolerant).
+3. **Parse to `QuerySpec`** — rules fast-path (0 LLM); LLM **function-call** for the long tail. Both emit the same typed spec, never SQL.
+4. **Validate** — the spec is untrusted: stat must be allowlisted, params bounded.
+5. **L2 cache** — keyed on the spec, so different phrasings that mean the same thing share an answer.
+6. **Build → execute** — deterministic template with **bound params**; run on the read-only engine.
+7. **Narrate** — templated from spec + rows. No second LLM call.
+8. **Fallback** — anything unparseable drops to raw NL→SQL, guarded by sqlglot.
+
+Result: the head of the distribution answers in **≤1 LLM call (often 0)**, and every
+answer is safe by construction.
+
+Accuracy is tracked by an eval harness (`app/eval`) — a golden question→answer
+set scored through the real pipeline on parse + execution accuracy, gating CI.
 
 ## What makes it "more advanced" than StatMuse
 
@@ -77,12 +99,20 @@ pipeline, and embeddings share one language and one schema definition.
 
 ## Roadmap
 
-- **Phase 0** ✅ — monorepo, star schema, FastAPI pipeline skeleton, ingest CLI, search UI, local infra (docker-compose).
-- **Phase 1** ✅ — warehouse + ingest 2022–2024 (box score + rollups), least-privilege read-only role, player/team season & game queries, **eval harness** (golden Q→reference SQL; reference-only + execution-accuracy modes).
-- **Phase 2** ✅ — entity resolution (pg_trgm GIN + pgvector backstop over `entity_aliases`) and few-shot retrieval (pgvector over `query_examples`, keyword fallback without embeddings).
-- **Phase 3** ✅ — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis answer cache + Postgres write-through.
-- **Phase 4** ✅ — play-by-play ingest + situational/EPA metrics and golden examples. Full 1999–present backfill is a one-command widening of `--years` (loaded window: 2022–2024).
-- **Later** — multi-sport (the NL→SQL engine is sport-agnostic; add per-sport schema + data source, e.g. `pybaseball` for MLB).
+**Query engine** ✅ — structured `QuerySpec` pipeline (rules fast-path + LLM
+function-call → deterministic SQL builder), fuzzy entity resolution, two-tier
+cache (L1 text + L2 spec), templated narration (≤1 LLM call), with a guarded raw
+NL→SQL fallback for the long tail.
+
+**Warehouse & product (Phases 1–4)** ✅
+- **Phase 1** — warehouse + ingest 2022–2024 (box score + rollups + PBP), least-privilege read-only role, **eval harness** (parse + execution accuracy).
+- **Phase 2** — entity resolution (pg_trgm + pgvector over `entity_aliases`) and few-shot retrieval (pgvector over `query_examples`, keyword fallback).
+- **Phase 3** — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis + Postgres write-through.
+- **Phase 4** — play-by-play ingest + situational/EPA metrics.
+
+**Deploy** ✅ — Vercel (web), Render/Fly (API), docker-compose (local).
+
+**Next** ⬜ — full 1999–present backfill (widen `--years`/`--all`), more intents (team/comparison/situational, with eval cases), semantic cache (pgvector slot exists), multi-sport (engine is sport-agnostic; e.g. `pybaseball`).
 
 > **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
 > nflverse data. `nfl_data_py` constrains the toolchain to Python 3.11
@@ -92,6 +122,7 @@ pipeline, and embeddings share one language and one schema definition.
 
 ## Eval (non-negotiable)
 
-Accuracy is the product. A golden set of `question → expected result` pairs runs
-in CI; we track execution accuracy and regressions before shipping prompt or
-schema changes.
+Accuracy is the product. `app/eval` runs a golden `question → expected` set
+through the real pipeline, scoring **parse accuracy** (right `QuerySpec`) and
+**execution accuracy** (right top answer), and gates CI at 100%. Grow the golden
+set with every new intent so accuracy stays measured, not assumed.
