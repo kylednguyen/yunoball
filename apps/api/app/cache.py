@@ -1,12 +1,15 @@
-"""Answer cache — front-loaded and two-tier.
+"""Answer cache — front-loaded two-tier, plus a durable shareable store.
 
   L1: normalized question text -> response   (skips the whole pipeline)
   L2: QuerySpec key           -> response   (dedupes different phrasings)
 
 Backend is Redis in production; an in-process LRU is used when Redis isn't
 configured (e.g. the SQLite demo), so caching is always exercised and testable.
-A semantic layer (embedding similarity over pgvector) is slotted in for prod —
-it needs an embedding model, so it is skipped when running key-less.
+A semantic layer (embedding similarity over pgvector) is slotted in for prod.
+
+Durability: answers are also best-effort persisted to the Postgres
+`answer_cache` table keyed by a stable `share_id`, so they survive a Redis flush
+and are shareable at /a/<share_id>. Skipped in the SQLite demo.
 """
 
 from __future__ import annotations
@@ -17,6 +20,8 @@ import re
 import time
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Any
+
+from sqlalchemy import text
 
 from .config import settings
 
@@ -60,7 +65,6 @@ _backend: "_MemoryCache | redis.Redis | None" = None
 def _get_backend():
     global _backend
     if _backend is None:
-        # Redis only when a real deployment configures it; else in-memory.
         if not settings.use_sqlite:
             try:
                 import redis.asyncio as redis
@@ -85,6 +89,11 @@ def normalize_question(q: str) -> str:
 
 def _hash(s: str) -> str:
     return hashlib.sha256(s.encode()).hexdigest()[:32]
+
+
+def share_id(question: str) -> str:
+    """Stable, shareable handle for a question (digest of its normalized form)."""
+    return _hash(normalize_question(question))
 
 
 def text_key(question: str) -> str:
@@ -119,9 +128,62 @@ async def semantic_lookup(question: str) -> dict[str, Any] | None:
     """Embedding-similarity lookup over the pgvector answer_cache.
 
     Requires an embedding model, so it is skipped when running without a key.
-    TODO(prod): embed `question`, search answer_cache by cosine distance, and
-    return the payload above a similarity threshold.
+    TODO(prod): embed `question`, search answer_cache by cosine distance.
     """
     if settings.use_mock_llm:
         return None
     return None
+
+
+# --------------------- durable shareable store (Postgres) ------------------- #
+
+_PERSIST_SQL = text(
+    """
+    INSERT INTO answer_cache (share_id, question, normalized_question, sql, answer_json, hits)
+    VALUES (:share_id, :question, :normalized_question, :sql, :answer_json, 1)
+    ON CONFLICT (normalized_question) DO UPDATE SET
+        share_id = EXCLUDED.share_id,
+        sql = EXCLUDED.sql,
+        answer_json = EXCLUDED.answer_json,
+        hits = answer_cache.hits + 1
+    """
+)
+
+
+def persist_answer(payload: dict[str, Any]) -> None:
+    """Durably record an answer for sharing + analytics (best-effort)."""
+    if settings.use_sqlite:
+        return  # no durable store in the demo
+    try:
+        from .rag.store import read_engine
+
+        question = payload["question"]
+        with read_engine().begin() as conn:
+            conn.execute(
+                _PERSIST_SQL,
+                {
+                    "share_id": payload.get("share_id") or share_id(question),
+                    "question": question,
+                    "normalized_question": normalize_question(question),
+                    "sql": payload.get("sql"),
+                    "answer_json": json.dumps(payload, default=str),
+                },
+            )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def get_answer_by_share_id(sid: str) -> dict[str, Any] | None:
+    if settings.use_sqlite:
+        return None
+    try:
+        from .rag.store import read_engine
+
+        with read_engine().connect() as conn:
+            row = conn.execute(
+                text("SELECT answer_json FROM answer_cache WHERE share_id = :s"),
+                {"s": sid},
+            ).first()
+        return json.loads(row[0]) if row else None
+    except Exception:  # noqa: BLE001
+        return None

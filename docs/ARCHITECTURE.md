@@ -99,18 +99,26 @@ set scored through the real pipeline on parse + execution accuracy, gating CI.
 
 ## Roadmap
 
-- ✅ **Scaffold** — monorepo, star schema, FastAPI pipeline, ingest CLI, search UI, local infra.
-- ✅ **Structured pipeline** — `QuerySpec` (rules + LLM function-call), deterministic SQL builder, templated narration, ≤1 LLM call.
-- ✅ **Fuzzy entity resolution** — name → canonical `player_id` (typo/last-name tolerant).
-- ✅ **Two-tier cache** — front-loaded L1 (text) + L2 (spec); in-memory or Redis.
-- ✅ **Eval harness** — golden Q→answer set scoring parse + execution accuracy, gating CI.
-- ✅ **Full-dataset ingestion** — season/game/PBP loaders, `--all` since 1999, batched upsert.
-- ✅ **Deploy** — Vercel (web), Render/Fly (API), docker-compose (local).
-- ⬜ **Wire real Supabase** — apply schema, ingest, run the LLM path end-to-end.
-- ⬜ **More intents** — team stats, comparisons, situational/PBP splits (with eval cases).
-- ⬜ **Semantic cache** — pgvector embedding lookup (slot exists).
-- ⬜ **Frontend polish** — charts, shareable answer cards, loading states.
-- ⬜ **Later** — multi-sport (the engine is sport-agnostic; add per-sport schema + source, e.g. `pybaseball`).
+**Query engine** ✅ — structured `QuerySpec` pipeline (rules fast-path + LLM
+function-call → deterministic SQL builder), fuzzy entity resolution, two-tier
+cache (L1 text + L2 spec), templated narration (≤1 LLM call), with a guarded raw
+NL→SQL fallback for the long tail.
+
+**Warehouse & product (Phases 1–4)** ✅
+- **Phase 1** — warehouse + ingest 2022–2024 (box score + rollups + PBP), least-privilege read-only role, **eval harness** (parse + execution accuracy).
+- **Phase 2** — entity resolution (pg_trgm + pgvector over `entity_aliases`) and few-shot retrieval (pgvector over `query_examples`, keyword fallback).
+- **Phase 3** — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis + Postgres write-through.
+- **Phase 4** — play-by-play ingest + situational/EPA metrics.
+
+**Deploy** ✅ — Vercel (web), Render/Fly (API), docker-compose (local).
+
+**Next** ⬜ — full 1999–present backfill (widen `--years`/`--all`), more intents (team/comparison/situational, with eval cases), semantic cache (pgvector slot exists), multi-sport (engine is sport-agnostic; e.g. `pybaseball`).
+
+> **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
+> nflverse data. `nfl_data_py` constrains the toolchain to Python 3.11
+> (`pandas<2`/`numpy<2`). The LLM-dependent stages (NL→SQL, narration,
+> embeddings) activate when `OPENAI_API_KEY` is set; trigram resolution, keyword
+> few-shot, leaderboards, shareable pages, and the reference eval run without it.
 
 ## Eval (non-negotiable)
 
