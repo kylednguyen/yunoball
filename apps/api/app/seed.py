@@ -94,6 +94,7 @@ _DDL = [
         games_played INTEGER, passing_yards INTEGER, passing_tds INTEGER,
         interceptions INTEGER, rushing_yards INTEGER, rushing_tds INTEGER,
         receptions INTEGER, receiving_yards INTEGER, receiving_tds INTEGER,
+        fantasy_points_ppr REAL,
         PRIMARY KEY (player_id, season, season_type))""",
     """CREATE TABLE IF NOT EXISTS player_game_stats (
         player_id TEXT, game_id TEXT, team_id TEXT,

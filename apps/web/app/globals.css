@@ -1,23 +1,194 @@
 :root {
-  --bg: #0b0e14;
-  --panel: #151a23;
-  --border: #232a36;
-  --text: #e6e9ef;
-  --muted: #8b94a3;
-  --accent: #4ade80;
+  --bg: #ffffff;
+  --bg-soft: #f6f7f9;
+  --panel: #ffffff;
+  --border: #e5e7eb;
+  --text: #0b0d12;
+  --muted: #6b7280;
+  --accent: #2b34e8;        /* StatMuse-style vivid indigo */
+  --accent-ink: #1b21a8;
+  --accent-soft: #eef0ff;
+  --radius: 14px;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+}
+
+body {
   background: var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: var(--accent);
+  text-decoration: none;
 }
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Search input ---- */
+input.yb-search {
+  width: 100%;
+  padding: 16px 18px;
+  font-size: 19px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input.yb-search::placeholder {
+  color: #9aa1ac;
+}
+input.yb-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* ---- Example chips ---- */
+.yb-chip {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.yb-chip:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---- Answer card ---- */
+.yb-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+.yb-answer {
+  font-size: 28px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 14px;
+}
+
+/* ---- Table ---- */
+table.yb-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 15px;
+}
+table.yb-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+table.yb-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+}
+table.yb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+table.yb-table tbody tr:hover {
+  background: var(--bg-soft);
+}
+table.yb-table td:first-child,
+table.yb-table th:first-child {
+  font-weight: 600;
+}
+
+/* ---- SQL / misc ---- */
+pre.yb-sql {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #1f2430;
+}
+.yb-link {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+}
+.yb-link:hover {
+  text-decoration: underline;
+}
+.yb-muted {
+  color: var(--muted);
+}
+.yb-chip-static {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* ---- Skeleton loaders ---- */
+.yb-skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-soft);
+  border-radius: 8px;
+}
+.yb-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent
+  );
+  animation: yb-shimmer 1.3s infinite;
+}
+@keyframes yb-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yb-skel::after {
+    animation: none;
+  }
+}
+
