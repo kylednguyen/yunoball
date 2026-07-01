@@ -52,13 +52,21 @@ def _season(q: str) -> int | None:
     return int(m.group(0)) if m else None
 
 
-def parse_rules(question: str) -> QuerySpec | None:
+def parse_rules(question: str, entities: list | None = None) -> QuerySpec | None:
     q = question.lower()
     stat = _stat(q)
     if stat is None:
         return None
 
-    player = _player(q)
+    # Prefer a resolved entity (works for any player in the DB); fall back to
+    # the built-in seed tokens so the parser is usable standalone / in tests.
+    player = player_id = None
+    resolved = next((e for e in (entities or []) if e.entity_type == "player"), None)
+    if resolved is not None:
+        player, player_id = resolved.display_name, resolved.canonical_id
+    else:
+        player = _player(q)
+
     season = _season(q)
     is_career = "career" in q or "all time" in q or "all-time" in q
     is_single_game = "game" in q and (
@@ -72,6 +80,7 @@ def parse_rules(question: str) -> QuerySpec | None:
             intent=Intent.PLAYER_TOTAL,
             stat=stat,
             player=player,
+            player_id=player_id,
             season=season,
             scope="career" if is_career else "season",
         )
