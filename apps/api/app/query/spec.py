@@ -39,7 +39,8 @@ class QuerySpec(BaseModel):
     stat: str
     season: int | None = None
     season_type: str = "REG"
-    player: str | None = None          # display name; resolver maps to id in prod
+    player: str | None = None          # display name (for narration / LIKE fallback)
+    player_id: str | None = None       # canonical id from the resolver (preferred)
     scope: str = "season"              # "season" | "career" (PLAYER_TOTAL)
     limit: int = Field(default=10, ge=1, le=100)
 
