@@ -12,17 +12,20 @@ import re
 from ..seed import SEED_PLAYERS
 from .spec import Intent, QuerySpec
 
-# keyword groups -> stat key (order matters: most specific first)
+# keyword groups -> stat key. Order matters: most specific first. Unambiguous
+# stats (interceptions) are checked before generic touchdown/yard cues so that
+# e.g. "threw the most interceptions" is not captured by a passing-TD rule.
 _STAT_RULES: list[tuple[tuple[str, ...], str]] = [
-    (("passing touchdown", "passing td", "touchdown pass", "threw the most", "most td pass"), "passing_tds"),
-    (("passing yard", "passing yds", "throw", "threw for", "pass yard"), "passing_yards"),
-    (("interception",), "interceptions"),
+    (("interception", "picked off", "pick six", "int thrown"), "interceptions"),
+    (("passing touchdown", "passing td", "touchdown pass", "td pass"), "passing_tds"),
     (("rushing touchdown", "rushing td", "rush td"), "rushing_tds"),
-    (("rushing yard", "rushing yds", "rush yard", "rushed for", "rush"), "rushing_yards"),
     (("receiving touchdown", "receiving td", "rec td"), "receiving_tds"),
-    (("reception", "catches", "caught"), "receptions"),
+    (("passing yard", "passing yds", "threw for", "pass yard"), "passing_yards"),
+    (("rushing yard", "rushing yds", "rush yard", "rushed for", "rush"), "rushing_yards"),
     (("receiving yard", "receiving yds", "rec yard", "receiv"), "receiving_yards"),
-    (("touchdown", "td"), "passing_tds"),
+    (("reception", "catches", "caught"), "receptions"),
+    # Generic fallbacks — only reached if nothing specific matched above.
+    (("touchdown", "td", "threw"), "passing_tds"),
 ]
 
 # surname / full name -> canonical full name, from the seed set
