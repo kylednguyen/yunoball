@@ -11,7 +11,9 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import text
 
-from ..rag.store import read_engine
+# Use the app runtime engine (SQLite in demo, Postgres in prod) — not the
+# Postgres-only rag.store — so leaderboards work in the key-less demo too.
+from ..database import get_readonly_engine as read_engine
 
 router = APIRouter(prefix="/api/leaderboards", tags=["leaderboards"])
 
