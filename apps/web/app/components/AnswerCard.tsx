@@ -14,15 +14,29 @@ function chartData(result: AnswerResult): { data: BarDatum[]; label: string } | 
 
   const isNum = (c: string) =>
     rows.every((r) => r[c] === null || r[c] === undefined || !isNaN(Number(r[c])));
-  const valueCol = columns.find(isNum);
-  if (!valueCol) return null;
-  const labelCol = columns.find((c) => c !== valueCol && !isNum(c));
+  const numeric = columns.filter(isNum);
+  const labelCol = columns.find((c) => !numeric.includes(c));
   if (!labelCol) return null;
 
+  // Chart the metric column — the numeric column with the widest spread — so a
+  // constant dimension like `season` (all 2023) is never mistaken for the value.
+  let valueCol: string | null = null;
+  let bestSpread = 0;
+  for (const c of numeric) {
+    const vals = rows.map((r) => Number(r[c] ?? 0));
+    const spread = Math.max(...vals) - Math.min(...vals);
+    if (spread > bestSpread) {
+      bestSpread = spread;
+      valueCol = c;
+    }
+  }
+  if (!valueCol) return null; // nothing varies → a bar chart would be meaningless
+
+  const vc = valueCol;
   const data = rows
     .slice(0, MAX_BARS)
-    .map((r) => ({ label: String(r[labelCol] ?? ""), value: Number(r[valueCol] ?? 0) }));
-  return { data, label: valueCol };
+    .map((r) => ({ label: String(r[labelCol] ?? ""), value: Number(r[vc] ?? 0) }));
+  return { data, label: vc };
 }
 
 export function AnswerCard({ result }: { result: AnswerResult }) {
@@ -39,22 +53,16 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   }
 
   return (
-    <section style={{ marginTop: 28 }}>
-      <p style={{ fontSize: 20, lineHeight: 1.5 }}>{result.narration}</p>
+    <section className="yb-card" style={{ marginTop: 28 }}>
+      <p className="yb-answer">{result.narration}</p>
 
       {result.entities && result.entities.length > 0 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {result.entities.map((e) => (
             <span
               key={`${e.entity_type}-${e.display_name}`}
+              className="yb-chip-static"
               title={`${e.entity_type} · confidence ${e.confidence}`}
-              style={{
-                fontSize: 12,
-                color: "var(--muted)",
-                border: "1px solid var(--border)",
-                borderRadius: 999,
-                padding: "2px 8px",
-              }}
             >
               {e.display_name}
             </span>
@@ -65,23 +73,12 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
       {chart && <BarChart data={chart.data} />}
 
       {result.rows.length > 0 && (
-        <div style={{ overflowX: "auto", marginTop: 12 }}>
-          <table style={{ borderCollapse: "collapse", width: "100%" }}>
+        <div style={{ overflowX: "auto", marginTop: 16 }}>
+          <table className="yb-table">
             <thead>
               <tr>
                 {result.columns.map((c) => (
-                  <th
-                    key={c}
-                    style={{
-                      textAlign: "left",
-                      padding: "8px 12px",
-                      borderBottom: "1px solid var(--border)",
-                      color: "var(--muted)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {c}
-                  </th>
+                  <th key={c}>{c.replace(/_/g, " ")}</th>
                 ))}
               </tr>
             </thead>
@@ -89,12 +86,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
               {result.rows.map((row, i) => (
                 <tr key={i}>
                   {result.columns.map((c) => (
-                    <td
-                      key={c}
-                      style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)" }}
-                    >
-                      {String(row[c] ?? "")}
-                    </td>
+                    <td key={c}>{String(row[c] ?? "")}</td>
                   ))}
                 </tr>
               ))}
@@ -103,41 +95,28 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 16, marginTop: 16, alignItems: "center" }}>
-        <button onClick={() => setShowSql((s) => !s)} style={linkBtn}>
-          {showSql ? "Hide" : "Show"} the query behind this answer
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          marginTop: 18,
+          paddingTop: 14,
+          borderTop: "1px solid var(--border)",
+          alignItems: "center",
+        }}
+      >
+        <button onClick={() => setShowSql((s) => !s)} className="yb-link">
+          {showSql ? "Hide" : "Show"} the query
         </button>
         {result.share_id && (
-          <button onClick={copyShareLink} style={linkBtn}>
+          <button onClick={copyShareLink} className="yb-link">
             {copied ? "Link copied ✓" : "Share"}
           </button>
         )}
-        {result.cached && <span style={{ fontSize: 12, color: "var(--muted)" }}>cached</span>}
+        {result.cached && <span className="yb-muted" style={{ fontSize: 12 }}>cached</span>}
       </div>
 
-      {showSql && (
-        <pre
-          style={{
-            background: "var(--panel)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            padding: 16,
-            overflowX: "auto",
-            fontSize: 13,
-          }}
-        >
-          {result.sql}
-        </pre>
-      )}
+      {showSql && <pre className="yb-sql" style={{ marginTop: 12 }}>{result.sql}</pre>}
     </section>
   );
 }
-
-const linkBtn: React.CSSProperties = {
-  background: "transparent",
-  border: "none",
-  color: "var(--accent)",
-  cursor: "pointer",
-  padding: 0,
-  fontSize: 13,
-};
