@@ -6,20 +6,23 @@ authoritative warehouse and shows you the exact query behind it.
 
 ## How it works
 
-Natural-language questions are translated into **read-only SQL** over a curated
-NFL warehouse — not free-form RAG over text — so the numbers are computed from
-facts, not hallucinated. An LLM translates the question and narrates the result;
-the database is the source of truth; pgvector handles fuzzy entity matching and
-few-shot retrieval. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+A question is parsed into a typed **`QuerySpec`** (a small JSON intent), not raw
+SQL — by rules for common shapes (zero LLM), or an LLM function-call for the long
+tail. A deterministic builder turns the spec into safe, parameterized SQL over a
+curated NFL warehouse, so numbers are **computed from facts, never hallucinated**,
+and the SQL is injection-proof by construction. Fuzzy resolution maps names to
+canonical ids; a two-tier cache lets repeats skip the LLM entirely; narration is
+templated from the result. The head of the distribution answers in **≤1 LLM call
+(often 0)**. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Stack
 
 - **Frontend:** Next.js (TypeScript) — `apps/web`
 - **Backend:** FastAPI (Python) — `apps/api`
 - **Database:** Postgres + pgvector (Supabase) — schema in `packages/db`
-- **Cache:** Redis
+- **Cache:** two-tier answer cache — Redis, or in-memory when Redis is absent
 - **Data:** nflverse via `nfl_data_py` — `packages/ingest`
-- **LLM + embeddings:** OpenAI
+- **LLM + embeddings:** OpenAI (optional — rule-based engine runs key-less)
 
 ## Repository layout
 
@@ -63,7 +66,7 @@ docker compose up -d
 cd packages/db && pip install -e . && alembic upgrade head && cd -
 
 # 3. Data (Python venv in packages/ingest)
-cd packages/ingest && pip install -e . && yunoball-ingest --years 2022 2023 2024 && cd -
+cd packages/ingest && pip install -e . -e ../db && yunoball-ingest --all --skip plays && cd -
 
 # 4. Backend
 cd apps/api && pip install -e . && pip install -e ../../packages/db
@@ -75,5 +78,12 @@ pnpm install && pnpm dev:web
 
 ## Status
 
-Phase 0 — scaffold. The pipeline stages (entity resolution, few-shot retrieval,
-eval harness) are stubbed and land in subsequent phases per the roadmap.
+Working prototype. Done: structured `QuerySpec` pipeline (rules + LLM
+function-call), deterministic SQL builder, fuzzy entity resolution, two-tier
+cache, templated narration, full-dataset ingestion (`--all` since 1999), an eval
+harness gating CI, and one-click deploy (Vercel + Render/Fly). Try it with
+`./scripts/demo.sh` — no keys required.
+
+Next: wire a real Supabase + run the LLM path end-to-end, more query intents
+(team/comparison/situational), semantic cache, and frontend polish. See the
+roadmap in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
