@@ -13,17 +13,19 @@ from typing import Any
 
 from .seed import SEED_PLAYERS
 
-# Map intent keywords -> (column, human label)
+# Map intent keywords -> (column, human label). Order matters: unambiguous
+# stats first (see app/query/parse_rules.py, which supersedes this on the main
+# path and is kept consistent to avoid drift).
 _STAT_RULES: list[tuple[tuple[str, ...], str, str]] = [
-    (("passing touchdown", "passing td", "touchdown pass", "threw the most", "most td pass"), "passing_tds", "passing touchdowns"),
-    (("passing yard", "passing yds", "throw", "threw for", "pass yard"), "passing_yards", "passing yards"),
-    (("interception",), "interceptions", "interceptions"),
+    (("interception", "picked off", "pick six", "int thrown"), "interceptions", "interceptions"),
+    (("passing touchdown", "passing td", "touchdown pass", "td pass"), "passing_tds", "passing touchdowns"),
     (("rushing touchdown", "rushing td", "rush td"), "rushing_tds", "rushing touchdowns"),
-    (("rushing yard", "rushing yds", "rush yard", "rushed for", "rush"), "rushing_yards", "rushing yards"),
     (("receiving touchdown", "receiving td", "rec td"), "receiving_tds", "receiving touchdowns"),
-    (("reception", "catches", "caught"), "receptions", "receptions"),
+    (("passing yard", "passing yds", "threw for", "pass yard"), "passing_yards", "passing yards"),
+    (("rushing yard", "rushing yds", "rush yard", "rushed for", "rush"), "rushing_yards", "rushing yards"),
     (("receiving yard", "receiving yds", "rec yard", "receiv"), "receiving_yards", "receiving yards"),
-    (("touchdown", "td"), "passing_tds", "touchdowns"),
+    (("reception", "catches", "caught"), "receptions", "receptions"),
+    (("touchdown", "td", "threw"), "passing_tds", "touchdowns"),
 ]
 
 # Surname -> full name, from the seed set, for cheap player detection.

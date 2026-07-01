@@ -41,3 +41,17 @@ uvicorn app.main:app --port 4000
 ```bash
 cd apps/api && pip install pytest && DEMO=1 pytest
 ```
+
+## Eval
+
+A golden question→answer set measures **parse accuracy** (right `QuerySpec`) and
+**execution accuracy** (right top answer) through the real pipeline against the
+seed data — no API key needed. It gates CI (`tests/test_eval.py`) and prints a
+report:
+
+```bash
+DEMO=1 python -m app.eval
+```
+
+Add cases in `app/eval/golden.json`. Point at a real Postgres (with a matching
+golden set) to measure the LLM path.

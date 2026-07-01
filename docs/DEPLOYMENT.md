@@ -19,28 +19,43 @@ The Next.js app lives in `apps/web` (pnpm monorepo).
    - `NEXT_PUBLIC_API_URL` → your deployed API origin (e.g. `https://yunoball-api.vercel.app`).
 4. Deploy. That's the whole frontend.
 
-## 2. API → Vercel (Python serverless) — optional
+## 2. API → persistent host (recommended)
 
-`apps/api` ships `vercel.json` + `api/index.py` exposing the FastAPI ASGI app,
-and `requirements.txt` for Vercel's Python runtime.
+The API keeps a warm connection pool and streams responses, so a **persistent
+container** beats serverless. One-click configs are included:
 
-1. New Vercel Project from the same repo → **Root Directory** = `apps/api`.
-2. Environment variables (serverless has **no disk**, so the SQLite demo cannot
-   run here — a Postgres URL is required):
-   - `DATABASE_URL` → Supabase **pooled** connection (`...pooler.supabase.com:6543/...`).
-     The app strips the `pgbouncer` param and disables prepared statements
-     automatically for transaction pooling.
-   - `READONLY_DATABASE_URL` → a read-only role (recommended; falls back to
-     `DATABASE_URL`).
-   - `REDIS_URL` → Upstash Redis URL (optional; caching degrades gracefully).
-   - `OPENAI_API_KEY` → enables the LLM path. **Leave unset** to run the
-     rule-based engine against your Postgres — real data, zero LLM cost.
-3. Set the frontend's `NEXT_PUBLIC_API_URL` to this project's URL.
+**Render** — `render.yaml` (repo root) provisions the API + a managed Redis:
+1. Render → New → **Blueprint** → point at this repo.
+2. Set `DATABASE_URL`, `READONLY_DATABASE_URL` (and optionally `OPENAI_API_KEY`)
+   in the dashboard — they are `sync:false` so they never land in git.
+3. `REDIS_URL` is wired automatically from the blueprint's key-value service.
 
-> Serverless trade-offs: cold starts, and connection churn against Postgres.
-> Always use the **pooled** Supabase URL here. For steady traffic or long-lived
-> pools, a persistent host (Render / Fly / Railway) is often a better fit — same
-> `uvicorn app.main:app` command, same env vars.
+**Fly.io** — `apps/api/Dockerfile` + `apps/api/fly.toml`:
+```bash
+cd apps/api
+fly launch --no-deploy
+fly secrets set DATABASE_URL=... READONLY_DATABASE_URL=... OPENAI_API_KEY=...
+fly deploy
+```
+
+Then set the frontend's `NEXT_PUBLIC_API_URL` to the API's URL.
+
+Env vars (same everywhere):
+- `DATABASE_URL` → Supabase **pooled** connection (`...pooler.supabase.com:6543/...`).
+  The app strips the `pgbouncer` param and disables prepared statements
+  automatically for transaction pooling.
+- `READONLY_DATABASE_URL` → a read-only role (recommended; falls back to `DATABASE_URL`).
+- `REDIS_URL` → optional; caching degrades gracefully without it.
+- `OPENAI_API_KEY` → enables the LLM path. **Leave unset** to run the rule-based
+  engine against your Postgres — real data, zero LLM cost.
+
+## 2b. API → Vercel (Python serverless) — optional
+
+`apps/api` also ships `vercel.json` + `api/index.py` + `requirements.txt` for
+Vercel's Python runtime, if you want everything on one platform. Root Directory
+= `apps/api`; same env vars. Serverless has **no disk** (no SQLite demo) and
+adds cold starts + connection churn, so always use the **pooled** Supabase URL —
+prefer the persistent host above for steady traffic.
 
 ## 3. Database → Supabase
 
