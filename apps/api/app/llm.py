@@ -39,3 +39,15 @@ async def embed(text: str) -> list[float]:
         model=settings.embedding_model, input=text
     )
     return resp.data[0].embedding
+
+
+async def embed_many(texts: list[str], *, batch_size: int = 1000) -> list[list[float]]:
+    """Embed many texts, batched (the embeddings API accepts a list per call)."""
+    out: list[list[float]] = []
+    for i in range(0, len(texts), batch_size):
+        chunk = texts[i : i + batch_size]
+        resp = await get_client().embeddings.create(
+            model=settings.embedding_model, input=chunk
+        )
+        out.extend(d.embedding for d in resp.data)
+    return out

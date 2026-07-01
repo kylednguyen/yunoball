@@ -7,9 +7,9 @@
    → trusted SQL template (bound params)
    → execute (read-only, timeout)
    → templated narration + table
-   → write L1/L2
+   → write L1/L2 + durable shareable store
 
-Falls back to raw NL->SQL (guarded) for anything that doesn't parse.
+Falls back to raw NL->SQL (guarded) for anything that doesn't parse (real LLM).
 """
 
 from __future__ import annotations
@@ -26,13 +26,28 @@ from .execute import execute_sql
 from .narrate import narrate
 
 
-async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
+async def _finalize(response: SearchResponse, *, use_cache: bool, spec_key: str | None) -> SearchResponse:
+    """Write the answer to L1/L2 cache and the durable shareable store."""
+    if not use_cache:
+        return response
+    payload = response.model_dump()
+    await cache.set(cache.text_key(response.question), payload)
+    if spec_key is not None:
+        await cache.set(spec_key, payload)
+    cache.persist_answer(payload)  # best-effort; no-op in the SQLite demo
+    return response
+
+
+async def run_query_pipeline(
+    req: SearchRequest, *, use_cache: bool = True
+) -> SearchResponse:
     question = req.question
 
     # --- L1: front-loaded cache (exact, then semantic) ---
-    hit = await cache.get(cache.text_key(question)) or await cache.semantic_lookup(question)
-    if hit is not None:
-        return SearchResponse(**{**hit, "cached": True})
+    if use_cache:
+        hit = await cache.get(cache.text_key(question)) or await cache.semantic_lookup(question)
+        if hit is not None:
+            return SearchResponse(**{**hit, "cached": True})
 
     # --- Entity resolution + parse to a structured spec ---
     entities = await resolve_entities(question)
@@ -48,10 +63,11 @@ async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
 
         # --- L2: spec-keyed cache (dedupes phrasings that map to one spec) ---
         skey = cache.spec_key(spec.cache_key())
-        hit = await cache.get(skey)
-        if hit is not None:
-            await cache.set(cache.text_key(question), hit)
-            return SearchResponse(**{**hit, "cached": True})
+        if use_cache:
+            hit = await cache.get(skey)
+            if hit is not None:
+                await cache.set(cache.text_key(question), hit)
+                return SearchResponse(**{**hit, "cached": True})
 
         sql, params = build_sql(spec)
         rows, columns = await execute_sql(sql, params)
@@ -63,11 +79,9 @@ async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
             columns=columns,
             entities=entities,
             cached=False,
+            share_id=cache.share_id(question),
         )
-        payload = response.model_dump()
-        await cache.set(cache.text_key(question), payload)
-        await cache.set(skey, payload)
-        return response
+        return await _finalize(response, use_cache=use_cache, spec_key=skey)
 
     # --- Nothing parsed to a spec ---
     # The key-less rule-based engine can only answer structured shapes; be
@@ -85,6 +99,7 @@ async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
             columns=[],
             entities=entities,
             cached=False,
+            share_id=cache.share_id(question),
         )
 
     # --- Long-tail fallback: raw NL -> SQL (guarded) ---
@@ -102,6 +117,6 @@ async def run_query_pipeline(req: SearchRequest) -> SearchResponse:
         columns=columns,
         entities=entities,
         cached=False,
+        share_id=cache.share_id(question),
     )
-    await cache.set(cache.text_key(question), response.model_dump())
-    return response
+    return await _finalize(response, use_cache=use_cache, spec_key=None)
