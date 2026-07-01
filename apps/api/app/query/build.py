@@ -34,20 +34,24 @@ def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
         return sql, params
 
     if spec.intent is Intent.PLAYER_TOTAL:
-        params["player"] = f"%{(spec.player or '').lower()}%"
+        # Prefer the resolved canonical id; fall back to a name LIKE.
+        if spec.player_id:
+            player_pred = "s.player_id = :player_id"
+            params["player_id"] = spec.player_id
+        else:
+            player_pred = "lower(p.full_name) LIKE :player"
+            params["player"] = f"%{(spec.player or '').lower()}%"
+        params["stype"] = spec.season_type
         if spec.scope == "career":
             sql = (
                 f"SELECT p.full_name, SUM(s.{col}) AS total "
                 "FROM player_season_stats s "
                 "JOIN players p ON p.player_id = s.player_id "
-                "WHERE lower(p.full_name) LIKE :player "
-                "AND s.season_type = :stype "
+                f"WHERE {player_pred} AND s.season_type = :stype "
                 "GROUP BY p.full_name"
             )
-            params["stype"] = spec.season_type
             return sql, params
-        where = ["lower(p.full_name) LIKE :player", "s.season_type = :stype"]
-        params["stype"] = spec.season_type
+        where = [player_pred, "s.season_type = :stype"]
         if spec.season is not None:
             where.append("s.season = :season")
             params["season"] = spec.season
