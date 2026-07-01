@@ -16,7 +16,9 @@ from sqlalchemy import text
 
 from .. import llm
 from ..config import settings
-from ..rag.store import has_embeddings, read_engine, vector_literal
+# rag.store (which imports yunoball_db) is imported lazily inside the functions
+# below, so this module — on the always-imported pipeline path — doesn't require
+# yunoball_db at boot. retrieve_context only runs on the real-LLM fallback.
 
 DEFAULT_K = 4
 
@@ -58,6 +60,8 @@ _WORD = re.compile(r"[a-z0-9]+")
 
 
 async def retrieve_context(question: str, k: int = DEFAULT_K) -> RetrievedContext:
+    from ..rag.store import has_embeddings
+
     if settings.openai_api_key and has_embeddings("query_examples"):
         examples = await _vector_examples(question, k)
     else:
@@ -66,6 +70,8 @@ async def retrieve_context(question: str, k: int = DEFAULT_K) -> RetrievedContex
 
 
 async def _vector_examples(question: str, k: int) -> list[dict[str, str]]:
+    from ..rag.store import read_engine, vector_literal
+
     qv = await llm.embed(question)
     with read_engine().connect() as conn:
         rows = conn.execute(_EXAMPLE_SQL, {"qv": vector_literal(qv), "k": k}).all()
@@ -73,6 +79,8 @@ async def _vector_examples(question: str, k: int) -> list[dict[str, str]]:
 
 
 def _keyword_examples(question: str, k: int) -> list[dict[str, str]]:
+    from ..rag.store import read_engine
+
     q_tokens = set(_WORD.findall(question.lower()))
     with read_engine().connect() as conn:
         rows = conn.execute(
