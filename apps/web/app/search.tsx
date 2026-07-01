@@ -3,12 +3,13 @@
 import { useState } from "react";
 
 import { AnswerCard } from "./components/AnswerCard";
+import { AnswerSkeleton } from "./components/Skeleton";
 import { ask, type AnswerResult } from "./lib/api";
 
 const EXAMPLES = [
   "Who threw the most touchdowns in 2023?",
   "Patrick Mahomes career passing yards",
-  "Most rushing yards in a single playoff game",
+  "Most rushing yards in a single game",
 ];
 
 export function Search() {
@@ -39,48 +40,27 @@ export function Search() {
         }}
       >
         <input
+          className="yb-search"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask an NFL question…"
-          style={{
-            width: "100%",
-            padding: "14px 16px",
-            fontSize: 18,
-            background: "var(--panel)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            color: "var(--text)",
-          }}
+          placeholder="Search NFL stats, players, teams…"
+          autoFocus
         />
       </form>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, justifyContent: "center" }}>
         {EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            onClick={() => {
-              setQuestion(ex);
-              run(ex);
-            }}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-              borderRadius: 999,
-              padding: "6px 12px",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
+          <button key={ex} className="yb-chip" onClick={() => { setQuestion(ex); run(ex); }}>
             {ex}
           </button>
         ))}
       </div>
 
-      {loading && <p style={{ color: "var(--muted)" }}>Thinking…</p>}
-      {error && <p style={{ color: "#f87171" }}>{error}</p>}
-
-      {result && <AnswerCard result={result} />}
+      {loading && <AnswerSkeleton />}
+      {error && (
+        <p style={{ color: "#dc2626", marginTop: 24 }}>{error}</p>
+      )}
+      {!loading && result && <AnswerCard result={result} />}
     </div>
   );
 }

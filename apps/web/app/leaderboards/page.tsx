@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { BarChart } from "../components/BarChart";
 import { Nav } from "../components/Nav";
+import { BoardSkeleton } from "../components/Skeleton";
 import { fetchLeaderboards, type LeaderboardsResponse } from "../lib/api";
 
 export default function LeaderboardsPage() {
@@ -25,44 +26,74 @@ export default function LeaderboardsPage() {
   }, [season]);
 
   return (
-    <main style={{ maxWidth: 820, margin: "0 auto", padding: "48px 20px 120px" }}>
+    <>
       <Nav />
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <h1 style={{ fontSize: 32, margin: 0 }}>Leaderboards</h1>
-        {data && (
-          <select
-            value={data.season}
-            onChange={(e) => setSeason(Number(e.target.value))}
-            style={{
-              background: "var(--panel)",
-              color: "var(--text)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              padding: "6px 10px",
-              fontSize: 14,
-            }}
-          >
-            {data.seasons.map((s) => (
-              <option key={s} value={s}>
-                {s} season
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+      <main style={{ maxWidth: 980, margin: "0 auto", padding: "40px 20px 120px" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+          <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em", margin: 0 }}>
+            Leaderboards
+          </h1>
+          {data && (
+            <select
+              value={data.season}
+              onChange={(e) => setSeason(Number(e.target.value))}
+              style={{
+                background: "var(--panel)",
+                color: "var(--text)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "8px 12px",
+                fontSize: 14,
+                fontFamily: "inherit",
+              }}
+            >
+              {data.seasons.map((s) => (
+                <option key={s} value={s}>
+                  {s} season
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <p className="yb-muted" style={{ marginTop: 0, marginBottom: 24 }}>
+          Season leaders across the board — the same warehouse that powers search.
+        </p>
 
-      {loading && <p style={{ color: "var(--muted)" }}>Loading…</p>}
-      {error && <p style={{ color: "#f87171" }}>{error}</p>}
+        {error && <p style={{ color: "#dc2626" }}>{error}</p>}
 
-      {data?.boards.map((board) => (
-        <section key={board.key} style={{ marginTop: 36 }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{board.label}</h2>
-          <BarChart
-            data={board.rows.map((r) => ({ label: r.name, value: r.value }))}
-            unit={board.unit}
-          />
-        </section>
-      ))}
-    </main>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))",
+            gap: 20,
+          }}
+        >
+          {loading && !data
+            ? [0, 1, 2, 3].map((i) => (
+                <div key={i} className="yb-card">
+                  <BoardSkeleton />
+                </div>
+              ))
+            : data?.boards
+                .filter((board) => board.rows.length > 0)
+                .map((board) => (
+                <div key={board.key} className="yb-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>{board.label}</h2>
+                    {board.rows[0] && (
+                      <span className="yb-muted" style={{ fontSize: 13 }}>
+                        {board.rows[0].name}
+                      </span>
+                    )}
+                  </div>
+                  <BarChart
+                    data={board.rows.slice(0, 8).map((r) => ({ label: r.name, value: r.value }))}
+                    unit={board.unit}
+                  />
+                </div>
+              ))}
+        </div>
+      </main>
+    </>
   );
 }
