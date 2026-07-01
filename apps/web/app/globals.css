@@ -1,16 +1,68 @@
+/* ============================================================
+   YunoBall design system — implements docs/frontend-spec.html.
+   Search-first, content-over-chrome, dense-but-readable.
+   Tokens here are the runtime source of truth for the app.
+   ============================================================ */
 :root {
+  /* Surfaces */
   --bg: #ffffff;
   --bg-soft: #f6f7f9;
   --panel: #ffffff;
   --border: #e5e7eb;
+  --border-strong: #d5d9e0;
+
+  /* Ink */
   --text: #0b0d12;
   --muted: #6b7280;
-  --accent: #2b34e8;        /* StatMuse-style vivid indigo */
+  --faint: #9aa1ac;
+
+  /* Brand — indigo (our identity, not StatMuse's) */
+  --accent: #2b34e8;
   --accent-ink: #1b21a8;
   --accent-soft: #eef0ff;
-  --radius: 14px;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+
+  /* Semantic */
+  --success: #0f9d58;
+  --warning: #b7791f;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+
+  /* Radii */
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 16px;
+  --r-pill: 999px;
+  --radius: var(--r-lg); /* legacy alias */
+
+  /* Spacing scale — 4px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+
+  /* Type */
+  --font: "Inter", "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Elevation — deliberately flat */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-pop: 0 8px 28px rgba(16, 24, 40, 0.12);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 160ms;
+  --dur-slow: 240ms;
 }
 
 * {
@@ -29,6 +81,8 @@ body {
   font-family: var(--font);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv05" 1, "ss01" 1;
 }
 
 a {
@@ -39,41 +93,128 @@ a:hover {
   text-decoration: underline;
 }
 
+/* Visible focus everywhere; never removed without replacement. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip link — first focusable element for keyboard users. */
+.yb-skip {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 100;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  font-weight: 600;
+  transition: top var(--dur) var(--ease);
+}
+.yb-skip:focus {
+  top: 12px;
+  text-decoration: none;
+}
+
+/* ---- Navigation ---- */
+.yb-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding: 14px 22px;
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(8px);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+  z-index: 10;
+}
+.yb-brand {
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.yb-brand span {
+  color: var(--accent);
+}
+.yb-nav-links {
+  display: flex;
+  gap: 22px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.yb-nav-links a {
+  color: var(--muted);
+}
+.yb-nav-links a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+.yb-nav-links a[aria-current="page"] {
+  color: var(--accent);
+}
+
 /* ---- Search input ---- */
+.yb-search-wrap {
+  position: relative;
+}
 input.yb-search {
   width: 100%;
-  padding: 16px 18px;
+  padding: 16px 46px 16px 18px;
   font-size: 19px;
   font-family: inherit;
   color: var(--text);
   background: #fff;
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 input.yb-search::placeholder {
-  color: #9aa1ac;
+  color: var(--faint);
+}
+input.yb-search:hover {
+  border-color: var(--border-strong);
 }
 input.yb-search:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
+.yb-kbd-hint {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--faint);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 7px;
+  background: var(--bg-soft);
+  pointer-events: none;
+}
 
-/* ---- Example chips ---- */
+/* ---- Chips (example queries) ---- */
 .yb-chip {
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--muted);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 7px 14px;
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
 }
-.yb-chip:hover {
+.yb-chip:hover,
+.yb-chip[aria-pressed="true"] {
   color: var(--accent-ink);
   border-color: var(--accent);
   background: var(--accent-soft);
@@ -83,9 +224,23 @@ input.yb-search:focus {
 .yb-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-xl);
   padding: 22px 22px 18px;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+  box-shadow: var(--shadow-card);
+}
+/* One-time entrance: fade + rise. Respects reduced-motion below. */
+.yb-enter {
+  animation: yb-rise var(--dur-slow) var(--ease) both;
+}
+@keyframes yb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .yb-answer {
   font-size: 28px;
@@ -96,30 +251,49 @@ input.yb-search:focus {
 }
 
 /* ---- Table ---- */
+.yb-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
 table.yb-table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   font-size: 15px;
 }
 table.yb-table th {
   text-align: left;
   padding: 10px 14px;
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
   border-bottom: 1px solid var(--border);
   color: var(--muted);
   font-weight: 600;
   font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 table.yb-table td {
   padding: 11px 14px;
   border-bottom: 1px solid var(--border);
 }
-table.yb-table tbody tr:last-child td {
-  border-bottom: none;
+table.yb-table td.num,
+table.yb-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+table.yb-table tbody tr:nth-child(even) {
+  background: var(--bg-soft);
 }
 table.yb-table tbody tr:hover {
-  background: var(--bg-soft);
+  background: var(--accent-soft);
+}
+table.yb-table tbody tr:last-child td {
+  border-bottom: none;
 }
 table.yb-table td:first-child,
 table.yb-table th:first-child {
@@ -130,11 +304,11 @@ table.yb-table th:first-child {
 pre.yb-sql {
   background: var(--bg-soft);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 14px 16px;
   overflow-x: auto;
   font-size: 13px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   color: #1f2430;
 }
 .yb-link {
@@ -157,8 +331,97 @@ pre.yb-sql {
   font-size: 12px;
   color: var(--muted);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   padding: 2px 8px;
+}
+
+/* ---- Buttons ---- */
+.yb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+}
+.yb-btn:hover {
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+  text-decoration: none;
+}
+.yb-btn.ghost {
+  background: #fff;
+  color: var(--text);
+  border-color: var(--border);
+}
+.yb-btn.ghost:hover {
+  background: var(--bg-soft);
+  border-color: var(--border-strong);
+}
+
+/* ---- Select ---- */
+.yb-select {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.yb-select:hover {
+  border-color: var(--border-strong);
+}
+
+/* ---- Empty & error states ---- */
+.yb-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-2);
+  padding: var(--s-10) var(--s-6);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  color: var(--muted);
+  margin-top: 28px;
+}
+.yb-state h2 {
+  color: var(--text);
+  font-size: 18px;
+  margin: 0;
+}
+.yb-state p {
+  margin: 0;
+  max-width: 44ch;
+}
+.yb-state .yb-glyph {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 20px;
+}
+.yb-state.error {
+  background: var(--danger-soft);
+  border-color: #fecaca;
+  border-style: solid;
+  color: #7f1d1d;
+}
+.yb-state.error h2 {
+  color: #7f1d1d;
 }
 
 /* ---- Skeleton loaders ---- */
@@ -166,7 +429,7 @@ pre.yb-sql {
   position: relative;
   overflow: hidden;
   background: var(--bg-soft);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 .yb-skel::after {
   content: "";
@@ -186,9 +449,20 @@ pre.yb-sql {
     transform: translateX(100%);
   }
 }
+
+/* ---- Motion preferences ---- */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   .yb-skel::after {
     animation: none;
   }
+  .yb-enter {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }
-
