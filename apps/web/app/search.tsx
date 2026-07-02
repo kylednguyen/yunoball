@@ -36,6 +36,20 @@ export function Search() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Leaders section (and any other widget) can request a search via a custom
+  // event, so those components stay decoupled from this one's state.
+  useEffect(() => {
+    function onAsk(e: Event) {
+      const q = (e as CustomEvent<string>).detail;
+      if (!q) return;
+      setQuestion(q);
+      run(q);
+      inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    window.addEventListener("yb:ask", onAsk as EventListener);
+    return () => window.removeEventListener("yb:ask", onAsk as EventListener);
+  }, []);
+
   async function run(q: string) {
     setActive(q);
     setLoading(true);
@@ -105,7 +119,7 @@ export function Search() {
               ⚠️
             </div>
             <h2>Something went wrong</h2>
-            <p>{error}. Your question is fine — this one is on us.</p>
+            <p>{error}. Your question is fine. This one is on us.</p>
             <button className="yb-btn" onClick={() => active && run(active)}>
               Try again
             </button>
