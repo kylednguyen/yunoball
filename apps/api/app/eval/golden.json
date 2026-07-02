@@ -73,5 +73,20 @@
     "question": "Most targets in a single game",
     "intent": "single_game", "stat": "targets",
     "top_name": "CeeDee Lamb", "top_value": 11
+  },
+  {
+    "question": "Chiefs record in 2023",
+    "intent": "team_stat", "stat": "record",
+    "top_name": "Kansas City Chiefs", "top_value": 3
+  },
+  {
+    "question": "Bills record in 2023",
+    "intent": "team_stat", "stat": "record",
+    "top_name": "Buffalo Bills", "top_value": 1
+  },
+  {
+    "question": "Highest scoring offense in 2023",
+    "intent": "team_stat", "stat": "points_per_game",
+    "top_name": "Kansas City Chiefs", "top_value": 26.5
   }
 ]

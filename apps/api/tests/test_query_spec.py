@@ -63,3 +63,50 @@ def test_invalid_stat_rejected():
         assert False, "expected validation error"
     except Exception:
         pass
+
+
+def test_team_stat_mismatch_rejected():
+    # A team stat can't ride a player intent (and vice versa).
+    for intent, stat in [(Intent.LEADERS, "wins"), (Intent.TEAM_STAT, "passing_yards")]:
+        try:
+            QuerySpec(intent=intent, stat=stat)
+            assert False, f"expected validation error for {intent} + {stat}"
+        except Exception:
+            pass
+
+
+def test_team_record_parse():
+    spec = parse_rules("Chiefs record in 2023")
+    assert spec.intent is Intent.TEAM_STAT
+    assert spec.stat == "record"
+    assert spec.team_id == "KC"
+    assert spec.season == 2023
+
+
+def test_team_leaderboard_parse():
+    spec = parse_rules("Highest scoring offense in 2023")
+    assert spec.intent is Intent.TEAM_STAT
+    assert spec.stat == "points_per_game"
+    assert spec.team_id is None  # a leaderboard, no specific team
+
+
+def test_build_team_record_sql():
+    spec = QuerySpec(intent=Intent.TEAM_STAT, stat="record", team_id="KC", season=2023)
+    sql, params = build_sql(spec)
+    assert "team_game_stats" in sql and "GROUP BY" in sql
+    assert params["team_id"] == "KC" and params["season"] == 2023
+    # record selects wins/losses/ties, not a single value.
+    assert "wins" in sql and "losses" in sql
+
+
+def test_narrate_team_record():
+    spec = QuerySpec(intent=Intent.TEAM_STAT, stat="record", team_id="KC", season=2023)
+    txt = narrate_spec(spec, [{"team": "Kansas City Chiefs", "wins": 3, "losses": 1, "ties": 0}])
+    assert "Kansas City Chiefs" in txt and "3-1" in txt
+
+
+def test_passing_yards_not_hijacked_by_team_route():
+    # "yards" is a weak team cue; a real player stat must still win.
+    spec = parse_rules("Most passing yards in 2023")
+    assert spec.intent is Intent.LEADERS
+    assert spec.stat == "passing_yards"

@@ -104,11 +104,13 @@ def _eval_case(case: dict[str, Any]) -> CaseResult:
         detail = "no rows returned"
     else:
         top = resp.rows[0]
-        name_ok = str(top.get("full_name")) == case.get("top_name")
+        # Player rows expose full_name; team rows expose team.
+        row_name = top.get("full_name") or top.get("team")
+        name_ok = str(row_name) == case.get("top_name")
         val_ok = _value_matches(case.get("top_value"), _numeric_values(top))
         exec_ok = name_ok and val_ok
         if not exec_ok:
-            detail = f"got top={top.get('full_name')} values={_numeric_values(top)}"
+            detail = f"got top={row_name} values={_numeric_values(top)}"
 
     return CaseResult(question=question, parse_ok=parse_ok, exec_ok=exec_ok, detail=detail)
 

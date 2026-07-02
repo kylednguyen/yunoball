@@ -13,13 +13,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class Intent(str, Enum):
     LEADERS = "leaders"          # top-N players by a stat, optionally in a season
     PLAYER_TOTAL = "player_total"  # one player's season or career total
     SINGLE_GAME = "single_game"   # best single-game marks for a stat
+    TEAM_STAT = "team_stat"       # a team's record / points / yards, or a team leaderboard
 
 
 # --------------------------------------------------------------------------- #
@@ -107,6 +108,36 @@ STATS: dict[str, StatDef] = {
 }
 
 
+# --------------------------------------------------------------------------- #
+# Team-stat whitelist (Intent.TEAM_STAT), aggregated over team_game_stats.
+#
+# `record` is special — it returns wins/losses/ties together, not one number —
+# so its expression is None and build_sql handles it explicitly. The rest map
+# to a single aggregate expression (`{a}` = table alias). Values are hardcoded,
+# never user input, so they are safe to interpolate.
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class TeamStatDef:
+    label: str
+    expr: str | None  # None => the `record` special-case
+    # Minimum games for a team to appear on a per-game leaderboard, so a team
+    # with one blowout can't top "highest scoring offense" on a tiny sample.
+    min_games: int | None = None
+
+
+TEAM_STATS: dict[str, TeamStatDef] = {
+    "record": TeamStatDef("record", None),
+    "wins": TeamStatDef("wins", "SUM(CASE WHEN {a}.result = 'W' THEN 1 ELSE 0 END)"),
+    "losses": TeamStatDef("losses", "SUM(CASE WHEN {a}.result = 'L' THEN 1 ELSE 0 END)"),
+    "points": TeamStatDef("points", "SUM({a}.points_for)"),
+    "points_per_game": TeamStatDef("points per game", "ROUND(AVG({a}.points_for * 1.0), 1)", min_games=3),
+    "yards": TeamStatDef("yards", "SUM({a}.total_yards)"),
+    "yards_per_game": TeamStatDef("yards per game", "ROUND(AVG({a}.total_yards * 1.0), 1)", min_games=3),
+}
+
+
 class QuerySpec(BaseModel):
     intent: Intent
     stat: str
@@ -114,18 +145,31 @@ class QuerySpec(BaseModel):
     season_type: str = "REG"
     player: str | None = None          # display name (for narration / LIKE fallback)
     player_id: str | None = None       # canonical id from the resolver (preferred)
+    team: str | None = None            # team display name (narration)
+    team_id: str | None = None         # canonical team id, e.g. "BUF"
     scope: str = "season"              # "season" | "career" (PLAYER_TOTAL)
     limit: int = Field(default=10, ge=1, le=100)
 
-    @field_validator("stat")
-    @classmethod
-    def _known_stat(cls, v: str) -> str:
-        if v not in STATS:
-            raise ValueError(f"unknown stat: {v}")
-        return v
+    @model_validator(mode="after")
+    def _known_stat(self) -> "QuerySpec":
+        # The stat must belong to the whitelist that matches the intent, so a
+        # player intent can't smuggle in a team stat (and vice versa).
+        allowed = TEAM_STATS if self.intent is Intent.TEAM_STAT else STATS
+        if self.stat not in allowed:
+            raise ValueError(f"unknown stat for {self.intent.value}: {self.stat}")
+        return self
 
     def label(self) -> str:
+        if self.intent is Intent.TEAM_STAT:
+            return TEAM_STATS[self.stat].label
         return STATS[self.stat].label
+
+    def team_expr(self, alias: str) -> str | None:
+        tmpl = TEAM_STATS[self.stat].expr
+        return tmpl.format(a=alias) if tmpl else None
+
+    def team_min_games(self) -> int | None:
+        return TEAM_STATS[self.stat].min_games
 
     def value_expr(self, alias: str, *, career: bool = False) -> str:
         return STATS[self.stat].expr(alias, career)
@@ -139,11 +183,12 @@ class QuerySpec(BaseModel):
         return q.format(a=alias) if q else None
 
     def cache_key(self) -> str:
-        # Must include every field build_sql() depends on — notably player_id,
-        # since two players can share a display name.
+        # Must include every field build_sql() depends on — notably player_id
+        # and team_id, since two players/teams can share a display name.
         return "|".join(
             str(x) for x in (
                 self.intent.value, self.stat, self.season, self.season_type,
-                (self.player or "").lower(), self.player_id, self.scope, self.limit,
+                (self.player or "").lower(), self.player_id,
+                self.team_id, self.scope, self.limit,
             )
         )

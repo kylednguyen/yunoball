@@ -70,7 +70,17 @@ _GAMES = [
     ("2023_10_NYG_DAL", 2023, 10, "DAL", "NYG", 49, 17),
     ("2023_12_SF_SEA", 2023, 12, "SEA", "SF", 13, 31),
     ("2023_10_KC_DEN", 2023, 10, "DEN", "KC", 8, 19),
+    # A mini-season among seed teams so team_stat (record, scoring) has data.
+    ("2023_01_SF_KC", 2023, 1, "KC", "SF", 31, 24),
+    ("2023_02_KC_BUF", 2023, 2, "BUF", "KC", 21, 28),
+    ("2023_03_DAL_KC", 2023, 3, "KC", "DAL", 20, 24),
+    ("2023_04_TEN_KC", 2023, 4, "KC", "TEN", 27, 20),
+    ("2023_05_BUF_SF", 2023, 5, "SF", "BUF", 20, 17),
+    ("2023_06_TEN_SF", 2023, 6, "SF", "TEN", 27, 10),
+    ("2023_07_JAX_BUF", 2023, 7, "BUF", "JAX", 28, 14),
 ]
+
+_SEED_TEAM_IDS = {t[0] for t in SEED_TEAMS}
 
 # player_id, game_id, team, comp, att, int, sacks, rush_yds, rush_td, tgt,
 #   rec, rec_yds, rec_td, pass_yds, pass_td
@@ -109,7 +119,26 @@ _DDL = [
         receptions INTEGER, receiving_yards INTEGER, receiving_tds INTEGER,
         passing_yards INTEGER, passing_tds INTEGER,
         PRIMARY KEY (player_id, game_id))""",
+    """CREATE TABLE IF NOT EXISTS team_game_stats (
+        team_id TEXT, game_id TEXT, is_home INTEGER, points_for INTEGER,
+        points_against INTEGER, total_yards INTEGER, result TEXT,
+        PRIMARY KEY (team_id, game_id))""",
 ]
+
+
+def _team_game_rows() -> list[dict]:
+    """Two rows (home + away) per game where both teams are seeded."""
+    rows: list[dict] = []
+    for gid, _season, _week, home, away, hs, as_ in _GAMES:
+        if home not in _SEED_TEAM_IDS or away not in _SEED_TEAM_IDS:
+            continue
+        for team, pts, opp, is_home in ((home, hs, as_, 1), (away, as_, hs, 0)):
+            rows.append({
+                "team_id": team, "game_id": gid, "is_home": is_home,
+                "points_for": pts, "points_against": opp,
+                "result": "W" if pts > opp else "L" if pts < opp else "T",
+            })
+    return rows
 
 
 def is_seeded(engine: Engine) -> bool:
@@ -129,6 +158,7 @@ def seed_demo(engine: Engine) -> None:
 
         conn.execute(text("DELETE FROM player_season_stats"))
         conn.execute(text("DELETE FROM player_game_stats"))
+        conn.execute(text("DELETE FROM team_game_stats"))
         conn.execute(text("DELETE FROM players"))
         conn.execute(text("DELETE FROM teams"))
         conn.execute(text("DELETE FROM games"))
@@ -197,4 +227,12 @@ def seed_demo(engine: Engine) -> None:
                 }
                 for r in _PGS
             ],
+        )
+        conn.execute(
+            text(
+                "INSERT INTO team_game_stats (team_id, game_id, is_home,"
+                " points_for, points_against, result) VALUES"
+                " (:team_id, :game_id, :is_home, :points_for, :points_against, :result)"
+            ),
+            _team_game_rows(),
         )

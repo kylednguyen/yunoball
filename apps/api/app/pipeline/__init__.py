@@ -76,10 +76,18 @@ async def run_query_pipeline(
             share_id=cache.share_id(question),
         )
 
-    # Attach the resolved canonical id if the parser didn't already.
-    if spec.intent is Intent.PLAYER_TOTAL and not spec.player_id and entities:
-        spec.player_id = entities[0].canonical_id
-        spec.player = spec.player or entities[0].display_name
+    # Attach the resolved canonical id if the parser didn't already, picking the
+    # entity whose type matches the intent.
+    if spec.intent is Intent.PLAYER_TOTAL and not spec.player_id:
+        p = next((e for e in entities if e.entity_type == "player"), None)
+        if p is not None:
+            spec.player_id = p.canonical_id
+            spec.player = spec.player or p.display_name
+    if spec.intent is Intent.TEAM_STAT and not spec.team_id:
+        t = next((e for e in entities if e.entity_type == "team"), None)
+        if t is not None:
+            spec.team_id = t.canonical_id
+            spec.team = spec.team or t.display_name
 
     # --- L2: spec-keyed cache (dedupes phrasings that map to one spec) ---
     skey = cache.spec_key(spec.cache_key())
