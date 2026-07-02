@@ -9,7 +9,7 @@ from app.eval import evaluate  # noqa: E402
 
 def test_golden_set_passes():
     report = evaluate()
-    assert report.total >= 10
+    assert report.total >= 50  # V1 canonical set covering all five intents
     failures = [f"{r.question}: {r.detail}" for r in report.failures]
     assert not failures, f"eval regressions: {failures}"
     assert report.exec_acc == 100.0

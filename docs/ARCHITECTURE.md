@@ -120,8 +120,11 @@ players head-to-head).
 season idempotently (upsert, never duplicates), scheduled weekly in-season via
 `.github/workflows/update-data.yml`.
 
-**Next (V1 scope)** ⬜ — grow the eval set toward broad intent coverage and run
-the full 1999–present backfill (widen `--years`/`--all`).
+**Evaluation** ✅ — a 50+ question canonical set covering all five intents and
+every whitelisted stat, scored on parse + execution accuracy against the seed
+data and gated at 100% in CI (`tests/test_eval.py`).
+
+**Next** ⬜ — full 1999–present backfill (widen `--years`/`--all`).
 
 **Deliberately out of scope for V1** — play-by-play / EPA / win-probability,
 fantasy, betting, multi-sport, and any AI-generated statistics. These are

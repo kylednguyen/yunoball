@@ -25,6 +25,46 @@
     "top_name": "Josh Allen", "top_value": 18
   },
   {
+    "question": "Most receptions in 2023",
+    "intent": "leaders", "stat": "receptions",
+    "top_name": "CeeDee Lamb", "top_value": 135
+  },
+  {
+    "question": "Most targets in 2023",
+    "intent": "leaders", "stat": "targets",
+    "top_name": "CeeDee Lamb", "top_value": 181
+  },
+  {
+    "question": "Most sacks taken in 2023",
+    "intent": "leaders", "stat": "sacks",
+    "top_name": "Dak Prescott", "top_value": 39
+  },
+  {
+    "question": "Highest completion percentage in 2023",
+    "intent": "leaders", "stat": "completion_percentage",
+    "top_name": "Dak Prescott", "top_value": 69.5
+  },
+  {
+    "question": "Highest passer rating in 2023",
+    "intent": "leaders", "stat": "passer_rating",
+    "top_name": "Brock Purdy", "top_value": 113.0
+  },
+  {
+    "question": "Most rushing yards in 2022",
+    "intent": "leaders", "stat": "rushing_yards",
+    "top_name": "Christian McCaffrey", "top_value": 1139
+  },
+  {
+    "question": "Most passing touchdowns in 2022",
+    "intent": "leaders", "stat": "passing_tds",
+    "top_name": "Patrick Mahomes", "top_value": 41
+  },
+  {
+    "question": "Most interceptions in 2022",
+    "intent": "leaders", "stat": "interceptions",
+    "top_name": "Patrick Mahomes", "top_value": 12
+  },
+  {
     "question": "Patrick Mahomes career passing yards",
     "intent": "player_total", "stat": "passing_yards",
     "top_name": "Patrick Mahomes", "top_value": 9433
@@ -33,6 +73,101 @@
     "question": "Patrick Mahomes career passing touchdowns",
     "intent": "player_total", "stat": "passing_tds",
     "top_name": "Patrick Mahomes", "top_value": 68
+  },
+  {
+    "question": "Christian McCaffrey career rushing yards",
+    "intent": "player_total", "stat": "rushing_yards",
+    "top_name": "Christian McCaffrey", "top_value": 2598
+  },
+  {
+    "question": "Tyreek Hill career receiving touchdowns",
+    "intent": "player_total", "stat": "receiving_tds",
+    "top_name": "Tyreek Hill", "top_value": 20
+  },
+  {
+    "question": "Jalen Hurts career passing yards",
+    "intent": "player_total", "stat": "passing_yards",
+    "top_name": "Jalen Hurts", "top_value": 3858
+  },
+  {
+    "question": "Tyreek Hill receiving yards in 2023",
+    "intent": "player_total", "stat": "receiving_yards",
+    "top_name": "Tyreek Hill", "top_value": 1799
+  },
+  {
+    "question": "Tua Tagovailoa passing yards in 2023",
+    "intent": "player_total", "stat": "passing_yards",
+    "top_name": "Tua Tagovailoa", "top_value": 4624
+  },
+  {
+    "question": "Brock Purdy passing yards in 2023",
+    "intent": "player_total", "stat": "passing_yards",
+    "top_name": "Brock Purdy", "top_value": 4280
+  },
+  {
+    "question": "Jared Goff passing touchdowns in 2023",
+    "intent": "player_total", "stat": "passing_tds",
+    "top_name": "Jared Goff", "top_value": 30
+  },
+  {
+    "question": "Josh Allen interceptions in 2023",
+    "intent": "player_total", "stat": "interceptions",
+    "top_name": "Josh Allen", "top_value": 18
+  },
+  {
+    "question": "Josh Allen rushing yards in 2023",
+    "intent": "player_total", "stat": "rushing_yards",
+    "top_name": "Josh Allen", "top_value": 524
+  },
+  {
+    "question": "Jalen Hurts rushing touchdowns in 2023",
+    "intent": "player_total", "stat": "rushing_tds",
+    "top_name": "Jalen Hurts", "top_value": 15
+  },
+  {
+    "question": "Derrick Henry rushing touchdowns in 2023",
+    "intent": "player_total", "stat": "rushing_tds",
+    "top_name": "Derrick Henry", "top_value": 12
+  },
+  {
+    "question": "Travis Etienne rushing yards in 2023",
+    "intent": "player_total", "stat": "rushing_yards",
+    "top_name": "Travis Etienne", "top_value": 1008
+  },
+  {
+    "question": "Christian McCaffrey receptions in 2023",
+    "intent": "player_total", "stat": "receptions",
+    "top_name": "Christian McCaffrey", "top_value": 67
+  },
+  {
+    "question": "Derrick Henry receptions in 2023",
+    "intent": "player_total", "stat": "receptions",
+    "top_name": "Derrick Henry", "top_value": 28
+  },
+  {
+    "question": "Amon-Ra St. Brown receiving yards in 2023",
+    "intent": "player_total", "stat": "receiving_yards",
+    "top_name": "Amon-Ra St. Brown", "top_value": 1515
+  },
+  {
+    "question": "Mike Evans receiving touchdowns in 2023",
+    "intent": "player_total", "stat": "receiving_tds",
+    "top_name": "Mike Evans", "top_value": 13
+  },
+  {
+    "question": "Dak Prescott completion percentage in 2023",
+    "intent": "player_total", "stat": "completion_percentage",
+    "top_name": "Dak Prescott", "top_value": 69.5
+  },
+  {
+    "question": "Patrick Mahomes passer rating in 2023",
+    "intent": "player_total", "stat": "passer_rating",
+    "top_name": "Patrick Mahomes", "top_value": 92.6
+  },
+  {
+    "question": "Josh Allen passer rating in 2023",
+    "intent": "player_total", "stat": "passer_rating",
+    "top_name": "Josh Allen", "top_value": 92.2
   },
   {
     "question": "Most rushing yards in a single game",
@@ -45,26 +180,6 @@
     "top_name": "CeeDee Lamb", "top_value": 151
   },
   {
-    "question": "Tyreek Hill receiving yards in 2023",
-    "intent": "player_total", "stat": "receiving_yards",
-    "top_name": "Tyreek Hill", "top_value": 1799
-  },
-  {
-    "question": "Most targets in 2023",
-    "intent": "leaders", "stat": "targets",
-    "top_name": "CeeDee Lamb", "top_value": 181
-  },
-  {
-    "question": "Highest completion percentage in 2023",
-    "intent": "leaders", "stat": "completion_percentage",
-    "top_name": "Dak Prescott", "top_value": 69.5
-  },
-  {
-    "question": "Josh Allen passer rating in 2023",
-    "intent": "player_total", "stat": "passer_rating",
-    "top_name": "Josh Allen", "top_value": 92.2
-  },
-  {
     "question": "Most passing yards in a single game",
     "intent": "single_game", "stat": "passing_yards",
     "top_name": "Patrick Mahomes", "top_value": 306
@@ -73,6 +188,16 @@
     "question": "Most targets in a single game",
     "intent": "single_game", "stat": "targets",
     "top_name": "CeeDee Lamb", "top_value": 11
+  },
+  {
+    "question": "Most receptions in a single game",
+    "intent": "single_game", "stat": "receptions",
+    "top_name": "CeeDee Lamb", "top_value": 9
+  },
+  {
+    "question": "Most passing touchdowns in a single game",
+    "intent": "single_game", "stat": "passing_tds",
+    "top_name": "Patrick Mahomes", "top_value": 2
   },
   {
     "question": "Chiefs record in 2023",
@@ -85,7 +210,27 @@
     "top_name": "Buffalo Bills", "top_value": 1
   },
   {
+    "question": "49ers record in 2023",
+    "intent": "team_stat", "stat": "record",
+    "top_name": "San Francisco 49ers", "top_value": 2
+  },
+  {
+    "question": "Most wins in 2023",
+    "intent": "team_stat", "stat": "wins",
+    "top_name": "Kansas City Chiefs", "top_value": 3
+  },
+  {
+    "question": "Most points in 2023",
+    "intent": "team_stat", "stat": "points",
+    "top_name": "Kansas City Chiefs", "top_value": 106
+  },
+  {
     "question": "Highest scoring offense in 2023",
+    "intent": "team_stat", "stat": "points_per_game",
+    "top_name": "Kansas City Chiefs", "top_value": 26.5
+  },
+  {
+    "question": "Chiefs points per game in 2023",
     "intent": "team_stat", "stat": "points_per_game",
     "top_name": "Kansas City Chiefs", "top_value": 26.5
   },
@@ -95,8 +240,28 @@
     "top_name": "Patrick Mahomes", "top_value": 9433
   },
   {
+    "question": "Patrick Mahomes vs Dak Prescott passing touchdowns",
+    "intent": "comparison", "stat": "passing_tds",
+    "top_name": "Patrick Mahomes", "top_value": 68
+  },
+  {
     "question": "Josh Allen vs Jalen Hurts rushing yards",
     "intent": "comparison", "stat": "rushing_yards",
     "top_name": "Jalen Hurts", "top_value": 605
+  },
+  {
+    "question": "Christian McCaffrey vs Derrick Henry rushing yards",
+    "intent": "comparison", "stat": "rushing_yards",
+    "top_name": "Christian McCaffrey", "top_value": 2598
+  },
+  {
+    "question": "Tyreek Hill vs CeeDee Lamb receiving yards",
+    "intent": "comparison", "stat": "receiving_yards",
+    "top_name": "Tyreek Hill", "top_value": 3509
+  },
+  {
+    "question": "Josh Allen vs Patrick Mahomes passing yards in 2023",
+    "intent": "comparison", "stat": "passing_yards",
+    "top_name": "Josh Allen", "top_value": 4306
   }
 ]
