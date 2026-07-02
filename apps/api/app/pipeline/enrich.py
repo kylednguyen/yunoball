@@ -193,12 +193,12 @@ def build_source(question: str, query_type: str, n_rows: int) -> SourceInfo:
     lo, hi = loaded_range()
     years = [int(y) for y in re.findall(r"\b(19\d{2}|20\d{2})\b", question)]
     if any(y < lo or y > hi for y in years):
-        warnings.append(f"Only the {lo}–{hi} seasons are loaded; other years aren't available yet.")
+        warnings.append(f"Only the {lo}-{hi} seasons are loaded; other years aren't available yet.")
     if re.search(r"\b(live|today|tonight|projected|projection|fantasy projection)\b", question.lower()):
         warnings.append("This warehouse is historical (final stats only) — no live or projected data.")
-    coverage = f"{lo}–{hi} · regular & postseason"
+    coverage = f"{lo}-{hi}, regular and postseason"
     if query_type == "play":
-        coverage += " · play-by-play"
+        coverage += ", play-by-play"
     return SourceInfo(
         coverage=coverage,
         freshness="Final",
@@ -264,6 +264,19 @@ def build_followups(primary, query_type: str, seasons: list[int]) -> list[str]:
         "Most passing touchdowns in the 2023 season",
         "Which team scored the most points in 2023?",
     ]
+
+
+def _player_headshot(player_id: str) -> str | None:
+    """Headshot for the primary player, from the warehouse (best-effort)."""
+    try:
+        with read_engine().connect() as conn:
+            url = conn.execute(
+                text("SELECT headshot_url FROM players WHERE player_id = :p"),
+                {"p": player_id},
+            ).scalar()
+        return url or None
+    except Exception:
+        return None
 
 
 def _comparisons(player_id: str, col: str, season: int, season_value: float) -> list[ComparisonCard]:
@@ -370,6 +383,7 @@ def enrich(
         value=_fmt(row0[pcol]) if pcol and row0.get(pcol) is not None else None,
         unit=humanize(pcol) if pcol else None,
         context=_context_label(seasons, stype),
+        headshot_url=_player_headshot(player_ent.canonical_id) if player_ent else None,
     )
 
     comparisons: list[ComparisonCard] = []

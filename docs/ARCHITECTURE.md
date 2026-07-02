@@ -84,6 +84,7 @@ pipeline, and embeddings share one language and one schema definition.
 - **Phase 3** ✅ — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis answer cache + Postgres write-through.
 - **Phase 4** ✅ — play-by-play ingest + situational/EPA + defensive stats (tackles, sacks, INTs). Backfilled to the full modern era **1999–2024** (one-command `--years $(seq 1999 2024)`).
 - **NL→SQL** ✅ — intent classification (question → intent + slots → vetted parameterized SQL templates) with free-form NL→SQL as fallback; runs on OpenAI or local Ollama.
+- **Hardening** ✅: Redis rate limiting on `POST /api/search` (fixed window per client IP, `RATE_LIMIT_PER_MINUTE`, fails open when Redis is down); conversational follow-ups (history is condensed into a standalone question before the pipeline, so the cache key uses the effective question); GitHub Actions CI (pytest + golden-set reference eval against an ingested warehouse).
 - **Later** — multi-sport (the NL→SQL engine is sport-agnostic; add per-sport schema + data source, e.g. `pybaseball` for MLB).
 
 > **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
@@ -96,5 +97,6 @@ pipeline, and embeddings share one language and one schema definition.
 ## Eval (non-negotiable)
 
 Accuracy is the product. A golden set of `question → expected result` pairs runs
-in CI; we track execution accuracy and regressions before shipping prompt or
-schema changes.
+in CI (`.github/workflows/ci.yml` executes `yunoball-eval --reference-only`
+against a warehouse ingested in the job); we track execution accuracy and
+regressions before shipping prompt or schema changes.

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { AnswerCard } from "./components/AnswerCard";
+import { Leaders } from "./components/Leaders";
 import { ask, type AnswerResult } from "./lib/api";
 
 const EXAMPLES = [
@@ -23,6 +24,7 @@ export function Search() {
     setLoading(true);
     setError(null);
     setResult(null);
+    window.scrollTo({ top: 0 });
     try {
       setResult(await ask(q));
     } catch (err) {
@@ -75,10 +77,19 @@ export function Search() {
         ))}
       </div>
 
-      {loading && <p className="thinking">Crunching the numbers…</p>}
+      {loading && (
+        <div className="skeletons" role="status" aria-live="polite">
+          <span className="sr-only">Crunching the numbers</span>
+          <div className="skeleton skeleton-lede" aria-hidden />
+          <div className="skeleton skeleton-stat" aria-hidden />
+          <div className="skeleton skeleton-table" aria-hidden />
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
 
       {result && <AnswerCard result={result} onAsk={run} />}
+
+      {!loading && !result && <Leaders onAsk={run} />}
     </div>
   );
 }

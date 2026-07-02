@@ -30,7 +30,15 @@ class Settings(BaseSettings):
 
     # Server
     api_port: int = 4000
-    cors_origins: list[str] = ["http://localhost:3000"]
+    # Local dev web ports: pnpm dev:web (3000), the web-alt launch config
+    # (3100), and browser-preview tooling (3130).
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:3100",
+        "http://localhost:3130",
+    ]
+    # Requests per client IP per minute on POST /api/search (0 disables).
+    rate_limit_per_minute: int = 30
 
     @property
     def llm_configured(self) -> bool:

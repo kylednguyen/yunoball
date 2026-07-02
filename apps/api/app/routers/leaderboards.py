@@ -34,6 +34,7 @@ class LeaderRow(BaseModel):
     name: str
     team: str | None
     value: float
+    headshot_url: str | None = None
 
 
 class Leaderboard(BaseModel):
@@ -57,7 +58,8 @@ def _player_board(conn, column: str, label: str, unit: str, season: int, limit: 
     rows = conn.execute(
         text(
             f"""
-            SELECT p.full_name AS name, s.team_id AS team, s.{column} AS value
+            SELECT p.full_name AS name, s.team_id AS team, p.headshot_url AS headshot_url,
+                   s.{column} AS value
             FROM player_season_stats s JOIN players p USING (player_id)
             WHERE s.season = :season AND s.season_type = 'REG'
               AND s.{column} IS NOT NULL
@@ -72,7 +74,13 @@ def _player_board(conn, column: str, label: str, unit: str, season: int, limit: 
         label=label,
         unit=unit,
         rows=[
-            LeaderRow(rank=i + 1, name=r.name, team=r.team, value=float(r.value))
+            LeaderRow(
+                rank=i + 1,
+                name=r.name,
+                team=r.team,
+                value=float(r.value),
+                headshot_url=r.headshot_url,
+            )
             for i, r in enumerate(rows)
         ],
     )

@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 
 import type { AnswerResult } from "../lib/api";
+import { headshotThumb } from "../lib/teams";
+import { BarChart, type BarDatum } from "./BarChart";
 
 function ask(q: string, onAsk?: (q: string) => void) {
   if (onAsk) onAsk(q);
@@ -19,9 +22,25 @@ function numericColumns(result: AnswerResult): Set<string> {
 }
 
 function fmt(value: unknown, numeric: boolean): string {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return "-";
   if (numeric) return Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 });
   return String(value);
+}
+
+const NON_CHART_COLS = /^(rank|season|week|year|games?|gp)$/i;
+
+/** Leaderboard-shaped results (a label column + a stat column, a handful of
+ *  rows) get a bar chart above the table. Anything else stays table-only. */
+function chartData(result: AnswerResult, numeric: Set<string>): BarDatum[] | null {
+  if (result.rows.length < 3 || result.rows.length > 15) return null;
+  const labelCol = result.columns.find((c) => !numeric.has(c));
+  const valueCol = result.columns.find((c) => numeric.has(c) && !NON_CHART_COLS.test(c));
+  if (!labelCol || !valueCol) return null;
+  const data = result.rows
+    .map((r) => ({ label: String(r[labelCol] ?? ""), value: Number(r[valueCol]) }))
+    .filter((d) => d.label !== "" && Number.isFinite(d.value) && d.value >= 0);
+  if (data.length < 3) return null;
+  return data;
 }
 
 export function AnswerCard({
@@ -36,9 +55,16 @@ export function AnswerCard({
   const [sort, setSort] = useState<{ col: string; dir: 1 | -1 } | null>(null);
 
   const numeric = useMemo(() => numericColumns(result), [result]);
+  const chart = useMemo(() => chartData(result, numeric), [result, numeric]);
   const primary = result.primary;
   const source = result.source;
   const isEmpty = result.rows.length === 0;
+  // Only hosts allowed in next.config.ts — anything else would throw in next/image.
+  const headshot =
+    primary?.subject_type === "player" &&
+    primary.headshot_url?.startsWith("https://static.www.nfl.com/")
+      ? primary.headshot_url
+      : null;
 
   const sortedRows = useMemo(() => {
     if (!sort) return result.rows;
@@ -89,16 +115,29 @@ export function AnswerCard({
             </p>
 
             {primary?.value && (
-              <>
-                <div className="stat-value">
-                  {primary.value}
-                  {primary.unit && <span className="unit">{primary.unit}</span>}
+              <div className="stat-hero">
+                <div className="stat-main">
+                  <div className="stat-value">
+                    {primary.value}
+                    {primary.unit && <span className="unit">{primary.unit}</span>}
+                  </div>
+                  <div className="stat-sub">
+                    {primary.subject}
+                    {primary.context && <span className="ctx"> · {primary.context}</span>}
+                  </div>
                 </div>
-                <div className="stat-sub">
-                  {primary.subject}
-                  {primary.context && <span className="ctx"> · {primary.context}</span>}
-                </div>
-              </>
+                {headshot && (
+                  <div className="headshot">
+                    <Image
+                      src={headshotThumb(headshot, 352)}
+                      alt={primary.subject ?? "Player headshot"}
+                      fill
+                      sizes="(max-width: 600px) 124px, 176px"
+                      unoptimized
+                    />
+                  </div>
+                )}
+              </div>
             )}
 
             {result.chips && result.chips.length > 0 && (
@@ -114,12 +153,10 @@ export function AnswerCard({
             {source && (
               <>
                 <div className="source">
-                  <span className={source.freshness === "Final" ? "badge-final" : "badge-final"}>
-                    {source.freshness}
-                  </span>
+                  <span className="badge-final">{source.freshness}</span>
                   <span>
-                    Source: {source.label} · {source.coverage}
-                    {source.updated ? ` · data through ${source.updated}` : ""}
+                    Source: {source.label}, {source.coverage}
+                    {source.updated ? `, data through ${source.updated}` : ""}
                   </span>
                 </div>
                 {source.warnings.map((w, i) => (
@@ -146,6 +183,15 @@ export function AnswerCard({
             </>
           )}
 
+          {chart && (
+            <>
+              <div className="section-label">At a glance</div>
+              <div className="chart-wrap">
+                <BarChart data={chart} />
+              </div>
+            </>
+          )}
+
           <div className="section-label">Supporting data</div>
           <div className="table-wrap">
             <div className="table-scroll">
@@ -158,7 +204,7 @@ export function AnswerCard({
                         className={`sortable${numeric.has(c) ? " num" : ""}`}
                         onClick={() => toggleSort(c)}
                       >
-                        {c}
+                        {c.replace(/_/g, " ")}
                         {sort?.col === c && <span className="arrow">{sort.dir === 1 ? "▲" : "▼"}</span>}
                       </th>
                     ))}

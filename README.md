@@ -87,3 +87,11 @@ templates (safer than free-form SQL); free-form NL→SQL is the fallback. LLM st
 work with any OpenAI-compatible endpoint (OpenAI or local Ollama); trigram
 resolution, leaderboards, shareable pages, and the reference eval run with no LLM.
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+Also in place: **rate limiting** (Redis fixed-window counter per client IP on
+`POST /api/search`, configurable via `RATE_LIMIT_PER_MINUTE`, fails open if
+Redis is down), **conversational follow-ups** ("...and in the playoffs?" is
+rewritten into a standalone question from the chat history before the pipeline
+runs; skipped when no LLM is configured), and **CI** (GitHub Actions runs the
+test suite plus the golden-set reference eval against a freshly ingested
+warehouse; see `.github/workflows/ci.yml`).

@@ -78,6 +78,7 @@ def load_players(engine: Engine, years: list[int]) -> int:
             "weight_lbs": pd.to_numeric(rosters.get("weight"), errors="coerce"),
             "college": rosters.get("college"),
             "rookie_season": pd.to_numeric(rosters.get("rookie_year"), errors="coerce"),
+            "headshot_url": rosters.get("headshot_url"),
         }
     )
     df = df[df["player_id"].notna() & df["full_name"].notna()]

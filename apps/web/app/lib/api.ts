@@ -18,6 +18,7 @@ export interface PrimaryStat {
   value: string | null;
   unit: string | null;
   context: string | null;
+  headshot_url?: string | null;
 }
 
 export interface ComparisonCard {
@@ -82,6 +83,7 @@ export interface LeaderRow {
   name: string;
   team: string | null;
   value: number;
+  headshot_url?: string | null;
 }
 
 export interface Leaderboard {

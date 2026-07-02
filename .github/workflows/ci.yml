@@ -1,0 +1,88 @@
+# CI: unit tests + the golden-set reference eval (see docs/ARCHITECTURE.md).
+#
+# The reference eval executes every golden reference SQL against a real
+# warehouse, so this job stands up Postgres (pgvector) + Redis, migrates the
+# schema, and ingests the slice of nflverse data the golden set actually
+# touches: box scores for 2022-2024 plus play-by-play for 2022-2023 (three
+# golden cases query the plays table; no golden case needs 2024 plays, and
+# skipping that year keeps the heaviest download out of CI). Data comes from
+# nflverse GitHub releases over the network; expect a few minutes for the
+# ingest steps. No LLM key is needed anywhere in this job: pytest mocks the
+# LLM/Redis, seed-rag falls back to NULL embeddings, and --reference-only
+# never calls the model. The full execution-accuracy eval (pipeline vs.
+# reference, needs OPENAI_API_KEY) is intentionally not run here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: yunoball
+          POSTGRES_PASSWORD: yunoball
+          POSTGRES_DB: yunoball
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U yunoball"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://yunoball:yunoball@localhost:5432/yunoball
+      DIRECT_DATABASE_URL: postgresql://yunoball:yunoball@localhost:5432/yunoball
+      READONLY_DATABASE_URL: postgresql://yunoball_ro:yunoball_ro@localhost:5432/yunoball
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            packages/db/pyproject.toml
+            packages/ingest/pyproject.toml
+            apps/api/pyproject.toml
+
+      - name: Install packages (editable, compat mode)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --config-settings editable_mode=compat \
+            -e packages/db -e packages/ingest -e apps/api
+          pip install pytest
+
+      - name: Migrate schema
+        run: cd packages/db && alembic upgrade head
+
+      - name: Provision read-only role
+        run: yunoball-provision-readonly
+
+      - name: Ingest golden-set data (box scores 2022-2024, plays 2022-2023)
+        run: |
+          yunoball-ingest --years 2022 2023 2024 --skip-plays
+          yunoball-ingest --years 2022 2023 --only plays
+
+      - name: Seed RAG (aliases + few-shot; NULL embeddings without an LLM key)
+        run: yunoball-seed-rag
+
+      - name: Run tests
+        run: cd apps/api && pytest tests/ -q
+
+      - name: Reference eval (golden set)
+        run: yunoball-eval --reference-only

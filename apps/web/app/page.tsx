@@ -3,15 +3,15 @@ import { Search } from "./search";
 
 export default function Home() {
   return (
-    <main className="wrap">
-      <Nav showWordmark={false} />
-      <section className="hero">
+    <main className="wrap wrap-wide">
+      <Nav />
+      <section className="hero hero-compact">
         <h1>
-          Yuno<span>Ball</span>
+          Ask NFL history <span>anything</span>
         </h1>
         <p className="tagline">
-          Ask anything about NFL history — every answer is computed from real
-          data, and we show you the query behind it.
+          Every answer is computed from real data, with the exact query behind
+          it. No hallucinated numbers.
         </p>
       </section>
       <Search />

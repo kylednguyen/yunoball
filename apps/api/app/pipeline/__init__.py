@@ -1,8 +1,9 @@
 """The YunoBall query pipeline.
 
-    cache lookup -> resolve entities -> classify intent (templated SQL)
-                 -> [fallback: retrieve context -> free-form NL->SQL]
-                 -> guard -> execute -> narrate -> enrich -> cache store
+    condense follow-up -> cache lookup -> resolve entities
+                       -> classify intent (templated SQL)
+                       -> [fallback: retrieve context -> free-form NL->SQL]
+                       -> guard -> execute -> narrate -> enrich -> cache store
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 from ..config import settings
 from ..schemas import SearchRequest, SearchResponse
 from .. import cache
+from .condense import condense_question
 from .resolve import resolve_entities
 from .retrieve import retrieve_context
 from .intent import build_sql, classify_intent
@@ -37,7 +39,10 @@ async def _plan_sql(question: str, entities) -> str | None:
 
 
 async def run_query_pipeline(req: SearchRequest, *, use_cache: bool = True) -> SearchResponse:
-    question = req.question
+    # Follow-ups are rewritten into a standalone question first, so everything
+    # downstream (including the cache key and share_id) uses the effective
+    # question and follow-ups never collide with unrelated cached answers.
+    question = await condense_question(req.question, req.history)
 
     if use_cache:
         cached = await cache.get_cached(question)

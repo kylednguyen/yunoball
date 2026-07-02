@@ -1,10 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { BarChart } from "../components/BarChart";
+import { Avatar } from "../components/Avatar";
 import { Nav } from "../components/Nav";
-import { fetchLeaderboards, type LeaderboardsResponse } from "../lib/api";
+import { fetchLeaderboards, type Leaderboard, type LeaderboardsResponse } from "../lib/api";
+
+function fmtValue(v: number): string {
+  return v.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
 
 export default function LeaderboardsPage() {
   const [data, setData] = useState<LeaderboardsResponse | null>(null);
@@ -25,7 +30,7 @@ export default function LeaderboardsPage() {
   }, [season]);
 
   return (
-    <main className="wrap">
+    <main className="wrap wrap-wide">
       <Nav />
       <div className="page-head">
         <h1>Leaderboards</h1>
@@ -45,18 +50,52 @@ export default function LeaderboardsPage() {
         )}
       </div>
 
-      {loading && <p className="thinking">Loading…</p>}
+      {loading && !data && (
+        <div className="leader-grid" style={{ marginTop: 24 }} aria-busy>
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="skeleton skeleton-leader" aria-hidden />
+          ))}
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
 
-      {data?.boards.map((board) => (
-        <section key={board.key} className="board">
-          <h2>{board.label}</h2>
-          <BarChart
-            data={board.rows.map((r) => ({ label: r.name, value: r.value }))}
-            unit={board.unit}
-          />
-        </section>
-      ))}
+      {data && (
+        <div className="board-grid" style={loading ? { opacity: 0.55 } : undefined}>
+          {data.boards.map((board) => (
+            <BoardTable key={board.key} board={board} season={data.season} />
+          ))}
+        </div>
+      )}
     </main>
+  );
+}
+
+function BoardTable({ board, season }: { board: Leaderboard; season: number }) {
+  return (
+    <article className="board-card">
+      <header>
+        <h2>{board.label}</h2>
+        <span className="board-unit">{board.unit}</span>
+      </header>
+      <table className="board-table">
+        <tbody>
+          {board.rows.map((r) => (
+            <tr key={r.rank}>
+              <td className="lr-rank">{r.rank}</td>
+              <td className="board-player">
+                <Link
+                  href={`/?q=${encodeURIComponent(`${r.name} ${board.label.toLowerCase()} in ${season}`)}`}
+                >
+                  <Avatar name={r.name} team={r.team} headshotUrl={r.headshot_url} size={28} />
+                  {r.name}
+                </Link>
+              </td>
+              <td className="lr-team">{r.team ?? ""}</td>
+              <td className="num">{fmtValue(r.value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </article>
   );
 }

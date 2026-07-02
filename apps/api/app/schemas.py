@@ -39,6 +39,7 @@ class PrimaryStat(BaseModel):
     value: str | None = None  # formatted big number, e.g. "1,459"
     unit: str | None = None  # "rushing yards"
     context: str | None = None  # "2023 regular season"
+    headshot_url: str | None = None  # nflverse player headshot (players only)
 
 
 class ComparisonCard(BaseModel):
@@ -54,7 +55,7 @@ class Suggestion(BaseModel):
 
 class SourceInfo(BaseModel):
     label: str = "nflverse"
-    coverage: str = "2022–2024 · regular & postseason"
+    coverage: str = "2022-2024, regular and postseason"
     freshness: str = "Final"  # Final | Live | Projected
     updated: str | None = None  # data-through date
     warnings: list[str] = Field(default_factory=list)

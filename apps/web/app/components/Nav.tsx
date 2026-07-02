@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-export function Nav({ showWordmark = true }: { showWordmark?: boolean }) {
+export function Nav() {
   return (
     <nav className="nav">
-      <Link href="/" className="wordmark" style={{ visibility: showWordmark ? "visible" : "hidden" }}>
+      <Link href="/" className="wordmark">
         Yuno<span>Ball</span>
       </Link>
       <div className="nav-links">

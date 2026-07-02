@@ -72,3 +72,16 @@ def test_value_never_invented_uses_row_value():
         ],
     )
     assert out["primary"].value == "1,459"  # exactly the row value, formatted
+    # Unknown player id -> no headshot, and never an error (best-effort lookup).
+    assert out["primary"].headshot_url is None
+
+
+def test_headshot_omitted_without_player_entity():
+    out = enrich(
+        question="Which team scored the most points in 2023?",
+        sql="SELECT team_id, points_for FROM team_game_stats",
+        rows=[{"team_id": "SF", "points_for": 44}],
+        columns=["team_id", "points_for"],
+        entities=[],
+    )
+    assert out["primary"].headshot_url is None

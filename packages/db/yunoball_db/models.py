@@ -65,6 +65,7 @@ class Player(Base):
     weight_lbs: Mapped[int | None] = mapped_column(SmallInteger)
     college: Mapped[str | None] = mapped_column(String)
     rookie_season: Mapped[int | None] = mapped_column(Integer)
+    headshot_url: Mapped[str | None] = mapped_column(String)
 
     __table_args__ = (Index("players_full_name_idx", "full_name"),)
 
