@@ -88,5 +88,15 @@
     "question": "Highest scoring offense in 2023",
     "intent": "team_stat", "stat": "points_per_game",
     "top_name": "Kansas City Chiefs", "top_value": 26.5
+  },
+  {
+    "question": "Patrick Mahomes vs Josh Allen",
+    "intent": "comparison", "stat": "passing_yards",
+    "top_name": "Patrick Mahomes", "top_value": 9433
+  },
+  {
+    "question": "Josh Allen vs Jalen Hurts rushing yards",
+    "intent": "comparison", "stat": "rushing_yards",
+    "top_name": "Jalen Hurts", "top_value": 605
   }
 ]

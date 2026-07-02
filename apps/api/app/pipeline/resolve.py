@@ -159,11 +159,25 @@ def _best(question: str, index: dict[str, tuple[str, str]]) -> ResolvedEntity | 
     )
 
 
+# Splits a head-to-head question ("Josh Allen vs Lamar Jackson") into sides.
+_VS = re.compile(r"\bvs\.?\b|\bversus\b|\bcompared to\b", re.IGNORECASE)
+
+
 def _resolve_sync(question: str) -> list[ResolvedEntity]:
     out: list[ResolvedEntity] = []
-    player = _best(question, _load_index())
-    if player is not None:
-        out.append(player)
+    index = _load_index()
+    if _VS.search(question):
+        # Resolve each side independently so both players surface, in order.
+        seen: set[str] = set()
+        for side in _VS.split(question, maxsplit=1):
+            m = _best(side, index)
+            if m is not None and m.canonical_id not in seen:
+                seen.add(m.canonical_id)
+                out.append(m)
+    else:
+        player = _best(question, index)
+        if player is not None:
+            out.append(player)
     names, abbrevs = _load_team_indexes()
     team = _best_team(question, names, abbrevs)
     if team is not None:

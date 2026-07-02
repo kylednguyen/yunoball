@@ -97,6 +97,19 @@ def _team_token(q: str, original: str) -> tuple[str, str] | None:
     return None
 
 
+_VS_RE = re.compile(r"\bvs\.?\b|\bversus\b|\bcompared to\b", re.IGNORECASE)
+
+
+def _players_from_split(question: str) -> list[str]:
+    """Up to two player display names, one per side of the vs split (seed tokens)."""
+    names: list[str] = []
+    for part in _VS_RE.split(question, maxsplit=1):
+        nm = _player(part.lower())
+        if nm and nm not in names:
+            names.append(nm)
+    return names
+
+
 def _season(q: str) -> int | None:
     m = re.search(r"\b(19|20)\d{2}\b", q)
     return int(m.group(0)) if m else None
@@ -109,6 +122,27 @@ def parse_rules(question: str, entities: list | None = None) -> QuerySpec | None
 
     stat = _stat(q)
     tstat = _team_stat(q)
+
+    # Comparison route: "A vs B" is an unambiguous head-to-head signal. Resolve
+    # both players (from entities, else seed tokens); default to passing yards.
+    if _VS_RE.search(question):
+        p_ents = [e for e in entities if e.entity_type == "player"]
+        if len(p_ents) >= 2:
+            a, b = p_ents[0], p_ents[1]
+            return QuerySpec(
+                intent=Intent.COMPARISON, stat=stat or "passing_yards",
+                player=a.display_name, player_id=a.canonical_id,
+                player2=b.display_name, player2_id=b.canonical_id,
+                season=season, scope="season" if season else "career",
+            )
+        names = _players_from_split(question)
+        if len(names) >= 2:
+            return QuerySpec(
+                intent=Intent.COMPARISON, stat=stat or "passing_yards",
+                player=names[0], player2=names[1],
+                season=season, scope="season" if season else "career",
+            )
+        return None  # "vs" but we couldn't identify two players
 
     # Prefer a resolved entity (works for any player/team in the DB); fall back
     # to the built-in seed tokens so the parser is usable standalone / in tests.

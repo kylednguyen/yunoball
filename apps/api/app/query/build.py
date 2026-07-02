@@ -91,6 +91,38 @@ def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
         )
         return sql, params
 
+    if spec.intent is Intent.COMPARISON:
+        career = spec.scope == "career"
+        value = spec.value_expr("s", career=career)
+        # Filter to the two players by id when resolved, else by name.
+        if spec.player_id and spec.player2_id:
+            player_pred = "s.player_id IN (:pid1, :pid2)"
+            params["pid1"], params["pid2"] = spec.player_id, spec.player2_id
+        else:
+            player_pred = "lower(p.full_name) IN (:n1, :n2)"
+            params["n1"] = (spec.player or "").lower()
+            params["n2"] = (spec.player2 or "").lower()
+        where = [player_pred, "s.season_type = :stype"]
+        params["stype"] = spec.season_type
+        base = (
+            "FROM player_season_stats s "
+            "JOIN players p ON p.player_id = s.player_id"
+        )
+        if career:
+            sql = (
+                f"SELECT p.full_name, {value} AS total {base} "
+                f"WHERE {' AND '.join(where)} GROUP BY p.full_name ORDER BY total DESC"
+            )
+            return sql, params
+        if spec.season is not None:
+            where.append("s.season = :season")
+            params["season"] = spec.season
+        sql = (
+            f"SELECT p.full_name, s.season, {value} AS value {base} "
+            f"WHERE {' AND '.join(where)} ORDER BY value DESC"
+        )
+        return sql, params
+
     if spec.intent is Intent.TEAM_STAT:
         # team_game_stats has no season column — season/type come from the games join.
         where = ["g.season_type = :stype"]
@@ -140,6 +172,17 @@ def narrate(spec: QuerySpec, rows: list[dict[str, Any]]) -> str:
         return "No matching results found."
     top = rows[0]
     label = spec.label()
+
+    if spec.intent is Intent.COMPARISON:
+        key = "total" if spec.scope == "career" else "value"
+        scope = "career " if spec.scope == "career" else ""
+        if len(rows) >= 2:
+            a, b = rows[0], rows[1]  # ordered by the stat DESC
+            return (
+                f"{a.get('full_name')} leads {b.get('full_name')} in {scope}{label}: "
+                f"{a.get(key)} to {b.get(key)}."
+            )
+        return f"{top.get('full_name')} had {top.get(key)} {scope}{label}."
 
     if spec.intent is Intent.TEAM_STAT:
         team = top.get("team", "")

@@ -37,10 +37,11 @@ TOOL = {
         "parameters": {
             "type": "object",
             "properties": {
-                "intent": {"type": "string", "enum": ["leaders", "player_total", "single_game", "team_stat"]},
+                "intent": {"type": "string", "enum": ["leaders", "player_total", "single_game", "team_stat", "comparison"]},
                 "stat": {"type": "string", "enum": list(STATS.keys()) + list(TEAM_STATS.keys())},
                 "season": {"type": ["integer", "null"]},
-                "player": {"type": ["string", "null"], "description": "player name if the question is about one player"},
+                "player": {"type": ["string", "null"], "description": "player name if the question is about one player, or the first player in a comparison"},
+                "player2": {"type": ["string", "null"], "description": "the second player in a comparison (intent=comparison)"},
                 "team": {"type": ["string", "null"], "description": "team name if the question is about one team (intent=team_stat)"},
                 "scope": {"type": "string", "enum": ["season", "career"], "default": "season"},
                 "limit": {"type": "integer", "default": 10},
@@ -53,10 +54,11 @@ TOOL = {
 SYSTEM = (
     "Convert the NFL question into a structured query by calling answer_nfl_query. "
     "Pick the closest stat from the allowed list. Use intent=player_total for a "
-    "single player, single_game for best-single-game questions, team_stat for a "
-    "team's record/points or a team leaderboard, else leaders. For "
-    "intent=team_stat the stat must be a team stat (record, wins, losses, points, "
-    "points_per_game)."
+    "single player, single_game for best-single-game questions, comparison for "
+    "two players head-to-head ('A vs B'), team_stat for a team's record/points or "
+    "a team leaderboard, else leaders. For intent=team_stat the stat must be a "
+    "team stat (record, wins, losses, points, points_per_game); comparison uses a "
+    "player stat and both player and player2."
 )
 
 

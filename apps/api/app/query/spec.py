@@ -20,7 +20,8 @@ class Intent(str, Enum):
     LEADERS = "leaders"          # top-N players by a stat, optionally in a season
     PLAYER_TOTAL = "player_total"  # one player's season or career total
     SINGLE_GAME = "single_game"   # best single-game marks for a stat
-    TEAM_STAT = "team_stat"       # a team's record / points / yards, or a team leaderboard
+    TEAM_STAT = "team_stat"       # a team's record / points, or a team leaderboard
+    COMPARISON = "comparison"     # two players head-to-head on a stat
 
 
 # --------------------------------------------------------------------------- #
@@ -146,9 +147,11 @@ class QuerySpec(BaseModel):
     season_type: str = "REG"
     player: str | None = None          # display name (for narration / LIKE fallback)
     player_id: str | None = None       # canonical id from the resolver (preferred)
+    player2: str | None = None         # second player (COMPARISON)
+    player2_id: str | None = None
     team: str | None = None            # team display name (narration)
     team_id: str | None = None         # canonical team id, e.g. "BUF"
-    scope: str = "season"              # "season" | "career" (PLAYER_TOTAL)
+    scope: str = "season"              # "season" | "career" (PLAYER_TOTAL, COMPARISON)
     limit: int = Field(default=10, ge=1, le=100)
 
     @model_validator(mode="after")
@@ -190,6 +193,7 @@ class QuerySpec(BaseModel):
             str(x) for x in (
                 self.intent.value, self.stat, self.season, self.season_type,
                 (self.player or "").lower(), self.player_id,
+                (self.player2 or "").lower(), self.player2_id,
                 self.team_id, self.scope, self.limit,
             )
         )

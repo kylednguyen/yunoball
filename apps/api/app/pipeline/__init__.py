@@ -88,6 +88,12 @@ async def run_query_pipeline(
         if t is not None:
             spec.team_id = t.canonical_id
             spec.team = spec.team or t.display_name
+    if spec.intent is Intent.COMPARISON:
+        players = [e for e in entities if e.entity_type == "player"]
+        if not spec.player_id and len(players) >= 1:
+            spec.player_id, spec.player = players[0].canonical_id, spec.player or players[0].display_name
+        if not spec.player2_id and len(players) >= 2:
+            spec.player2_id, spec.player2 = players[1].canonical_id, spec.player2 or players[1].display_name
 
     # --- L2: spec-keyed cache (dedupes phrasings that map to one spec) ---
     skey = cache.spec_key(spec.cache_key())

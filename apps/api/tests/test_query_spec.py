@@ -110,3 +110,35 @@ def test_passing_yards_not_hijacked_by_team_route():
     spec = parse_rules("Most passing yards in 2023")
     assert spec.intent is Intent.LEADERS
     assert spec.stat == "passing_yards"
+
+
+def test_comparison_parse_defaults_passing_yards():
+    spec = parse_rules("Patrick Mahomes vs Josh Allen")
+    assert spec.intent is Intent.COMPARISON
+    assert spec.stat == "passing_yards"     # default when no stat named
+    assert spec.scope == "career"           # career unless a season is given
+    assert spec.player == "Patrick Mahomes" and spec.player2 == "Josh Allen"
+
+
+def test_comparison_parse_with_stat():
+    spec = parse_rules("Josh Allen vs Jalen Hurts rushing yards")
+    assert spec.intent is Intent.COMPARISON
+    assert spec.stat == "rushing_yards"
+
+
+def test_build_comparison_filters_both_players():
+    spec = QuerySpec(intent=Intent.COMPARISON, stat="passing_yards",
+                     player="Patrick Mahomes", player2="Josh Allen", scope="career")
+    sql, params = build_sql(spec)
+    assert "IN (:n1, :n2)" in sql and "SUM(" in sql
+    assert params["n1"] == "patrick mahomes" and params["n2"] == "josh allen"
+
+
+def test_narrate_comparison():
+    spec = QuerySpec(intent=Intent.COMPARISON, stat="passing_yards",
+                     player="Patrick Mahomes", player2="Josh Allen", scope="career")
+    txt = narrate_spec(spec, [
+        {"full_name": "Patrick Mahomes", "total": 9433},
+        {"full_name": "Josh Allen", "total": 4306},
+    ])
+    assert "Patrick Mahomes leads Josh Allen" in txt and "9433" in txt
