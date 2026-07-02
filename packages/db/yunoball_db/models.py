@@ -1,12 +1,14 @@
 """YunoBall warehouse schema — a star model over nflverse data.
 
   Dimensions: seasons, teams, players, games
-  Facts:      player_game_stats, team_game_stats, plays
+  Facts:      player_game_stats, team_game_stats
   Rollups:    player_season_stats
   Resolve:    entity_aliases  (pg_trgm fuzzy match, optional pgvector)
   Cache:      answer_cache    (durable, shareable answers)
 
-Box-score stats come first; situational/advanced metrics derive from `plays`.
+The warehouse is intentionally box-score grained: no play-by-play, EPA, or
+win-probability tables. V1 answers leaderboards, player/team totals, and
+single-game records — none of which need sub-game detail.
 """
 
 from __future__ import annotations
@@ -123,7 +125,6 @@ class PlayerGameStats(Base):
     # shared
     fumbles: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     fumbles_lost: Mapped[int | None] = mapped_column(SmallInteger, default=0)
-    fantasy_points_ppr: Mapped[float | None] = mapped_column(Float, default=0)
 
     __table_args__ = (
         Index("pgs_game_idx", "game_id"),
@@ -152,37 +153,6 @@ class TeamGameStats(Base):
     __table_args__ = (Index("tgs_game_idx", "game_id"),)
 
 
-class Play(Base):
-    """Play-by-play — the engine for situational/advanced queries.
-
-    Kept lean; full nflverse PBP has ~370 columns we'll widen deliberately.
-    """
-
-    __tablename__ = "plays"
-    play_id: Mapped[str] = mapped_column(String, primary_key=True)
-    game_id: Mapped[str] = mapped_column(ForeignKey("games.game_id"), nullable=False)
-    posteam: Mapped[str | None] = mapped_column(ForeignKey("teams.team_id"))
-    defteam: Mapped[str | None] = mapped_column(ForeignKey("teams.team_id"))
-    qtr: Mapped[int | None] = mapped_column(SmallInteger)
-    down: Mapped[int | None] = mapped_column(SmallInteger)
-    yards_to_go: Mapped[int | None] = mapped_column(SmallInteger)
-    yardline_100: Mapped[int | None] = mapped_column(SmallInteger)
-    play_type: Mapped[str | None] = mapped_column(String)
-    yards_gained: Mapped[int | None] = mapped_column(SmallInteger)
-    epa: Mapped[float | None] = mapped_column(Float)
-    wp: Mapped[float | None] = mapped_column(Float)
-    success: Mapped[bool | None] = mapped_column(Boolean)
-    passer_player_id: Mapped[str | None] = mapped_column(String)
-    rusher_player_id: Mapped[str | None] = mapped_column(String)
-    receiver_player_id: Mapped[str | None] = mapped_column(String)
-    description: Mapped[str | None] = mapped_column(Text)
-
-    __table_args__ = (
-        Index("plays_game_idx", "game_id"),
-        Index("plays_situational_idx", "down", "qtr", "play_type"),
-    )
-
-
 # --------------------------------- Rollups -------------------------------- #
 
 
@@ -205,7 +175,6 @@ class PlayerSeasonStats(Base):
     receptions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     receiving_yards: Mapped[int | None] = mapped_column(Integer, default=0)
     receiving_tds: Mapped[int | None] = mapped_column(SmallInteger, default=0)
-    fantasy_points_ppr: Mapped[float | None] = mapped_column(Float, default=0)
 
     __table_args__ = (Index("pss_season_idx", "season"),)
 

@@ -2,11 +2,9 @@
 
     yunoball-ingest --years 2022 2023 2024     # specific seasons
     yunoball-ingest --all                       # every season since 1999
-    yunoball-ingest --all --skip plays          # everything except play-by-play
 
-Loads dimensions then facts, in dependency order. Play-by-play (`plays`) is by
-far the largest dataset (~50k rows/season); skip it if you only need box-score
-and season-level stats.
+Loads dimensions then facts, in dependency order. The warehouse is box-score
+grained (no play-by-play), so a full 1999→present backfill stays small.
 """
 
 from __future__ import annotations
@@ -17,11 +15,11 @@ from datetime import date
 from .db import get_engine
 from . import pipelines
 
-# nflverse play-by-play coverage starts in 1999.
+# nflverse weekly/seasonal coverage starts in 1999.
 FIRST_SEASON = 1999
 
 STEPS = ["teams", "seasons", "players", "games", "player_game_stats",
-         "player_season_stats", "team_game_stats", "plays"]
+         "player_season_stats", "team_game_stats"]
 
 
 def _all_seasons() -> list[int]:
@@ -42,7 +40,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--skip", choices=STEPS, nargs="*", default=[],
-        help="Skip these pipelines (e.g. --skip plays).",
+        help="Skip these pipelines (e.g. --skip team_game_stats).",
     )
     args = parser.parse_args()
 
@@ -58,7 +56,6 @@ def main() -> None:
         "player_game_stats": lambda: pipelines.load_player_game_stats(engine, years),
         "player_season_stats": lambda: pipelines.load_player_season_stats(engine, years),
         "team_game_stats": lambda: pipelines.load_team_game_stats(engine, years),
-        "plays": lambda: pipelines.load_pbp(engine, years),
     }
 
     selected = set(args.only) if args.only else set(STEPS)

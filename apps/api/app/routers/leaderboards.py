@@ -26,7 +26,6 @@ PLAYER_CATEGORIES: list[tuple[str, str, str]] = [
     ("receiving_yards", "Receiving Yards", "yds"),
     ("receptions", "Receptions", "rec"),
     ("receiving_tds", "Receiving TDs", "TD"),
-    ("fantasy_points_ppr", "Fantasy Points (PPR)", "pts"),
 ]
 _ALLOWED = {k for k, _, _ in PLAYER_CATEGORIES}
 

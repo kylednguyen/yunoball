@@ -49,28 +49,19 @@ _WEEKLY = pd.DataFrame([
 
 _SEASONAL = pd.DataFrame([
     {"player_id": "P_MAHOMES", "season": 2023, "games": 16, "passing_yards": 4183,
-     "passing_tds": 27, "fantasy_points_ppr": 350.0},
+     "passing_tds": 27},
     {"player_id": "P_ADAMS", "season": 2023, "games": 17, "receiving_yards": 1144,
-     "receiving_tds": 8, "fantasy_points_ppr": 240.0},
+     "receiving_tds": 8},
 ])
-
-_PBP = pd.DataFrame([{
-    "game_id": "2023_01_LV_KC", "play_id": 42, "posteam": "KC", "defteam": "LV",
-    "qtr": 1, "down": 3, "ydstogo": 7, "yardline_100": 65, "play_type": "pass",
-    "yards_gained": 12, "epa": 0.8, "wp": 0.55, "success": True,
-    "passer_player_id": "P_MAHOMES", "rusher_player_id": None,
-    "receiver_player_id": "P_ADAMS", "desc": "Mahomes pass complete",
-}])
 
 _DDL = [
     "CREATE TABLE seasons (season INTEGER PRIMARY KEY)",
     "CREATE TABLE teams (team_id TEXT PRIMARY KEY, name TEXT, nickname TEXT, conference TEXT, division TEXT)",
     "CREATE TABLE players (player_id TEXT PRIMARY KEY, full_name TEXT, first_name TEXT, last_name TEXT, position TEXT, birth_date TEXT, college TEXT)",
     "CREATE TABLE games (game_id TEXT PRIMARY KEY, season INTEGER, week INTEGER, season_type TEXT, game_date TEXT, home_team TEXT, away_team TEXT, home_score INTEGER, away_score INTEGER, stadium TEXT, roof TEXT, surface TEXT)",
-    "CREATE TABLE player_game_stats (player_id TEXT, game_id TEXT, team_id TEXT, completions INT, attempts INT, passing_yards INT, passing_tds INT, interceptions INT, carries INT, rushing_yards INT, rushing_tds INT, targets INT, receptions INT, receiving_yards INT, receiving_tds INT, fantasy_points_ppr REAL, PRIMARY KEY (player_id, game_id))",
-    "CREATE TABLE player_season_stats (player_id TEXT, season INTEGER, season_type TEXT, team_id TEXT, games_played INT, passing_yards INT, passing_tds INT, interceptions INT, rushing_yards INT, rushing_tds INT, receptions INT, receiving_yards INT, receiving_tds INT, fantasy_points_ppr REAL, PRIMARY KEY (player_id, season, season_type))",
+    "CREATE TABLE player_game_stats (player_id TEXT, game_id TEXT, team_id TEXT, completions INT, attempts INT, passing_yards INT, passing_tds INT, interceptions INT, carries INT, rushing_yards INT, rushing_tds INT, targets INT, receptions INT, receiving_yards INT, receiving_tds INT, PRIMARY KEY (player_id, game_id))",
+    "CREATE TABLE player_season_stats (player_id TEXT, season INTEGER, season_type TEXT, team_id TEXT, games_played INT, passing_yards INT, passing_tds INT, interceptions INT, rushing_yards INT, rushing_tds INT, receptions INT, receiving_yards INT, receiving_tds INT, PRIMARY KEY (player_id, season, season_type))",
     "CREATE TABLE team_game_stats (team_id TEXT, game_id TEXT, is_home BOOLEAN, points_for INT, points_against INT, total_yards INT, passing_yards INT, rushing_yards INT, turnovers INT, time_of_possession_sec INT, result TEXT, PRIMARY KEY (team_id, game_id))",
-    "CREATE TABLE plays (play_id TEXT PRIMARY KEY, game_id TEXT, posteam TEXT, defteam TEXT, qtr INT, down INT, yards_to_go INT, yardline_100 INT, play_type TEXT, yards_gained INT, epa REAL, wp REAL, success BOOLEAN, passer_player_id TEXT, rusher_player_id TEXT, receiver_player_id TEXT, description TEXT)",
 ]
 
 
@@ -85,7 +76,6 @@ def engine(tmp_path, monkeypatch):
     monkeypatch.setattr(pipelines.nfl, "import_seasonal_rosters", lambda y: _ROSTERS.copy())
     monkeypatch.setattr(pipelines.nfl, "import_weekly_data", lambda y: _WEEKLY.copy())
     monkeypatch.setattr(pipelines.nfl, "import_seasonal_data", lambda y: _SEASONAL.copy())
-    monkeypatch.setattr(pipelines.nfl, "import_pbp_data", lambda y, downcast=True: _PBP.copy())
     return eng
 
 
@@ -129,12 +119,12 @@ def test_team_game_stats_win_loss(engine):
     assert res["KC"] == "W" and res["LV"] == "L"
 
 
-def test_season_stats_and_pbp(engine):
+def test_season_stats(engine):
     pipelines.load_teams(engine)
     pipelines.load_seasons(engine, [2023])
     pipelines.load_players(engine, [2023])
     pipelines.load_games(engine, [2023])
     assert pipelines.load_player_season_stats(engine, [2023]) == 2
-    assert pipelines.load_pbp(engine, [2023]) == 1
-    play = _all(engine, "SELECT play_id, success FROM plays")[0]
-    assert play["play_id"] == "2023_01_LV_KC_42"
+    rows = {r["player_id"]: r["passing_yards"]
+            for r in _all(engine, "SELECT player_id, passing_yards FROM player_season_stats")}
+    assert rows["P_MAHOMES"] == 4183

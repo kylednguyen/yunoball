@@ -105,7 +105,6 @@ def load_player_game_stats(engine: Engine, years: list[int]) -> int:
             "receptions": wk.get("receptions"),
             "receiving_yards": wk.get("receiving_yards"),
             "receiving_tds": wk.get("receiving_tds"),
-            "fantasy_points_ppr": wk.get("fantasy_points_ppr"),
         }
     )
     # game_id and team_id are NOT NULL FKs; drop any row missing either.
@@ -135,7 +134,6 @@ def load_player_season_stats(engine: Engine, years: list[int]) -> int:
             "receptions": sea.get("receptions"),
             "receiving_yards": sea.get("receiving_yards"),
             "receiving_tds": sea.get("receiving_tds"),
-            "fantasy_points_ppr": sea.get("fantasy_points_ppr"),
         }
     )
     df = df[df["player_id"].notna()]
@@ -176,38 +174,6 @@ def _team_row(g: "pd.Series", *, home: bool) -> dict:
         "points_against": int(pa),
         "result": "W" if pf > pa else "L" if pf < pa else "T",
     }
-
-
-def load_pbp(engine: Engine, years: list[int]) -> int:
-    """Play-by-play — the finest grain (~50k plays/season). Large; load per year."""
-    total = 0
-    for year in years:
-        pbp = nfl.import_pbp_data([year], downcast=True)
-        df = pd.DataFrame(
-            {
-                "play_id": pbp["game_id"].astype(str) + "_" + pbp["play_id"].astype("Int64").astype(str),
-                "game_id": pbp["game_id"],
-                "posteam": pbp.get("posteam"),
-                "defteam": pbp.get("defteam"),
-                "qtr": pbp.get("qtr"),
-                "down": pbp.get("down"),
-                "yards_to_go": pbp.get("ydstogo"),
-                "yardline_100": pbp.get("yardline_100"),
-                "play_type": pbp.get("play_type"),
-                "yards_gained": pbp.get("yards_gained"),
-                "epa": pbp.get("epa"),
-                "wp": pbp.get("wp"),
-                "success": pbp.get("success"),
-                "passer_player_id": pbp.get("passer_player_id"),
-                "rusher_player_id": pbp.get("rusher_player_id"),
-                "receiver_player_id": pbp.get("receiver_player_id"),
-                "description": pbp.get("desc"),
-            }
-        )
-        df = df[df["game_id"].notna()]
-        _upsert(engine, "plays", df, conflict=["play_id"])
-        total += len(df)
-    return total
 
 
 # --------------------------------------------------------------------------- #
