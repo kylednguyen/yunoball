@@ -69,14 +69,18 @@ _GAMES = [
     ("2023_07_TEN_MIA", 2023, 7, "MIA", "TEN", 14, 27),
     ("2023_10_NYG_DAL", 2023, 10, "DAL", "NYG", 49, 17),
     ("2023_12_SF_SEA", 2023, 12, "SEA", "SF", 13, 31),
+    ("2023_10_KC_DEN", 2023, 10, "DEN", "KC", 8, 19),
 ]
 
-# player_id, game_id, team, rush_yds, rush_td, rec, rec_yds, rec_td, pass_yds, pass_td
+# player_id, game_id, team, comp, att, int, sacks, rush_yds, rush_td, tgt,
+#   rec, rec_yds, rec_td, pass_yds, pass_td
 _PGS = [
-    ("00-0032764", "2023_07_TEN_MIA", "TEN", 178, 1, 1, 9, 0, 0, 0),
-    ("00-0033280", "2023_12_SF_SEA", "SF", 152, 1, 6, 53, 0, 0, 0),
-    ("00-0036928", "2023_07_TEN_MIA", "JAX", 88, 0, 4, 31, 0, 0, 0),
-    ("00-0036322", "2023_10_NYG_DAL", "DAL", 0, 0, 9, 151, 1, 0, 0),
+    ("00-0032764", "2023_07_TEN_MIA", "TEN", 0, 0, 0, 0, 178, 1, 1, 1, 9, 0, 0, 0),
+    ("00-0033280", "2023_12_SF_SEA", "SF", 0, 0, 0, 0, 152, 1, 7, 6, 53, 0, 0, 0),
+    ("00-0036928", "2023_07_TEN_MIA", "JAX", 0, 0, 0, 0, 88, 0, 5, 4, 31, 0, 0, 0),
+    ("00-0036322", "2023_10_NYG_DAL", "DAL", 0, 0, 0, 0, 0, 0, 11, 9, 151, 1, 0, 0),
+    # a QB box score so single-game passing / rate stats have data in the demo
+    ("00-0033873", "2023_10_KC_DEN", "KC", 24, 33, 1, 2, 25, 0, 0, 0, 0, 0, 306, 2),
 ]
 
 _DDL = [
@@ -179,14 +183,17 @@ def seed_demo(engine: Engine) -> None:
         conn.execute(
             text(
                 "INSERT INTO player_game_stats (player_id, game_id, team_id,"
-                " rushing_yards, rushing_tds, receptions, receiving_yards,"
+                " completions, attempts, interceptions, sacks, rushing_yards,"
+                " rushing_tds, targets, receptions, receiving_yards,"
                 " receiving_tds, passing_yards, passing_tds) VALUES"
-                " (:pid, :g, :tm, :ry, :rtd, :rec, :rey, :retd, :py, :ptd)"
+                " (:pid, :g, :tm, :comp, :att, :int, :sck, :ry, :rtd, :tgt, :rec,"
+                " :rey, :retd, :py, :ptd)"
             ),
             [
                 {
-                    "pid": r[0], "g": r[1], "tm": r[2], "ry": r[3], "rtd": r[4],
-                    "rec": r[5], "rey": r[6], "retd": r[7], "py": r[8], "ptd": r[9],
+                    "pid": r[0], "g": r[1], "tm": r[2], "comp": r[3], "att": r[4],
+                    "int": r[5], "sck": r[6], "ry": r[7], "rtd": r[8], "tgt": r[9],
+                    "rec": r[10], "rey": r[11], "retd": r[12], "py": r[13], "ptd": r[14],
                 }
                 for r in _PGS
             ],

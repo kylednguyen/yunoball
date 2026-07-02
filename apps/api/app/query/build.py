@@ -72,6 +72,10 @@ def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
     if spec.intent is Intent.SINGLE_GAME:
         value = spec.value_expr("s")
         params["limit"] = spec.limit
+        # Rate stats need a minimum-attempts floor at game grain too, else a
+        # 1-for-1 gadget play tops "best single-game passer rating".
+        qualifier = spec.game_min("s")
+        inner_where = f"WHERE {qualifier} " if qualifier else ""
         # Wrap so we can order/filter on the computed value: rate stats can be
         # NULL when a component is zero, and Postgres sorts NULLs first on DESC —
         # exclude them rather than let a NULL top the board.
@@ -80,7 +84,8 @@ def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
             f"SELECT p.full_name, g.game_id, {value} AS value "
             "FROM player_game_stats s "
             "JOIN players p ON p.player_id = s.player_id "
-            "JOIN games g ON g.game_id = s.game_id"
+            "JOIN games g ON g.game_id = s.game_id "
+            f"{inner_where}"
             ") t WHERE value IS NOT NULL AND value > 0 "
             "ORDER BY value DESC LIMIT :limit"
         )

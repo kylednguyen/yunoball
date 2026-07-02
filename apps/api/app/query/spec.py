@@ -77,9 +77,12 @@ def _passer_rating() -> Callable[[str, bool], str]:
 class StatDef:
     label: str
     expr: Callable[[str, bool], str]
-    # Minimum-attempts qualifier for rate stats on leaderboards, so a backup with
-    # a perfect 3-for-3 game doesn't top the passer-rating board. `{a}` = alias.
+    # Minimum-attempts qualifier for rate stats so a tiny sample can't top the
+    # board (a backup going 1-for-1 shouldn't lead passer rating). `{a}` = alias.
+    # Season/career leaderboards use `leader_min`; single-game boards use the
+    # much lower `game_min` (100 attempts is impossible in one game).
     leader_min: str | None = None
+    game_min: str | None = None
 
 
 STATS: dict[str, StatDef] = {
@@ -88,10 +91,11 @@ STATS: dict[str, StatDef] = {
     "interceptions": StatDef("interceptions", _direct("interceptions")),
     "completion_percentage": StatDef(
         "completion percentage", _ratio("completions", "attempts"),
-        leader_min="{a}.attempts >= 100",
+        leader_min="{a}.attempts >= 100", game_min="{a}.attempts >= 10",
     ),
     "passer_rating": StatDef(
-        "passer rating", _passer_rating(), leader_min="{a}.attempts >= 100",
+        "passer rating", _passer_rating(),
+        leader_min="{a}.attempts >= 100", game_min="{a}.attempts >= 10",
     ),
     "rushing_yards": StatDef("rushing yards", _direct("rushing_yards")),
     "rushing_tds": StatDef("rushing touchdowns", _direct("rushing_tds")),
@@ -128,6 +132,10 @@ class QuerySpec(BaseModel):
 
     def leader_min(self, alias: str) -> str | None:
         q = STATS[self.stat].leader_min
+        return q.format(a=alias) if q else None
+
+    def game_min(self, alias: str) -> str | None:
+        q = STATS[self.stat].game_min
         return q.format(a=alias) if q else None
 
     def cache_key(self) -> str:

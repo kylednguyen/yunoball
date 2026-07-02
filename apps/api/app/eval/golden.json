@@ -63,5 +63,15 @@
     "question": "Josh Allen passer rating in 2023",
     "intent": "player_total", "stat": "passer_rating",
     "top_name": "Josh Allen", "top_value": 92.2
+  },
+  {
+    "question": "Most passing yards in a single game",
+    "intent": "single_game", "stat": "passing_yards",
+    "top_name": "Patrick Mahomes", "top_value": 306
+  },
+  {
+    "question": "Most targets in a single game",
+    "intent": "single_game", "stat": "targets",
+    "top_name": "CeeDee Lamb", "top_value": 11
   }
 ]

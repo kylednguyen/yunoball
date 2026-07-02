@@ -79,6 +79,14 @@ def _numeric_values(row: dict[str, Any]) -> list[Any]:
     return [v for v in row.values() if isinstance(v, (int, float))]
 
 
+def _value_matches(expected: Any, values: list[Any]) -> bool:
+    """True if a numeric cell equals `expected`, tolerant of float rounding
+    (derived stats like passer rating come back as ROUND()ed doubles)."""
+    if isinstance(expected, float):
+        return any(isinstance(v, (int, float)) and abs(v - expected) < 0.05 for v in values)
+    return expected in values
+
+
 def _eval_case(case: dict[str, Any]) -> CaseResult:
     question = case["question"]
 
@@ -97,7 +105,7 @@ def _eval_case(case: dict[str, Any]) -> CaseResult:
     else:
         top = resp.rows[0]
         name_ok = str(top.get("full_name")) == case.get("top_name")
-        val_ok = case.get("top_value") in _numeric_values(top)
+        val_ok = _value_matches(case.get("top_value"), _numeric_values(top))
         exec_ok = name_ok and val_ok
         if not exec_ok:
             detail = f"got top={top.get('full_name')} values={_numeric_values(top)}"
