@@ -29,10 +29,13 @@ templated from the result. The head of the distribution answers in **≤1 LLM ca
 ```
 apps/
   web/        Next.js search UI
-  api/        FastAPI backend + NL→SQL query pipeline
+  api/        FastAPI backend + question→QuerySpec→SQL pipeline (eval harness in app/eval)
 packages/
   db/         SQLAlchemy schema + Alembic migrations (shared)
   ingest/     nflverse → warehouse loader (CLI)
+scripts/
+  update_data.py   in-season incremental refresh (idempotent)
+evals/        accuracy harness signpost → apps/api/app/eval
 docs/
   ARCHITECTURE.md
 docker-compose.yml   local Postgres + Redis
