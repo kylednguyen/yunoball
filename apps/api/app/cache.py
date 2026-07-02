@@ -77,6 +77,14 @@ def _get_backend():
     return _backend
 
 
+def get_client():
+    """The active cache backend — async Redis in prod, in-process LRU otherwise.
+
+    Exposed for the rate limiter, which needs the raw client for atomic incr.
+    """
+    return _get_backend()
+
+
 # --------------------------- keys --------------------------- #
 
 
