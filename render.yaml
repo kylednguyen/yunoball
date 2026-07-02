@@ -20,6 +20,10 @@ services:
         sync: false          # read-only role for generated SQL
       - key: OPENAI_API_KEY
         sync: false          # optional — rule-based engine works without it
+      - key: CORS_ORIGINS
+        sync: false          # JSON array of allowed origins, e.g. ["https://yunoball-web.vercel.app"]
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "30"          # per-IP cap on POST /api/search (0 disables)
       - key: REDIS_URL
         fromService:
           type: keyvalue
