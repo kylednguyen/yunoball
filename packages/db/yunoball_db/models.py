@@ -167,11 +167,18 @@ class PlayerSeasonStats(Base):
     season_type: Mapped[str] = mapped_column(String, primary_key=True, default="REG")
     team_id: Mapped[str | None] = mapped_column(String)
     games_played: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    # passing (completions/attempts back the completion% and passer-rating stats)
+    completions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    attempts: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     passing_yards: Mapped[int | None] = mapped_column(Integer, default=0)
     passing_tds: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     interceptions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    sacks: Mapped[float | None] = mapped_column(Float, default=0)
+    # rushing
     rushing_yards: Mapped[int | None] = mapped_column(Integer, default=0)
     rushing_tds: Mapped[int | None] = mapped_column(SmallInteger, default=0)
+    # receiving
+    targets: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     receptions: Mapped[int | None] = mapped_column(SmallInteger, default=0)
     receiving_yards: Mapped[int | None] = mapped_column(Integer, default=0)
     receiving_tds: Mapped[int | None] = mapped_column(SmallInteger, default=0)

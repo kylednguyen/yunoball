@@ -1,9 +1,9 @@
 """Deterministic SQL builder + narration for a QuerySpec.
 
 Because the SQL is generated here (not by the model), it is inherently safe:
-the stat column comes from a validated allowlist and all user-derived values
-(season, player, limit) are bound parameters. No SQL guard is required on this
-path.
+the value expression comes from a validated stat allowlist (`spec.value_expr`)
+and all user-derived values (season, player, limit) are bound parameters. No
+SQL guard is required on this path.
 """
 
 from __future__ import annotations
@@ -14,22 +14,25 @@ from .spec import Intent, QuerySpec
 
 
 def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
-    col = spec.column()  # allowlisted; safe to interpolate
     params: dict[str, Any] = {}
 
     if spec.intent is Intent.LEADERS:
+        value = spec.value_expr("s")  # allowlisted expression; safe to interpolate
         where = ["s.season_type = :stype"]
         params["stype"] = spec.season_type
         if spec.season is not None:
             where.append("s.season = :season")
             params["season"] = spec.season
+        qualifier = spec.leader_min("s")
+        if qualifier:
+            where.append(qualifier)
         params["limit"] = spec.limit
         sql = (
-            f"SELECT p.full_name, s.season, s.{col} AS value "
+            f"SELECT p.full_name, s.season, {value} AS value "
             "FROM player_season_stats s "
             "JOIN players p ON p.player_id = s.player_id "
             f"WHERE {' AND '.join(where)} "
-            f"ORDER BY s.{col} DESC LIMIT :limit"
+            "ORDER BY value DESC LIMIT :limit"
         )
         return sql, params
 
@@ -43,20 +46,22 @@ def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
             params["player"] = f"%{(spec.player or '').lower()}%"
         params["stype"] = spec.season_type
         if spec.scope == "career":
+            value = spec.value_expr("s", career=True)
             sql = (
-                f"SELECT p.full_name, SUM(s.{col}) AS total "
+                f"SELECT p.full_name, {value} AS total "
                 "FROM player_season_stats s "
                 "JOIN players p ON p.player_id = s.player_id "
                 f"WHERE {player_pred} AND s.season_type = :stype "
                 "GROUP BY p.full_name"
             )
             return sql, params
+        value = spec.value_expr("s")
         where = [player_pred, "s.season_type = :stype"]
         if spec.season is not None:
             where.append("s.season = :season")
             params["season"] = spec.season
         sql = (
-            f"SELECT p.full_name, s.season, s.{col} AS value "
+            f"SELECT p.full_name, s.season, {value} AS value "
             "FROM player_season_stats s "
             "JOIN players p ON p.player_id = s.player_id "
             f"WHERE {' AND '.join(where)} "
@@ -65,14 +70,19 @@ def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
         return sql, params
 
     if spec.intent is Intent.SINGLE_GAME:
+        value = spec.value_expr("s")
         params["limit"] = spec.limit
+        # Wrap so we can order/filter on the computed value: rate stats can be
+        # NULL when a component is zero, and Postgres sorts NULLs first on DESC —
+        # exclude them rather than let a NULL top the board.
         sql = (
-            f"SELECT p.full_name, g.game_id, s.{col} AS value "
+            "SELECT * FROM ("
+            f"SELECT p.full_name, g.game_id, {value} AS value "
             "FROM player_game_stats s "
             "JOIN players p ON p.player_id = s.player_id "
-            "JOIN games g ON g.game_id = s.game_id "
-            f"WHERE s.{col} > 0 "
-            f"ORDER BY s.{col} DESC LIMIT :limit"
+            "JOIN games g ON g.game_id = s.game_id"
+            ") t WHERE value IS NOT NULL AND value > 0 "
+            "ORDER BY value DESC LIMIT :limit"
         )
         return sql, params
 

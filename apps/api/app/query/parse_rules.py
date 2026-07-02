@@ -16,13 +16,17 @@ from .spec import Intent, QuerySpec
 # stats (interceptions) are checked before generic touchdown/yard cues so that
 # e.g. "threw the most interceptions" is not captured by a passing-TD rule.
 _STAT_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("passer rating", "qb rating", "quarterback rating"), "passer_rating"),
+    (("completion percentage", "completion %", "completion pct", "comp pct"), "completion_percentage"),
     (("interception", "picked off", "pick six", "int thrown"), "interceptions"),
+    (("sack", "sacked"), "sacks"),
     (("passing touchdown", "passing td", "touchdown pass", "td pass"), "passing_tds"),
     (("rushing touchdown", "rushing td", "rush td"), "rushing_tds"),
     (("receiving touchdown", "receiving td", "rec td"), "receiving_tds"),
     (("passing yard", "passing yds", "threw for", "pass yard"), "passing_yards"),
     (("rushing yard", "rushing yds", "rush yard", "rushed for", "rush"), "rushing_yards"),
     (("receiving yard", "receiving yds", "rec yard", "receiv"), "receiving_yards"),
+    (("target",), "targets"),
     (("reception", "catches", "caught"), "receptions"),
     # Generic fallbacks — only reached if nothing specific matched above.
     (("touchdown", "td", "threw"), "passing_tds"),

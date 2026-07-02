@@ -41,26 +41,27 @@ SEED_TEAMS: list[tuple[str, str, str, str, str]] = [
     ("TB", "Tampa Bay Buccaneers", "Buccaneers", "NFC", "NFC South"),
 ]
 
-# season, type, player_id, team, gp, pass_yds, pass_td, int, rush_yds, rush_td, rec, rec_yds, rec_td
+# season, type, player_id, team, gp, comp, att, pass_yds, pass_td, int, sacks,
+#   rush_yds, rush_td, tgt, rec, rec_yds, rec_td
 _PSS = [
-    (2023, "REG", "00-0033873", "KC", 16, 4183, 27, 14, 389, 0, 0, 0, 0),
-    (2023, "REG", "00-0033077", "DAL", 17, 4516, 36, 9, 242, 2, 0, 0, 0),
-    (2023, "REG", "00-0036212", "MIA", 17, 4624, 29, 14, 74, 0, 0, 0, 0),
-    (2023, "REG", "00-0034857", "BUF", 17, 4306, 29, 18, 524, 15, 0, 0, 0),
-    (2023, "REG", "00-0033106", "DET", 17, 4575, 30, 12, 21, 1, 0, 0, 0),
-    (2023, "REG", "00-0037834", "SF", 16, 4280, 31, 11, 144, 2, 0, 0, 0),
-    (2023, "REG", "00-0036389", "PHI", 17, 3858, 23, 15, 605, 15, 0, 0, 0),
-    (2023, "REG", "00-0033280", "SF", 16, 0, 0, 0, 1459, 14, 67, 564, 7),
-    (2023, "REG", "00-0032764", "TEN", 17, 0, 0, 0, 1167, 12, 28, 214, 0),
-    (2023, "REG", "00-0036928", "JAX", 17, 0, 0, 0, 1008, 11, 58, 476, 1),
-    (2023, "REG", "00-0033040", "MIA", 16, 0, 0, 0, 0, 0, 119, 1799, 13),
-    (2023, "REG", "00-0036322", "DAL", 17, 0, 0, 0, 0, 0, 135, 1749, 12),
-    (2023, "REG", "00-0036997", "DET", 16, 0, 0, 0, 0, 0, 119, 1515, 10),
-    (2023, "REG", "00-0031408", "TB", 17, 0, 0, 0, 0, 0, 79, 1255, 13),
+    (2023, "REG", "00-0033873", "KC", 16, 401, 597, 4183, 27, 14, 27, 389, 0, 0, 0, 0, 0),
+    (2023, "REG", "00-0033077", "DAL", 17, 410, 590, 4516, 36, 9, 39, 242, 2, 0, 0, 0, 0),
+    (2023, "REG", "00-0036212", "MIA", 17, 388, 560, 4624, 29, 14, 29, 74, 0, 0, 0, 0, 0),
+    (2023, "REG", "00-0034857", "BUF", 17, 385, 579, 4306, 29, 18, 24, 524, 15, 0, 0, 0, 0),
+    (2023, "REG", "00-0033106", "DET", 17, 407, 605, 4575, 30, 12, 30, 21, 1, 0, 0, 0, 0),
+    (2023, "REG", "00-0037834", "SF", 16, 308, 444, 4280, 31, 11, 28, 144, 2, 0, 0, 0, 0),
+    (2023, "REG", "00-0036389", "PHI", 17, 352, 538, 3858, 23, 15, 38, 605, 15, 0, 0, 0, 0),
+    (2023, "REG", "00-0033280", "SF", 16, 0, 0, 0, 0, 0, 0, 1459, 14, 83, 67, 564, 7),
+    (2023, "REG", "00-0032764", "TEN", 17, 0, 0, 0, 0, 0, 0, 1167, 12, 32, 28, 214, 0),
+    (2023, "REG", "00-0036928", "JAX", 17, 0, 0, 0, 0, 0, 0, 1008, 11, 74, 58, 476, 1),
+    (2023, "REG", "00-0033040", "MIA", 16, 0, 0, 0, 0, 0, 0, 0, 0, 171, 119, 1799, 13),
+    (2023, "REG", "00-0036322", "DAL", 17, 0, 0, 0, 0, 0, 0, 0, 0, 181, 135, 1749, 12),
+    (2023, "REG", "00-0036997", "DET", 16, 0, 0, 0, 0, 0, 0, 0, 0, 164, 119, 1515, 10),
+    (2023, "REG", "00-0031408", "TB", 17, 0, 0, 0, 0, 0, 0, 0, 0, 136, 79, 1255, 13),
     # a couple of 2022 rows so "career" sums span seasons
-    (2022, "REG", "00-0033873", "KC", 17, 5250, 41, 12, 358, 4, 0, 0, 0),
-    (2022, "REG", "00-0033040", "MIA", 17, 0, 0, 0, 1, 0, 119, 1710, 7),
-    (2022, "REG", "00-0033280", "SF", 17, 0, 0, 0, 1139, 8, 85, 741, 5),
+    (2022, "REG", "00-0033873", "KC", 17, 435, 648, 5250, 41, 12, 26, 358, 4, 0, 0, 0, 0),
+    (2022, "REG", "00-0033040", "MIA", 17, 0, 0, 0, 0, 0, 0, 1, 0, 170, 119, 1710, 7),
+    (2022, "REG", "00-0033280", "SF", 17, 0, 0, 0, 0, 0, 0, 1139, 8, 108, 85, 741, 5),
 ]
 
 # game_id, season, week, home, away, home_score, away_score
@@ -91,14 +92,17 @@ _DDL = [
         home_score INTEGER, away_score INTEGER)""",
     """CREATE TABLE IF NOT EXISTS player_season_stats (
         player_id TEXT, season INTEGER, season_type TEXT, team_id TEXT,
-        games_played INTEGER, passing_yards INTEGER, passing_tds INTEGER,
-        interceptions INTEGER, rushing_yards INTEGER, rushing_tds INTEGER,
-        receptions INTEGER, receiving_yards INTEGER, receiving_tds INTEGER,
+        games_played INTEGER, completions INTEGER, attempts INTEGER,
+        passing_yards INTEGER, passing_tds INTEGER, interceptions INTEGER,
+        sacks REAL, rushing_yards INTEGER, rushing_tds INTEGER,
+        targets INTEGER, receptions INTEGER, receiving_yards INTEGER,
+        receiving_tds INTEGER,
         PRIMARY KEY (player_id, season, season_type))""",
     """CREATE TABLE IF NOT EXISTS player_game_stats (
         player_id TEXT, game_id TEXT, team_id TEXT,
-        rushing_yards INTEGER, rushing_tds INTEGER, receptions INTEGER,
-        receiving_yards INTEGER, receiving_tds INTEGER,
+        completions INTEGER, attempts INTEGER, interceptions INTEGER, sacks REAL,
+        rushing_yards INTEGER, rushing_tds INTEGER, targets INTEGER,
+        receptions INTEGER, receiving_yards INTEGER, receiving_tds INTEGER,
         passing_yards INTEGER, passing_tds INTEGER,
         PRIMARY KEY (player_id, game_id))""",
 ]
@@ -156,16 +160,18 @@ def seed_demo(engine: Engine) -> None:
         conn.execute(
             text(
                 "INSERT INTO player_season_stats (season, season_type, player_id,"
-                " team_id, games_played, passing_yards, passing_tds, interceptions,"
-                " rushing_yards, rushing_tds, receptions, receiving_yards,"
-                " receiving_tds) VALUES (:se, :st, :pid, :tm, :gp, :py, :ptd, :int,"
-                " :ry, :rtd, :rec, :rey, :retd)"
+                " team_id, games_played, completions, attempts, passing_yards,"
+                " passing_tds, interceptions, sacks, rushing_yards, rushing_tds,"
+                " targets, receptions, receiving_yards, receiving_tds)"
+                " VALUES (:se, :st, :pid, :tm, :gp, :comp, :att, :py, :ptd, :int,"
+                " :sck, :ry, :rtd, :tgt, :rec, :rey, :retd)"
             ),
             [
                 {
                     "se": r[0], "st": r[1], "pid": r[2], "tm": r[3], "gp": r[4],
-                    "py": r[5], "ptd": r[6], "int": r[7], "ry": r[8], "rtd": r[9],
-                    "rec": r[10], "rey": r[11], "retd": r[12],
+                    "comp": r[5], "att": r[6], "py": r[7], "ptd": r[8], "int": r[9],
+                    "sck": r[10], "ry": r[11], "rtd": r[12], "tgt": r[13],
+                    "rec": r[14], "rey": r[15], "retd": r[16],
                 }
                 for r in _PSS
             ],

@@ -9,7 +9,9 @@ this path. The spec also doubles as a stable cache key.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
+from typing import Callable
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -20,17 +22,84 @@ class Intent(str, Enum):
     SINGLE_GAME = "single_game"   # best single-game marks for a stat
 
 
-# Allowlisted stat -> (column, human label). The column is only ever taken from
-# this map, never from free text, so it is safe to interpolate into SQL.
-STATS: dict[str, tuple[str, str]] = {
-    "passing_yards": ("passing_yards", "passing yards"),
-    "passing_tds": ("passing_tds", "passing touchdowns"),
-    "interceptions": ("interceptions", "interceptions"),
-    "rushing_yards": ("rushing_yards", "rushing yards"),
-    "rushing_tds": ("rushing_tds", "rushing touchdowns"),
-    "receptions": ("receptions", "receptions"),
-    "receiving_yards": ("receiving_yards", "receiving yards"),
-    "receiving_tds": ("receiving_tds", "receiving touchdowns"),
+# --------------------------------------------------------------------------- #
+# Stat whitelist.
+#
+# Every supported statistic lives here. A stat is one of two shapes:
+#   - direct:  a column we SUM (career) or read as-is (season / single game)
+#   - derived: a ratio/formula built from component columns (completion %,
+#              passer rating). Derived stats can't be summed, so they recompute
+#              from component sums for career totals.
+#
+# `expr(alias, career)` returns the SELECT value expression. It only ever
+# interpolates the table alias and hardcoded column names from this file —
+# never user input — so it is safe to embed in SQL. Unknown stats are rejected
+# by QuerySpec validation before any SQL is built.
+# --------------------------------------------------------------------------- #
+
+
+def _col(alias: str, col: str, career: bool) -> str:
+    return f"SUM({alias}.{col})" if career else f"{alias}.{col}"
+
+
+def _clamp(x: str) -> str:
+    """NFL passer-rating component clamp to [0, 2.375] — portable (no LEAST/GREATEST)."""
+    return f"(CASE WHEN ({x}) < 0 THEN 0 WHEN ({x}) > 2.375 THEN 2.375 ELSE ({x}) END)"
+
+
+def _direct(col: str) -> Callable[[str, bool], str]:
+    return lambda a, career: _col(a, col, career)
+
+
+def _ratio(num: str, den: str) -> Callable[[str, bool], str]:
+    def expr(a: str, career: bool) -> str:
+        n, d = _col(a, num, career), _col(a, den, career)
+        return f"ROUND(100.0 * {n} / NULLIF({d}, 0), 1)"
+    return expr
+
+
+def _passer_rating() -> Callable[[str, bool], str]:
+    def expr(a: str, career: bool) -> str:
+        att = f"NULLIF({_col(a, 'attempts', career)}, 0)"
+        comp = _col(a, "completions", career)
+        yds = _col(a, "passing_yards", career)
+        td = _col(a, "passing_tds", career)
+        ints = _col(a, "interceptions", career)
+        ta = _clamp(f"({comp} * 1.0 / {att} - 0.3) * 5")
+        tb = _clamp(f"({yds} * 1.0 / {att} - 3) * 0.25")
+        tc = _clamp(f"({td} * 1.0 / {att}) * 20")
+        td_ = _clamp(f"2.375 - ({ints} * 1.0 / {att}) * 25")
+        return f"ROUND(({ta} + {tb} + {tc} + {td_}) / 6.0 * 100, 1)"
+    return expr
+
+
+@dataclass(frozen=True)
+class StatDef:
+    label: str
+    expr: Callable[[str, bool], str]
+    # Minimum-attempts qualifier for rate stats on leaderboards, so a backup with
+    # a perfect 3-for-3 game doesn't top the passer-rating board. `{a}` = alias.
+    leader_min: str | None = None
+
+
+STATS: dict[str, StatDef] = {
+    "passing_yards": StatDef("passing yards", _direct("passing_yards")),
+    "passing_tds": StatDef("passing touchdowns", _direct("passing_tds")),
+    "interceptions": StatDef("interceptions", _direct("interceptions")),
+    "completion_percentage": StatDef(
+        "completion percentage", _ratio("completions", "attempts"),
+        leader_min="{a}.attempts >= 100",
+    ),
+    "passer_rating": StatDef(
+        "passer rating", _passer_rating(), leader_min="{a}.attempts >= 100",
+    ),
+    "rushing_yards": StatDef("rushing yards", _direct("rushing_yards")),
+    "rushing_tds": StatDef("rushing touchdowns", _direct("rushing_tds")),
+    "receiving_yards": StatDef("receiving yards", _direct("receiving_yards")),
+    "receptions": StatDef("receptions", _direct("receptions")),
+    "receiving_tds": StatDef("receiving touchdowns", _direct("receiving_tds")),
+    "targets": StatDef("targets", _direct("targets")),
+    "sacks": StatDef("sacks taken", _direct("sacks")),
 }
 
 
@@ -51,11 +120,15 @@ class QuerySpec(BaseModel):
             raise ValueError(f"unknown stat: {v}")
         return v
 
-    def column(self) -> str:
-        return STATS[self.stat][0]
-
     def label(self) -> str:
-        return STATS[self.stat][1]
+        return STATS[self.stat].label
+
+    def value_expr(self, alias: str, *, career: bool = False) -> str:
+        return STATS[self.stat].expr(alias, career)
+
+    def leader_min(self, alias: str) -> str | None:
+        q = STATS[self.stat].leader_min
+        return q.format(a=alias) if q else None
 
     def cache_key(self) -> str:
         # Must include every field build_sql() depends on — notably player_id,

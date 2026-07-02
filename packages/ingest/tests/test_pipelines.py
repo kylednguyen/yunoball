@@ -59,8 +59,8 @@ _DDL = [
     "CREATE TABLE teams (team_id TEXT PRIMARY KEY, name TEXT, nickname TEXT, conference TEXT, division TEXT)",
     "CREATE TABLE players (player_id TEXT PRIMARY KEY, full_name TEXT, first_name TEXT, last_name TEXT, position TEXT, birth_date TEXT, college TEXT)",
     "CREATE TABLE games (game_id TEXT PRIMARY KEY, season INTEGER, week INTEGER, season_type TEXT, game_date TEXT, home_team TEXT, away_team TEXT, home_score INTEGER, away_score INTEGER, stadium TEXT, roof TEXT, surface TEXT)",
-    "CREATE TABLE player_game_stats (player_id TEXT, game_id TEXT, team_id TEXT, completions INT, attempts INT, passing_yards INT, passing_tds INT, interceptions INT, carries INT, rushing_yards INT, rushing_tds INT, targets INT, receptions INT, receiving_yards INT, receiving_tds INT, PRIMARY KEY (player_id, game_id))",
-    "CREATE TABLE player_season_stats (player_id TEXT, season INTEGER, season_type TEXT, team_id TEXT, games_played INT, passing_yards INT, passing_tds INT, interceptions INT, rushing_yards INT, rushing_tds INT, receptions INT, receiving_yards INT, receiving_tds INT, PRIMARY KEY (player_id, season, season_type))",
+    "CREATE TABLE player_game_stats (player_id TEXT, game_id TEXT, team_id TEXT, completions INT, attempts INT, passing_yards INT, passing_tds INT, interceptions INT, sacks REAL, carries INT, rushing_yards INT, rushing_tds INT, targets INT, receptions INT, receiving_yards INT, receiving_tds INT, PRIMARY KEY (player_id, game_id))",
+    "CREATE TABLE player_season_stats (player_id TEXT, season INTEGER, season_type TEXT, team_id TEXT, games_played INT, completions INT, attempts INT, passing_yards INT, passing_tds INT, interceptions INT, sacks REAL, rushing_yards INT, rushing_tds INT, targets INT, receptions INT, receiving_yards INT, receiving_tds INT, PRIMARY KEY (player_id, season, season_type))",
     "CREATE TABLE team_game_stats (team_id TEXT, game_id TEXT, is_home BOOLEAN, points_for INT, points_against INT, total_yards INT, passing_yards INT, rushing_yards INT, turnovers INT, time_of_possession_sec INT, result TEXT, PRIMARY KEY (team_id, game_id))",
 ]
 

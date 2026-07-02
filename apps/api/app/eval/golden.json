@@ -48,5 +48,20 @@
     "question": "Tyreek Hill receiving yards in 2023",
     "intent": "player_total", "stat": "receiving_yards",
     "top_name": "Tyreek Hill", "top_value": 1799
+  },
+  {
+    "question": "Most targets in 2023",
+    "intent": "leaders", "stat": "targets",
+    "top_name": "CeeDee Lamb", "top_value": 181
+  },
+  {
+    "question": "Highest completion percentage in 2023",
+    "intent": "leaders", "stat": "completion_percentage",
+    "top_name": "Dak Prescott", "top_value": 69.5
+  },
+  {
+    "question": "Josh Allen passer rating in 2023",
+    "intent": "player_total", "stat": "passer_rating",
+    "top_name": "Josh Allen", "top_value": 92.2
   }
 ]
