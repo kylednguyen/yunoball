@@ -1,0 +1,49 @@
+name: Update NFL data
+
+# Refresh the current season into the warehouse on a weekly cadence during the
+# NFL season (Tuesday mornings UTC, after Monday Night Football). The update is
+# idempotent — the ingest pipelines upsert, so re-runs never duplicate rows.
+on:
+  schedule:
+    # 09:00 UTC every Tuesday, September–February (regular season + playoffs).
+    - cron: "0 9 * 9-12,1-2 2"
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Season to refresh (blank = current season)"
+        required: false
+        type: string
+
+# Never let two updates write concurrently.
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          # nfl_data_py pins pandas<2 / numpy<2 — wheels exist through CPython 3.11.
+          python-version: "3.11"
+
+      - name: Install ingest package
+        run: pip install -e packages/db -e packages/ingest
+
+      - name: Refresh data
+        env:
+          # Non-pooled connection with write access. Set this repo/environment secret.
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+          # Referenced via the environment (not string-interpolated) to avoid
+          # shell injection from the dispatch input.
+          SEASON: ${{ inputs.season }}
+        run: |
+          if [ -n "$SEASON" ]; then
+            python scripts/update_data.py --season "$SEASON"
+          else
+            python scripts/update_data.py
+          fi

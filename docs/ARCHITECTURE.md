@@ -112,10 +112,16 @@ unsupported questions are answered honestly, not guessed.
 
 **Deploy** ✅ — Vercel (web), Render/Fly (API), docker-compose (local).
 
-**Next (V1 scope)** ⬜ — remaining intents (`team_stat`, `comparison`), a wider
-stat whitelist, incremental `scripts/update_data.py` on a GitHub Actions
-schedule, a ≥50-question eval set, and the full 1999–present backfill (widen
-`--years`/`--all`).
+**Intents** ✅ — all five V1 intents: `leaders`, `player_total`, `single_game`,
+`team_stat` (records, points, scoring leaderboards), and `comparison` (two
+players head-to-head).
+
+**Incremental updates** ✅ — `scripts/update_data.py` refreshes the current
+season idempotently (upsert, never duplicates), scheduled weekly in-season via
+`.github/workflows/update-data.yml`.
+
+**Next (V1 scope)** ⬜ — grow the eval set toward broad intent coverage and run
+the full 1999–present backfill (widen `--years`/`--all`).
 
 **Deliberately out of scope for V1** — play-by-play / EPA / win-probability,
 fantasy, betting, multi-sport, and any AI-generated statistics. These are

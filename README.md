@@ -79,6 +79,9 @@ yunoball-provision-readonly
 # 3. Data — box score + season/game stats (no play-by-play).
 #    Use --all instead of --years for every season since 1999.
 yunoball-ingest --years 2022 2023 2024
+#    In-season, refresh the current year idempotently (also runs on a schedule
+#    via .github/workflows/update-data.yml):
+python scripts/update_data.py
 
 # 4. Entity aliases (embeddings computed if a key is set; pg_trgm otherwise)
 yunoball-seed-rag
