@@ -6,9 +6,10 @@
 
 A stats product lives or dies on **accuracy**. Free-form RAG over text will
 hallucinate numbers. So YunoBall is **natural-language → structured query** over
-a curated, authoritative warehouse. The LLM *translates and narrates*; the
-database is the *source of truth*; the vector store handles the fuzzy bits
-(entity resolution + few-shot retrieval), never the facts.
+a curated, authoritative warehouse. The LLM *translates* a question into a typed
+`QuerySpec` — never SQL, never the numbers; the database is the *source of
+truth*; fuzzy matching (pg_trgm, optionally pgvector) handles entity resolution,
+never the facts.
 
 ## Stack
 
@@ -41,14 +42,14 @@ pipeline, and embeddings share one language and one schema definition.
             │    build         (deterministic template, bound params — no guard)   │
             │    execute       (read-only role + statement_timeout, threaded)      │
             │    narrate       (templated from spec + rows — no 2nd LLM call)      │
-            │    └ long-tail fallback: raw NL→SQL → sqlglot guard → execute        │
+            │    (no spec? → honest "not supported yet" — never arbitrary SQL)     │
             └──────────────────────────────────┬───────────────────────────────────┘
                                                 │
             ┌──────────── Supabase Postgres + pgvector (packages/db) ─────────────┐
             │  star schema: seasons · teams · players · games                      │
-            │              player_game_stats · team_game_stats · plays             │
+            │              player_game_stats · team_game_stats                     │
             │              player_season_stats (rollup)                            │
-            │  RAG: entity_aliases · query_examples · answer_cache                 │
+            │  entity_aliases (resolve) · answer_cache (share)                     │
             │  (SQLAlchemy models + Alembic — one schema, shared by api + ingest)  │
             └──────────────────────────────────▲───────────────────────────────────┘
                                                 │  upsert (idempotent)
@@ -67,24 +68,24 @@ pipeline, and embeddings share one language and one schema definition.
 | Postgres + pgvector | One datastore for relational facts *and* embeddings. Supabase-hosted. |
 | Two-tier cache (L1 text, L2 spec) | Front-loaded so repeats skip the LLM entirely; in-memory when Redis is absent. |
 | SQLAlchemy + Alembic | One schema definition, owned by the Python backend, shared with ingest. |
-| nflverse / `nfl_data_py` | Free, open, comprehensive (PBP back to 1999). No scraping/ToS risk. |
-| Read-only role + sqlglot guard | Guards the raw-SQL *fallback*; the structured path needs no guard (SQL is templated). |
+| nflverse / `nfl_data_py` | Free, open, comprehensive (weekly/seasonal back to 1999). No scraping/ToS risk. |
+| Read-only role, no arbitrary SQL | Every query is a templated `QuerySpec` with bound params — there is no LLM-authored SQL to guard. |
 
 ## Query pipeline
 
 The common path never touches raw SQL and often skips the LLM entirely:
 
-1. **L1 cache** — normalized text (+ semantic slot). Repeat/near-duplicate → instant.
+1. **L1 cache** — normalized text. Repeat questions → instant.
 2. **Resolve** — fuzzy-match names to a canonical `player_id` (last-name / typo tolerant).
 3. **Parse to `QuerySpec`** — rules fast-path (0 LLM); LLM **function-call** for the long tail. Both emit the same typed spec, never SQL.
 4. **Validate** — the spec is untrusted: stat must be allowlisted, params bounded.
 5. **L2 cache** — keyed on the spec, so different phrasings that mean the same thing share an answer.
 6. **Build → execute** — deterministic template with **bound params**; run on the read-only engine.
 7. **Narrate** — templated from spec + rows. No second LLM call.
-8. **Fallback** — anything unparseable drops to raw NL→SQL, guarded by sqlglot.
+8. **No spec, no guess** — anything that doesn't map to a supported intent returns an honest "not supported yet." There is no arbitrary-SQL fallback by design.
 
 Result: the head of the distribution answers in **≤1 LLM call (often 0)**, and every
-answer is safe by construction.
+answer is computed from a template — safe by construction.
 
 Accuracy is tracked by an eval harness (`app/eval`) — a golden question→answer
 set scored through the real pipeline on parse + execution accuracy, gating CI.
@@ -92,33 +93,39 @@ set scored through the real pipeline on parse + execution accuracy, gating CI.
 ## What makes it "more advanced" than StatMuse
 
 - **Transparency** — every answer exposes the exact SQL + source rows.
-- **Situational/advanced stats** — play-by-play powers "3rd-and-long conversion
-  rate when trailing in Q4," EPA/WP splits, etc.
+- **Deterministic by design** — the LLM only classifies intent; numbers come
+  from templated SQL, so answers are reproducible and never hallucinated.
 - **Conversational follow-ups** — "...and in the playoffs?" carries context.
-- **Shareable answer cards** and deeper free historical coverage.
+- **Shareable answer cards** and deep free historical coverage (1999→present).
 
 ## Roadmap
 
 **Query engine** ✅ — structured `QuerySpec` pipeline (rules fast-path + LLM
 function-call → deterministic SQL builder), fuzzy entity resolution, two-tier
-cache (L1 text + L2 spec), templated narration (≤1 LLM call), with a guarded raw
-NL→SQL fallback for the long tail.
+cache (L1 text + L2 spec), templated narration (≤1 LLM call). No arbitrary SQL:
+unsupported questions are answered honestly, not guessed.
 
-**Warehouse & product (Phases 1–4)** ✅
-- **Phase 1** — warehouse + ingest 2022–2024 (box score + rollups + PBP), least-privilege read-only role, **eval harness** (parse + execution accuracy).
-- **Phase 2** — entity resolution (pg_trgm + pgvector over `entity_aliases`) and few-shot retrieval (pgvector over `query_examples`, keyword fallback).
-- **Phase 3** — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis + Postgres write-through.
-- **Phase 4** — play-by-play ingest + situational/EPA metrics.
+**Warehouse & product** ✅
+- **Warehouse** — ingest 2022–2024 (box score + season/game rollups), least-privilege read-only role, **eval harness** (parse + execution accuracy).
+- **Resolution** — entity resolution over `entity_aliases` (pg_trgm fuzzy match, optional pgvector).
+- **Product** — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis + Postgres write-through.
 
 **Deploy** ✅ — Vercel (web), Render/Fly (API), docker-compose (local).
 
-**Next** ⬜ — full 1999–present backfill (widen `--years`/`--all`), more intents (team/comparison/situational, with eval cases), semantic cache (pgvector slot exists), multi-sport (engine is sport-agnostic; e.g. `pybaseball`).
+**Next (V1 scope)** ⬜ — remaining intents (`team_stat`, `comparison`), a wider
+stat whitelist, incremental `scripts/update_data.py` on a GitHub Actions
+schedule, a ≥50-question eval set, and the full 1999–present backfill (widen
+`--years`/`--all`).
+
+**Deliberately out of scope for V1** — play-by-play / EPA / win-probability,
+fantasy, betting, multi-sport, and any AI-generated statistics. These are
+possible future milestones, not part of the polished MVP.
 
 > **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
 > nflverse data. `nfl_data_py` constrains the toolchain to Python 3.11
-> (`pandas<2`/`numpy<2`). The LLM-dependent stages (NL→SQL, narration,
-> embeddings) activate when `OPENAI_API_KEY` is set; trigram resolution, keyword
-> few-shot, leaderboards, shareable pages, and the reference eval run without it.
+> (`pandas<2`/`numpy<2`). The LLM-dependent stages (long-tail parse, embeddings)
+> activate when `OPENAI_API_KEY` is set; the rule-based parser, trigram
+> resolution, leaderboards, shareable pages, and the eval run without it.
 
 ## Eval (non-negotiable)
 

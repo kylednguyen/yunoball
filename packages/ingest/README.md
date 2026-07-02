@@ -23,9 +23,6 @@ Set `DIRECT_DATABASE_URL` (the non-pooled Supabase/Postgres connection) in `.env
 # Every season since 1999 — the full dataset
 yunoball-ingest --all
 
-# Everything except play-by-play (much smaller / faster)
-yunoball-ingest --all --skip plays
-
 # Specific seasons
 yunoball-ingest --years 2022 2023 2024
 
@@ -47,10 +44,9 @@ Pipelines run in dependency order and are idempotent (batched
 | `player_game_stats` | `import_weekly_data` | player × game |
 | `player_season_stats` | `import_seasonal_data` | player × season |
 | `team_game_stats` | `import_schedules` | team × game |
-| `plays` | `import_pbp_data` | play (~50k/season) |
 
-`plays` is by far the largest; `--skip plays` if you only need box-score and
-season-level stats. Game ids are resolved from the schedule by
+The warehouse is box-score grained (no play-by-play), so a full 1999→present
+backfill stays small. Game ids are resolved from the schedule by
 `(season, week, team)`, so home/away players map to the correct game.
 
 ## Order of operations

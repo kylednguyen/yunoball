@@ -31,6 +31,9 @@ The first `alembic upgrade` enables `vector` + `pg_trgm` before creating tables.
 ## Schema overview
 
 - **Dimensions:** `seasons`, `teams`, `players`, `games`
-- **Facts:** `player_game_stats`, `team_game_stats`, `plays`
+- **Facts:** `player_game_stats`, `team_game_stats`
 - **Rollups:** `player_season_stats`
-- **RAG:** `entity_aliases`, `query_examples`, `answer_cache` (pgvector HNSW indexes)
+- **Resolve / cache:** `entity_aliases` (pg_trgm + optional pgvector), `answer_cache`
+
+The warehouse is intentionally box-score grained — no play-by-play, EPA, or
+win-probability tables in V1.

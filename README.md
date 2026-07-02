@@ -76,16 +76,15 @@ docker compose up -d
 ( cd packages/db && alembic upgrade head )
 yunoball-provision-readonly
 
-# 3. Data — box score + season/game stats. Drop --skip to include play-by-play;
-#    use --all instead of --years for every season since 1999.
-yunoball-ingest --years 2022 2023 2024 --skip plays
+# 3. Data — box score + season/game stats (no play-by-play).
+#    Use --all instead of --years for every season since 1999.
+yunoball-ingest --years 2022 2023 2024
 
-# 4. RAG: entity aliases + few-shot library (embeddings computed if a key is set)
+# 4. Entity aliases (embeddings computed if a key is set; pg_trgm otherwise)
 yunoball-seed-rag
 
-# 5. Accuracy eval
-yunoball-eval --reference-only       # validates golden SQL; no key needed
-yunoball-eval --min-accuracy 0.8     # full execution accuracy (needs OPENAI_API_KEY)
+# 5. Accuracy eval (deterministic, no key needed)
+yunoball-eval
 
 # 6. Backend + frontend
 ( cd apps/api && uvicorn app.main:app --reload --port 4000 )
@@ -94,12 +93,14 @@ pnpm install && pnpm dev:web         # http://localhost:3000
 
 ## Status
 
-Working prototype combining a **structured `QuerySpec` query engine** (rules +
+Working prototype: a **structured `QuerySpec` query engine** (rules +
 LLM function-call → deterministic SQL, fuzzy entity resolution, two-tier cache,
-templated narration, ≤1 LLM call) with a **real local warehouse** (nflverse
-2022–2024): ingest + eval harness, pg_trgm/pgvector resolution + few-shot
-retrieval, charts + leaderboards + shareable answer pages + Redis/Postgres cache,
-and play-by-play + situational/EPA metrics. Everything except the LLM/embedding
-paths runs without an `OPENAI_API_KEY`; try it key-free with `./scripts/demo.sh`.
-Full 1999–present backfill is a one-command widening of `--years` (or `--all`).
-See the roadmap in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+templated narration, ≤1 LLM call) over a **real local warehouse** (nflverse
+2022–2024). Includes ingest + eval harness, pg_trgm/pgvector entity resolution,
+charts + leaderboards + shareable answer pages, and a Redis/Postgres cache. The
+LLM only ever emits a validated `QuerySpec` — never SQL, never statistics — so
+every number is computed from a template; unsupported questions are answered
+honestly rather than guessed. Everything except the LLM/embedding paths runs
+without an `OPENAI_API_KEY`; try it key-free with `./scripts/demo.sh`. Full
+1999–present backfill is a one-command widening of `--years` (or `--all`). See
+the roadmap in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

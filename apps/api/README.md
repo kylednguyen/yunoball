@@ -4,10 +4,11 @@ FastAPI backend — the natural-language → SQL query pipeline over the NFL war
 
 ## Pipeline
 
-Structured-first — the common path never touches raw SQL and often skips the LLM:
+The LLM only ever produces a validated `QuerySpec` — never SQL and never the
+numbers. The common path often skips the LLM entirely:
 
 ```
-L1 cache (text/semantic)
+L1 cache (text)
  → resolve (fuzzy name → player_id)
  → parse to QuerySpec (rules fast-path; else LLM function-call)
  → validate (allowlisted stat, bounded params)
@@ -15,14 +16,14 @@ L1 cache (text/semantic)
  → build (deterministic template, bound params)
  → execute (read-only, timeout)
  → narrate (templated — no 2nd LLM call)
- └ fallback: raw NL→SQL → sqlglot guard → execute → LLM narrate
+ └ no spec? → honest "not supported yet" (no arbitrary-SQL fallback)
 ```
 
 - **`app/query/`** — `spec.py` (QuerySpec), `build.py` (SQL builder + narration),
   `parse_rules.py` (rules), `parse_llm.py` (LLM function-call + JSON validation).
 - **`app/pipeline/`** — orchestration, `resolve.py` (fuzzy entities), `execute.py`.
-- The structured path needs **no SQL guard** (SQL is templated with bound params);
-  `guard_sql` (sqlglot) only guards the raw-SQL fallback.
+- There is **no SQL guard** because there is no LLM-authored SQL: every query is
+  built from a template with bound params, so the injection surface is zero.
 
 ## Run modes
 
@@ -45,7 +46,7 @@ data at zero LLM cost.
 
 # or directly
 cd apps/api
-pip install fastapi "uvicorn[standard]" sqlalchemy pydantic-settings sqlglot
+pip install fastapi "uvicorn[standard]" sqlalchemy pydantic-settings
 DEMO=1 uvicorn app.main:app --port 4000
 
 # production (also: pip install -e ../../packages/db, plus openai redis psycopg)
