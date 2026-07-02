@@ -3,7 +3,8 @@
   Dimensions: seasons, teams, players, games
   Facts:      player_game_stats, team_game_stats, plays
   Rollups:    player_season_stats
-  RAG:        entity_aliases, query_examples, answer_cache  (pgvector-backed)
+  Resolve:    entity_aliases  (pg_trgm fuzzy match, optional pgvector)
+  Cache:      answer_cache    (durable, shareable answers)
 
 Box-score stats come first; situational/advanced metrics derive from `plays`.
 """
@@ -26,7 +27,6 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -240,28 +240,6 @@ class EntityAlias(Base):
             "embedding",
             postgresql_using="hnsw",
             postgresql_with={"m": 16, "ef_construction": 64},
-            postgresql_ops={"embedding": "vector_cosine_ops"},
-        ),
-    )
-
-
-class QueryExample(Base):
-    """Few-shot library: verified question -> SQL pairs for NL->SQL grounding."""
-
-    __tablename__ = "query_examples"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    question: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    sql: Mapped[str] = mapped_column(Text, nullable=False)
-    tags: Mapped[list[str] | None] = mapped_column(ARRAY(String))
-    verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        Index(
-            "query_examples_embedding_idx",
-            "embedding",
-            postgresql_using="hnsw",
             postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
     )

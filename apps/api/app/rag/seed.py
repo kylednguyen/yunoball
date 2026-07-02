@@ -1,14 +1,14 @@
-"""Seed the RAG tables.
+"""Seed the entity-alias table.
 
-  * entity_aliases — every player and team gets searchable aliases
-    (full name, surname; team name, nickname, city, abbreviation).
-  * query_examples — the verified golden set, used as NL->SQL few-shot.
+Every player and team gets searchable aliases (full name, surname; team name,
+nickname, city, abbreviation) so the resolver can map messy mentions
+("Mahomes", "Niners", "BUF") to a canonical id.
 
 Embeddings are computed when OPENAI_API_KEY is set; otherwise rows are inserted
-with NULL embeddings and resolve/retrieve fall back to pg_trgm / keyword match.
+with NULL embeddings and resolution falls back to pg_trgm fuzzy match.
 
-    yunoball-seed-rag                  # aliases + examples (+embeddings if key)
-    yunoball-seed-rag --no-embeddings  # force trgm / keyword-only
+    yunoball-seed-rag                  # aliases (+embeddings if a key is set)
+    yunoball-seed-rag --no-embeddings  # force trgm-only
 """
 
 from __future__ import annotations
@@ -23,7 +23,6 @@ from yunoball_db.base import get_engine
 
 from .. import llm
 from ..config import settings
-from ..eval.golden import GOLDEN
 from .store import vector_literal
 
 
@@ -86,30 +85,6 @@ def seed_aliases(engine: Engine, embeddings: list[str | None], rows: list[tuple]
     return len(records)
 
 
-def seed_examples(engine: Engine, embeddings: list[str | None]) -> int:
-    stmt = text(
-        """
-        INSERT INTO query_examples (question, sql, tags, verified, embedding)
-        VALUES (:question, :sql, :tags, TRUE, CAST(:embedding AS vector))
-        ON CONFLICT (question) DO UPDATE SET
-            sql = EXCLUDED.sql, tags = EXCLUDED.tags,
-            verified = EXCLUDED.verified, embedding = EXCLUDED.embedding
-        """
-    )
-    records = [
-        {
-            "question": c.question,
-            "sql": " ".join(c.reference_sql.split()),
-            "tags": list(c.tags),
-            "embedding": emb,
-        }
-        for c, emb in zip(GOLDEN, embeddings)
-    ]
-    with engine.begin() as conn:
-        conn.execute(stmt, records)
-    return len(records)
-
-
 async def _run(use_embeddings: bool) -> None:
     engine = get_engine(direct=True)
     with engine.connect() as conn:
@@ -118,15 +93,12 @@ async def _run(use_embeddings: bool) -> None:
     alias_embeddings = await _embeddings_or_none([a[2] for a in alias_rows], use_embeddings)
     n_alias = seed_aliases(engine, alias_embeddings, alias_rows)
 
-    example_embeddings = await _embeddings_or_none([c.question for c in GOLDEN], use_embeddings)
-    n_examples = seed_examples(engine, example_embeddings)
-
-    mode = "with embeddings" if use_embeddings else "trgm/keyword-only (no embeddings)"
-    print(f"[seed-rag] aliases: {n_alias}, query_examples: {n_examples} — {mode}")
+    mode = "with embeddings" if use_embeddings else "trgm-only (no embeddings)"
+    print(f"[seed-rag] aliases: {n_alias} — {mode}")
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Seed YunoBall RAG tables.")
+    ap = argparse.ArgumentParser(description="Seed YunoBall entity aliases.")
     ap.add_argument("--no-embeddings", action="store_true",
                     help="Insert NULL embeddings even if a key is set.")
     args = ap.parse_args()

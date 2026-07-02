@@ -5,7 +5,6 @@
 
 Backend is Redis in production; an in-process LRU is used when Redis isn't
 configured (e.g. the SQLite demo), so caching is always exercised and testable.
-A semantic layer (embedding similarity over pgvector) is slotted in for prod.
 
 Durability: answers are also best-effort persisted to the Postgres
 `answer_cache` table keyed by a stable `share_id`, so they survive a Redis flush
@@ -130,17 +129,6 @@ async def set(key: str, payload: dict[str, Any]) -> None:
         )
     except Exception:  # noqa: BLE001
         pass
-
-
-async def semantic_lookup(question: str) -> dict[str, Any] | None:
-    """Embedding-similarity lookup over the pgvector answer_cache.
-
-    Requires an embedding model, so it is skipped when running without a key.
-    TODO(prod): embed `question`, search answer_cache by cosine distance.
-    """
-    if settings.use_mock_llm:
-        return None
-    return None
 
 
 # --------------------- durable shareable store (Postgres) ------------------- #
