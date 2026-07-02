@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
     # Hard cap on generated-SQL execution time (Postgres only).
     statement_timeout_ms: int = 10_000
+    # Requests per client IP per minute on POST /api/search (0 disables).
+    # Fails open when Redis is unavailable or the in-process demo cache is used.
+    rate_limit_per_minute: int = 30
 
     # Demo
     demo: bool = False
