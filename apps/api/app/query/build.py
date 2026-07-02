@@ -149,6 +149,8 @@ def narrate(spec: QuerySpec, rows: list[dict[str, Any]]) -> str:
             record = f"{w}-{l}" + (f"-{t}" if t else "")
             return f"{team} went {record}{season}."
         value = top.get("value")
+        if value == 1 and spec.stat in ("wins", "losses"):
+            label = {"wins": "win", "losses": "loss"}[spec.stat]
         if spec.team_id:
             return f"{team} had {value} {label}{season}."
         return f"{team} leads with {value} {label}{season}."

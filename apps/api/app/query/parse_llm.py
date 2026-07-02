@@ -54,9 +54,9 @@ SYSTEM = (
     "Convert the NFL question into a structured query by calling answer_nfl_query. "
     "Pick the closest stat from the allowed list. Use intent=player_total for a "
     "single player, single_game for best-single-game questions, team_stat for a "
-    "team's record/points/yards or a team leaderboard, else leaders. For "
+    "team's record/points or a team leaderboard, else leaders. For "
     "intent=team_stat the stat must be a team stat (record, wins, losses, points, "
-    "points_per_game, yards, yards_per_game)."
+    "points_per_game)."
 )
 
 

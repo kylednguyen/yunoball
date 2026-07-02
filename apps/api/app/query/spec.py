@@ -127,14 +127,15 @@ class TeamStatDef:
     min_games: int | None = None
 
 
+# V1 team stats derive from the schedule (scores + result). Team total yards
+# would need a play-by-play aggregation the warehouse deliberately doesn't carry,
+# so yardage stats are intentionally omitted rather than shipped returning NULL.
 TEAM_STATS: dict[str, TeamStatDef] = {
     "record": TeamStatDef("record", None),
     "wins": TeamStatDef("wins", "SUM(CASE WHEN {a}.result = 'W' THEN 1 ELSE 0 END)"),
     "losses": TeamStatDef("losses", "SUM(CASE WHEN {a}.result = 'L' THEN 1 ELSE 0 END)"),
     "points": TeamStatDef("points", "SUM({a}.points_for)"),
     "points_per_game": TeamStatDef("points per game", "ROUND(AVG({a}.points_for * 1.0), 1)", min_games=3),
-    "yards": TeamStatDef("yards", "SUM({a}.total_yards)"),
-    "yards_per_game": TeamStatDef("yards per game", "ROUND(AVG({a}.total_yards * 1.0), 1)", min_games=3),
 }
 
 

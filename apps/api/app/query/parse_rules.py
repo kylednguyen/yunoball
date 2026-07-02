@@ -38,13 +38,11 @@ _STAT_RULES: list[tuple[tuple[str, ...], str]] = [
 _TEAM_STAT_RULES: list[tuple[tuple[str, ...], str]] = [
     (("record", "win-loss", "win loss"), "record"),
     (("points per game", "ppg", "scoring offense", "highest scoring"), "points_per_game"),
-    (("yards per game", "ypg"), "yards_per_game"),
     (("most wins", "wins",), "wins"),
     (("most losses", "losses"), "losses"),
     (("points", "scored", "scoring"), "points"),
-    (("yards", "total offense"), "yards"),
 ]
-_TEAM_STRONG = {"record", "points_per_game", "yards_per_game", "wins", "losses"}
+_TEAM_STRONG = {"record", "points_per_game", "wins", "losses"}
 
 # surname / full name -> canonical full name, from the seed set
 _PLAYER_TOKENS = {p[1].split()[-1].lower(): p[1] for p in SEED_PLAYERS}
@@ -149,6 +147,11 @@ def parse_rules(question: str, entities: list | None = None) -> QuerySpec | None
 
     if is_single_game:
         return QuerySpec(intent=Intent.SINGLE_GAME, stat=stat, limit=5)
+    # A team was named with a player stat but no player ("Bills passing yards").
+    # Team-scoped player totals aren't a V1 intent — answer honestly rather than
+    # silently returning a league-wide leaderboard that ignores the team.
+    if team_id and not player:
+        return None
     if player:
         return QuerySpec(
             intent=Intent.PLAYER_TOTAL,
