@@ -130,8 +130,10 @@ def test_build_comparison_filters_both_players():
     spec = QuerySpec(intent=Intent.COMPARISON, stat="passing_yards",
                      player="Patrick Mahomes", player2="Josh Allen", scope="career")
     sql, params = build_sql(spec)
-    assert "IN (:n1, :n2)" in sql and "SUM(" in sql
-    assert params["n1"] == "patrick mahomes" and params["n2"] == "josh allen"
+    assert ":n1" in sql and ":n2" in sql and "LIKE" in sql and "SUM(" in sql
+    assert params["n1"] == "%patrick mahomes%" and params["n2"] == "%josh allen%"
+    # NULL-safe ordering + group by id (two players sharing a name don't merge).
+    assert "IS NOT NULL" in sql and "GROUP BY s.player_id" in sql
 
 
 def test_narrate_comparison():

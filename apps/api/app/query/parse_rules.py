@@ -142,7 +142,9 @@ def parse_rules(question: str, entities: list | None = None) -> QuerySpec | None
                 player=names[0], player2=names[1],
                 season=season, scope="season" if season else "career",
             )
-        return None  # "vs" but we couldn't identify two players
+        # "vs" but fewer than two players — fall through so a team/leaders query
+        # that merely contains "vs" (e.g. "Chiefs record vs the Raiders") can
+        # still parse instead of being force-failed here.
 
     # Prefer a resolved entity (works for any player/team in the DB); fall back
     # to the built-in seed tokens so the parser is usable standalone / in tests.

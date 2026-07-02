@@ -79,10 +79,13 @@ async def run_query_pipeline(
     # Attach the resolved canonical id if the parser didn't already, picking the
     # entity whose type matches the intent.
     if spec.intent is Intent.PLAYER_TOTAL and not spec.player_id:
-        p = next((e for e in entities if e.entity_type == "player"), None)
-        if p is not None:
-            spec.player_id = p.canonical_id
-            spec.player = spec.player or p.display_name
+        players = [e for e in entities if e.entity_type == "player"]
+        # Only auto-attach when there's exactly one candidate; two resolved
+        # players (a "vs" question the LLM misread as single-player) would be
+        # ambiguous, so leave the spec's own name to drive the LIKE fallback.
+        if len(players) == 1:
+            spec.player_id = players[0].canonical_id
+            spec.player = spec.player or players[0].display_name
     if spec.intent is Intent.TEAM_STAT and not spec.team_id:
         t = next((e for e in entities if e.entity_type == "team"), None)
         if t is not None:

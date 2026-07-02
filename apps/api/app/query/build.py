@@ -92,35 +92,42 @@ def build_sql(spec: QuerySpec) -> tuple[str, dict[str, Any]]:
         return sql, params
 
     if spec.intent is Intent.COMPARISON:
-        career = spec.scope == "career"
+        # Aggregate over a career unless a specific season was named — a bare
+        # "A vs B" must not fall into the per-season branch and return one row
+        # per season (which would compare a player against himself).
+        career = spec.scope == "career" or spec.season is None
         value = spec.value_expr("s", career=career)
-        # Filter to the two players by id when resolved, else by name.
+        # Filter to the two players by id when resolved, else by fuzzy name
+        # (LIKE, matching the PLAYER_TOTAL path so short names still resolve).
         if spec.player_id and spec.player2_id:
             player_pred = "s.player_id IN (:pid1, :pid2)"
             params["pid1"], params["pid2"] = spec.player_id, spec.player2_id
         else:
-            player_pred = "lower(p.full_name) IN (:n1, :n2)"
-            params["n1"] = (spec.player or "").lower()
-            params["n2"] = (spec.player2 or "").lower()
+            player_pred = "(lower(p.full_name) LIKE :n1 OR lower(p.full_name) LIKE :n2)"
+            params["n1"] = f"%{(spec.player or '').lower()}%"
+            params["n2"] = f"%{(spec.player2 or '').lower()}%"
         where = [player_pred, "s.season_type = :stype"]
         params["stype"] = spec.season_type
         base = (
             "FROM player_season_stats s "
             "JOIN players p ON p.player_id = s.player_id"
         )
+        # Wrap and filter NULLs so a player with no data for a rate stat can't
+        # sort first on Postgres (NULLS FIRST on DESC) and be named the leader.
         if career:
-            sql = (
+            inner = (
                 f"SELECT p.full_name, {value} AS total {base} "
-                f"WHERE {' AND '.join(where)} GROUP BY p.full_name ORDER BY total DESC"
+                f"WHERE {' AND '.join(where)} GROUP BY s.player_id, p.full_name"
             )
+            sql = f"SELECT * FROM ({inner}) t WHERE total IS NOT NULL ORDER BY total DESC"
             return sql, params
-        if spec.season is not None:
-            where.append("s.season = :season")
-            params["season"] = spec.season
-        sql = (
+        where.append("s.season = :season")
+        params["season"] = spec.season
+        inner = (
             f"SELECT p.full_name, s.season, {value} AS value {base} "
-            f"WHERE {' AND '.join(where)} ORDER BY value DESC"
+            f"WHERE {' AND '.join(where)}"
         )
+        sql = f"SELECT * FROM ({inner}) t WHERE value IS NOT NULL ORDER BY value DESC"
         return sql, params
 
     if spec.intent is Intent.TEAM_STAT:
@@ -174,13 +181,18 @@ def narrate(spec: QuerySpec, rows: list[dict[str, Any]]) -> str:
     label = spec.label()
 
     if spec.intent is Intent.COMPARISON:
-        key = "total" if spec.scope == "career" else "value"
-        scope = "career " if spec.scope == "career" else ""
+        # career unless a season was named (mirrors build_sql).
+        career = spec.scope == "career" or spec.season is None
+        key = "total" if career else "value"
+        scope = "career " if career else ""
         if len(rows) >= 2:
             a, b = rows[0], rows[1]  # ordered by the stat DESC
+            va, vb = a.get(key), b.get(key)
+            if va == vb:
+                return f"{a.get('full_name')} and {b.get('full_name')} are tied in {scope}{label} at {va}."
             return (
                 f"{a.get('full_name')} leads {b.get('full_name')} in {scope}{label}: "
-                f"{a.get(key)} to {b.get(key)}."
+                f"{va} to {vb}."
             )
         return f"{top.get('full_name')} had {top.get(key)} {scope}{label}."
 
