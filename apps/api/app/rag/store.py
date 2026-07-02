@@ -1,4 +1,4 @@
-"""Shared DB plumbing for the entity-alias store (resolve / seed)."""
+"""Shared DB plumbing for the durable answer store (used by cache.persist)."""
 
 from __future__ import annotations
 
@@ -10,13 +10,8 @@ _read_engine: Engine | None = None
 
 
 def read_engine() -> Engine:
-    """Pooled engine for read paths (entity resolution, durable answer store)."""
+    """Pooled engine for the durable answer store (Postgres-only paths)."""
     global _read_engine
     if _read_engine is None:
         _read_engine = get_engine()
     return _read_engine
-
-
-def vector_literal(vec: list[float]) -> str:
-    """pgvector text input form: '[0.1,0.2,...]' (cast with ::vector in SQL)."""
-    return "[" + ",".join(f"{x:.7g}" for x in vec) + "]"

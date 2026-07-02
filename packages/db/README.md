@@ -3,8 +3,9 @@
 The YunoBall warehouse schema — one SQLAlchemy definition (`yunoball_db/models.py`)
 shared by the FastAPI backend and the ingestion CLI, with Alembic migrations.
 
-Database: **Postgres + pgvector** (Supabase). pgvector and pg_trgm extensions are
-created automatically by the migration environment.
+Database: **Postgres** (Supabase). The `pg_trgm` extension (fuzzy entity
+resolution) is created automatically by the migration environment. V1 does no
+vector search.
 
 ## Setup
 
@@ -33,7 +34,7 @@ The first `alembic upgrade` enables `vector` + `pg_trgm` before creating tables.
 - **Dimensions:** `seasons`, `teams`, `players`, `games`
 - **Facts:** `player_game_stats`, `team_game_stats`
 - **Rollups:** `player_season_stats`
-- **Resolve / cache:** `entity_aliases` (pg_trgm + optional pgvector), `answer_cache`
+- **Resolve / cache:** `entity_aliases` (pg_trgm), `answer_cache`
 
 The warehouse is intentionally box-score grained — no play-by-play, EPA, or
 win-probability tables in V1.

@@ -3,7 +3,7 @@
   Dimensions: seasons, teams, players, games
   Facts:      player_game_stats, team_game_stats
   Rollups:    player_season_stats
-  Resolve:    entity_aliases  (pg_trgm fuzzy match, optional pgvector)
+  Resolve:    entity_aliases  (pg_trgm fuzzy match)
   Cache:      answer_cache    (durable, shareable answers)
 
 The warehouse is intentionally box-score grained: no play-by-play, EPA, or
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     Date,
@@ -32,8 +31,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
-
-EMBED_DIM = 1536  # OpenAI text-embedding-3-small
 
 
 # ------------------------------- Dimensions ------------------------------- #
@@ -186,13 +183,13 @@ class PlayerSeasonStats(Base):
     __table_args__ = (Index("pss_season_idx", "season"),)
 
 
-# ----------------------------- RAG (pgvector) ----------------------------- #
+# ------------------------------- Resolve --------------------------------- #
 
 
 class EntityAlias(Base):
-    """Maps messy mentions ("Mahomes", "Pat Mahomes") to canonical ids.
+    """Maps messy mentions ("Mahomes", "Pat Mahomes", "Niners") to canonical ids.
 
-    Resolution = pg_trgm fuzzy match + pgvector cosine similarity.
+    Resolution is pg_trgm fuzzy match (no vector search in V1).
     """
 
     __tablename__ = "entity_aliases"
@@ -200,7 +197,6 @@ class EntityAlias(Base):
     entity_type: Mapped[str] = mapped_column(String, nullable=False)  # player | team
     canonical_id: Mapped[str] = mapped_column(String, nullable=False)
     alias: Mapped[str] = mapped_column(String, nullable=False)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
 
     __table_args__ = (
         # GIN trigram index powers fuzzy `alias % :mention` lookups.
@@ -211,18 +207,14 @@ class EntityAlias(Base):
             postgresql_ops={"alias": "gin_trgm_ops"},
         ),
         Index("entity_aliases_canonical_idx", "entity_type", "canonical_id"),
-        Index(
-            "entity_aliases_embedding_idx",
-            "embedding",
-            postgresql_using="hnsw",
-            postgresql_with={"m": 16, "ef_construction": 64},
-            postgresql_ops={"embedding": "vector_cosine_ops"},
-        ),
     )
 
 
+# --------------------------------- Cache ---------------------------------- #
+
+
 class AnswerCache(Base):
-    """Postgres-side semantic cache (Redis fronts it for hot keys)."""
+    """Durable, shareable answer store (Redis fronts it for hot keys)."""
 
     __tablename__ = "answer_cache"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -232,15 +224,5 @@ class AnswerCache(Base):
     normalized_question: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     sql: Mapped[str | None] = mapped_column(Text)
     answer_json: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
     hits: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    __table_args__ = (
-        Index(
-            "answer_cache_embedding_idx",
-            "embedding",
-            postgresql_using="hnsw",
-            postgresql_ops={"embedding": "vector_cosine_ops"},
-        ),
-    )

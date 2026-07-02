@@ -19,10 +19,10 @@ templated from the result. The head of the distribution answers in **≤1 LLM ca
 
 - **Frontend:** Next.js (TypeScript) — `apps/web`
 - **Backend:** FastAPI (Python) — `apps/api`
-- **Database:** Postgres + pgvector (Supabase) — schema in `packages/db`
+- **Database:** Postgres (Supabase) — schema in `packages/db`, `pg_trgm` for fuzzy resolution
 - **Cache:** two-tier answer cache — Redis, or in-memory when Redis is absent
 - **Data:** nflverse via `nfl_data_py` — `packages/ingest`
-- **LLM + embeddings:** OpenAI (optional — rule-based engine runs key-less)
+- **LLM:** OpenAI, question→QuerySpec only (optional — rule-based engine runs key-less)
 
 ## Repository layout
 
@@ -35,7 +35,7 @@ packages/
   ingest/     nflverse → warehouse loader (CLI)
 docs/
   ARCHITECTURE.md
-docker-compose.yml   local Postgres (pgvector) + Redis
+docker-compose.yml   local Postgres + Redis
 ```
 
 ## Try the prototype now (demo mode — no Docker, no keys)
@@ -67,7 +67,7 @@ python3.11 -m venv .venv && source .venv/bin/activate
 pip install --config-settings editable_mode=compat \
     -e packages/db -e packages/ingest -e apps/api
 
-# 1. Infra — Postgres (pgvector) + Redis.
+# 1. Infra — Postgres + Redis.
 #    If host port 5432 is taken, drop a docker-compose.override.yml remapping it
 #    (e.g. "5433:5432") and point DATABASE_URL at the new port.
 docker compose up -d
@@ -83,7 +83,7 @@ yunoball-ingest --years 2022 2023 2024
 #    via .github/workflows/update-data.yml):
 python scripts/update_data.py
 
-# 4. Entity aliases (embeddings computed if a key is set; pg_trgm otherwise)
+# 4. Entity aliases (pg_trgm fuzzy resolution)
 yunoball-seed-rag
 
 # 5. Accuracy eval (deterministic, no key needed)
@@ -99,11 +99,11 @@ pnpm install && pnpm dev:web         # http://localhost:3000
 Working prototype: a **structured `QuerySpec` query engine** (rules +
 LLM function-call → deterministic SQL, fuzzy entity resolution, two-tier cache,
 templated narration, ≤1 LLM call) over a **real local warehouse** (nflverse
-2022–2024). Includes ingest + eval harness, pg_trgm/pgvector entity resolution,
+2022–2024). Includes ingest + eval harness, pg_trgm fuzzy entity resolution,
 charts + leaderboards + shareable answer pages, and a Redis/Postgres cache. The
 LLM only ever emits a validated `QuerySpec` — never SQL, never statistics — so
 every number is computed from a template; unsupported questions are answered
-honestly rather than guessed. Everything except the LLM/embedding paths runs
+honestly rather than guessed. Everything except the LLM parse path runs
 without an `OPENAI_API_KEY`; try it key-free with `./scripts/demo.sh`. Full
 1999–present backfill is a one-command widening of `--years` (or `--all`). See
 the roadmap in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

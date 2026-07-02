@@ -36,7 +36,7 @@ So a real Postgres with **no** OpenAI key runs the rule-based engine over real
 data at zero LLM cost.
 
 - **Demo** (no key, no DB): SQLite + rule-based + seeded data; serves a test UI at `/`.
-- **Production**: Postgres + pgvector (`DATABASE_URL`), OpenAI, Redis.
+- **Production**: Postgres (`DATABASE_URL`), OpenAI, Redis.
 
 ## Run
 

@@ -8,8 +8,7 @@ A stats product lives or dies on **accuracy**. Free-form RAG over text will
 hallucinate numbers. So YunoBall is **natural-language → structured query** over
 a curated, authoritative warehouse. The LLM *translates* a question into a typed
 `QuerySpec` — never SQL, never the numbers; the database is the *source of
-truth*; fuzzy matching (pg_trgm, optionally pgvector) handles entity resolution,
-never the facts.
+truth*; pg_trgm fuzzy matching handles entity resolution, never the facts.
 
 ## Stack
 
@@ -17,13 +16,13 @@ never the facts.
 |---|---|
 | Frontend | Next.js (App Router, TypeScript) |
 | Backend | FastAPI (Python) |
-| Database | Postgres + pgvector (Supabase) |
+| Database | Postgres (Supabase); `pg_trgm` for fuzzy resolution |
 | Cache | Redis (answer cache, rate limiting, follow-up state) |
 | Data | nflverse via `nfl_data_py` (NFL-only for now) |
-| LLM + embeddings | OpenAI (`gpt-4o` for SQL, `gpt-4o-mini` to narrate, `text-embedding-3-small`) |
+| LLM | OpenAI (`gpt-4o`) — parses a question into a `QuerySpec`, nothing else |
 
-The backend and the data/ML layer are both Python, so ingestion, the NL→SQL
-pipeline, and embeddings share one language and one schema definition.
+The backend and the data layer are both Python, so ingestion, the query
+pipeline, and the schema definition share one language.
 
 ## System map
 
@@ -34,7 +33,7 @@ pipeline, and embeddings share one language and one schema definition.
                                                 │  POST /api/search
             ┌──────────────────────── apps/api (FastAPI) ────────────────────────┐
             │  run_query_pipeline (structured-first):                              │
-            │    L1 cache      (text; semantic slot) ── hit ─► response            │
+            │    L1 cache      (normalized text) ── hit ─► response                │
             │    resolve       (fuzzy name → canonical player_id)                  │
             │    parse         (rules fast-path; else LLM function-call → JSON)    │
             │    validate      (QuerySpec: allowlisted stat, bounded params)       │
@@ -45,7 +44,7 @@ pipeline, and embeddings share one language and one schema definition.
             │    (no spec? → honest "not supported yet" — never arbitrary SQL)     │
             └──────────────────────────────────┬───────────────────────────────────┘
                                                 │
-            ┌──────────── Supabase Postgres + pgvector (packages/db) ─────────────┐
+            ┌──────────────── Supabase Postgres (packages/db) ────────────────────┐
             │  star schema: seasons · teams · players · games                      │
             │              player_game_stats · team_game_stats                     │
             │              player_season_stats (rollup)                            │
@@ -65,7 +64,7 @@ pipeline, and embeddings share one language and one schema definition.
 | Structured intent, not raw SQL | LLM emits a typed `QuerySpec` (tiny JSON), not SQL → faster, cacheable, and injection-proof: we build the SQL. |
 | Numbers from facts, not RAG | Answers are computed from the warehouse, never retrieved from prose. |
 | FastAPI (Python) backend | Collapses backend + data/ML into one language; no Node↔Python seam. |
-| Postgres + pgvector | One datastore for relational facts *and* embeddings. Supabase-hosted. |
+| Postgres (Supabase) | One relational datastore for facts; `pg_trgm` powers fuzzy entity resolution. No vector search in V1. |
 | Two-tier cache (L1 text, L2 spec) | Front-loaded so repeats skip the LLM entirely; in-memory when Redis is absent. |
 | SQLAlchemy + Alembic | One schema definition, owned by the Python backend, shared with ingest. |
 | nflverse / `nfl_data_py` | Free, open, comprehensive (weekly/seasonal back to 1999). No scraping/ToS risk. |
@@ -107,7 +106,7 @@ unsupported questions are answered honestly, not guessed.
 
 **Warehouse & product** ✅
 - **Warehouse** — ingest 2022–2024 (box score + season/game rollups), least-privilege read-only role, **eval harness** (parse + execution accuracy).
-- **Resolution** — entity resolution over `entity_aliases` (pg_trgm fuzzy match, optional pgvector).
+- **Resolution** — fuzzy entity resolution (`pg_trgm` over `entity_aliases`; a portable difflib fallback keeps the SQLite demo key-free).
 - **Product** — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis + Postgres write-through.
 
 **Deploy** ✅ — Vercel (web), Render/Fly (API), docker-compose (local).
@@ -130,11 +129,11 @@ data and gated at 100% in CI (`tests/test_eval.py`).
 fantasy, betting, multi-sport, and any AI-generated statistics. These are
 possible future milestones, not part of the polished MVP.
 
-> **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
-> nflverse data. `nfl_data_py` constrains the toolchain to Python 3.11
-> (`pandas<2`/`numpy<2`). The LLM-dependent stages (long-tail parse, embeddings)
-> activate when `OPENAI_API_KEY` is set; the rule-based parser, trigram
-> resolution, leaderboards, shareable pages, and the eval run without it.
+> **Local dev note.** Runs against Docker Postgres / Redis with real nflverse
+> data. `nfl_data_py` constrains the toolchain to Python 3.11
+> (`pandas<2`/`numpy<2`). The long-tail LLM parse activates when
+> `OPENAI_API_KEY` is set; the rule-based parser, fuzzy resolution,
+> leaderboards, shareable pages, and the eval all run without it.
 
 ## Eval (non-negotiable)
 
