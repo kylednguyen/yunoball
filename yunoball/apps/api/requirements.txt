@@ -1,0 +1,13 @@
+# Dependencies for the API runtime (mirrors pyproject.toml, minus the local
+# yunoball-db package which the API runtime does not import).
+# uvicorn is needed on container hosts (Render); Vercel's Python runtime ignores it.
+fastapi>=0.115
+uvicorn[standard]>=0.34
+pydantic>=2.10
+pydantic-settings>=2.7
+sqlalchemy>=2.0
+psycopg[binary]>=3.2
+redis>=5.2
+openai>=1.59
+sqlglot>=26.0
+anyio>=4.0
