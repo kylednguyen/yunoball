@@ -627,3 +627,239 @@ pre.yb-sql {
     display: none;
   }
 }
+
+/* ============================================================
+   Dashboard modules — stat tiles, standings, mini leaderboards,
+   trending questions. ESPN-dense, same tokens.
+   ============================================================ */
+.yb-dash-section {
+  margin: 40px 0 0;
+}
+.yb-dash-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.yb-dash-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.yb-dash-more {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.yb-faint {
+  color: var(--faint);
+}
+.yb-pos {
+  color: var(--success);
+}
+.yb-neg {
+  color: var(--danger);
+}
+
+/* ---- Stat tiles (headline numbers, not charts) ---- */
+.yb-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+.yb-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+.yb-tile:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+.yb-tile-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yb-tile-value {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.yb-tile-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--faint);
+}
+.yb-tile-who {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.yb-tile-team {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+/* ---- Module grid: standings snapshot + top-5 boards ---- */
+.yb-modules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+}
+.yb-module .yb-dash-head {
+  margin-bottom: 10px;
+}
+.yb-standings td,
+.yb-standings th {
+  white-space: nowrap;
+}
+.yb-team-abbr {
+  display: inline-block;
+  min-width: 38px;
+  margin-right: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 6px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+/* ---- Mini leaderboard rows (single-hue magnitude bars) ---- */
+.yb-mini-lb {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.yb-mini-row {
+  display: grid;
+  grid-template-columns: 22px minmax(120px, 1.2fr) 1fr 64px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease);
+}
+.yb-mini-lb li:last-child .yb-mini-row {
+  border-bottom: none;
+}
+.yb-mini-row:hover {
+  background: var(--accent-soft);
+}
+.yb-mini-rank {
+  color: var(--faint);
+  font-weight: 600;
+  font-size: 12px;
+  text-align: right;
+}
+.yb-mini-name {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-mini-team {
+  color: var(--faint);
+  font-weight: 500;
+  font-size: 12px;
+}
+.yb-mini-track {
+  height: 6px;
+  background: var(--bg-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.yb-mini-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  opacity: 0.85;
+  transition: width var(--dur-slow) var(--ease);
+}
+.yb-mini-value {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Trending questions ---- */
+.yb-trend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+.yb-trend-card {
+  padding: 16px 18px;
+}
+.yb-trend-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.yb-trend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.yb-trend-q {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--accent-ink);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.yb-trend-q:hover {
+  background: var(--accent-soft);
+}

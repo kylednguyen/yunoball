@@ -1,5 +1,7 @@
+import { Dashboard } from "./components/Dashboard";
 import { Leaders } from "./components/Leaders";
 import { Nav } from "./components/Nav";
+import { Trending } from "./components/Trending";
 import { Search } from "./search";
 
 export default function Home() {
@@ -7,11 +9,12 @@ export default function Home() {
     <>
       <Nav />
       <main id="main">
+        {/* Hero — search stays the front door */}
         <section
           style={{
             maxWidth: 720,
             margin: "0 auto",
-            padding: "64px 20px 40px",
+            padding: "56px 20px 8px",
             textAlign: "center",
           }}
         >
@@ -34,6 +37,13 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Live dashboard — tiles, standings, top-5 modules (from the API) */}
+        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 20px 0" }}>
+          <Dashboard />
+          <Trending />
+        </div>
+
+        {/* Record books showcase */}
         <Leaders />
       </main>
     </>

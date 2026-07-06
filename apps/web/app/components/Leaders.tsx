@@ -104,7 +104,7 @@ function useReveal<T extends HTMLElement>() {
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           setShown(true);
           io.disconnect();
         }
@@ -117,13 +117,16 @@ function useReveal<T extends HTMLElement>() {
   return { ref, shown };
 }
 
+// CATEGORIES is a non-empty literal; give the fallback a concrete type.
+const DEFAULT_CATEGORY = CATEGORIES[0] as Category;
+
 export function Leaders() {
-  const [activeKey, setActiveKey] = useState(CATEGORIES[0].key);
+  const [activeKey, setActiveKey] = useState(DEFAULT_CATEGORY.key);
   const reduced = usePrefersReducedMotion();
   const { ref, shown } = useReveal<HTMLElement>();
 
   const category = useMemo(
-    () => CATEGORIES.find((c) => c.key === activeKey) ?? CATEGORIES[0],
+    () => CATEGORIES.find((c) => c.key === activeKey) ?? DEFAULT_CATEGORY,
     [activeKey],
   );
   const max = Math.max(...category.rows.map((r) => r.value));

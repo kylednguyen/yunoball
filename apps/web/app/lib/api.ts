@@ -69,3 +69,35 @@ export async function fetchLeaderboards(
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return (await res.json()) as LeaderboardsResponse;
 }
+
+export interface StandingRow {
+  rank: number;
+  team_id: string;
+  team: string;
+  conference: string | null;
+  division: string | null;
+  wins: number;
+  losses: number;
+  ties: number;
+  points_for: number;
+  points_against: number;
+  diff: number;
+  pct: number;
+}
+
+export interface StandingsResponse {
+  season: number;
+  seasons: number[];
+  rows: StandingRow[];
+}
+
+export async function fetchStandings(season?: number): Promise<StandingsResponse> {
+  const params = new URLSearchParams();
+  if (season) params.set("season", String(season));
+  const qs = params.toString();
+  const res = await fetch(`${API_URL}/api/standings${qs ? `?${qs}` : ""}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as StandingsResponse;
+}

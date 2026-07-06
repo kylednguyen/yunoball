@@ -57,6 +57,14 @@ Demo mode runs on SQLite with a rule-based NL→SQL engine and seeded sample
 Every answer shows the exact SQL it ran. Set `OPENAI_API_KEY` + a Postgres
 `DATABASE_URL` to switch to the real LLM + warehouse path automatically.
 
+Want the full web app with hot reload instead? One command:
+
+```bash
+./scripts/dev.sh
+# → web http://localhost:3000  (Next.js dev server, hot reload)
+# → api http://localhost:4000  (FastAPI, seeded SQLite, --reload)
+```
+
 ## Quick start (full stack, local)
 
 > **Python 3.11 required.** `nfl_data_py` pins `pandas<2` / `numpy<2`, whose
