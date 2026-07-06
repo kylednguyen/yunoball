@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from .config import settings
-from .routers import leaderboards, search
+from .routers import leaderboards, search, standings
 
 log = logging.getLogger("yunoball")
 STATIC_DIR = Path(__file__).parent / "static"
@@ -50,6 +50,7 @@ app.add_middleware(
 
 app.include_router(search.router)
 app.include_router(leaderboards.router)
+app.include_router(standings.router)
 
 
 @app.get("/health")
