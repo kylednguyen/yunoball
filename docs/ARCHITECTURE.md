@@ -109,7 +109,8 @@ unsupported questions are answered honestly, not guessed.
 - **Resolution** — fuzzy entity resolution (`pg_trgm` over `entity_aliases`; a portable difflib fallback keeps the SQLite demo key-free).
 - **Product** — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis + Postgres write-through.
 
-**Deploy** ✅ — Vercel (web), Render/Fly (API), docker-compose (local).
+**Deploy** ✅ — Vercel (web + Python API), Supabase (Postgres), GitHub Actions
+(scheduled ingest), docker-compose (local dev). See `docs/DEPLOYMENT.md`.
 
 **Intents** ✅ — all five V1 intents: `leaders`, `player_total`, `single_game`,
 `team_stat` (records, points, scoring leaderboards), and `comparison` (two

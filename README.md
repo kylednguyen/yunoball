@@ -97,6 +97,12 @@ yunoball-eval
 pnpm install && pnpm dev:web         # http://localhost:3000
 ```
 
+## Deploy
+
+Vercel (web + Python API) + Supabase (Postgres) + GitHub Actions (scheduled
+in-season ingest) — no servers to run. Step-by-step:
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## Status
 
 Working prototype: a **structured `QuerySpec` query engine** (rules +
