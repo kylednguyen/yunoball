@@ -1,3 +1,4 @@
+import { HomeDashboard } from "./components/HomeDashboard";
 import { Leaders } from "./components/Leaders";
 import { Nav } from "./components/Nav";
 import { Search } from "./search";
@@ -11,7 +12,7 @@ export default function Home() {
           style={{
             maxWidth: 720,
             margin: "0 auto",
-            padding: "64px 20px 40px",
+            padding: "48px 20px 36px",
             textAlign: "center",
           }}
         >
@@ -34,24 +35,7 @@ export default function Home() {
           </div>
         </section>
 
-        <nav className="yb-quick" aria-label="Explore the platform">
-          <a href="/scores">
-            <span className="t">Scores</span>
-            <span className="d">Week-by-week finals</span>
-          </a>
-          <a href="/standings">
-            <span className="t">Standings</span>
-            <span className="d">Live from game results</span>
-          </a>
-          <a href="/fantasy">
-            <span className="t">Fantasy</span>
-            <span className="d">Build a PPR lineup</span>
-          </a>
-          <a href="/assistant">
-            <span className="t">Assistant</span>
-            <span className="d">Chat with the AI agent</span>
-          </a>
-        </nav>
+        <HomeDashboard />
 
         <Leaders />
       </main>

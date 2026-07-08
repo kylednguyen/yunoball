@@ -155,6 +155,7 @@ export interface FantasyPlayer {
   name: string;
   team: string | null;
   position: string | null;
+  headshot_url: string | null;
   games_played: number;
   passing_yards: number;
   passing_tds: number;
@@ -245,6 +246,7 @@ export interface PlayerProfile {
   position: string | null;
   team: string | null;
   team_name: string | null;
+  headshot_url: string | null;
   career: PlayerCareer;
   seasons: PlayerSeasonLine[];
   game_log: PlayerGameLogRow[];
