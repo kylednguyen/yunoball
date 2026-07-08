@@ -34,6 +34,25 @@ export default function Home() {
           </div>
         </section>
 
+        <nav className="yb-quick" aria-label="Explore the platform">
+          <a href="/scores">
+            <span className="t">Scores</span>
+            <span className="d">Week-by-week finals</span>
+          </a>
+          <a href="/standings">
+            <span className="t">Standings</span>
+            <span className="d">Live from game results</span>
+          </a>
+          <a href="/fantasy">
+            <span className="t">Fantasy</span>
+            <span className="d">Build a PPR lineup</span>
+          </a>
+          <a href="/assistant">
+            <span className="t">Assistant</span>
+            <span className="d">Chat with the AI agent</span>
+          </a>
+        </nav>
+
         <Leaders />
       </main>
     </>
