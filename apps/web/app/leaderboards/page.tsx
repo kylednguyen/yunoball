@@ -152,7 +152,11 @@ export default function LeaderboardsPage() {
                   {board.rows.map((r) => (
                     <tr key={`${r.rank}-${r.name}`} className={r.rank === 1 ? "yb-div-leader" : undefined}>
                       <td className="num">{r.rank}</td>
-                      <td>{r.name}</td>
+                      <td>
+                        <a href={`/players/${encodeURIComponent(r.player_id)}`} style={{ color: "inherit" }}>
+                          {r.name}
+                        </a>
+                      </td>
                       <td style={{ color: "var(--muted)", fontWeight: 400 }}>{r.team ?? "—"}</td>
                       <td className="num" style={{ fontWeight: 700 }}>
                         {formatValue(r.value)}

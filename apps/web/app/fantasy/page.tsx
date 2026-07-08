@@ -203,7 +203,14 @@ export default function FantasyPage() {
                     {p ? (
                       <>
                         <span className="yb-slot-name">
-                          <div className="who">{p.name}</div>
+                          <div className="who">
+                            <a
+                              href={`/players/${encodeURIComponent(p.player_id)}`}
+                              style={{ color: "inherit" }}
+                            >
+                              {p.name}
+                            </a>
+                          </div>
                           <div className="meta">
                             {p.team} · {statLine(p)}
                           </div>
@@ -282,7 +289,14 @@ export default function FantasyPage() {
                       return (
                         <tr key={p.player_id}>
                           <td>
-                            <div>{p.name}</div>
+                            <div>
+                              <a
+                                href={`/players/${encodeURIComponent(p.player_id)}`}
+                                style={{ color: "inherit" }}
+                              >
+                                {p.name}
+                              </a>
+                            </div>
                             <div style={{ fontSize: 12, color: "var(--faint)", fontWeight: 400 }}>
                               {p.team} · {statLine(p)}
                             </div>
