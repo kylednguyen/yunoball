@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 
 import { Nav } from "../components/Nav";
-import { fetchGames, type GamesResponse, type GameRow } from "../lib/api";
+import { Performers } from "../components/Performers";
+import {
+  fetchGames,
+  fetchPerformers,
+  type GamesResponse,
+  type GameRow,
+  type PerformersResponse,
+} from "../lib/api";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "";
@@ -40,6 +47,7 @@ export default function ScoresPage() {
   const [data, setData] = useState<GamesResponse | null>(null);
   const [season, setSeason] = useState<number | undefined>(undefined);
   const [week, setWeek] = useState<number | undefined>(undefined);
+  const [performers, setPerformers] = useState<PerformersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -58,6 +66,19 @@ export default function ScoresPage() {
       active = false;
     };
   }, [season, week]);
+
+  // Performers follow the games panel's resolved season/week.
+  useEffect(() => {
+    if (!data) return;
+    let active = true;
+    setPerformers(null);
+    fetchPerformers(data.season, data.week, 5)
+      .then((p) => active && setPerformers(p))
+      .catch(() => active && setPerformers(null));
+    return () => {
+      active = false;
+    };
+  }, [data]);
 
   const totalPoints = data?.games.reduce(
     (sum, g) => sum + (g.home.score ?? 0) + (g.away.score ?? 0),
@@ -148,6 +169,16 @@ export default function ScoresPage() {
                 </div>
               )}
             </div>
+
+            <section aria-label="Performers of the week" style={{ margin: "8px 0 24px" }}>
+              <div className="yb-dash-head">
+                <h2>Performers of the week</h2>
+                <span className="yb-muted" style={{ fontSize: 13 }}>
+                  top PPR fantasy lines · week {data.week}
+                </span>
+              </div>
+              <Performers performers={performers?.performers ?? null} loading={!performers} count={5} />
+            </section>
 
             <div className="yb-games-grid" style={{ opacity: loading ? 0.6 : 1 }}>
               {data.games.map((g) => (

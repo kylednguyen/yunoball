@@ -259,7 +259,7 @@ _PSS = [
 _PGS = [
     ("00-0032764", "2023_07_TEN_MIA", "TEN", 178, 1, 1, 9, 0, 0, 0),
     ("00-0033280", "2023_12_SF_SEA", "SF", 152, 1, 6, 53, 0, 0, 0),
-    ("00-0036928", "2023_07_TEN_MIA", "JAX", 88, 0, 4, 31, 0, 0, 0),
+    ("00-0036928", "2023_07_IND_JAX", "JAX", 88, 0, 4, 31, 0, 0, 0),
     ("00-0036322", "2023_10_NYG_DAL", "DAL", 0, 0, 9, 151, 1, 0, 0),
 ]
 
@@ -286,8 +286,12 @@ _DDL = [
         rushing_yards INTEGER, rushing_tds INTEGER, receptions INTEGER,
         receiving_yards INTEGER, receiving_tds INTEGER,
         passing_yards INTEGER, passing_tds INTEGER,
+        interceptions INTEGER, fantasy_points_ppr REAL,
         PRIMARY KEY (player_id, game_id))""",
 ]
+
+# Columns whose season totals get apportioned across a player's games.
+_PGS_PINNED_COLS = ("rush_yds", "rush_td", "rec", "rec_yds", "rec_td", "pass_yds", "pass_td")
 
 
 def _ppr(py: int, ptd: int, ints: int, ry: int, rtd: int, rec: int, recy: int, retd: int) -> float:
@@ -310,6 +314,124 @@ def _game_date(week: int, index: int) -> str:
     if index == 15:
         return (sunday + timedelta(days=1)).isoformat()  # Monday
     return sunday.isoformat()
+
+
+def _apportion(total: int, weights: list[int]) -> list[int]:
+    """Split integer ``total`` across buckets proportional to ``weights``.
+
+    Largest-remainder method: the returned ints sum to exactly ``total``, so a
+    player's per-game lines always re-add to his season total.
+    """
+    n = len(weights)
+    if n == 0 or total == 0:
+        return [0] * n
+    s = sum(weights) or n
+    raw = [total * w / s for w in weights]
+    floors = [int(x) for x in raw]
+    remainder = total - sum(floors)
+    order = sorted(range(n), key=lambda i: raw[i] - floors[i], reverse=True)
+    for k in range(remainder):
+        floors[order[k % n]] += 1
+    return floors
+
+
+def build_2023_player_games(schedule: list[dict]) -> list[dict]:
+    """Turn each 2023 season stat line into plausible per-game box scores.
+
+    Every counting stat is apportioned across the games the player was active
+    (largest-remainder over deterministic per-game weights, so a boom game
+    carries yards *and* the touchdown together). Real pinned single-game lines
+    are kept verbatim and subtracted from the pool first, so the generated
+    rows still sum to the exact season total. Fully deterministic.
+    """
+    from collections import defaultdict
+
+    team_games: dict[str, list[dict]] = defaultdict(list)
+    for g in schedule:
+        team_games[g["home"]].append(g)
+        team_games[g["away"]].append(g)
+    for t in team_games:
+        team_games[t].sort(key=lambda g: g["week"])
+
+    pinned: dict[tuple[str, str], dict] = {}
+    for pid, gid, tm, ry, rtd, rec, rey, retd, py, ptd in _PGS:
+        pinned[(pid, gid)] = {
+            "rush_yds": ry, "rush_td": rtd, "rec": rec, "rec_yds": rey,
+            "rec_td": retd, "pass_yds": py, "pass_td": ptd,
+        }
+
+    # season stat tuple layout: se, st, pid, tm, gp, py, ptd, int, ry, rtd, rec, rey, retd
+    rows: list[dict] = []
+    for r in _PSS:
+        season, _st, pid, tm, gp, py, ptd, ints, ry, rtd, rec, rey, retd = r
+        if season != 2023:
+            continue
+        games = team_games.get(tm, [])
+        if not games or gp <= 0:
+            continue
+
+        active = games[: min(gp, len(games))]
+        # Guarantee any pinned game is in the active set (swap it in if needed).
+        for (ppid, gid) in pinned:
+            if ppid != pid:
+                continue
+            if not any(g["game_id"] == gid for g in active):
+                extra = next((g for g in games if g["game_id"] == gid), None)
+                if extra is not None:
+                    active = active[:-1] + [extra]
+        active.sort(key=lambda g: g["week"])
+
+        totals = {
+            "pass_yds": py, "pass_td": ptd, "rush_yds": ry, "rush_td": rtd,
+            "rec": rec, "rec_yds": rey, "rec_td": retd, "int": ints,
+        }
+        per_game: dict[str, dict[str, int]] = {g["game_id"]: {k: 0 for k in totals} for g in active}
+
+        # Pinned lines first: assign verbatim, remove from the pool to apportion.
+        pool = list(active)
+        for g in list(active):
+            pin = pinned.get((pid, g["game_id"]))
+            if pin is None:
+                continue
+            for src, key in (
+                ("pass_yds", "pass_yds"), ("pass_td", "pass_td"),
+                ("rush_yds", "rush_yds"), ("rush_td", "rush_td"),
+                ("rec", "rec"), ("rec_yds", "rec_yds"), ("rec_td", "rec_td"),
+            ):
+                v = pin[src]
+                per_game[g["game_id"]][key] = v
+                totals[key] = max(0, totals[key] - v)
+            pool.remove(g)
+
+        if pool:
+            # One "game-script" weight per game drives correlated volume stats;
+            # interceptions get their own weight (bad games ≠ big games).
+            vol_w = [1 + _digest(f"vol:{pid}:{g['game_id']}") % 100 for g in pool]
+            int_w = [1 + _digest(f"int:{pid}:{g['game_id']}") % 100 for g in pool]
+            for key in ("pass_yds", "pass_td", "rush_yds", "rush_td", "rec", "rec_yds", "rec_td"):
+                for g, v in zip(pool, _apportion(totals[key], vol_w)):
+                    per_game[g["game_id"]][key] += v
+            for g, v in zip(pool, _apportion(totals["int"], int_w)):
+                per_game[g["game_id"]]["int"] += v
+
+        for g in active:
+            line = per_game[g["game_id"]]
+            fp = _ppr(
+                line["pass_yds"], line["pass_td"], line["int"],
+                line["rush_yds"], line["rush_td"], line["rec"],
+                line["rec_yds"], line["rec_td"],
+            )
+            rows.append(
+                {
+                    "player_id": pid, "game_id": g["game_id"], "team_id": tm,
+                    "rushing_yards": line["rush_yds"], "rushing_tds": line["rush_td"],
+                    "receptions": line["rec"], "receiving_yards": line["rec_yds"],
+                    "receiving_tds": line["rec_td"], "passing_yards": line["pass_yds"],
+                    "passing_tds": line["pass_td"], "interceptions": line["int"],
+                    "fantasy_points_ppr": fp,
+                }
+            )
+    return rows
 
 
 def build_2023_schedule() -> list[dict]:
@@ -489,9 +611,10 @@ def is_seeded(engine: Engine) -> bool:
         with engine.connect() as conn:
             n = conn.execute(text("SELECT COUNT(*) FROM player_season_stats")).scalar()
             games = conn.execute(text("SELECT COUNT(*) FROM games")).scalar()
-            # A full slate (272 games) marks the current seed generation;
-            # older demo databases reseed automatically on upgrade.
-            return bool(n and n > 0 and games and games >= 272)
+            # A full slate (272 games) plus generated per-game lines marks the
+            # current seed generation; older demo databases reseed on upgrade.
+            pgs = conn.execute(text("SELECT COUNT(*) FROM player_game_stats")).scalar()
+            return bool(n and n > 0 and games and games >= 272 and pgs and pgs > 200)
     except Exception:
         return False
 
@@ -499,16 +622,18 @@ def is_seeded(engine: Engine) -> bool:
 def seed_demo(engine: Engine) -> None:
     """Idempotently create demo tables and populate sample data."""
     schedule = build_2023_schedule()
+    player_games = build_2023_player_games(schedule)
 
     with engine.begin() as conn:
-        # game_date was added after the first demo release; rebuild the games
-        # table if an old database is missing it.
-        try:
-            cols = [r[1] for r in conn.execute(text("PRAGMA table_info(games)"))]
-            if cols and "game_date" not in cols:
-                conn.execute(text("DROP TABLE games"))
-        except Exception:
-            pass
+        # Columns added after earlier demo releases; rebuild the affected table
+        # when an old database predates them so the new schema applies cleanly.
+        for table, needed in (("games", "game_date"), ("player_game_stats", "fantasy_points_ppr")):
+            try:
+                cols = [r[1] for r in conn.execute(text(f"PRAGMA table_info({table})"))]
+                if cols and needed not in cols:
+                    conn.execute(text(f"DROP TABLE {table}"))
+            except Exception:
+                pass
 
         for ddl in _DDL:
             conn.execute(text(ddl))
@@ -572,14 +697,11 @@ def seed_demo(engine: Engine) -> None:
             text(
                 "INSERT INTO player_game_stats (player_id, game_id, team_id,"
                 " rushing_yards, rushing_tds, receptions, receiving_yards,"
-                " receiving_tds, passing_yards, passing_tds) VALUES"
-                " (:pid, :g, :tm, :ry, :rtd, :rec, :rey, :retd, :py, :ptd)"
+                " receiving_tds, passing_yards, passing_tds, interceptions,"
+                " fantasy_points_ppr) VALUES"
+                " (:player_id, :game_id, :team_id, :rushing_yards, :rushing_tds,"
+                " :receptions, :receiving_yards, :receiving_tds, :passing_yards,"
+                " :passing_tds, :interceptions, :fantasy_points_ppr)"
             ),
-            [
-                {
-                    "pid": r[0], "g": r[1], "tm": r[2], "ry": r[3], "rtd": r[4],
-                    "rec": r[5], "rey": r[6], "retd": r[7], "py": r[8], "ptd": r[9],
-                }
-                for r in _PGS
-            ],
+            player_games,
         )

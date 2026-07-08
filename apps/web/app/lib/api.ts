@@ -108,6 +108,41 @@ export async function fetchGames(season?: number, week?: number): Promise<GamesR
   return (await res.json()) as GamesResponse;
 }
 
+// ---- Performers of the week ----
+
+export interface Performer {
+  rank: number;
+  player_id: string;
+  name: string;
+  position: string | null;
+  team: string | null;
+  opponent: string | null;
+  headshot_url: string | null;
+  fantasy_points_ppr: number;
+  stat_line: string;
+}
+
+export interface PerformersResponse {
+  season: number;
+  seasons: number[];
+  week: number;
+  weeks: number[];
+  performers: Performer[];
+}
+
+export async function fetchPerformers(
+  season?: number,
+  week?: number,
+  limit = 10,
+): Promise<PerformersResponse> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (season) params.set("season", String(season));
+  if (week) params.set("week", String(week));
+  const res = await fetch(`${API_URL}/api/games/performers?${params}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as PerformersResponse;
+}
+
 // ---- Standings ----
 
 export interface StandingRow {

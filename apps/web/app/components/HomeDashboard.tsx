@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 
 import { Headshot } from "./Headshot";
+import { Performers } from "./Performers";
 import {
   fetchFantasyPlayers,
   fetchGames,
+  fetchPerformers,
   fetchStandings,
   type FantasyPlayersResponse,
   type GamesResponse,
+  type PerformersResponse,
   type StandingsResponse,
 } from "../lib/api";
 
@@ -18,19 +21,24 @@ export function HomeDashboard() {
   const [games, setGames] = useState<GamesResponse | null>(null);
   const [standings, setStandings] = useState<StandingsResponse | null>(null);
   const [fantasy, setFantasy] = useState<FantasyPlayersResponse | null>(null);
+  const [performers, setPerformers] = useState<PerformersResponse | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchGames(), fetchStandings(), fetchFantasyPlayers()]).then(
-      ([g, s, f]) => {
-        if (!active) return;
-        if (g.status === "fulfilled") setGames(g.value);
-        if (s.status === "fulfilled") setStandings(s.value);
-        if (f.status === "fulfilled") setFantasy(f.value);
-        setFailed(g.status === "rejected" && s.status === "rejected" && f.status === "rejected");
-      },
-    );
+    Promise.allSettled([
+      fetchGames(),
+      fetchStandings(),
+      fetchFantasyPlayers(),
+      fetchPerformers(undefined, undefined, 4),
+    ]).then(([g, s, f, p]) => {
+      if (!active) return;
+      if (g.status === "fulfilled") setGames(g.value);
+      if (s.status === "fulfilled") setStandings(s.value);
+      if (f.status === "fulfilled") setFantasy(f.value);
+      if (p.status === "fulfilled") setPerformers(p.value);
+      setFailed(g.status === "rejected" && s.status === "rejected" && f.status === "rejected");
+    });
     return () => {
       active = false;
     };
@@ -75,6 +83,15 @@ export function HomeDashboard() {
                 <div key={i} className="yb-skel yb-strip-card" style={{ height: 86 }} />
               ))}
         </div>
+      </section>
+
+      {/* Performers of the week */}
+      <section aria-label="Performers of the week">
+        <div className="yb-dash-head">
+          <h2>Performers of the week</h2>
+          <a href="/scores">Full board →</a>
+        </div>
+        <Performers performers={performers?.performers ?? null} loading={!performers} count={4} />
       </section>
 
       <div className="yb-dash-grid">
