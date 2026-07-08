@@ -33,6 +33,7 @@ _ALLOWED = {k for k, _, _ in PLAYER_CATEGORIES}
 
 class LeaderRow(BaseModel):
     rank: int
+    player_id: str
     name: str
     team: str | None
     value: float
@@ -59,7 +60,7 @@ def _player_board(conn, column: str, label: str, unit: str, season: int, limit: 
     rows = conn.execute(
         text(
             f"""
-            SELECT p.full_name AS name, s.team_id AS team, s.{column} AS value
+            SELECT p.player_id, p.full_name AS name, s.team_id AS team, s.{column} AS value
             FROM player_season_stats s JOIN players p USING (player_id)
             WHERE s.season = :season AND s.season_type = 'REG'
               AND s.{column} IS NOT NULL
@@ -74,7 +75,7 @@ def _player_board(conn, column: str, label: str, unit: str, season: int, limit: 
         label=label,
         unit=unit,
         rows=[
-            LeaderRow(rank=i + 1, name=r.name, team=r.team, value=float(r.value))
+            LeaderRow(rank=i + 1, player_id=r.player_id, name=r.name, team=r.team, value=float(r.value))
             for i, r in enumerate(rows)
         ],
     )

@@ -1,3 +1,4 @@
+import { HomeDashboard } from "./components/HomeDashboard";
 import { Leaders } from "./components/Leaders";
 import { Nav } from "./components/Nav";
 import { Search } from "./search";
@@ -11,7 +12,7 @@ export default function Home() {
           style={{
             maxWidth: 720,
             margin: "0 auto",
-            padding: "64px 20px 40px",
+            padding: "48px 20px 36px",
             textAlign: "center",
           }}
         >
@@ -33,6 +34,8 @@ export default function Home() {
             <Search />
           </div>
         </section>
+
+        <HomeDashboard />
 
         <Leaders />
       </main>

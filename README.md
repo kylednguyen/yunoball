@@ -1,8 +1,17 @@
 # YunoBall
 
-**Ask anything about NFL history — answers backed by real data.**
-An improved take on StatMuse, NFL-first: every answer is computed from an
-authoritative warehouse and shows you the exact query behind it.
+**The all-in-one NFL platform — every number computed from real data.**
+An improved take on StatMuse, NFL-first: natural-language search plus scores,
+standings, leaderboards, a fantasy lineup builder and an AI assistant, all
+served from one authoritative warehouse that shows you the exact query behind
+every answer.
+
+- **Search** — ask anything; answers come from typed QuerySpecs, never hallucinated
+- **Scores & Results** (`/scores`) — week-by-week finals
+- **Standings** (`/standings`) — W-L, points, streaks, computed live from game results
+- **Leaderboards** (`/leaderboards`) — season leaders as dense stat tables
+- **Fantasy** (`/fantasy`) — build a PPR lineup from real season production
+- **Assistant** (`/assistant`) — a tool-calling AI agent over the same trusted endpoints
 
 ## How it works
 
