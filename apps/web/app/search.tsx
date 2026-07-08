@@ -36,6 +36,17 @@ export function Search() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Deep-link: /?q=… runs the question on arrival (the nav quick-search on
+  // other pages routes here). Read from window to keep this page static.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q")?.trim();
+    if (q) {
+      setQuestion(q);
+      run(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Leaders section (and any other widget) can request a search via a custom
   // event, so those components stay decoupled from this one's state.
   useEffect(() => {

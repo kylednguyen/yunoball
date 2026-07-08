@@ -94,13 +94,18 @@ def test_agent_routes_scores():
     assert "Week 12" in reply
 
 
-def test_agent_start_sit_comparison():
+def test_agent_start_sit_schematic_verdict():
     reply, steps = asyncio.run(
         _demo_agent("Should I start Tyreek Hill or Mike Evans?")
     )
-    assert steps[0].tool == "fantasy_pool"
+    assert steps[0].tool == "fantasy_judge"
     assert reply.startswith("Start Tyreek Hill")
     assert "Sit Mike Evans" in reply
+    # The verdict explains itself: production, floor and environment factors.
+    assert "The case:" in reply
+    assert "PPR/gm" in reply
+    assert "receptions/gm" in reply
+    assert "PF/gm" in reply
 
 
 def test_agent_falls_back_to_stats_search():

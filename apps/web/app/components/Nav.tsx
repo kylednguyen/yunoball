@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
 const LINKS = [
   { href: "/", label: "Search" },
@@ -12,6 +13,33 @@ const LINKS = [
   { href: "/assistant", label: "Assistant", badge: "AI" },
 ];
 
+/** Compact stat search available on every page; lands on the home search. */
+function QuickSearch() {
+  const router = useRouter();
+  const [q, setQ] = useState("");
+
+  return (
+    <form
+      className="yb-nav-search"
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const question = q.trim();
+        if (question) router.push(`/?q=${encodeURIComponent(question)}`);
+      }}
+    >
+      <input
+        className="yb-input"
+        type="search"
+        placeholder="Quick stat search…"
+        aria-label="Search NFL stats"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+      />
+    </form>
+  );
+}
+
 export function Nav() {
   const pathname = usePathname();
 
@@ -20,6 +48,7 @@ export function Nav() {
       <Link href="/" className="yb-brand">
         Yuno<span>Ball</span>
       </Link>
+      {pathname !== "/" && <QuickSearch />}
       <div className="yb-nav-links">
         {LINKS.map(({ href, label, badge }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);

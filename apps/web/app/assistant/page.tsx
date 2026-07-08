@@ -10,11 +10,11 @@ interface Message extends ChatTurn {
 }
 
 const SUGGESTIONS = [
-  "Who won the AFC East?",
-  "Show me week 12 scores",
   "Should I start Tyreek Hill or Mike Evans?",
-  "Who threw the most touchdowns in 2023?",
-  "Top fantasy RBs this season",
+  "Kyren Williams or Breece Hall at RB?",
+  "Top fantasy TEs this season",
+  "Compare CeeDee Lamb and Justin Jefferson",
+  "Who's the safest WR start?",
 ];
 
 export default function AssistantPage() {
@@ -52,11 +52,12 @@ export default function AssistantPage() {
       <Nav />
       <main id="main" className="yb-page" style={{ maxWidth: 780 }}>
         <div className="yb-page-head">
-          <h1 className="yb-page-title">Assistant</h1>
+          <h1 className="yb-page-title">Fantasy Assistant</h1>
         </div>
         <p className="yb-page-sub">
-          Ask about stats, scores, standings or start/sit calls. Every number comes from the same
-          warehouse that powers search — nothing is made up.
+          Judgment calls, not just lookups: start/sit verdicts weigh production, PPR floor, offense
+          environment and TD reliance — every number from the warehouse. For basic stat questions,
+          use <a href="/">Search</a>.
         </p>
 
         <div className="yb-chat" aria-live="polite">

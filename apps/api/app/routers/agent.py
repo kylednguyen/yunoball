@@ -106,6 +106,89 @@ async def _tool_search(question: str) -> tuple[str, str]:
     return detail, resp.narration
 
 
+# --------------------------- Fantasy judgment ----------------------------- #
+
+
+async def _team_scoring(season: int | None) -> dict[str, float]:
+    """Points-for per game by team — the 'offense environment' factor."""
+    try:
+        data = await standings_endpoint(season=season)
+    except HTTPException:
+        return {}
+    out: dict[str, float] = {}
+    for conf in data.conferences:
+        for div in conf.divisions:
+            for t in div.teams:
+                games = t.wins + t.losses + t.ties
+                if games:
+                    out[t.team_id] = t.points_for / games
+    return out
+
+
+def _td_share(p) -> float:
+    """Share of fantasy points that came from touchdowns — a volatility proxy."""
+    if p.fantasy_points_ppr <= 0:
+        return 0.0
+    td_pts = p.passing_tds * 4 + (p.rushing_tds + p.receiving_tds) * 6
+    return td_pts / p.fantasy_points_ppr
+
+
+async def _judge_start_sit(picks: list, season: int) -> str:
+    """Rank named players with a multi-factor verdict, not raw points alone.
+
+    Production rate leads; a reception-per-game bonus rewards the PPR floor;
+    team scoring rate captures the offense a player lives in. TD reliance is
+    surfaced as a caution rather than scored — TDs are the noisiest stat.
+    """
+    pf_pg = await _team_scoring(season)
+    league_avg_pf = sum(pf_pg.values()) / len(pf_pg) if pf_pg else 0.0
+
+    def score(p) -> float:
+        s = p.points_per_game
+        if p.games_played:
+            s += 0.4 * (p.receptions / p.games_played)
+        if pf_pg and p.team in pf_pg:
+            s += 0.15 * (pf_pg[p.team] - league_avg_pf)
+        return s
+
+    ranked = sorted(picks, key=score, reverse=True)
+    best, rest = ranked[0], ranked[1:]
+
+    lines = [
+        f"Start {best.name} ({best.position}, {best.team}) — "
+        f"{best.points_per_game} PPR points per game in {season}."
+    ]
+    for p in rest:
+        lines.append(f"Sit {p.name} ({p.position}, {p.team}) — {p.points_per_game}/gm.")
+
+    lines.append("\nThe case:")
+    lines.append(
+        "• Production: "
+        + " vs ".join(f"{p.points_per_game:.1f}" for p in ranked)
+        + " PPR/gm"
+    )
+    rec_rates = [p.receptions / p.games_played if p.games_played else 0.0 for p in ranked]
+    if any(r >= 1 for r in rec_rates):
+        lines.append(
+            "• PPR floor: "
+            + " vs ".join(f"{r:.1f}" for r in rec_rates)
+            + " receptions/gm"
+        )
+    if pf_pg and all(p.team in pf_pg for p in ranked):
+        lines.append(
+            "• Offense environment: "
+            + ", ".join(f"{p.team} {pf_pg[p.team]:.1f} PF/gm" for p in ranked)
+        )
+    for p in ranked:
+        share = _td_share(p)
+        if share >= 0.35:
+            lines.append(
+                f"• TD reliance: {p.name} gets {share:.0%} of his points from"
+                " touchdowns — more boom/bust"
+            )
+    return "\n".join(lines)
+
+
 # ------------------------------ Demo agent -------------------------------- #
 
 _WEEK_RE = re.compile(r"\bweek\s*(\d{1,2})\b", re.I)
@@ -121,8 +204,8 @@ async def _demo_agent(question: str) -> tuple[str, list[AgentStep]]:
     season = int(season_m.group(1)) if season_m else None
 
     if _FANTASY_RE.search(question):
-        # Start/sit: find every seeded player named in the question and compare
-        # their PPR production. (resolve_entities returns one best match only.)
+        # Start/sit: find every seeded player named in the question and judge
+        # them schematically. (resolve_entities returns one best match only.)
         pool = await fantasy_players(season=season, position=None, q=None, limit=500)
         lowered = question.lower()
         picks = []
@@ -131,18 +214,12 @@ async def _demo_agent(question: str) -> tuple[str, list[AgentStep]]:
             if p.name.lower() in lowered or re.search(rf"\b{re.escape(last)}\b", lowered):
                 picks.append(p)
         if len(picks) >= 2:
-            picks.sort(key=lambda p: p.points_per_game, reverse=True)
-            best, rest = picks[0], picks[1:]
-            lines = [
-                f"Start {best.name} ({best.position}, {best.team}) — "
-                f"{best.points_per_game} PPR points per game in {pool.season}."
-            ]
-            for p in rest:
-                lines.append(
-                    f"Sit {p.name} ({p.position}, {p.team}) — {p.points_per_game}/gm."
+            reply = await _judge_start_sit(picks, pool.season)
+            return reply, [
+                AgentStep(
+                    tool="fantasy_judge",
+                    summary="Weighed production, PPR floor, offense environment and TD reliance",
                 )
-            return "\n".join(lines), [
-                AgentStep(tool="fantasy_pool", summary="Compared season PPR per game")
             ]
         pos_m = _POSITION_RE.search(question)
         _, text = await _tool_fantasy(
@@ -219,10 +296,14 @@ _OPENAI_TOOLS = [
 ]
 
 _SYSTEM = (
-    "You are YunoBall's NFL assistant. Answer questions about NFL stats, scores, "
-    "standings and fantasy football. Every number you state must come from a tool "
-    "result — never invent statistics. Be concise and conversational; use short "
-    "lines, not markdown tables."
+    "You are YunoBall's fantasy football co-pilot. Your specialty is judgment "
+    "calls — start/sit, lineup construction, player comparisons — where a plain "
+    "stat lookup isn't enough. Weigh production rate (points per game) first, "
+    "then volume and the PPR reception floor, the player's offense environment "
+    "(team scoring), and flag touchdown-dependent profiles as boom/bust. You can "
+    "also answer stats, scores and standings questions via tools. Every number "
+    "you state must come from a tool result — never invent statistics. Be "
+    "concise and conversational; use short lines, not markdown tables."
 )
 
 
