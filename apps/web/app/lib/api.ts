@@ -69,3 +69,147 @@ export async function fetchLeaderboards(
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return (await res.json()) as LeaderboardsResponse;
 }
+
+// ---- Scores & results ----
+
+export interface GameTeam {
+  team_id: string;
+  name: string;
+  nickname: string | null;
+  score: number | null;
+}
+
+export interface GameRow {
+  game_id: string;
+  season: number;
+  week: number;
+  date: string | null;
+  home: GameTeam;
+  away: GameTeam;
+  final: boolean;
+}
+
+export interface GamesResponse {
+  season: number;
+  seasons: number[];
+  week: number;
+  weeks: number[];
+  games: GameRow[];
+}
+
+export async function fetchGames(season?: number, week?: number): Promise<GamesResponse> {
+  const params = new URLSearchParams();
+  if (season) params.set("season", String(season));
+  if (week) params.set("week", String(week));
+  const res = await fetch(`${API_URL}/api/games?${params}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as GamesResponse;
+}
+
+// ---- Standings ----
+
+export interface StandingRow {
+  team_id: string;
+  name: string;
+  nickname: string | null;
+  wins: number;
+  losses: number;
+  ties: number;
+  pct: number;
+  points_for: number;
+  points_against: number;
+  point_diff: number;
+  streak: string;
+}
+
+export interface DivisionStandings {
+  division: string;
+  teams: StandingRow[];
+}
+
+export interface ConferenceStandings {
+  conference: string;
+  divisions: DivisionStandings[];
+}
+
+export interface StandingsResponse {
+  season: number;
+  seasons: number[];
+  conferences: ConferenceStandings[];
+}
+
+export async function fetchStandings(season?: number): Promise<StandingsResponse> {
+  const params = new URLSearchParams();
+  if (season) params.set("season", String(season));
+  const res = await fetch(`${API_URL}/api/standings?${params}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as StandingsResponse;
+}
+
+// ---- Fantasy ----
+
+export interface FantasyPlayer {
+  player_id: string;
+  name: string;
+  team: string | null;
+  position: string | null;
+  games_played: number;
+  passing_yards: number;
+  passing_tds: number;
+  interceptions: number;
+  rushing_yards: number;
+  rushing_tds: number;
+  receptions: number;
+  receiving_yards: number;
+  receiving_tds: number;
+  fantasy_points_ppr: number;
+  points_per_game: number;
+}
+
+export interface FantasyPlayersResponse {
+  season: number;
+  seasons: number[];
+  players: FantasyPlayer[];
+}
+
+export async function fetchFantasyPlayers(
+  season?: number,
+  position?: string,
+  q?: string,
+): Promise<FantasyPlayersResponse> {
+  const params = new URLSearchParams({ limit: "300" });
+  if (season) params.set("season", String(season));
+  if (position && position !== "ALL") params.set("position", position);
+  if (q) params.set("q", q);
+  const res = await fetch(`${API_URL}/api/fantasy/players?${params}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as FantasyPlayersResponse;
+}
+
+// ---- AI assistant ----
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AgentStep {
+  tool: string;
+  summary: string;
+}
+
+export interface AgentResponse {
+  reply: string;
+  steps: AgentStep[];
+  mode: "demo" | "llm";
+}
+
+export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
+  const res = await fetch(`${API_URL}/api/agent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: messages.slice(-20) }),
+  });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as AgentResponse;
+}

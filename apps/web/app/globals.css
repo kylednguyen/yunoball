@@ -1,31 +1,40 @@
 /* ============================================================
-   YunoBall design system — implements docs/frontend-spec.html.
-   Search-first, content-over-chrome, dense-but-readable.
+   YunoBall design system — shadcn-inspired dark theme, lime accent.
+   Zinc surfaces, content-over-chrome, dense-but-readable.
    Tokens here are the runtime source of truth for the app.
    ============================================================ */
 :root {
-  /* Surfaces */
-  --bg: #ffffff;
-  --bg-soft: #f6f7f9;
-  --panel: #ffffff;
-  --border: #e5e7eb;
-  --border-strong: #d5d9e0;
+  color-scheme: dark;
+
+  /* Surfaces — zinc scale */
+  --bg: #09090b;
+  --bg-soft: #18181b;
+  --panel: #101013;
+  --border: #27272a;
+  --border-strong: #3f3f46;
 
   /* Ink */
-  --text: #0b0d12;
-  --muted: #6b7280;
-  --faint: #9aa1ac;
+  --text: #fafafa;
+  --muted: #a1a1aa;
+  --faint: #6b6b74;
 
-  /* Brand — indigo (our identity, not StatMuse's) */
-  --accent: #2b34e8;
-  --accent-ink: #1b21a8;
-  --accent-soft: #eef0ff;
+  /* Brand — lime. UI accent is bright; text on accent is near-black. */
+  --accent: #a3e635;
+  --accent-hover: #bef264;
+  --accent-soft: rgba(163, 230, 53, 0.12);
+  --accent-contrast: #131603;
+  /* legacy alias — some rules used accent-ink as the hover/bg-strong color */
+  --accent-ink: #bef264;
+
+  /* Data marks — validated for the dark surface (do not use raw accent). */
+  --chart: #65a30d;
+  --chart-strong: #4d7c0f;
 
   /* Semantic */
-  --success: #0f9d58;
-  --warning: #b7791f;
-  --danger: #dc2626;
-  --danger-soft: #fef2f2;
+  --success: #4ade80;
+  --warning: #facc15;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.1);
 
   /* Radii */
   --r-sm: 8px;
@@ -53,10 +62,10 @@
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Elevation — deliberately flat */
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06);
-  --shadow-pop: 0 8px 28px rgba(16, 24, 40, 0.12);
+  /* Elevation — flat, borders do the work on dark */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 8px 28px rgba(0, 0, 0, 0.6);
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -107,7 +116,7 @@ a:hover {
   top: -48px;
   z-index: 100;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   padding: 8px 14px;
   border-radius: var(--r-md);
   font-size: 14px;
@@ -124,11 +133,12 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   border-bottom: 1px solid var(--border);
   padding: 14px 22px;
   position: sticky;
   top: 0;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(9, 9, 11, 0.82);
   backdrop-filter: saturate(180%) blur(8px);
   -webkit-backdrop-filter: saturate(180%) blur(8px);
   z-index: 10;
@@ -138,18 +148,21 @@ a:hover {
   font-size: 20px;
   letter-spacing: -0.02em;
   color: var(--text);
+  white-space: nowrap;
 }
 .yb-brand span {
   color: var(--accent);
 }
 .yb-nav-links {
   display: flex;
-  gap: 22px;
+  gap: 20px;
   font-size: 14px;
   font-weight: 500;
+  overflow-x: auto;
 }
 .yb-nav-links a {
   color: var(--muted);
+  white-space: nowrap;
 }
 .yb-nav-links a:hover {
   color: var(--text);
@@ -157,6 +170,17 @@ a:hover {
 }
 .yb-nav-links a[aria-current="page"] {
   color: var(--accent);
+}
+.yb-nav-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-radius: var(--r-pill);
+  padding: 1px 6px;
+  margin-left: 5px;
+  vertical-align: 2px;
 }
 
 /* ---- Search input ---- */
@@ -169,7 +193,7 @@ input.yb-search {
   font-size: 19px;
   font-family: inherit;
   color: var(--text);
-  background: #fff;
+  background: var(--panel);
   border: 1.5px solid var(--border);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-sm);
@@ -215,7 +239,7 @@ input.yb-search:focus {
 }
 .yb-chip:hover,
 .yb-chip[aria-pressed="true"] {
-  color: var(--accent-ink);
+  color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
 }
@@ -265,7 +289,7 @@ table.yb-table {
 table.yb-table th {
   text-align: left;
   padding: 10px 14px;
-  background: var(--bg);
+  background: var(--panel);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -309,7 +333,7 @@ pre.yb-sql {
   overflow-x: auto;
   font-size: 13px;
   font-family: var(--font-mono);
-  color: #1f2430;
+  color: var(--muted);
 }
 .yb-link {
   background: transparent;
@@ -348,22 +372,31 @@ pre.yb-sql {
   cursor: pointer;
   transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   border: 1px solid var(--accent);
 }
 .yb-btn:hover {
-  background: var(--accent-ink);
-  border-color: var(--accent-ink);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   text-decoration: none;
 }
+.yb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .yb-btn.ghost {
-  background: #fff;
+  background: transparent;
   color: var(--text);
   border-color: var(--border);
 }
 .yb-btn.ghost:hover {
   background: var(--bg-soft);
   border-color: var(--border-strong);
+}
+.yb-btn.sm {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
 }
 
 /* ---- Select ---- */
@@ -416,12 +449,12 @@ pre.yb-sql {
 }
 .yb-state.error {
   background: var(--danger-soft);
-  border-color: #fecaca;
+  border-color: #7f1d1d;
   border-style: solid;
-  color: #7f1d1d;
+  color: #fca5a5;
 }
 .yb-state.error h2 {
-  color: #7f1d1d;
+  color: #fca5a5;
 }
 
 /* ---- Skeleton loaders ---- */
@@ -439,7 +472,7 @@ pre.yb-sql {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.65),
+    rgba(255, 255, 255, 0.07),
     transparent
   );
   animation: yb-shimmer 1.3s infinite;
@@ -517,11 +550,11 @@ pre.yb-sql {
     background var(--dur) var(--ease);
 }
 .yb-tab:hover {
-  color: var(--accent-ink);
+  color: var(--accent);
   border-color: var(--border-strong);
 }
 .yb-tab[aria-selected="true"] {
-  color: #fff;
+  color: var(--accent-contrast);
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -584,7 +617,7 @@ pre.yb-sql {
   font-variant-numeric: tabular-nums;
 }
 .yb-lb-track {
-  height: 10px;
+  height: 8px;
   border-radius: var(--r-pill);
   background: var(--bg-soft);
   overflow: hidden;
@@ -595,11 +628,11 @@ pre.yb-sql {
   width: 100%;
   transform-origin: left center;
   border-radius: var(--r-pill);
-  background: linear-gradient(90deg, var(--accent), var(--accent-ink));
+  background: var(--chart);
   transition: transform 700ms var(--ease);
 }
 .yb-lb-row:hover .yb-lb-fill {
-  filter: saturate(1.2);
+  background: var(--accent);
 }
 .yb-lb-value {
   font-size: 15px;
@@ -626,4 +659,451 @@ pre.yb-sql {
   .yb-lb-track {
     display: none;
   }
+}
+
+/* ============================================================
+   Platform pages — scores, standings, fantasy, assistant
+   ============================================================ */
+
+/* ---- Page scaffolding ---- */
+.yb-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 20px 120px;
+}
+.yb-page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.yb-page-title {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.yb-page-sub {
+  color: var(--muted);
+  margin: 0 0 24px;
+}
+
+/* ---- Stat tiles (dashboard headline numbers) ---- */
+.yb-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+}
+.yb-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+}
+.yb-tile-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yb-tile-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.yb-tile-meta {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* ---- Scoreboard ---- */
+.yb-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.yb-game-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color var(--dur) var(--ease);
+}
+.yb-game-card:hover {
+  border-color: var(--border-strong);
+}
+.yb-game-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.yb-game-row.winner {
+  color: var(--text);
+  font-weight: 700;
+}
+.yb-game-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.yb-game-team .abbr {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--faint);
+  width: 32px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.yb-game-team .nick {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-game-score {
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+}
+.yb-game-row.winner .yb-game-score {
+  color: var(--accent);
+}
+.yb-game-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--faint);
+}
+.yb-final-chip {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 1px 7px;
+}
+.yb-week-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  scrollbar-width: thin;
+}
+.yb-week-tab {
+  flex: none;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--r-md);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.yb-week-tab:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.yb-week-tab[aria-selected="true"] {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Standings ---- */
+.yb-standings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 20px;
+}
+@media (max-width: 520px) {
+  .yb-standings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.yb-division {
+  margin-bottom: 18px;
+}
+.yb-division h3 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.yb-conf-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+}
+tr.yb-div-leader td:first-child {
+  box-shadow: inset 3px 0 0 var(--chart);
+}
+.yb-streak-w {
+  color: var(--success);
+  font-weight: 600;
+}
+.yb-streak-l {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ---- Position badges (identity is letters + tint, never color alone) ---- */
+.yb-pos {
+  display: inline-block;
+  min-width: 30px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: var(--r-sm);
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--bg-soft);
+}
+.yb-pos.QB {
+  color: #a3e635;
+  border-color: rgba(163, 230, 53, 0.35);
+  background: rgba(163, 230, 53, 0.08);
+}
+.yb-pos.RB {
+  color: #7dd3fc;
+  border-color: rgba(125, 211, 252, 0.35);
+  background: rgba(125, 211, 252, 0.08);
+}
+.yb-pos.WR {
+  color: #c4b5fd;
+  border-color: rgba(196, 181, 253, 0.35);
+  background: rgba(196, 181, 253, 0.08);
+}
+.yb-pos.TE {
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.35);
+  background: rgba(252, 211, 77, 0.08);
+}
+
+/* ---- Fantasy builder ---- */
+.yb-fantasy-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .yb-fantasy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.yb-slot {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+  margin-bottom: 8px;
+}
+.yb-slot.filled {
+  background: var(--panel);
+  border-color: var(--border-strong);
+}
+.yb-slot.target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.yb-slot-name {
+  min-width: 0;
+}
+.yb-slot-name .who {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-slot-name .meta {
+  font-size: 12px;
+  color: var(--faint);
+}
+.yb-slot-pts {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.yb-slot-empty {
+  color: var(--faint);
+  font-size: 14px;
+}
+.yb-x {
+  background: transparent;
+  border: none;
+  color: var(--faint);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  line-height: 1;
+}
+.yb-x:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.yb-pool-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+input.yb-input {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+input.yb-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.yb-total-hero {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+/* ---- Assistant (chat) ---- */
+.yb-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 340px;
+}
+.yb-msg {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: var(--r-lg);
+  font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.yb-msg.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-bottom-right-radius: var(--r-sm);
+}
+.yb-msg.assistant {
+  align-self: flex-start;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: var(--r-sm);
+}
+.yb-msg-tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.yb-chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.yb-chat-form input {
+  flex: 1;
+}
+.yb-typing {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 12px 14px;
+}
+.yb-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--faint);
+  animation: yb-blink 1.2s infinite;
+}
+.yb-typing i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.yb-typing i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes yb-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* ---- Home quick links ---- */
+.yb-quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 20px 48px;
+}
+.yb-quick a {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.yb-quick a:hover {
+  text-decoration: none;
+  border-color: var(--accent);
+  background: var(--bg-soft);
+}
+.yb-quick .t {
+  font-weight: 700;
+}
+.yb-quick .d {
+  font-size: 13px;
+  color: var(--muted);
 }
