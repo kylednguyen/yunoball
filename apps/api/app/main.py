@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from .config import settings
-from .routers import agent, fantasy, games, leaderboards, search, standings
+from .routers import agent, fantasy, games, leaderboards, players, search, standings
 
 log = logging.getLogger("yunoball")
 STATIC_DIR = Path(__file__).parent / "static"
@@ -53,6 +53,7 @@ app.include_router(leaderboards.router)
 app.include_router(games.router)
 app.include_router(standings.router)
 app.include_router(fantasy.router)
+app.include_router(players.router)
 app.include_router(agent.router)
 
 

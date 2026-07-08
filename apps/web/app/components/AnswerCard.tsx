@@ -28,15 +28,26 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
 
       {result.entities && result.entities.length > 0 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-          {result.entities.map((e) => (
-            <span
-              key={`${e.entity_type}-${e.display_name}`}
-              className="yb-chip-static"
-              title={`${e.entity_type} · confidence ${e.confidence}`}
-            >
-              {e.display_name}
-            </span>
-          ))}
+          {result.entities.map((e) =>
+            e.entity_type === "player" ? (
+              <a
+                key={`${e.entity_type}-${e.display_name}`}
+                className="yb-chip-static"
+                href={`/players/${encodeURIComponent(e.canonical_id)}`}
+                title={`View ${e.display_name}'s player page`}
+              >
+                {e.display_name} →
+              </a>
+            ) : (
+              <span
+                key={`${e.entity_type}-${e.display_name}`}
+                className="yb-chip-static"
+                title={`${e.entity_type} · confidence ${e.confidence}`}
+              >
+                {e.display_name}
+              </span>
+            ),
+          )}
         </div>
       )}
 

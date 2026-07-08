@@ -3,6 +3,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000
 export interface ResolvedEntity {
   mention: string;
   entity_type: string;
+  canonical_id: string;
   display_name: string;
   confidence: number;
 }
@@ -39,6 +40,7 @@ export async function fetchSharedAnswer(shareId: string): Promise<AnswerResult |
 
 export interface LeaderRow {
   rank: number;
+  player_id: string;
   name: string;
   team: string | null;
   value: number;
@@ -184,6 +186,77 @@ export async function fetchFantasyPlayers(
   const res = await fetch(`${API_URL}/api/fantasy/players?${params}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return (await res.json()) as FantasyPlayersResponse;
+}
+
+// ---- Player profiles ----
+
+export interface PlayerSeasonLine {
+  season: number;
+  team: string | null;
+  games_played: number;
+  passing_yards: number;
+  passing_tds: number;
+  interceptions: number;
+  rushing_yards: number;
+  rushing_tds: number;
+  receptions: number;
+  receiving_yards: number;
+  receiving_tds: number;
+  fantasy_points_ppr: number;
+  points_per_game: number;
+}
+
+export interface PlayerCareer {
+  seasons: number;
+  games_played: number;
+  passing_yards: number;
+  passing_tds: number;
+  interceptions: number;
+  rushing_yards: number;
+  rushing_tds: number;
+  receptions: number;
+  receiving_yards: number;
+  receiving_tds: number;
+  fantasy_points_ppr: number;
+}
+
+export interface PlayerGameLogRow {
+  game_id: string;
+  season: number;
+  week: number;
+  date: string | null;
+  opponent: string;
+  home: boolean;
+  team_score: number | null;
+  opp_score: number | null;
+  result: string;
+  passing_yards: number;
+  passing_tds: number;
+  rushing_yards: number;
+  rushing_tds: number;
+  receptions: number;
+  receiving_yards: number;
+  receiving_tds: number;
+}
+
+export interface PlayerProfile {
+  player_id: string;
+  name: string;
+  position: string | null;
+  team: string | null;
+  team_name: string | null;
+  career: PlayerCareer;
+  seasons: PlayerSeasonLine[];
+  game_log: PlayerGameLogRow[];
+}
+
+export async function fetchPlayer(playerId: string): Promise<PlayerProfile | null> {
+  const res = await fetch(`${API_URL}/api/players/${encodeURIComponent(playerId)}`, {
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return (await res.json()) as PlayerProfile;
 }
 
 // ---- AI assistant ----
