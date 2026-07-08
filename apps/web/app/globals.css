@@ -171,6 +171,20 @@ a:hover {
 .yb-nav-links a[aria-current="page"] {
   color: var(--accent);
 }
+.yb-nav-search {
+  flex: 1;
+  max-width: 280px;
+}
+.yb-nav-search input {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .yb-nav-search {
+    display: none;
+  }
+}
 .yb-nav-badge {
   font-size: 10px;
   font-weight: 700;
