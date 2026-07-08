@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 
 from ..database import get_readonly_engine as read_engine
+from ..espn import headshot_url
 
 router = APIRouter(prefix="/api/fantasy", tags=["fantasy"])
 
@@ -22,6 +23,7 @@ class FantasyPlayer(BaseModel):
     name: str
     team: str | None
     position: str | None
+    headshot_url: str | None = None
     games_played: int
     passing_yards: int
     passing_tds: int
@@ -114,6 +116,7 @@ async def fantasy_players(
                 name=r.name,
                 team=r.team,
                 position=r.position,
+                headshot_url=headshot_url(r.player_id),
                 games_played=r.gp,
                 passing_yards=r.pass_yds,
                 passing_tds=r.pass_tds,

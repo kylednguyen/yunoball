@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { Headshot } from "../components/Headshot";
 import { Nav } from "../components/Nav";
 import { fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
 
@@ -289,16 +290,23 @@ export default function FantasyPage() {
                       return (
                         <tr key={p.player_id}>
                           <td>
-                            <div>
-                              <a
-                                href={`/players/${encodeURIComponent(p.player_id)}`}
-                                style={{ color: "inherit" }}
-                              >
-                                {p.name}
-                              </a>
-                            </div>
-                            <div style={{ fontSize: 12, color: "var(--faint)", fontWeight: 400 }}>
-                              {p.team} · {statLine(p)}
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Headshot src={p.headshot_url} name={p.name} size={32} />
+                              <div>
+                                <div>
+                                  <a
+                                    href={`/players/${encodeURIComponent(p.player_id)}`}
+                                    style={{ color: "inherit" }}
+                                  >
+                                    {p.name}
+                                  </a>
+                                </div>
+                                <div
+                                  style={{ fontSize: 12, color: "var(--faint)", fontWeight: 400 }}
+                                >
+                                  {p.team} · {statLine(p)}
+                                </div>
+                              </div>
                             </div>
                           </td>
                           <td>

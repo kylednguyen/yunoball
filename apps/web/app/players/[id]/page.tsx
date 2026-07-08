@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Headshot } from "../../components/Headshot";
 import { Nav } from "../../components/Nav";
 import {
   fetchPlayer,
@@ -131,6 +132,7 @@ export default function PlayerPage() {
           <>
             <div className="yb-page-head" style={{ alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <Headshot src={profile.headshot_url} name={profile.name} size={72} />
                 <h1 className="yb-page-title">{profile.name}</h1>
                 {profile.position && (
                   <span className={`yb-pos ${profile.position}`} style={{ fontSize: 13 }}>

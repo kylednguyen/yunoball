@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 
 from ..database import get_readonly_engine as read_engine
+from ..espn import headshot_url
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
@@ -70,6 +71,7 @@ class PlayerProfile(BaseModel):
     position: str | None
     team: str | None
     team_name: str | None
+    headshot_url: str | None
     career: CareerTotals
     seasons: list[SeasonLine]
     game_log: list[GameLogRow]
@@ -206,6 +208,7 @@ async def player_profile(player_id: str) -> PlayerProfile:
         position=p.position,
         team=p.team_id,
         team_name=p.team_name,
+        headshot_url=headshot_url(p.player_id),
         career=career,
         seasons=seasons,
         game_log=game_log,
