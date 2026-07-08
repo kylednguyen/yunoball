@@ -1089,6 +1089,138 @@ input.yb-input:focus {
   }
 }
 
+/* ---- Performers of the week ---- */
+.yb-performers-wrap {
+  display: grid;
+  gap: 10px;
+}
+.yb-potw {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(120deg, var(--accent-soft), var(--panel) 60%);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease);
+}
+.yb-potw:hover {
+  text-decoration: none;
+  border-color: var(--accent-hover);
+}
+.yb-potw .yb-avatar {
+  border-color: var(--accent);
+}
+.yb-potw-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.yb-potw-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.yb-potw-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.yb-potw-line {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-potw-pts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+}
+.yb-potw-pts .n {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.yb-potw-pts .u {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+.yb-performers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.yb-performer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.yb-performer:hover {
+  text-decoration: none;
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+}
+.yb-performer .rk {
+  width: 18px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.yb-performer .who {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.yb-performer .nm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.yb-performer .ln {
+  font-size: 12px;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-performer .pts {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
 /* ---- Player avatars ---- */
 .yb-avatar {
   display: inline-flex;
@@ -1115,6 +1247,11 @@ input.yb-input:focus {
   padding: 8px 20px 40px;
   display: grid;
   gap: 28px;
+}
+/* Let overflow-x children (the scores strip) scroll instead of widening the
+   grid: grid items default to min-width:auto, which is their content size. */
+.yb-dash > * {
+  min-width: 0;
 }
 .yb-dash-head {
   display: flex;

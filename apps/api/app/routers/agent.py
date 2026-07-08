@@ -25,6 +25,7 @@ from ..pipeline import run_query_pipeline
 from ..schemas import HistoryTurn, SearchRequest
 from .fantasy import fantasy_players
 from .games import games as games_endpoint
+from .games import performers as performers_endpoint
 from .standings import standings as standings_endpoint
 
 log = logging.getLogger("yunoball.agent")
@@ -76,6 +77,18 @@ async def _tool_scores(season: int | None = None, week: int | None = None) -> tu
         lines.append(
             f"  {g.away.nickname or g.away.name} {g.away.score} @ "
             f"{g.home.nickname or g.home.name} {g.home.score}"
+        )
+    text = "\n".join(lines)
+    return text, text
+
+
+async def _tool_performers(season: int | None = None, week: int | None = None) -> tuple[str, str]:
+    data = await performers_endpoint(season=season, week=week, limit=8)
+    lines = [f"Performers of week {data.week}, {data.season} — top PPR fantasy lines"]
+    for p in data.performers:
+        lines.append(
+            f"  {p.rank}. {p.name} ({p.position} vs {p.opponent}) — "
+            f"{p.fantasy_points_ppr} PPR · {p.stat_line}"
         )
     text = "\n".join(lines)
     return text, text
@@ -197,11 +210,24 @@ _STANDINGS_RE = re.compile(r"\b(standings?|division|divisions|record|records|con
 _SCORES_RE = re.compile(r"\b(scores?|results?|schedule|games?|final|beat|won|lost)\b", re.I)
 _FANTASY_RE = re.compile(r"\b(fantasy|start|sit|lineup|draft|ppr|waiver)\b", re.I)
 _POSITION_RE = re.compile(r"\b(QB|RB|WR|TE)s?\b", re.I)
+_PERFORMERS_RE = re.compile(r"\b(performers?|top players?|best (players?|games?)|stud|studs|blew up|went off|player of the week)\b", re.I)
 
 
 async def _demo_agent(question: str) -> tuple[str, list[AgentStep]]:
     season_m = _SEASON_RE.search(question)
     season = int(season_m.group(1)) if season_m else None
+    week_m = _WEEK_RE.search(question)
+
+    # "Top performers in week 7" — a weekly leaderboard, distinct from the
+    # season-long fantasy pool and from start/sit judgment.
+    if _PERFORMERS_RE.search(question) or (week_m and _FANTASY_RE.search(question)):
+        try:
+            _, text = await _tool_performers(
+                season=season, week=int(week_m.group(1)) if week_m else None
+            )
+            return text, [AgentStep(tool="performers", summary="Top weekly PPR fantasy lines")]
+        except HTTPException:
+            pass
 
     if _FANTASY_RE.search(question):
         # Start/sit: find every seeded player named in the question and judge
@@ -231,7 +257,6 @@ async def _demo_agent(question: str) -> tuple[str, list[AgentStep]]:
         _, text = await _tool_standings(season=season)
         return text, [AgentStep(tool="standings", summary="Computed from game results")]
 
-    week_m = _WEEK_RE.search(question)
     if week_m or _SCORES_RE.search(question):
         try:
             _, text = await _tool_scores(
@@ -274,10 +299,21 @@ _OPENAI_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_fantasy_leaders",
-            "description": "Top fantasy (PPR) scorers, optionally filtered by position (QB/RB/WR/TE).",
+            "description": "Top season-long fantasy (PPR) scorers, optionally filtered by position (QB/RB/WR/TE).",
             "parameters": {
                 "type": "object",
                 "properties": {"season": {"type": "integer"}, "position": {"type": "string"}},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weekly_performers",
+            "description": "Top fantasy performers for a SPECIFIC week, with each player's full stat line (the best single-game fantasy lines that week).",
+            "parameters": {
+                "type": "object",
+                "properties": {"season": {"type": "integer"}, "week": {"type": "integer"}},
             },
         },
     },
@@ -312,6 +348,8 @@ async def _call_tool(name: str, args: dict) -> str:
         return (await _tool_standings(season=args.get("season")))[0]
     if name == "get_scores":
         return (await _tool_scores(season=args.get("season"), week=args.get("week")))[0]
+    if name == "get_weekly_performers":
+        return (await _tool_performers(season=args.get("season"), week=args.get("week")))[0]
     if name == "get_fantasy_leaders":
         pos = args.get("position")
         return (await _tool_fantasy(position=pos.upper() if pos else None, season=args.get("season")))[0]

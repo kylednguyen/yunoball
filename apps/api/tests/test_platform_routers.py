@@ -16,7 +16,7 @@ from fastapi import HTTPException  # noqa: E402
 from app.database import get_engine  # noqa: E402
 from app.routers.agent import _demo_agent  # noqa: E402
 from app.routers.fantasy import fantasy_players  # noqa: E402
-from app.routers.games import games  # noqa: E402
+from app.routers.games import games, performers  # noqa: E402
 from app.routers.players import player_profile  # noqa: E402
 from app.routers.standings import standings  # noqa: E402
 from app.seed import TEAM_WINS_2023, is_seeded, seed_demo  # noqa: E402
@@ -43,6 +43,32 @@ def test_games_defaults_to_latest_week():
     resp = asyncio.run(games(season=None, week=None))
     assert resp.season == 2023
     assert resp.week == 17
+
+
+def test_performers_ranked_with_stat_lines():
+    resp = asyncio.run(performers(season=2023, week=7, limit=10))
+    assert resp.week == 7
+    assert resp.performers, "expected weekly performers"
+    # Ranked by PPR, descending, ranks are 1..n.
+    pts = [p.fantasy_points_ppr for p in resp.performers]
+    assert pts == sorted(pts, reverse=True)
+    assert [p.rank for p in resp.performers] == list(range(1, len(resp.performers) + 1))
+    # Every performer has an opponent and a non-empty stat line.
+    top = resp.performers[0]
+    assert top.opponent and top.stat_line and top.stat_line != "no production"
+
+
+def test_performers_reflect_pinned_game():
+    # Henry's pinned 178-yard week 7 line should surface in his stat line.
+    resp = asyncio.run(performers(season=2023, week=7, limit=25))
+    henry = next((p for p in resp.performers if p.name == "Derrick Henry"), None)
+    assert henry is not None
+    assert "178 rush yds" in henry.stat_line
+
+
+def test_performers_defaults_to_last_week():
+    resp = asyncio.run(performers(season=None, week=None, limit=10))
+    assert resp.season == 2023 and resp.week == 17
 
 
 def test_standings_match_real_2023_records():
@@ -89,6 +115,13 @@ def test_agent_routes_standings():
     reply, steps = asyncio.run(_demo_agent("What are the standings this year?"))
     assert steps[0].tool == "standings"
     assert "Baltimore Ravens: 13-4" in reply
+
+
+def test_agent_routes_weekly_performers():
+    reply, steps = asyncio.run(_demo_agent("who were the top performers in week 7?"))
+    assert steps[0].tool == "performers"
+    assert "Performers of week 7" in reply
+    assert "PPR" in reply
 
 
 def test_agent_routes_scores():
