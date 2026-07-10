@@ -29,7 +29,7 @@ Prompts:
 - [x] 21. Establish a Modular Type Scale — 6 --fs-* tiers cover all text sizes; half-pixel one-offs snapped
 - [x] 22. Add Fluid Responsive Typography — clamp() on page titles, answer narration, board and box-score numbers; desktop unchanged
 - [x] 23. Optimize Reading Line Length — capped page subtitles at 62ch; other measures already sane
-- [ ] 24. Optimize Web Font Loading
+- [x] 24. Optimize Web Font Loading — next/font handles swap/subset/self-host/preload + size-adjust fallbacks; verified in served CSS
 - [ ] 25. Tune Text Color and Contrast
 - [ ] 26. Fix Semantic Heading Structure
 - [ ] 27. Handle Text Overflow Gracefully
