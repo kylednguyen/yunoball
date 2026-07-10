@@ -331,6 +331,9 @@ body {
        the fixed drawer/scrim to the bar's height. The bar carries the blur. */
     background: transparent;
     overflow: visible;
+    /* Above page popovers (--z-pop): the nav forms a stacking context, so its
+       drawer/scrim subtree must outrank any open dropdown behind it. */
+    z-index: calc(var(--z-pop) + 1);
     transition: transform var(--dur-slow) var(--ease);
   }
   /* Scrolling down slides the bar away; any upward scroll brings it back. */
