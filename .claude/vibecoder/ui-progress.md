@@ -102,7 +102,7 @@ Prompts:
 - [x] 94. Reduce Friction in Key Flows — n/a: all three core flows already 1-2 actions with smart defaults
 - [x] 95. Make Data Tables Genuinely Usable — n/a: sort/sticky/scroll/hover/tabular-nums all present
 - [x] 96. Add Powerful Filtering and Sorting — leaders team/position now URL params; filters+sort already comprehensive
-- [ ] 97. Add Pagination or Infinite Scroll
+- [x] 97. Add Pagination or Infinite Scroll — n/a: all datasets are capped ranked lists
 - [ ] 98. Polish Charts and Data Visualization
 - [ ] 99. Add Bulk Selection and Actions
 - [ ] 100. Add Data Export and Sharing
