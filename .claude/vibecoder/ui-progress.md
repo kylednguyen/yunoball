@@ -68,7 +68,7 @@ Prompts:
 - [x] 60. Animate Value and State Changes — n/a: bars/fills/entries animate; counters static by design
 - [x] 61. Refine Hover and Focus Feedback — n/a: verified hover+focus+active on every control class
 - [x] 62. Add Tasteful Scroll-Triggered Animations — n/a: data-scanning UI; entrances exist at route/answer level
-- [ ] 63. Smooth the Loading-To-Content Transition
+- [x] 63. Smooth the Loading-To-Content Transition — 150ms skeleton anti-flash delay; swaps already CLS-free
 - [ ] 64. Improve Drag-And-Drop Interface Affordances
 - [ ] 65. Add Mobile Gesture Support
 - [ ] 66. Add Subtle Success Moments

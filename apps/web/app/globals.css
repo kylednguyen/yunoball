@@ -810,6 +810,15 @@ pre.yb-sql {
   overflow: hidden;
   background: var(--bg-soft);
   border-radius: var(--r-sm);
+  /* Anti-flash: invisible for 150ms, so cache hits and fast responses
+     never blink a skeleton; slow loads fade one in. */
+  opacity: 0;
+  animation: yb-skel-in var(--dur-slow) var(--ease) 150ms forwards;
+}
+@keyframes yb-skel-in {
+  to {
+    opacity: 1;
+  }
 }
 .yb-skel::after {
   content: "";
