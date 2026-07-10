@@ -221,6 +221,26 @@ body {
   z-index: var(--z-nav);
   overflow-y: auto;
 }
+/* Rail structure: a top bar (brand + mobile toggle) above a panel that holds
+   search + links + footer. On desktop both flow in the fixed column; on mobile
+   the panel becomes a slide-in drawer (see the ≤860px block). */
+.yb-nav-bar {
+  display: flex;
+  align-items: center;
+}
+.yb-nav-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+.yb-nav-toggle {
+  display: none; /* desktop rail is always expanded */
+}
+.yb-nav-scrim {
+  display: none; /* drawer backdrop is mobile-only */
+}
 .yb-brand {
   font-weight: 800;
   font-size: 22px;
@@ -293,7 +313,8 @@ body {
   margin-left: 6px;
   vertical-align: 2px;
 }
-/* Small screens: the rail becomes a sticky top bar with scrolling links. */
+/* Small screens: the rail collapses to a sticky top bar (brand + hamburger)
+   and the panel becomes a slide-in drawer over a scrim. */
 @media (max-width: 860px) {
   body {
     padding-left: 0;
@@ -303,16 +324,12 @@ body {
     inset: auto;
     top: 0;
     width: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
-    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-      12px max(16px, env(safe-area-inset-left));
+    gap: 0;
+    padding: 0;
     border-right: none;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-scrim);
-    backdrop-filter: saturate(180%) blur(8px);
-    -webkit-backdrop-filter: saturate(180%) blur(8px);
+    /* No backdrop-filter here: it would establish a containing block and clamp
+       the fixed drawer/scrim to the bar's height. The bar carries the blur. */
+    background: transparent;
     overflow: visible;
     transition: transform var(--dur-slow) var(--ease);
   }
@@ -320,30 +337,98 @@ body {
   .yb-nav.is-hidden {
     transform: translateY(-100%);
   }
-  @media (prefers-reduced-motion: reduce) {
-    .yb-nav {
-      transition: none;
-    }
+  .yb-nav-bar {
+    justify-content: space-between;
+    gap: 12px;
+    padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      10px max(14px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-scrim);
+    backdrop-filter: saturate(180%) blur(8px);
+    -webkit-backdrop-filter: saturate(180%) blur(8px);
   }
   .yb-brand {
     padding: 0;
     font-size: 19px;
   }
-  .yb-nav-links {
-    flex-direction: row;
-    gap: 4px;
-    overflow-x: auto;
-    scrollbar-width: none;
+  /* Icon-only toggle with a full 44px hit area. */
+  .yb-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: -6px -8px -6px 0;
+    background: none;
+    border: none;
+    border-radius: var(--r-md);
+    color: var(--text);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease);
   }
-  .yb-nav-links::-webkit-scrollbar {
-    display: none;
+  .yb-nav-toggle:hover {
+    background: var(--bg-soft);
   }
-  .yb-nav-links a {
-    padding: 6px 8px;
+  /* Keep the toggle crisp and tappable above the scrim while the drawer is open. */
+  .yb-nav.is-open .yb-nav-toggle {
+    position: relative;
+    z-index: calc(var(--z-pop) + 2);
   }
-  .yb-nav-search,
+
+  /* Drawer */
+  .yb-nav-panel {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(82vw, 320px);
+    gap: 16px;
+    flex: none;
+    padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-100%);
+    transition: transform var(--dur-slow) var(--ease);
+    z-index: calc(var(--z-pop) + 1);
+  }
+  .yb-nav.is-open .yb-nav-panel {
+    transform: none;
+  }
+  .yb-nav-search {
+    padding: 0;
+  }
   .yb-nav-foot {
-    display: none;
+    margin-top: auto;
+  }
+
+  /* Scrim */
+  .yb-nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-slow) var(--ease);
+    z-index: var(--z-pop);
+  }
+  .yb-nav.is-open .yb-nav-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .yb-nav,
+    .yb-nav-panel,
+    .yb-nav-scrim {
+      transition: none;
+    }
   }
 }
 

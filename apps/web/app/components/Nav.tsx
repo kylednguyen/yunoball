@@ -72,7 +72,7 @@ const LINKS = [
 
 /** Compact search on every page: teams/players jump to their pages,
  *  questions land on the home search. */
-function QuickSearch() {
+function QuickSearch({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const wrap = useRef<HTMLDivElement>(null);
@@ -98,12 +98,44 @@ function QuickSearch() {
       <SearchSuggest
         value={q}
         onValueChange={setQ}
-        onSearch={(question) => router.push(`/?q=${encodeURIComponent(question)}`)}
+        onSearch={(question) => {
+          onNavigate?.();
+          router.push(`/?q=${encodeURIComponent(question)}`);
+        }}
         placeholder="Search…"
         inputClass="yb-input"
         ariaLabel="Search NFL teams, players, and stats"
       />
     </div>
+  );
+}
+
+/** Hamburger / close icon for the mobile drawer toggle. */
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width={22}
+      height={22}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      {open ? (
+        <>
+          <path d="M6 6l12 12" />
+          <path d="M18 6L6 18" />
+        </>
+      ) : (
+        <>
+          <path d="M4 7h16" />
+          <path d="M4 12h16" />
+          <path d="M4 17h16" />
+        </>
+      )}
+    </svg>
   );
 }
 
@@ -113,6 +145,10 @@ export function Nav() {
   // transform only ≤860px; the desktop rail ignores the class).
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
+  // Mobile drawer open state.
+  const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   // Non-alarming offline notice; recovers automatically when back online.
   const [offline, setOffline] = useState(false);
   useEffect(() => {
@@ -139,41 +175,93 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Close the drawer whenever the route changes.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  // While the drawer is open: lock body scroll, close on Escape (returning
+  // focus to the toggle), and move focus into the drawer.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panelRef.current?.querySelector<HTMLElement>("a, button, input")?.focus();
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
+
   return (
     <nav
-      className={`yb-nav${hidden ? " is-hidden" : ""}`}
+      className={`yb-nav${hidden && !open ? " is-hidden" : ""}${open ? " is-open" : ""}`}
       aria-label="Primary"
       onFocusCapture={() => setHidden(false)}
     >
-      <Link href="/" className="yb-brand">
-        Yuno<span>Ball</span>
-      </Link>
-      {offline && (
-        <p className="yb-offline" role="status">
-          Offline — data may be stale
-        </p>
-      )}
-      {pathname !== "/" && <QuickSearch />}
-      <div className="yb-nav-links">
-        {LINKS.map(({ href, label, badge, icon }) => {
-          const active =
-            href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(href) ||
-                // Box scores are children of Scores in the IA.
-                (href === "/scores" && pathname.startsWith("/games"));
-          return (
-            <Link key={href} href={href} aria-current={active ? "page" : undefined}>
-              <NavIcon name={icon} />
-              {label}
-              {badge && <span className="yb-nav-badge">{badge}</span>}
-            </Link>
-          );
-        })}
+      <div className="yb-nav-bar">
+        <Link href="/" className="yb-brand" onClick={() => setOpen(false)}>
+          Yuno<span>Ball</span>
+        </Link>
+        <button
+          ref={toggleRef}
+          type="button"
+          className="yb-nav-toggle"
+          aria-expanded={open}
+          aria-controls="yb-nav-drawer"
+          aria-label={open ? "Close menu" : "Open menu"}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <MenuIcon open={open} />
+        </button>
       </div>
-      <p className="yb-nav-foot">
-        Every number computed from nflverse data.
-      </p>
+
+      <div className="yb-nav-panel" id="yb-nav-drawer" ref={panelRef}>
+        {offline && (
+          <p className="yb-offline" role="status">
+            Offline — data may be stale
+          </p>
+        )}
+        {pathname !== "/" && <QuickSearch onNavigate={() => setOpen(false)} />}
+        <div className="yb-nav-links">
+          {LINKS.map(({ href, label, badge, icon }) => {
+            const active =
+              href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(href) ||
+                  // Box scores are children of Scores in the IA.
+                  (href === "/scores" && pathname.startsWith("/games"));
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setOpen(false)}
+              >
+                <NavIcon name={icon} />
+                {label}
+                {badge && <span className="yb-nav-badge">{badge}</span>}
+              </Link>
+            );
+          })}
+        </div>
+        <p className="yb-nav-foot">Every number computed from nflverse data.</p>
+      </div>
+
+      <button
+        type="button"
+        className="yb-nav-scrim"
+        aria-label="Close menu"
+        tabIndex={open ? 0 : -1}
+        onClick={() => setOpen(false)}
+      />
     </nav>
   );
 }
