@@ -156,9 +156,9 @@ describe("parseRules — generic cues resolve by context", () => {
     });
   });
 
-  it("bare player name -> primary-stat career answer", () => {
+  it("bare player name -> season-by-season answer", () => {
     expect(parse("patrick mahomes")).toMatchObject({
-      intent: "player_total", stat: "passing_yards", scope: "career",
+      intent: "player_seasons", stat: "passing_yards",
     });
   });
 });

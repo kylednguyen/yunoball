@@ -132,7 +132,7 @@ async function surnameCandidates(surname: string): Promise<SurnameCandidate[]> {
   );
 }
 
-const PLAYER_INTENTS = new Set(["player_total", "game_log", "game_count", "scoring"]);
+const PLAYER_INTENTS = new Set(["player_total", "player_seasons", "game_log", "game_count", "scoring"]);
 
 function outcome(
   status: AuditStatus,

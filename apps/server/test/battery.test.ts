@@ -233,7 +233,7 @@ const CASES: [string, Expect][] = [
   ["pat mahomes stats", answer({ intent: "player_total", playerId: "P_MAHOMES" })],
   ["josh allen bills qb", answer({ intent: "player_total", playerId: "P_JALLEN" })],
   ["allen passing stats", answer({ intent: "player_total", stat: "passing_yards" })],
-  ["show me mahomes", answer({ intent: "player_total", playerId: "P_MAHOMES" })],
+  ["show me mahomes", answer({ intent: "player_seasons", playerId: "P_MAHOMES" })],
   ["2023 playoffs chiefs", refusal("team")],
   ["best qb", answer({ intent: "leaders", position: "QB", stat: "passing_yards", season: 2025 })],
   ["top wr", answer({ intent: "leaders", position: "WR", season: 2025 })],

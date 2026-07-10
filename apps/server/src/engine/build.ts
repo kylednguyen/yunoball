@@ -111,6 +111,29 @@ function compareSide(pidPh: string, spec: QuerySpec, p: Params): string {
   return `SELECT ${pidPh} AS pid, COUNT(*) AS games, ${sums} FROM (${inner}) scoped`;
 }
 
+/** Season-rollup stat block by position — the season-by-season view shows the
+ * whole line. Aliases double as display labels. (No carries column in the
+ * season table, unlike the game log.) */
+function seasonStatCols(position: string | null | undefined): string[] {
+  if (position === "QB") {
+    return [
+      "s.completions AS cmp", "s.attempts AS att", "s.passing_yards AS pass_yds",
+      "s.passing_tds AS pass_td", "s.interceptions AS int",
+      "s.rushing_yards AS rush_yds", "s.rushing_tds AS rush_td",
+    ];
+  }
+  if (["DL", "DE", "DT", "NT", "LB", "ILB", "OLB", "MLB", "CB", "S", "FS", "SS", "DB", "EDGE"].includes(position ?? "")) {
+    return [
+      "s.tackles AS tkl", "s.def_sacks AS sck", "s.def_interceptions AS int",
+      "s.forced_fumbles AS ff", "s.passes_defended AS pd",
+    ];
+  }
+  return [
+    "s.rushing_yards AS rush_yds", "s.rushing_tds AS rush_td",
+    "s.receptions AS rec", "s.receiving_yards AS rec_yds", "s.receiving_tds AS rec_td",
+  ];
+}
+
 /** Predicate scoping a season-rollup row to the player's rookie season. */
 const ROOKIE_PRED =
   "s.season = (SELECT MIN(s2.season) FROM player_season_stats s2 " +
@@ -281,6 +304,17 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
   if (spec.intent === "game_log" && spec.playerId) {
     const pred = `s.player_id = ${p.add(spec.playerId)}`;
     return { sql: playerGameRowsSql(spec, p, pred), params: p.values };
+  }
+  if (spec.intent === "player_seasons") {
+    // No name column: the answer's player card already identifies him, and
+    // narration reads the name from spec.player.
+    const sql =
+      "SELECT s.season, s.team_id AS team, " +
+      `COALESCE(s.games_played, 0) AS gp, ${seasonStatCols(spec.position).join(", ")} ` +
+      "FROM player_season_stats s " +
+      `WHERE s.player_id = ${p.add(spec.playerId)} AND s.season_type = 'REG' ` +
+      "ORDER BY s.season DESC";
+    return { sql, params: p.values };
   }
   if (spec.intent === "team_game_log" || spec.intent === "game_result") {
     return { sql: gameRowsSql(spec, p), params: p.values };
@@ -650,6 +684,15 @@ export function narrate(spec: QuerySpec, rows: Row[]): string {
       `${verb} ${latest.opponent} ${latest.team_score}-${latest.opp_score}` +
       `${when ? ` (${when})` : ""}.`
     );
+  }
+
+  if (spec.intent === "player_seasons") {
+    const poss = name.endsWith("s") ? `${name}'` : `${name}'s`;
+    const first = Number(rows[rows.length - 1]!.season);
+    const last = Number(top.season);
+    return rows.length === 1
+      ? `${poss} ${last} regular-season stats.`
+      : `${poss} regular-season stats, season by season (${first}–${last}).`;
   }
 
   if (spec.intent === "game_log") {

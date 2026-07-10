@@ -9,7 +9,8 @@
  */
 
 export type Intent =
-  | "leaders" | "player_total" | "single_game" | "compare" | "scoring" | "game_count"
+  | "leaders" | "player_total" | "player_seasons" | "single_game" | "compare"
+  | "scoring" | "game_count"
   | "game_log" | "team_game_log" | "game_result" | "draft_pick";
 
 export interface StatDef {

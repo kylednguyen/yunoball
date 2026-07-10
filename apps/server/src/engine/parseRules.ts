@@ -77,6 +77,13 @@ const NUM_ALT = `\\d{1,2}|${Object.keys(WORD_NUMS).join("|")}`;
 // compare only fires when BOTH halves resolve to (different) players.
 const VS_RE = /\s+(?:versus|vs\.?|and|&)\s+/;
 
+/** Words that don't change a bare-name question's meaning ("show me mahomes
+ * stats" is still just "mahomes"). */
+const BARE_FILLER = new Set([
+  "show", "me", "stats", "stat", "numbers", "info", "profile", "about",
+  "the", "his", "her", "of", "for", "s",
+]);
+
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -696,8 +703,38 @@ export function parseRules(
   }
   // A QB asked about "sacks" means sacks TAKEN, not defensive sacks.
   if (stat === "def_sacks" && player?.position === "QB") stat = "sacks_taken";
-  // A bare player mention ("Patrick Mahomes", "show me mahomes", "pat mahomes
-  // stats") is a question about his primary production stat.
+  // A truly bare player mention ("Patrick Mahomes", "show me mahomes stats")
+  // asks about the player, not one number: show the season-by-season line.
+  // Any leftover token (a year, "career", "playoffs", a stat word…) falls
+  // through to the existing shapes.
+  if (stat === null && player) {
+    const nameTokens = new Set(player.name.toLowerCase().split(/\s+/));
+    const pid = player.playerId;
+    const leftover = qText
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter(
+        (w) =>
+          !nameTokens.has(w) && !BARE_FILLER.has(w) &&
+          index.get(w)?.playerId !== pid,
+      );
+    if (leftover.length === 0) {
+      return {
+        intent: "player_seasons",
+        stat: PRIMARY_STAT[player.position ?? ""] ?? "scrimmage_yards",
+        player: player.name,
+        playerId: player.playerId,
+        position: player.position,
+        seasonType: "REG",
+        scope: "career",
+        limit: 30,
+      };
+    }
+  }
+
+  // A player plus stat vocabulary elsewhere in the question keeps the
+  // primary-production-stat fallback.
   if (stat === null && player) {
     stat = PRIMARY_STAT[player.position ?? ""] ?? "scrimmage_yards";
   }

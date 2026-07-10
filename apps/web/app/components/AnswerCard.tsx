@@ -48,9 +48,12 @@ function fmtGameDate(v: unknown): string {
 const fmtStat = (v: number, dp = 0) =>
   Number.isInteger(v) && dp === 0 ? v.toLocaleString() : v.toFixed(dp || 1);
 
-/** Head-to-head chart: one row per stat, mirrored bars growing out from the
- * center label, the leader's bar in the accent color. Totals or per-game. */
-function CompareChart({ rows }: { rows: AnswerResult["rows"] }) {
+type MiniCard = NonNullable<AnswerResult["player_card"]>;
+
+/** Head-to-head chart: one compact element — both players (headshot, name,
+ * team) in the header with the totals/per-game toggle centered between them,
+ * then one mirrored-bar row per stat, the leader's bar in the accent color. */
+function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: MiniCard[] }) {
   const [perGame, setPerGame] = useState(false);
   const [a, b] = rows;
   if (!a || !b) return null;
@@ -78,26 +81,50 @@ function CompareChart({ rows }: { rows: AnswerResult["rows"] }) {
   return (
     <div className="yb-cmp">
       <div className="yb-cmp-head">
-        {[a, b].map((p, i) => (
-          <a
-            key={String(p.player_id)}
-            className={`nm ${i === 0 ? "a" : "b"}`}
-            href={`/players/${encodeURIComponent(String(p.player_id))}`}
-          >
-            {String(p.full_name)}
-          </a>
-        ))}
-        <div className="yb-seg" role="group" aria-label="Value mode">
-          {(["Totals", "Per game"] as const).map((m) => (
-            <button
-              key={m}
-              aria-pressed={perGame === (m === "Per game")}
-              onClick={() => setPerGame(m === "Per game")}
+        {[a, b].map((p, i) => {
+          const card = cards.find((c) => c.player_id === String(p.player_id));
+          const side = (
+            <a
+              key={String(p.player_id)}
+              className={`nm ${i === 0 ? "a" : "b"}`}
+              href={`/players/${encodeURIComponent(String(p.player_id))}`}
             >
-              {m}
-            </button>
-          ))}
-        </div>
+              {card && <Headshot src={card.headshot_url} name={card.name} size={40} />}
+              <span className="who">
+                <span>
+                  {String(p.full_name)}
+                  {card?.position && <span className="yb-pos">{card.position}</span>}
+                </span>
+                {card?.team && (
+                  <span className="sub">
+                    <TeamLogo team={card.team} size={13} />
+                    {card.team_name ?? card.team}
+                  </span>
+                )}
+              </span>
+            </a>
+          );
+          if (i === 0) {
+            return (
+              // Toggle sits between the two players, in DOM order too.
+              <span key="a-and-toggle" style={{ display: "contents" }}>
+                {side}
+                <div className="yb-seg" role="group" aria-label="Value mode">
+                  {(["Totals", "Per game"] as const).map((m) => (
+                    <button
+                      key={m}
+                      aria-pressed={perGame === (m === "Per game")}
+                      onClick={() => setPerGame(m === "Per game")}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </span>
+            );
+          }
+          return side;
+        })}
       </div>
       {stats.map(({ key, label, lowerWins, rate }) => {
         const va = val(a, key, rate);
@@ -153,6 +180,9 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const cards = [result.player_card, result.player_card2].filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
   );
+  // Head-to-head renders as one compact element: the chart header carries the
+  // player identities, so the separate mini cards would be repetition.
+  const isCompare = result.intent === "compare" && result.rows.length === 2;
   // Entity chips only add value for entities the mini cards don't already cover.
   const chips = (result.entities ?? []).filter(
     (e) => !(e.entity_type === "player" && cards.some((c) => c.player_id === e.canonical_id)),
@@ -162,8 +192,8 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
     <section className="yb-card yb-enter" style={{ marginTop: 28 }}>
       <p className="yb-answer">{result.narration}</p>
 
-      {cards.length > 0 && (
-        <div className={cards.length > 1 ? "yb-player-mini-duo" : undefined}>
+      {!isCompare && cards.length > 0 && (
+        <div>
           {cards.map((card) => (
             <Link
               key={card.player_id}
@@ -208,13 +238,13 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         </div>
       )}
 
-      {result.intent === "compare" && result.rows.length === 2 && (
+      {isCompare && (
         <div style={{ marginTop: 16 }}>
-          <CompareChart rows={result.rows} />
+          <CompareChart rows={result.rows} cards={cards} />
         </div>
       )}
 
-      {!(result.intent === "compare" && result.rows.length === 2) && result.rows.length > 0 && (
+      {!isCompare && result.rows.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <SortTable
             rows={result.rows.map((row, i) => ({ row, i }))}

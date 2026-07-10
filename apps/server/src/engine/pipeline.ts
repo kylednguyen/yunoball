@@ -175,9 +175,11 @@ export async function runQueryPipeline(
       narration += ` Note: ${verdict.warnings.join(" ")}`;
     }
     // Window totals fed the narration; per-row they are just repetition.
+    // Compare keeps `games` — the head-to-head chart shows it and the
+    // per-game toggle divides by it.
     for (const row of rows) {
       delete (row as Record<string, unknown>).total;
-      delete (row as Record<string, unknown>).games;
+      if (spec.intent !== "compare") delete (row as Record<string, unknown>).games;
     }
     const columns = rows.length > 0 ? Object.keys(rows[0]!) : [];
     const response: AnswerResult = {

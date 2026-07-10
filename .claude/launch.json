@@ -2,10 +2,35 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "api",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "API_PORT=4001",
+        "CORS_ORIGINS=http://localhost:3100,http://localhost:3000",
+        "pnpm",
+        "--dir",
+        "apps/server",
+        "exec",
+        "tsx",
+        "src/index.ts"
+      ],
+      "port": 4001
+    },
+    {
       "name": "web",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev:web"],
-      "port": 3000
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_API_URL=http://localhost:4001",
+        "pnpm",
+        "--dir",
+        "apps/web",
+        "exec",
+        "next",
+        "dev",
+        "-p",
+        "3100"
+      ],
+      "port": 3100
     }
   ]
 }
