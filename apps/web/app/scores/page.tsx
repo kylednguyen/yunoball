@@ -1,6 +1,6 @@
 "use client";
 
-import { useTitle } from "../lib/hooks";
+import { useNumParam, useTitle } from "../lib/hooks";
 
 import { tablistKeys } from "../components/tablist";
 
@@ -60,8 +60,9 @@ function GameCard({ game }: { game: GameRow }) {
 export default function ScoresPage() {
   useTitle("Scores");
   const [data, setData] = useState<GamesResponse | null>(null);
-  const [season, setSeason] = useState<number | undefined>(undefined);
-  const [week, setWeek] = useState<number | undefined>(undefined);
+  // Season/week live in the URL: refresh, share and back-nav keep the view.
+  const [season, setSeason] = useNumParam("season");
+  const [week, setWeek] = useNumParam("week");
   const [performers, setPerformers] = useState<PerformersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

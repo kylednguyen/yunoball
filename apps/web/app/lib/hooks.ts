@@ -83,23 +83,34 @@ export type { GamesResponse, LeaderboardsResponse, StandingsResponse };
 
 /** Season kept in the URL (?season=2025) so team/player/leader views are
  *  linkable and survive refresh. Same window.location idiom as search.tsx. */
-export function useSeasonParam(): [number | undefined, (s: number | undefined) => void] {
-  const [season, setSeason] = useState<number | undefined>(undefined);
+/** Numeric view state mirrored into the URL — shareable, and it survives
+ * back-navigation and refresh. */
+export function useNumParam(
+  name: string,
+): [number | undefined, (v: number | undefined) => void] {
+  const [value, setValue] = useState<number | undefined>(undefined);
 
   useEffect(() => {
-    const s = Number(new URLSearchParams(window.location.search).get("season"));
-    if (s) setSeason(s);
-  }, []);
+    const v = Number(new URLSearchParams(window.location.search).get(name));
+    if (v) setValue(v);
+  }, [name]);
 
-  const set = useCallback((s: number | undefined) => {
-    setSeason(s);
-    const url = new URL(window.location.href);
-    if (s) url.searchParams.set("season", String(s));
-    else url.searchParams.delete("season");
-    window.history.replaceState(null, "", url);
-  }, []);
+  const set = useCallback(
+    (v: number | undefined) => {
+      setValue(v);
+      const url = new URL(window.location.href);
+      if (v) url.searchParams.set(name, String(v));
+      else url.searchParams.delete(name);
+      window.history.replaceState(null, "", url);
+    },
+    [name],
+  );
 
-  return [season, set];
+  return [value, set];
+}
+
+export function useSeasonParam(): [number | undefined, (s: number | undefined) => void] {
+  return useNumParam("season");
 }
 
 /** Per-page document title — client pages can't export metadata, so tabs,
