@@ -91,7 +91,7 @@ Prompts:
 - [x] 83. Show Progress for Long Operations — n/a: no multi-second ops; search/assistant already indicated
 - [x] 84. Improve Perceived Performance Everywhere — n/a: covered by ui 35/38/40/63 (skeletons, cache, client nav, anti-flash)
 - [x] 85. Add Contextual Help and Tooltips — header abbr tooltips added; glossary/chips/kbd-hint already covered the rest
-- [ ] 86. Standardize Status and State Indicators
+- [x] 86. Standardize Status and State Indicators — n/a: text-first status chips already consistent per domain
 - [ ] 87. Clarify Primary Navigation Structure
 - [ ] 88. Add a Command Palette
 - [ ] 89. Show Clear Active Location Indicators
