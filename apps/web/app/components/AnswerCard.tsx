@@ -37,6 +37,15 @@ const COMPARE_STATS: { key: string; label: string; lowerWins?: boolean; rate?: b
   { key: "fantasy_points_ppr", label: "Fantasy PPR" },
 ];
 
+// Abbreviated column headers spelled out for the header tooltip.
+const HEADER_TITLES: Record<string, string> = {
+  gp: "Games played", cmp: "Completions", att: "Attempts",
+  pass_yds: "Passing yards", pass_td: "Passing touchdowns", int: "Interceptions",
+  rush_yds: "Rushing yards", rush_td: "Rushing touchdowns", car: "Carries",
+  rec: "Receptions", rec_yds: "Receiving yards", rec_td: "Receiving touchdowns",
+  tkl: "Tackles", sck: "Sacks", ff: "Forced fumbles", pd: "Passes defended",
+};
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** ISO-ish date value -> "Nov 17, 2024" (string math, no timezone drift). */
@@ -264,6 +273,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
               label:
                 c === "full_name" ? "player" : c === "game_date" ? "date" : c.replace(/_/g, " "),
               numeric: numericCols.has(c),
+              title: HEADER_TITLES[c],
               value: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
                 const v = row[c];
                 if (v === null || v === undefined || v === "") return null;

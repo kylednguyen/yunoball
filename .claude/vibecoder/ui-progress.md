@@ -90,7 +90,7 @@ Prompts:
 - [x] 82. Handle Offline and Network Errors — 15s abort on all GETs, offline pill in nav, friendly timeout copy
 - [x] 83. Show Progress for Long Operations — n/a: no multi-second ops; search/assistant already indicated
 - [x] 84. Improve Perceived Performance Everywhere — n/a: covered by ui 35/38/40/63 (skeletons, cache, client nav, anti-flash)
-- [ ] 85. Add Contextual Help and Tooltips
+- [x] 85. Add Contextual Help and Tooltips — header abbr tooltips added; glossary/chips/kbd-hint already covered the rest
 - [ ] 86. Standardize Status and State Indicators
 - [ ] 87. Clarify Primary Navigation Structure
 - [ ] 88. Add a Command Palette
