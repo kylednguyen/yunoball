@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+/** ESPN's combiner resizes on the CDN: full headshots are ~256KB, a 160px
+ *  variant ~19KB. 160 covers the largest render (72px) at 2x. */
+export function cdnResize(src: string, px: number): string {
+  if (!src.startsWith("https://a.espncdn.com/i/")) return src;
+  return `https://a.espncdn.com/combiner/i?img=${src.slice("https://a.espncdn.com".length)}&w=${px}&h=${px}`;
+}
+
 /** Player headshot from ESPN's CDN, falling back to an initials avatar when
  *  no ESPN id is mapped (or the image 404s) — the page never shows a broken
  *  image, it just gets richer once ids are populated. */
@@ -37,7 +44,7 @@ export function Headshot({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className="yb-avatar"
-      src={src}
+      src={cdnResize(src, 160)}
       alt=""
       width={size}
       height={size}
