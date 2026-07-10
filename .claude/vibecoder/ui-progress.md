@@ -52,7 +52,7 @@ Prompts:
 - [x] 44. Load Critical Content First — n/a: parallel panel fetches, lazy tab data, instant shell
 - [x] 45. Run a Full Accessibility Audit — report: tablist keyboard gap (→46), static titles (→56), reduced-motion sweep (→51); baseline strong
 - [x] 46. Make Everything Keyboard Navigable — shared arrow-key handler on all 4 tablists; rest verified in ui 45
-- [ ] 47. Add Clear Visible Focus Indicators
+- [x] 47. Add Clear Visible Focus Indicators — n/a: global 2px accent focus-visible ring; inputs swap to accent border
 - [ ] 48. Make Forms Fully Accessible
 - [ ] 49. Use Proper Semantic HTML
 - [ ] 50. Add Meaningful Image Alt Text
