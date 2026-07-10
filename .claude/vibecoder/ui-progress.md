@@ -46,7 +46,7 @@ Prompts:
 - [x] 38. Cache and Dedupe Data Fetching — getJson helper: 60s TTL cache + in-flight dedupe across all 12 GET endpoints
 - [x] 39. Add Optimistic UI Updates — n/a: no server mutations; local actions already instant
 - [x] 40. Prefetch Data on User Intent — all internal <a> → next/link: viewport/hover prefetch + client nav preserving the data cache
-- [ ] 41. Debounce and Throttle Costly Handlers
+- [x] 41. Debounce and Throttle Costly Handlers — n/a: suggest 180ms debounce, filters client-side, passive scroll
 - [ ] 42. Optimize the Critical Rendering Path
 - [ ] 43. Audit Third-Party Script Performance
 - [ ] 44. Load Critical Content First
