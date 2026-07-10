@@ -83,7 +83,7 @@ Prompts:
 - [x] 75. Add Input Hints and Affordances — n/a: search has placeholder examples, / hint, recents, suggestions
 - [x] 76. Clarify Form Submission Feedback — n/a: assistant disables+types, search preserves query on error
 - [x] 77. Build a Toast Notification System — n/a: all feedback contextual/inline; no ad-hoc alerts to replace
-- [ ] 78. Handle Loading, Empty, Error, Success States
+- [x] 78. Handle Loading, Empty, Error, Success States — verified all views cover the four states (gaps closed in ui 8)
 - [ ] 79. Add Graceful Error Boundaries
 - [ ] 80. Confirm Destructive and Irreversible Actions
 - [ ] 81. Add Undo for Reversible Actions
