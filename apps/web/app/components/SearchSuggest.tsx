@@ -131,9 +131,11 @@ export function SearchSuggest({
       else if (q) onSearch(q);
     } else if (e.key === "Escape") {
       // When the suggestion popup is open, consume Escape so an enclosing
-      // handler (e.g. the mobile nav drawer) doesn't also close on the same
-      // keystroke — first Escape dismisses suggestions, a second closes the drawer.
-      if (show) e.stopPropagation();
+      // handler (e.g. the mobile nav drawer's native window listener) doesn't
+      // also close on the same keystroke — first Escape dismisses suggestions,
+      // a second closes the drawer. React's synthetic stopPropagation can't
+      // stop a native window listener, so stop the native event directly.
+      if (show) e.nativeEvent.stopImmediatePropagation();
       setOpen(false);
     }
   }

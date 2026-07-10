@@ -85,8 +85,12 @@ function QuickSearch({ onNavigate }: { onNavigate?: () => void }) {
         (document.activeElement as HTMLElement)?.tagName ?? "",
       );
       if ((e.key === "/" && !typing) || ((e.metaKey || e.ctrlKey) && e.key === "k")) {
+        // On mobile the search lives inside the closed (inert) drawer, so
+        // focusing it is a no-op — don't swallow the key when it can't work.
+        const input = wrap.current?.querySelector("input");
+        if (!input || input.closest("[inert]")) return;
         e.preventDefault();
-        wrap.current?.querySelector("input")?.focus();
+        input.focus();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -195,11 +199,27 @@ export function Nav() {
     setOpen(false);
   }, [pathname]);
 
-  // Open drawer behaves as a modal: lock body scroll, trap Tab within the
-  // panel, close on Escape (returning focus to the toggle), and move focus in.
+  // Reveal the top bar whenever the drawer opens or closes, so a close while
+  // scrolled down doesn't instantly snap the bar off-screen (is-hidden).
+  useEffect(() => {
+    setHidden(false);
+  }, [open]);
+
+  // Close + return focus to the toggle. Used by every close affordance so a
+  // keyboard/AT user is never stranded on the now-inert panel.
+  const close = () => {
+    setOpen(false);
+    toggleRef.current?.focus();
+  };
+
+  // Open drawer behaves as a modal: lock body scroll, make the rest of the page
+  // inert (so aria-modal is honest), trap Tab within the panel + toggle, close
+  // on Escape, and move focus in.
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
+    const navEl = panel?.closest("nav");
+    const SEL = 'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])';
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setOpen(false);
@@ -207,9 +227,10 @@ export function Nav() {
         return;
       }
       if (e.key === "Tab" && panel) {
-        const f = panel.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
-        );
+        // The toggle (the "×" close control) lives in the bar, outside the
+        // panel — include it so keyboard users can reach a close affordance.
+        const inPanel = Array.from(panel.querySelectorAll<HTMLElement>(SEL));
+        const f = toggleRef.current ? [...inPanel, toggleRef.current] : inPanel;
         if (f.length === 0) return;
         const first = f[0]!;
         const last = f[f.length - 1]!;
@@ -225,10 +246,16 @@ export function Nav() {
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Everything except the nav is inert while the drawer is open.
+    const bgEls = navEl
+      ? Array.from(document.body.children).filter((el) => el !== navEl)
+      : [];
+    bgEls.forEach((el) => el.setAttribute("inert", ""));
     panel?.querySelector<HTMLElement>("a, button, input")?.focus();
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      bgEls.forEach((el) => el.removeAttribute("inert"));
     };
   }, [open]);
 
@@ -239,7 +266,7 @@ export function Nav() {
       onFocusCapture={() => setHidden(false)}
     >
       <div className="yb-nav-bar">
-        <Link href="/" className="yb-brand" onClick={() => setOpen(false)}>
+        <Link href="/" className="yb-brand" onClick={close}>
           Yuno<span>Ball</span>
         </Link>
         <button
@@ -255,6 +282,15 @@ export function Nav() {
         </button>
       </div>
 
+      {/* Offline notice lives outside the drawer panel so it stays visible and
+          announced on mobile even while the drawer (and its panel) is closed
+          and inert. */}
+      {offline && (
+        <p className="yb-offline" role="status">
+          Offline — data may be stale
+        </p>
+      )}
+
       <div
         className="yb-nav-panel"
         id="yb-nav-drawer"
@@ -267,12 +303,7 @@ export function Nav() {
         aria-label={isMobile ? "Site navigation" : undefined}
         inert={isMobile && !open}
       >
-        {offline && (
-          <p className="yb-offline" role="status">
-            Offline — data may be stale
-          </p>
-        )}
-        {pathname !== "/" && <QuickSearch onNavigate={() => setOpen(false)} />}
+        {pathname !== "/" && <QuickSearch onNavigate={close} />}
         <div className="yb-nav-links">
           {LINKS.map(({ href, label, badge, icon }) => {
             const active =
@@ -286,7 +317,7 @@ export function Nav() {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                onClick={() => setOpen(false)}
+                onClick={close}
               >
                 <NavIcon name={icon} />
                 {label}
@@ -306,7 +337,7 @@ export function Nav() {
         className="yb-nav-scrim"
         aria-hidden="true"
         tabIndex={-1}
-        onClick={() => setOpen(false)}
+        onClick={close}
       />
     </nav>
   );
