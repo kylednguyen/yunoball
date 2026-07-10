@@ -66,7 +66,7 @@ const LINKS = [
   { href: "/standings", label: "Standings", icon: "standings" },
   { href: "/leaders", label: "Leaders", icon: "leaders" },
   { href: "/fantasy", label: "Fantasy", icon: "fantasy" },
-  { href: "/assistant", label: "Assistant", badge: "AI", icon: "assistant" },
+  { href: "/assistant", label: "Assistant", badge: "Pro", icon: "assistant" },
   { href: "/glossary", label: "Glossary", icon: "glossary" },
 ];
 
