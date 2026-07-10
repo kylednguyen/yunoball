@@ -20,7 +20,7 @@ Prompts:
 - [x] 12. Eliminate Horizontal Scroll on Mobile — verified all 10 routes at 360px after ui-11 fixes; zero overflow
 - [x] 13. Build a Flexible Responsive Grid — already auto-fit/fill everywhere + 1080px centered container; verified
 - [x] 14. Enlarge Mobile Touch Targets — 44px min-height block for all controls ≤860px; hit-area extension for text links
-- [ ] 15. Eliminate Cumulative Layout Shift
+- [x] 15. Eliminate Cumulative Layout Shift — measured CLS=0 on home/scores/player via PerformanceObserver; imgs have dims, next/font, sized skeletons
 - [ ] 16. Respect Mobile Safe Area Insets
 - [ ] 17. Build a Smart Sticky Header
 - [ ] 18. Balance Content Density and Whitespace
