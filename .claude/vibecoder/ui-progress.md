@@ -98,7 +98,7 @@ Prompts:
 - [x] 90. Add Breadcrumbs for Deep Navigation — n/a: semantic Crumbs component already on all 6 deep pages
 - [x] 91. Improve In-App Search Experience — match highlighting in suggestions; rest already strong
 - [x] 92. Fix Scroll Position and Back Behavior — scores week/season now URL-mirrored; router scroll restoration native
-- [ ] 93. Add Useful Keyboard Shortcuts
+- [x] 93. Add Useful Keyboard Shortcuts — n/a: //⌘K global, Escape, arrows all present; help dialog overkill for 2 bindings
 - [ ] 94. Reduce Friction in Key Flows
 - [ ] 95. Make Data Tables Genuinely Usable
 - [ ] 96. Add Powerful Filtering and Sorting
