@@ -54,7 +54,7 @@ Prompts:
 - [x] 46. Make Everything Keyboard Navigable — shared arrow-key handler on all 4 tablists; rest verified in ui 45
 - [x] 47. Add Clear Visible Focus Indicators — n/a: global 2px accent focus-visible ring; inputs swap to accent border
 - [x] 48. Make Forms Fully Accessible — n/a: all inputs labeled, combobox pattern correct, alerts announced
-- [ ] 49. Use Proper Semantic HTML
+- [x] 49. Use Proper Semantic HTML — n/a: verified buttons/links/landmarks/lists/dl/table semantics throughout
 - [ ] 50. Add Meaningful Image Alt Text
 - [ ] 51. Respect Reduced Motion Preferences
 - [ ] 52. Announce Dynamic Changes to Screen Readers
