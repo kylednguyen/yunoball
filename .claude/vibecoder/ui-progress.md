@@ -67,7 +67,7 @@ Prompts:
 - [x] 59. Implement Smooth Page Transitions — template.tsx entrance fade per navigation, reduced-motion safe
 - [x] 60. Animate Value and State Changes — n/a: bars/fills/entries animate; counters static by design
 - [x] 61. Refine Hover and Focus Feedback — n/a: verified hover+focus+active on every control class
-- [ ] 62. Add Tasteful Scroll-Triggered Animations
+- [x] 62. Add Tasteful Scroll-Triggered Animations — n/a: data-scanning UI; entrances exist at route/answer level
 - [ ] 63. Smooth the Loading-To-Content Transition
 - [ ] 64. Improve Drag-And-Drop Interface Affordances
 - [ ] 65. Add Mobile Gesture Support
