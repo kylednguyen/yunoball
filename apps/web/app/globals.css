@@ -234,7 +234,7 @@ body {
 }
 .yb-nav-search input {
   width: 100%;
-  padding: 7px 12px;
+  padding: 8px 12px;
   font-size: 13px;
 }
 .yb-nav-foot {
@@ -291,7 +291,7 @@ body {
     display: none;
   }
   .yb-nav-links a {
-    padding: 6px 9px;
+    padding: 6px 8px;
   }
   .yb-nav-search,
   .yb-nav-foot {
@@ -347,7 +347,7 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 1px;
-  padding: 7px 14px 6px;
+  padding: 8px 14px 6px;
   border-right: 1px solid var(--border);
   color: var(--muted);
   transition: background var(--dur) var(--ease);
@@ -460,7 +460,7 @@ input.yb-search:focus {
   color: var(--faint);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 2px 7px;
+  padding: 2px 8px;
   background: var(--bg-soft);
   pointer-events: none;
 }
@@ -471,7 +471,7 @@ input.yb-search:focus {
   border: 1px solid var(--border);
   color: var(--muted);
   border-radius: var(--r-pill);
-  padding: 7px 14px;
+  padding: 8px 14px;
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
@@ -545,7 +545,7 @@ table.yb-table th {
   white-space: nowrap;
 }
 table.yb-table td {
-  padding: 11px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
 }
 table.yb-table td.num,
@@ -841,7 +841,7 @@ pre.yb-sql {
   grid-template-columns: 20px minmax(120px, 190px) minmax(0, 1fr) 92px;
   align-items: center;
   gap: 12px;
-  padding: 9px 10px;
+  padding: 8px 10px;
   border-radius: var(--r-md);
   transition: background var(--dur) var(--ease);
 }
@@ -1069,7 +1069,7 @@ pre.yb-sql {
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
-  padding: 1px 7px;
+  padding: 1px 8px;
 }
 .yb-week-tabs {
   display: flex;
@@ -1570,7 +1570,7 @@ table.yb-mini-table {
   text-decoration: none;
 }
 .yb-crumbs .sep {
-  margin: 0 7px;
+  margin: 0 8px;
   color: var(--faint);
 }
 .yb-crumbs [aria-current="page"] {
@@ -1825,7 +1825,7 @@ a.yb-game-team:hover {
 .yb-cmp-head .sub {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: 12px;
   font-weight: 500;
   color: var(--muted);
@@ -1842,7 +1842,7 @@ a.yb-game-team:hover {
   grid-template-columns: 72px 1fr 96px 1fr 72px;
   align-items: center;
   gap: 10px;
-  padding: 5px 0;
+  padding: 4px 0;
 }
 .yb-cmp-row .val {
   font-variant-numeric: tabular-nums;
@@ -1894,9 +1894,9 @@ a.yb-game-team:hover {
     grid-template-areas:
       "lbl lbl lbl lbl"
       "va  tl  tr  vb";
-    row-gap: 3px;
+    row-gap: 2px;
     gap: 6px;
-    padding: 7px 0;
+    padding: 8px 0;
   }
   .yb-cmp-row .lbl {
     grid-area: lbl;
@@ -2083,7 +2083,7 @@ a.yb-game-team:hover {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 13px 15px;
+  padding: 12px 14px;
   transition: border-color var(--dur) var(--ease);
 }
 .yb-gloss-item:hover {
@@ -2104,7 +2104,7 @@ a.yb-game-team:hover {
   color: var(--faint);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
-  padding: 1px 7px;
+  padding: 1px 8px;
 }
 .yb-gloss-item dd {
   margin: 0;
@@ -2153,7 +2153,7 @@ mark.yb-hit {
   max-height: 320px;
   overflow-y: auto;
   margin: 0;
-  padding: 5px;
+  padding: 4px;
   list-style: none;
   background: var(--panel);
   border: 1px solid var(--border-strong);
@@ -2161,7 +2161,7 @@ mark.yb-hit {
   box-shadow: var(--shadow-card);
 }
 .yb-dd-item {
-  padding: 7px 11px;
+  padding: 8px 10px;
   border-radius: var(--r-sm);
   font-size: 14px;
   white-space: nowrap;
@@ -2192,7 +2192,7 @@ mark.yb-hit {
   font: inherit;
   font-size: 14.5px;
   font-weight: 600;
-  padding: 9px 14px;
+  padding: 8px 14px;
   cursor: pointer;
   transition: color var(--dur) var(--ease);
 }
@@ -2277,7 +2277,7 @@ mark.yb-hit {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 20px;
+  padding: 8px 20px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
   transition: background var(--dur) var(--ease);
@@ -2307,14 +2307,14 @@ mark.yb-hit {
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
 }
 .yb-board-row .tm {
   font-size: 12.5px;
   color: var(--faint);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 .yb-board-row .val {
   font-weight: 700;

@@ -8,7 +8,7 @@ Custom user requests (from /ui-audit args):
 Prompts:
 - [x] 1. Establish a Design Token System — system already existed; consolidated 6 hardcoded colors into new tokens (--bg-scrim, --danger-text/border, --accent-border, --shimmer)
 - [x] 2. Build a Semantic Color System — already semantic; contrast audit found --faint at 3.4:1, lifted to #82828c (4.7:1)
-- [ ] 3. Define a Consistent Spacing Scale
+- [x] 3. Define a Consistent Spacing Scale — snapped 21 odd px values to the app's 2px grid; --s-* scale already existed
 - [ ] 4. Create an Elevation Shadow System
 - [ ] 5. Standardize the Border Radius Scale
 - [ ] 6. Strengthen Overall Visual Hierarchy
