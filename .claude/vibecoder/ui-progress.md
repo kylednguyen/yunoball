@@ -100,7 +100,7 @@ Prompts:
 - [x] 92. Fix Scroll Position and Back Behavior — scores week/season now URL-mirrored; router scroll restoration native
 - [x] 93. Add Useful Keyboard Shortcuts — n/a: //⌘K global, Escape, arrows all present; help dialog overkill for 2 bindings
 - [x] 94. Reduce Friction in Key Flows — n/a: all three core flows already 1-2 actions with smart defaults
-- [ ] 95. Make Data Tables Genuinely Usable
+- [x] 95. Make Data Tables Genuinely Usable — n/a: sort/sticky/scroll/hover/tabular-nums all present
 - [ ] 96. Add Powerful Filtering and Sorting
 - [ ] 97. Add Pagination or Infinite Scroll
 - [ ] 98. Polish Charts and Data Visualization
