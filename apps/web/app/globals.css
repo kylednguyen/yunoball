@@ -101,6 +101,7 @@
   --dur-fast: 120ms;
   --dur: 160ms;
   --dur-slow: 240ms;
+  --dur-reveal: 700ms; /* data draw-ins (bars); loops keep their own rhythm */
 }
 
 * {
@@ -983,7 +984,7 @@ pre.yb-sql {
   transform-origin: left center;
   border-radius: var(--r-pill);
   background: var(--chart);
-  transition: transform 700ms var(--ease);
+  transition: transform var(--dur-reveal) var(--ease);
 }
 .yb-lb-row:hover .yb-lb-fill {
   background: var(--accent);

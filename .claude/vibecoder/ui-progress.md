@@ -63,7 +63,7 @@ Prompts:
 - [x] 55. Add a Skip-To-Content Link — n/a: already present, focus-revealed, #main on every page
 - [x] 56. Fix Page Titles and Language — %s · YunoBall template + useTitle hook on all client pages incl. dynamic player/team names
 - [x] 57. Add Small Purposeful Micro-Interactions — n/a: press/hover/bars/confirmations all present on token timing
-- [ ] 58. Standardize Animation Timing and Easing
+- [x] 58. Standardize Animation Timing and Easing — system existed; added --dur-reveal for the one literal, loops exempt
 - [ ] 59. Implement Smooth Page Transitions
 - [ ] 60. Animate Value and State Changes
 - [ ] 61. Refine Hover and Focus Feedback
