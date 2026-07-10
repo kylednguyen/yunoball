@@ -84,7 +84,11 @@ async function getJson<T>(path: string): Promise<T> {
   const pending = inflight.get(path);
   if (pending) return pending as Promise<T>;
   const p = (async () => {
-    const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+    // 15s cap: a hung request becomes a retryable error, never a forever-spinner.
+    const res = await fetch(`${API_URL}${path}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
     if (!res.ok) throw new HttpError(res.status);
     const data = (await res.json()) as unknown;
     jsonCache.set(path, { at: Date.now(), data });
@@ -229,6 +233,9 @@ export function friendlyError(message: string | null | undefined): string {
   if (!message) return "Something unexpected went wrong. Please try again.";
   if (/failed to fetch|networkerror|load failed/i.test(message)) {
     return "Can’t reach the server — check your connection and try again.";
+  }
+  if (/timed? ?out|abort/i.test(message)) {
+    return "That took too long to answer. Try again in a moment.";
   }
   if (/request failed \(429\)/i.test(message)) {
     return "Too many requests — give it a few seconds and try again.";

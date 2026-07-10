@@ -96,6 +96,19 @@ export function Nav() {
   // transform only ≤860px; the desktop rail ignores the class).
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
+  // Non-alarming offline notice; recovers automatically when back online.
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    setOffline(!navigator.onLine);
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
@@ -118,6 +131,11 @@ export function Nav() {
       <Link href="/" className="yb-brand">
         Yuno<span>Ball</span>
       </Link>
+      {offline && (
+        <p className="yb-offline" role="status">
+          Offline — data may be stale
+        </p>
+      )}
       {pathname !== "/" && <QuickSearch />}
       <div className="yb-nav-links">
         {LINKS.map(({ href, label, badge, icon }) => {

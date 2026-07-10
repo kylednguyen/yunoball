@@ -379,6 +379,17 @@ body {
   }
 }
 
+/* Offline notice in the nav — calm, not alarming. */
+.yb-offline {
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
 /* ---- Score ticker (front-page scoreboard strip) ---- */
 .yb-ticker {
   display: flex;

@@ -87,7 +87,7 @@ Prompts:
 - [x] 79. Add Graceful Error Boundaries — app/error.tsx: retry + go-home fallback, per-segment scoping
 - [x] 80. Confirm Destructive and Irreversible Actions — undo (8s) on lineup Clear, the only consequential destructive action
 - [x] 81. Add Undo for Reversible Actions — lineup Clear undo (ui 80); slot removes are one-click re-addable, searches trivial
-- [ ] 82. Handle Offline and Network Errors
+- [x] 82. Handle Offline and Network Errors — 15s abort on all GETs, offline pill in nav, friendly timeout copy
 - [ ] 83. Show Progress for Long Operations
 - [ ] 84. Improve Perceived Performance Everywhere
 - [ ] 85. Add Contextual Help and Tooltips
