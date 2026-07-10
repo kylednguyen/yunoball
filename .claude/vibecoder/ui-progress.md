@@ -85,8 +85,8 @@ Prompts:
 - [x] 77. Build a Toast Notification System — n/a: all feedback contextual/inline; no ad-hoc alerts to replace
 - [x] 78. Handle Loading, Empty, Error, Success States — verified all views cover the four states (gaps closed in ui 8)
 - [x] 79. Add Graceful Error Boundaries — app/error.tsx: retry + go-home fallback, per-segment scoping
-- [ ] 80. Confirm Destructive and Irreversible Actions
-- [ ] 81. Add Undo for Reversible Actions
+- [x] 80. Confirm Destructive and Irreversible Actions — undo (8s) on lineup Clear, the only consequential destructive action
+- [x] 81. Add Undo for Reversible Actions — lineup Clear undo (ui 80); slot removes are one-click re-addable, searches trivial
 - [ ] 82. Handle Offline and Network Errors
 - [ ] 83. Show Progress for Long Operations
 - [ ] 84. Improve Perceived Performance Everywhere
