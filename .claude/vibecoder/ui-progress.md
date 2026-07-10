@@ -14,7 +14,7 @@ Prompts:
 - [x] 6. Strengthen Overall Visual Hierarchy — verified strong 3-tier hierarchy on home/leaders/scores/fantasy; no change needed. Scores' active week tab can be off-screen → handle in 89/92
 - [x] 7. Polish All Button Interaction States — all states existed; fixed hover firing on disabled buttons
 - [x] 8. Design Helpful Empty States — added scores empty-week state and Performers empty fallback; others already covered
-- [ ] 9. Unify the App's Iconography
+- [x] 9. Unify the App's Iconography — verified: single stroke set + consistent text glyphs, labeled icon buttons; no change
 - [ ] 10. Run a Full Consistency Audit
 - [ ] 11. Audit Mobile and Tablet Breakpoints
 - [ ] 12. Eliminate Horizontal Scroll on Mobile
