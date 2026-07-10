@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { AnswerResult } from "../lib/api";
 import { Headshot } from "./Headshot";
 import { SortTable } from "./SortTable";
@@ -98,24 +102,36 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
   });
 
   return (
-    <div className="yb-cmp">
-      <div className="yb-cmp-head">
+    <div className="rounded-lg border bg-muted/40 p-4">
+      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b pb-3">
         {[a, b].map((p, i) => {
           const card = cards.find((c) => c.player_id === String(p.player_id));
           const side = (
             <Link
               key={String(p.player_id)}
-              className={`nm ${i === 0 ? "a" : "b"}`}
+              className={cn(
+                "flex min-w-0 items-center gap-2.5 text-sm font-bold hover:text-primary",
+                i === 1 && "flex-row-reverse justify-self-end text-right",
+              )}
               href={`/players/${encodeURIComponent(String(p.player_id))}`}
             >
               {card && <Headshot src={card.headshot_url} name={card.name} size={40} />}
-              <span className="who">
-                <span>
+              <span className="flex min-w-0 flex-col gap-px">
+                <span className={cn("flex items-center gap-1.5", i === 1 && "justify-end")}>
                   {String(p.full_name)}
-                  {card?.position && <span className="yb-pos">{card.position}</span>}
+                  {card?.position && (
+                    <span className="text-xs font-bold tracking-wide text-muted-foreground">
+                      {card.position}
+                    </span>
+                  )}
                 </span>
                 {card?.team && (
-                  <span className="sub">
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 text-xs font-medium text-muted-foreground",
+                      i === 1 && "justify-end",
+                    )}
+                  >
                     <TeamLogo team={card.team} size={13} />
                     {card.team_name ?? card.team}
                   </span>
@@ -128,16 +144,29 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
               // Toggle sits between the two players, in DOM order too.
               <span key="a-and-toggle" style={{ display: "contents" }}>
                 {side}
-                <div className="yb-seg" role="group" aria-label="Value mode">
-                  {(["Totals", "Per game"] as const).map((m) => (
-                    <button
-                      key={m}
-                      aria-pressed={perGame === (m === "Per game")}
-                      onClick={() => setPerGame(m === "Per game")}
-                    >
-                      {m}
-                    </button>
-                  ))}
+                <div
+                  className="inline-flex overflow-hidden rounded-md border"
+                  role="group"
+                  aria-label="Value mode"
+                >
+                  {(["Totals", "Per game"] as const).map((m) => {
+                    const on = perGame === (m === "Per game");
+                    return (
+                      <button
+                        key={m}
+                        aria-pressed={on}
+                        onClick={() => setPerGame(m === "Per game")}
+                        className={cn(
+                          "px-2.5 py-1 text-xs font-semibold transition-colors",
+                          on
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
                 </div>
               </span>
             );
@@ -156,16 +185,31 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
         const dp = key === "completion_pct" || (perGame && !rate) ? 1 : 0;
         const unit = key === "completion_pct" ? "%" : "";
         return (
-          <div key={key} className="yb-cmp-row">
-            <span className={`val${aLeads ? " lead" : ""}`}>{fmtStat(va, dp)}{unit}</span>
-            <span className="track left" aria-hidden="true">
-              <span className={`bar${aLeads ? " lead" : ""}`} style={{ width: `${(va / max) * 100}%` }} />
+          <div
+            key={key}
+            className="grid grid-cols-[64px_1fr_88px_1fr_64px] items-center gap-2.5 py-1 sm:grid-cols-[72px_1fr_96px_1fr_72px]"
+          >
+            <span className={cn("text-sm font-semibold tabular-nums", aLeads && "font-bold text-primary")}>
+              {fmtStat(va, dp)}{unit}
             </span>
-            <span className="lbl">{label}</span>
-            <span className="track" aria-hidden="true">
-              <span className={`bar${bLeads ? " lead" : ""}`} style={{ width: `${(vb / max) * 100}%` }} />
+            <span className="flex h-2 justify-end overflow-hidden rounded-sm bg-muted" aria-hidden="true">
+              <span
+                className={cn("block h-full rounded-sm bg-muted-foreground/40", aLeads && "bg-primary")}
+                style={{ width: `${(va / max) * 100}%` }}
+              />
             </span>
-            <span className={`val right${bLeads ? " lead" : ""}`}>{fmtStat(vb, dp)}{unit}</span>
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {label}
+            </span>
+            <span className="h-2 overflow-hidden rounded-sm bg-muted" aria-hidden="true">
+              <span
+                className={cn("block h-full rounded-sm bg-muted-foreground/40", bLeads && "bg-primary")}
+                style={{ width: `${(vb / max) * 100}%` }}
+              />
+            </span>
+            <span className={cn("text-right text-sm font-semibold tabular-nums", bLeads && "font-bold text-primary")}>
+              {fmtStat(vb, dp)}{unit}
+            </span>
           </div>
         );
       })}
@@ -176,7 +220,10 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
 export function AnswerCard({ result }: { result: AnswerResult }) {
   const [showSql, setShowSql] = useState(false);
   const [copied, setCopied] = useState(false);
-  const numericCols = new Set(result.columns.filter((c) => isNumericColumn(result.rows, c)));
+  const numericCols = useMemo(
+    () => new Set(result.columns.filter((c) => isNumericColumn(result.rows, c))),
+    [result],
+  );
 
   // When rows carry a player_id, the name column links to the player page and
   // the raw id column stays hidden. Game rows likewise link their date to the
@@ -224,29 +271,35 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   );
 
   return (
-    <section className="yb-card yb-enter" style={{ marginTop: 28 }}>
-      <p className="yb-answer">{result.narration}</p>
+    <Card className="mt-7 gap-4 p-6">
+      <p className="font-heading text-2xl font-extrabold leading-tight text-balance sm:text-3xl">
+        {result.narration}
+      </p>
 
       {!isCompare && cards.length > 0 && (
-        <div>
+        <div className="flex flex-col gap-2">
           {cards.map((card) => (
             <Link
               key={card.player_id}
               href={`/players/${encodeURIComponent(card.player_id)}`}
-              className="yb-player-mini"
+              className="group flex items-center gap-3 rounded-lg border bg-muted/40 p-3 transition-colors hover:bg-muted"
             >
               <Headshot src={card.headshot_url} name={card.name} size={52} />
-              <span className="who">
-                <span className="nm">
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="flex items-center gap-2 font-bold">
                   {card.name}
-                  {card.position && <span className="yb-pos">{card.position}</span>}
+                  {card.position && (
+                    <span className="text-xs font-bold tracking-wide text-muted-foreground">
+                      {card.position}
+                    </span>
+                  )}
                 </span>
-                <span className="sub">
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   {card.team && <TeamLogo team={card.team} size={14} />}
                   {card.team_name ?? card.team ?? "-"}
                 </span>
               </span>
-              <span className="go" aria-hidden="true">
+              <span className="text-sm font-medium text-muted-foreground group-hover:text-primary" aria-hidden="true">
                 View profile →
               </span>
             </Link>
@@ -255,106 +308,95 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
       )}
 
       {chips.length > 0 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+        <div className="flex flex-wrap gap-1.5">
           {chips.map((e) => (
-            <Link
-              key={`${e.entity_type}-${e.display_name}`}
-              className="yb-chip-static"
-              href={
-                e.entity_type === "player"
-                  ? `/players/${encodeURIComponent(e.canonical_id)}`
-                  : `/teams/${e.canonical_id}`
-              }
-              title={`View ${e.display_name}'s ${e.entity_type} page`}
-            >
-              {e.display_name} →
-            </Link>
+            <Badge key={`${e.entity_type}-${e.display_name}`} variant="outline" asChild>
+              <Link
+                href={
+                  e.entity_type === "player"
+                    ? `/players/${encodeURIComponent(e.canonical_id)}`
+                    : `/teams/${e.canonical_id}`
+                }
+                title={`View ${e.display_name}'s ${e.entity_type} page`}
+              >
+                {e.display_name} →
+              </Link>
+            </Badge>
           ))}
         </div>
       )}
 
-      {isCompare && (
-        <div style={{ marginTop: 16 }}>
-          <CompareChart rows={result.rows} cards={cards} />
-        </div>
-      )}
+      {isCompare && <CompareChart rows={result.rows} cards={cards} />}
 
       {!isCompare && result.rows.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <SortTable
-            rows={result.rows.map((row, i) => ({ row, i }))}
-            rowKey={({ i }) => String(i)}
-            columns={columns.map((c) => ({
-              key: c,
-              label:
-                c === "full_name" ? "player" : c === "game_date" ? "date" : c.replace(/_/g, " "),
-              numeric: numericCols.has(c),
-              title: HEADER_TITLES[c],
-              value: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
-                const v = row[c];
-                if (v === null || v === undefined || v === "") return null;
-                if (c === "game_date") return String(v).slice(0, 10);
-                return numericCols.has(c) ? Number(v) : String(v);
-              },
-              render: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
-                const v = row[c];
-                if (v === null || v === undefined || v === "") return <>{""}</>;
-                if (c === "full_name" && linkPlayers && row.player_id) {
+        <SortTable
+          rows={result.rows.map((row, i) => ({ row, i }))}
+          rowKey={({ i }) => String(i)}
+          columns={columns.map((c) => ({
+            key: c,
+            label:
+              c === "full_name" ? "player" : c === "game_date" ? "date" : c.replace(/_/g, " "),
+            numeric: numericCols.has(c),
+            title: HEADER_TITLES[c],
+            value: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
+              const v = row[c];
+              if (v === null || v === undefined || v === "") return null;
+              if (c === "game_date") return String(v).slice(0, 10);
+              return numericCols.has(c) ? Number(v) : String(v);
+            },
+            render: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
+              const v = row[c];
+              if (v === null || v === undefined || v === "") return <>{""}</>;
+              if (c === "full_name" && linkPlayers && row.player_id) {
+                return (
+                  <Link href={`/players/${encodeURIComponent(String(row.player_id))}`}>
+                    {String(v)}
+                  </Link>
+                );
+              }
+              if (c === "game_date") {
+                const d = fmtGameDate(v);
+                if (linkGames && row.game_id) {
                   return (
-                    <Link href={`/players/${encodeURIComponent(String(row.player_id))}`}>
-                      {String(v)}
-                    </Link>
+                    <Link href={`/games/${encodeURIComponent(String(row.game_id))}`}>{d}</Link>
                   );
                 }
-                if (c === "game_date") {
-                  const d = fmtGameDate(v);
-                  if (linkGames && row.game_id) {
-                    return (
-                      <Link href={`/games/${encodeURIComponent(String(row.game_id))}`}>{d}</Link>
-                    );
-                  }
-                  return <>{d}</>;
-                }
-                if (TEAM_COLS.has(c) && typeof v === "string" && /^[A-Z]{2,3}$/.test(v)) {
-                  return <Link href={`/teams/${v}`}>{v}</Link>;
-                }
-                return <>{numericCols.has(c) ? fmtCell(c, v) : String(v)}</>;
-              },
-            }))}
-          />
-        </div>
+                return <>{d}</>;
+              }
+              if (TEAM_COLS.has(c) && typeof v === "string" && /^[A-Z]{2,3}$/.test(v)) {
+                return <Link href={`/teams/${v}`}>{v}</Link>;
+              }
+              return <>{numericCols.has(c) ? fmtCell(c, v) : String(v)}</>;
+            },
+          }))}
+        />
       )}
 
-      <div
-        style={{
-          display: "flex",
-          gap: 16,
-          marginTop: 18,
-          paddingTop: 14,
-          borderTop: "1px solid var(--border)",
-          alignItems: "center",
-        }}
-      >
-        <button onClick={() => setShowSql((s) => !s)} className="yb-link">
+      <div className="mt-1 flex items-center gap-4 border-t pt-4">
+        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setShowSql((s) => !s)}>
           {showSql ? "Hide" : "Show"} the query
-        </button>
+        </Button>
         {result.rows.length > 0 && (
-          <button onClick={downloadCsv} className="yb-link">
+          <Button variant="link" size="sm" className="h-auto p-0" onClick={downloadCsv}>
             Download CSV
-          </button>
+          </Button>
         )}
         {result.share_id && (
-          <button onClick={copyShareLink} className="yb-link">
+          <Button variant="link" size="sm" className="h-auto p-0" onClick={copyShareLink}>
             {copied ? "Link copied ✓" : "Share"}
-            <span role="status" className="yb-sr-only">
+            <span role="status" className="sr-only">
               {copied ? "Share link copied to clipboard" : ""}
             </span>
-          </button>
+          </Button>
         )}
-        {result.cached && <span className="yb-muted" style={{ fontSize: 12 }}>Cached</span>}
+        {result.cached && <span className="text-xs text-muted-foreground">Cached</span>}
       </div>
 
-      {showSql && <pre className="yb-sql" style={{ marginTop: 12 }}>{result.sql}</pre>}
-    </section>
+      {showSql && (
+        <pre className="overflow-x-auto rounded-md border bg-muted p-4 font-mono text-xs text-muted-foreground">
+          {result.sql}
+        </pre>
+      )}
+    </Card>
   );
 }
