@@ -186,11 +186,18 @@ export default function ScoresPage() {
               <Performers performers={performers?.performers ?? null} loading={!performers} count={5} />
             </section>
 
-            <div className="yb-games-grid" style={{ opacity: loading ? 0.6 : 1 }}>
-              {data.games.map((g) => (
-                <GameCard key={g.game_id} game={g} />
-              ))}
-            </div>
+            {data.games.length === 0 ? (
+              <div className="yb-state">
+                <h2>No games this week</h2>
+                <p>Nothing final for week {data.week} yet. Pick another week above.</p>
+              </div>
+            ) : (
+              <div className="yb-games-grid" style={{ opacity: loading ? 0.6 : 1 }}>
+                {data.games.map((g) => (
+                  <GameCard key={g.game_id} game={g} />
+                ))}
+              </div>
+            )}
           </>
         )}
 

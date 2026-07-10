@@ -23,7 +23,11 @@ export function Performers({
       </ol>
     );
   }
-  if (!performers || performers.length === 0) return null;
+  // The section heading renders above this component — an empty week needs a
+  // line under it, not a silent gap.
+  if (!performers || performers.length === 0) {
+    return <p className="yb-muted">No completed games this week yet.</p>;
+  }
 
   const top = performers[0]!;
   const rest = performers.slice(1, count);

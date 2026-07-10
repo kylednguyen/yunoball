@@ -13,7 +13,7 @@ Prompts:
 - [x] 5. Standardize the Border Radius Scale — scale existed; fixed one skeleton radius mismatch (12→14); micro-radii deliberate
 - [x] 6. Strengthen Overall Visual Hierarchy — verified strong 3-tier hierarchy on home/leaders/scores/fantasy; no change needed. Scores' active week tab can be off-screen → handle in 89/92
 - [x] 7. Polish All Button Interaction States — all states existed; fixed hover firing on disabled buttons
-- [ ] 8. Design Helpful Empty States
+- [x] 8. Design Helpful Empty States — added scores empty-week state and Performers empty fallback; others already covered
 - [ ] 9. Unify the App's Iconography
 - [ ] 10. Run a Full Consistency Audit
 - [ ] 11. Audit Mobile and Tablet Breakpoints
