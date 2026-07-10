@@ -96,7 +96,7 @@ Prompts:
 - [x] 88. Add a Command Palette — ⌘K//' now focuses the fuzzy quick search on every page (it already was the palette)
 - [x] 89. Show Clear Active Location Indicators — /games→Scores nav mapping + active week tab scrolls into view
 - [x] 90. Add Breadcrumbs for Deep Navigation — n/a: semantic Crumbs component already on all 6 deep pages
-- [ ] 91. Improve In-App Search Experience
+- [x] 91. Improve In-App Search Experience — match highlighting in suggestions; rest already strong
 - [ ] 92. Fix Scroll Position and Back Behavior
 - [ ] 93. Add Useful Keyboard Shortcuts
 - [ ] 94. Reduce Friction in Key Flows
