@@ -38,7 +38,7 @@ Prompts:
 - [x] 30. Standardize Text Casing and Labels — leaderboard categories sentence-cased; convention verified elsewhere in ui 10
 - [x] 31. Run a Full Performance Audit — report: no-store fetches everywhere (→38), 300-row fantasy fetch (→44), suggest debounce check (→41); bundle already minimal
 - [x] 32. Shrink the JavaScript Bundle — n/a: deps are next+react only, all components imported
-- [ ] 33. Add Route-Based Code Splitting
+- [x] 33. Add Route-Based Code Splitting — n/a: app router auto-splits; no heavy lazy candidates
 - [ ] 34. Optimize and Modernize All Images
 - [ ] 35. Implement Content-Aware Loading Skeletons
 - [ ] 36. Virtualize Long Scrolling Lists
