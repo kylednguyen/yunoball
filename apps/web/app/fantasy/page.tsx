@@ -54,6 +54,8 @@ export default function FantasyPage() {
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");
   const [query, setQuery] = useState("");
   const [lineup, setLineup] = useState<Lineup>({});
+  // Clearing 7 picks deserves a takeback, not a confirm dialog.
+  const [undoLineup, setUndoLineup] = useState<Lineup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -247,11 +249,26 @@ export default function FantasyPage() {
                 </button>
                 <button
                   className="yb-btn ghost"
-                  onClick={() => setLineup({})}
+                  onClick={() => {
+                    setUndoLineup(lineup);
+                    setLineup({});
+                    setTimeout(() => setUndoLineup(null), 8000);
+                  }}
                   disabled={filled === 0}
                 >
                   Clear
                 </button>
+                {undoLineup && (
+                  <button
+                    className="yb-link"
+                    onClick={() => {
+                      setLineup(undoLineup);
+                      setUndoLineup(null);
+                    }}
+                  >
+                    Undo clear
+                  </button>
+                )}
               </div>
             </section>
 
