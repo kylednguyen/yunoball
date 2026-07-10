@@ -64,7 +64,7 @@ Prompts:
 - [x] 56. Fix Page Titles and Language — %s · YunoBall template + useTitle hook on all client pages incl. dynamic player/team names
 - [x] 57. Add Small Purposeful Micro-Interactions — n/a: press/hover/bars/confirmations all present on token timing
 - [x] 58. Standardize Animation Timing and Easing — system existed; added --dur-reveal for the one literal, loops exempt
-- [ ] 59. Implement Smooth Page Transitions
+- [x] 59. Implement Smooth Page Transitions — template.tsx entrance fade per navigation, reduced-motion safe
 - [ ] 60. Animate Value and State Changes
 - [ ] 61. Refine Hover and Focus Feedback
 - [ ] 62. Add Tasteful Scroll-Triggered Animations
