@@ -21,6 +21,19 @@ type Item =
 
 /** Search input with entity typeahead: teams and players jump straight to
  *  their pages, anything else runs as a stats question. ARIA combobox. */
+/** First case-insensitive match of the query inside a label -> <mark>. */
+function Hit({ text, q }: { text: string; q: string }) {
+  const i = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
+  if (i < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="yb-hit">{text.slice(i, i + q.length)}</mark>
+      {text.slice(i + q.length)}
+    </>
+  );
+}
+
 export function SearchSuggest({
   value,
   onValueChange,
@@ -178,7 +191,7 @@ export function SearchSuggest({
                 <>
                   <TeamLogo team={item.id} size={24} />
                   <span className="who">
-                    <span className="nm">{item.label}</span>
+                    <span className="nm"><Hit text={item.label} q={value} /></span>
                     <span className="sub">{item.sub}</span>
                   </span>
                 </>
@@ -187,7 +200,7 @@ export function SearchSuggest({
                 <>
                   <Headshot src={item.headshot} name={item.label} size={24} />
                   <span className="who">
-                    <span className="nm">{item.label}</span>
+                    <span className="nm"><Hit text={item.label} q={value} /></span>
                     <span className="sub">{item.sub}</span>
                   </span>
                 </>
