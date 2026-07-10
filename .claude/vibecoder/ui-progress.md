@@ -43,7 +43,7 @@ Prompts:
 - [x] 35. Implement Content-Aware Loading Skeletons — n/a: all data views already have shaped shimmering skeletons
 - [x] 36. Virtualize Long Scrolling Lists — n/a: max 300 capped rows; virtualization unwarranted
 - [x] 37. Eliminate Unnecessary Component Re-renders — n/a: page-local state, no hotspots at this scale
-- [ ] 38. Cache and Dedupe Data Fetching
+- [x] 38. Cache and Dedupe Data Fetching — getJson helper: 60s TTL cache + in-flight dedupe across all 12 GET endpoints
 - [ ] 39. Add Optimistic UI Updates
 - [ ] 40. Prefetch Data on User Intent
 - [ ] 41. Debounce and Throttle Costly Handlers

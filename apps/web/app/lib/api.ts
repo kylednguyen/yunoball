@@ -64,6 +64,50 @@ export type {
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+/* Client-side GET cache: 60s TTL + in-flight dedupe. Revisited screens
+   render instantly from memory while stats change on ingest cadence, not
+   per-second. POSTs (ask/askAgent) stay uncached.
+   ponytail: TTL cache, swap for stale-while-revalidate if freshness bites. */
+const TTL_MS = 60_000;
+const jsonCache = new Map<string, { at: number; data: unknown }>();
+const inflight = new Map<string, Promise<unknown>>();
+
+class HttpError extends Error {
+  constructor(public status: number) {
+    super(`Request failed (${status})`);
+  }
+}
+
+async function getJson<T>(path: string): Promise<T> {
+  const hit = jsonCache.get(path);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.data as T;
+  const pending = inflight.get(path);
+  if (pending) return pending as Promise<T>;
+  const p = (async () => {
+    const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+    if (!res.ok) throw new HttpError(res.status);
+    const data = (await res.json()) as unknown;
+    jsonCache.set(path, { at: Date.now(), data });
+    return data;
+  })();
+  inflight.set(path, p);
+  try {
+    return (await p) as T;
+  } finally {
+    inflight.delete(path);
+  }
+}
+
+/** GET where a 404 means "doesn't exist" rather than an error. */
+async function getJsonOr404<T>(path: string): Promise<T | null> {
+  try {
+    return await getJson<T>(path);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 404) return null;
+    throw e;
+  }
+}
+
 export interface LeaderboardFilters {
   season?: number;
   team?: string;
@@ -82,26 +126,15 @@ export async function ask(question: string): Promise<AnswerResult> {
 }
 
 export async function fetchExamples(n = 4): Promise<string[]> {
-  const res = await fetch(`${API_URL}/api/search/examples?n=${n}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return ((await res.json()) as { examples: string[] }).examples;
+  return (await getJson<{ examples: string[] }>(`/api/search/examples?n=${n}`)).examples;
 }
 
-export async function fetchSuggest(q: string): Promise<SuggestResponse> {
-  const res = await fetch(`${API_URL}/api/search/suggest?q=${encodeURIComponent(q)}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as SuggestResponse;
+export function fetchSuggest(q: string): Promise<SuggestResponse> {
+  return getJson<SuggestResponse>(`/api/search/suggest?q=${encodeURIComponent(q)}`);
 }
 
-export async function fetchSharedAnswer(shareId: string): Promise<AnswerResult | null> {
-  const res = await fetch(`${API_URL}/api/search/answer/${shareId}`, {
-    cache: "no-store",
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as AnswerResult;
+export function fetchSharedAnswer(shareId: string): Promise<AnswerResult | null> {
+  return getJsonOr404<AnswerResult>(`/api/search/answer/${shareId}`);
 }
 
 export async function fetchLeaderboards(
@@ -113,20 +146,14 @@ export async function fetchLeaderboards(
   if (season) params.set("season", String(season));
   if (filters?.team) params.set("team", filters.team);
   if (filters?.position) params.set("position", filters.position);
-  const res = await fetch(`${API_URL}/api/leaderboards?${params}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as LeaderboardsResponse;
+  return getJson<LeaderboardsResponse>(`/api/leaderboards?${params}`);
 }
 
 export async function fetchGames(season?: number, week?: number): Promise<GamesResponse> {
   const params = new URLSearchParams();
   if (season) params.set("season", String(season));
   if (week) params.set("week", String(week));
-  const res = await fetch(`${API_URL}/api/games?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as GamesResponse;
+  return getJson<GamesResponse>(`/api/games?${params}`);
 }
 
 export async function fetchPerformers(
@@ -137,17 +164,13 @@ export async function fetchPerformers(
   const params = new URLSearchParams({ limit: String(limit) });
   if (season) params.set("season", String(season));
   if (week) params.set("week", String(week));
-  const res = await fetch(`${API_URL}/api/games/performers?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as PerformersResponse;
+  return getJson<PerformersResponse>(`/api/games/performers?${params}`);
 }
 
 export async function fetchStandings(season?: number): Promise<StandingsResponse> {
   const params = new URLSearchParams();
   if (season) params.set("season", String(season));
-  const res = await fetch(`${API_URL}/api/standings?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as StandingsResponse;
+  return getJson<StandingsResponse>(`/api/standings?${params}`);
 }
 
 export async function fetchFantasyPlayers(
@@ -159,28 +182,15 @@ export async function fetchFantasyPlayers(
   if (season) params.set("season", String(season));
   if (position && position !== "ALL") params.set("position", position);
   if (q) params.set("q", q);
-  const res = await fetch(`${API_URL}/api/fantasy/players?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as FantasyPlayersResponse;
+  return getJson<FantasyPlayersResponse>(`/api/fantasy/players?${params}`);
 }
 
-export async function fetchPlayer(playerId: string): Promise<PlayerProfile | null> {
-  const res = await fetch(`${API_URL}/api/players/${encodeURIComponent(playerId)}`, {
-    cache: "no-store",
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as PlayerProfile;
+export function fetchPlayer(playerId: string): Promise<PlayerProfile | null> {
+  return getJsonOr404<PlayerProfile>(`/api/players/${encodeURIComponent(playerId)}`);
 }
 
-export async function fetchBoxScore(gameId: string): Promise<BoxScore | null> {
-  const res = await fetch(
-    `${API_URL}/api/games/${encodeURIComponent(gameId)}/boxscore`,
-    { cache: "no-store" },
-  );
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as BoxScore;
+export function fetchBoxScore(gameId: string): Promise<BoxScore | null> {
+  return getJsonOr404<BoxScore>(`/api/games/${encodeURIComponent(gameId)}/boxscore`);
 }
 
 export async function fetchPlayerSplits(
@@ -189,13 +199,9 @@ export async function fetchPlayerSplits(
 ): Promise<PlayerSplits | null> {
   const params = new URLSearchParams();
   if (season) params.set("season", String(season));
-  const res = await fetch(
-    `${API_URL}/api/players/${encodeURIComponent(playerId)}/splits?${params}`,
-    { cache: "no-store" },
+  return getJsonOr404<PlayerSplits>(
+    `/api/players/${encodeURIComponent(playerId)}/splits?${params}`,
   );
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as PlayerSplits;
 }
 
 export async function fetchTeam(
@@ -204,13 +210,7 @@ export async function fetchTeam(
 ): Promise<TeamProfile | null> {
   const params = new URLSearchParams();
   if (season) params.set("season", String(season));
-  const res = await fetch(
-    `${API_URL}/api/teams/${encodeURIComponent(teamId)}?${params}`,
-    { cache: "no-store" },
-  );
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as TeamProfile;
+  return getJsonOr404<TeamProfile>(`/api/teams/${encodeURIComponent(teamId)}?${params}`);
 }
 
 export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
