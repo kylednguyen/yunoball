@@ -66,7 +66,7 @@ Prompts:
 - [x] 58. Standardize Animation Timing and Easing — system existed; added --dur-reveal for the one literal, loops exempt
 - [x] 59. Implement Smooth Page Transitions — template.tsx entrance fade per navigation, reduced-motion safe
 - [x] 60. Animate Value and State Changes — n/a: bars/fills/entries animate; counters static by design
-- [ ] 61. Refine Hover and Focus Feedback
+- [x] 61. Refine Hover and Focus Feedback — n/a: verified hover+focus+active on every control class
 - [ ] 62. Add Tasteful Scroll-Triggered Animations
 - [ ] 63. Smooth the Loading-To-Content Transition
 - [ ] 64. Improve Drag-And-Drop Interface Affordances
