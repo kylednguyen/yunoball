@@ -156,7 +156,12 @@ export function Nav() {
       {pathname !== "/" && <QuickSearch />}
       <div className="yb-nav-links">
         {LINKS.map(({ href, label, badge, icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const active =
+            href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(href) ||
+                // Box scores are children of Scores in the IA.
+                (href === "/scores" && pathname.startsWith("/games"));
           return (
             <Link key={href} href={href} aria-current={active ? "page" : undefined}>
               <NavIcon name={icon} />
