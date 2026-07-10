@@ -56,16 +56,13 @@ export default function AssistantPage() {
         </div>
         <p className="yb-page-sub">
           Judgment calls, not just lookups: start/sit verdicts weigh production, PPR floor, offense
-          environment and TD reliance — every number from the warehouse. For basic stat questions,
+          environment and TD reliance. Every number comes from the warehouse. For basic stat questions,
           use <a href="/">Search</a>.
         </p>
 
         <div className="yb-chat" aria-live="polite">
           {messages.length === 0 && (
             <div className="yb-state" style={{ marginTop: 0 }}>
-              <div className="yb-glyph" aria-hidden="true">
-                🏈
-              </div>
               <h2>What do you want to know?</h2>
               <p>Try one of these to get going:</p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
@@ -85,7 +82,7 @@ export default function AssistantPage() {
                 <div className="yb-msg-tools">
                   {m.steps.map((s, j) => (
                     <span key={j} className="yb-chip-static" title={s.summary}>
-                      ⚙ {s.tool}
+                      {s.tool}
                     </span>
                   ))}
                 </div>
@@ -103,7 +100,7 @@ export default function AssistantPage() {
 
         {error && (
           <p role="alert" style={{ color: "var(--danger)", fontSize: 14 }}>
-            {error} — try again.
+            {error}. Try again.
           </p>
         )}
 

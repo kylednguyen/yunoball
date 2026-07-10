@@ -4,125 +4,123 @@
 
 ## Core thesis
 
-A stats product lives or dies on **accuracy**. Free-form RAG over text will
-hallucinate numbers. So YunoBall is **natural-language → structured query** over
-a curated, authoritative warehouse. The LLM *translates and narrates*; the
-database is the *source of truth*; the vector store handles the fuzzy bits
-(entity resolution + few-shot retrieval), never the facts.
+A stats product lives or dies on **accuracy**. Free-form generation over text
+will hallucinate numbers. So YunoBall is **natural-language → structured query**
+over a curated, authoritative warehouse. A deterministic parser *translates*,
+a template builder *writes the SQL*; the database is the *source of truth*.
 
 ## Stack
+
+One language, one runtime — TypeScript end to end:
 
 | Layer | Choice |
 |---|---|
 | Frontend | Next.js (App Router, TypeScript) |
-| Backend | FastAPI (Python) |
-| Database | Postgres + pgvector (Supabase) |
-| Cache | Redis (answer cache, rate limiting, follow-up state) |
-| Data | nflverse via `nfl_data_py` (NFL-only for now) |
-| LLM + embeddings | OpenAI (`gpt-4o` for SQL, `gpt-4o-mini` to narrate, `text-embedding-3-small`) |
-
-The backend and the data/ML layer are both Python, so ingestion, the NL→SQL
-pipeline, and embeddings share one language and one schema definition.
+| Backend | Express (TypeScript) — `apps/server` |
+| Shared types | `packages/types` — the API wire contract, imported by web and server |
+| Database | Postgres (Supabase-hostable; plain SQL schema + idempotent migrate) |
+| Cache | In-process two-tier answer cache; durable share store in Postgres |
+| Data | nflverse release files via the `ingest/providers/nflverse` module |
 
 ## System map
 
 ```
             ┌──────────────────────── apps/web (Next.js) ────────────────────────┐
-            │  search box → answer card (narration + table + "show the SQL")      │
-            └──────────────────────────────────┬───────────────────────────────────┘
-                                                │  POST /api/search
-            ┌──────────────────────── apps/api (FastAPI) ────────────────────────┐
-            │  run_query_pipeline (structured-first):                              │
-            │    L1 cache      (text; semantic slot) ── hit ─► response            │
-            │    resolve       (fuzzy name → canonical player_id)                  │
-            │    parse         (rules fast-path; else LLM function-call → JSON)    │
-            │    validate      (QuerySpec: allowlisted stat, bounded params)       │
-            │    L2 cache      (spec key) ── hit ─► response                       │
-            │    build         (deterministic template, bound params — no guard)   │
-            │    execute       (read-only role + statement_timeout, threaded)      │
-            │    narrate       (templated from spec + rows — no 2nd LLM call)      │
-            │    └ long-tail fallback: raw NL→SQL → sqlglot guard → execute        │
-            └──────────────────────────────────┬───────────────────────────────────┘
-                                                │
-            ┌──────────── Supabase Postgres + pgvector (packages/db) ─────────────┐
-            │  star schema: seasons · teams · players · games                      │
-            │              player_game_stats · team_game_stats · plays             │
-            │              player_season_stats (rollup)                            │
-            │  RAG: entity_aliases · query_examples · answer_cache                 │
-            │  (SQLAlchemy models + Alembic — one schema, shared by api + ingest)  │
-            └──────────────────────────────────▲───────────────────────────────────┘
-                                                │  upsert (idempotent)
-            ┌──────────── packages/ingest (Python · nfl_data_py) ─────────────────┐
-            │  nflverse → reshape → warehouse                                      │
-            └────────────────────────────────────────────────────────────────────┘
+            │  search box → answer card (narration + table + "show the SQL")     │
+            └──────────────────────────────────┬──────────────────────────────────┘
+                                               │  /api/* (types: packages/types)
+            ┌─────────────────────── apps/server (Express) ──────────────────────┐
+            │  routes → controllers (zod validation) → services → repositories   │
+            │                                                                     │
+            │  engine (POST /api/search):                                         │
+            │    L1 cache   (normalized text) ── hit ─► response                  │
+            │    resolve    (fuzzy name → canonical player_id)                    │
+            │    parse      (deterministic rules → QuerySpec)                     │
+            │    L2 cache   (spec key) ── hit ─► response                         │
+            │    build      (allowlisted template, bound params — injection-proof)│
+            │    execute    (read-only role)                                      │
+            │    narrate    (templated from spec + rows)                          │
+            │                                                                     │
+            │  agent (POST /api/agent): intent routing over the same services     │
+            └──────────────────────────────────┬──────────────────────────────────┘
+                                               │
+            ┌───────────────────────── Postgres warehouse ────────────────────────┐
+            │  star schema: seasons · teams · players · games                     │
+            │              player_game_stats · team_game_stats                    │
+            │              player_season_stats (rollup)   answer_cache (shares)   │
+            │  (schema.sql + `pnpm db:migrate`, idempotent)                       │
+            └──────────────────────────────────▲──────────────────────────────────┘
+                                               │  batched idempotent upserts
+            ┌──────────────── apps/server/src/ingest (`pnpm ingest:nfl`) ─────────┐
+            │  providers/nflverse (CSV, disk cache, retries)                      │
+            │    → normalize (stable ids, relocations, REG/POST)                  │
+            │    → validate (zod, skip + log malformed rows)                      │
+            │    → upsert (transactions, failure isolation per dataset)           │
+            └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Why these choices
 
 | Decision | Rationale |
 |---|---|
-| Structured intent, not raw SQL | LLM emits a typed `QuerySpec` (tiny JSON), not SQL → faster, cacheable, and injection-proof: we build the SQL. |
+| Structured intent, not raw SQL | The parser emits a typed `QuerySpec`, never SQL → fast, cacheable, and injection-proof: we build the SQL from allowlists. |
 | Numbers from facts, not RAG | Answers are computed from the warehouse, never retrieved from prose. |
-| FastAPI (Python) backend | Collapses backend + data/ML into one language; no Node↔Python seam. |
-| Postgres + pgvector | One datastore for relational facts *and* embeddings. Supabase-hosted. |
-| Two-tier cache (L1 text, L2 spec) | Front-loaded so repeats skip the LLM entirely; in-memory when Redis is absent. |
-| SQLAlchemy + Alembic | One schema definition, owned by the Python backend, shared with ingest. |
-| nflverse / `nfl_data_py` | Free, open, comprehensive (PBP back to 1999). No scraping/ToS risk. |
-| Read-only role + sqlglot guard | Guards the raw-SQL *fallback*; the structured path needs no guard (SQL is templated). |
+| Express (TypeScript) backend | One language and runtime across the whole app; types shared with the frontend so the contract can't drift. |
+| Plain-SQL schema + idempotent migrate | The warehouse is seven tables; `CREATE TABLE IF NOT EXISTS` beats a migration framework at this size. |
+| nflverse release CSVs | Free, open, comprehensive (stats back to 1999). No scraping/ToS risk, no SDK dependency. |
+| Provider modules under `ingest/providers` | New sources (ESPN, SportsDataIO, live scoring, injuries...) are independent modules; the public API never changes. |
+| Read-only role for reads | Engine-executed SQL and API reads run least-privilege when `READONLY_DATABASE_URL` is set. |
 
 ## Query pipeline
 
-The common path never touches raw SQL and often skips the LLM entirely:
+The common path is deterministic end to end:
 
-1. **L1 cache** — normalized text (+ semantic slot). Repeat/near-duplicate → instant.
-2. **Resolve** — fuzzy-match names to a canonical `player_id` (last-name / typo tolerant).
-3. **Parse to `QuerySpec`** — rules fast-path (0 LLM); LLM **function-call** for the long tail. Both emit the same typed spec, never SQL.
-4. **Validate** — the spec is untrusted: stat must be allowlisted, params bounded.
-5. **L2 cache** — keyed on the spec, so different phrasings that mean the same thing share an answer.
-6. **Build → execute** — deterministic template with **bound params**; run on the read-only engine.
-7. **Narrate** — templated from spec + rows. No second LLM call.
-8. **Fallback** — anything unparseable drops to raw NL→SQL, guarded by sqlglot.
+1. **L1 cache** — normalized question text. Repeats → instant.
+2. **Resolve** — fuzzy-match names to a canonical `player_id` (last-name / typo tolerant; a difflib-equivalent matcher).
+3. **Parse to `QuerySpec`** — rule-based, zero-LLM. Intents: leaders, player totals (season/career/first-N), single-game marks, player-vs-player comparisons, REG/POST scopes.
+4. **L2 cache** — keyed on the spec, so different phrasings that mean the same thing share an answer.
+5. **Build → execute** — deterministic template with **bound params**; stat columns come only from an allowlist.
+6. **Narrate** — templated from spec + rows.
+7. Questions that don't parse get an honest "can't answer that yet" — never a guess.
 
-Result: the head of the distribution answers in **≤1 LLM call (often 0)**, and every
-answer is safe by construction.
+Every answer records a durable `share_id` (Postgres `answer_cache`) powering
+`/a/<share_id>` share pages.
 
-Accuracy is tracked by an eval harness (`app/eval`) — a golden question→answer
-set scored through the real pipeline on parse + execution accuracy, gating CI.
+## Ingestion
+
+`pnpm ingest:nfl --season 2024` (or `--all`, `--years ...`,
+`--season-type REG`, `--dry-run`). Idempotent upserts; per-dataset failure
+isolation; every malformed/orphaned row is skipped with a logged reason and an
+end-of-run tally. Normalization: stable ids (gsis player ids, nflverse game
+ids, current-franchise team ids with relocations folded forward), playoff
+rounds collapsed to `POST`, postponed games kept with `NULL` scores.
+`scoring_plays` distills play-by-play down to touchdown events only (~1.4k
+rows/season instead of ~50k), powering first/last-TD questions and the
+player-page touchdown log without storing full pbp.
+
+Table relationships:
+
+```
+seasons ◄────────── games ──────────► teams
+   ▲                  ▲                 ▲
+player_season_stats   ├── player_game_stats (player × game)
+   │                  ├── team_game_stats   (team × game)
+   ▼                  └── scoring_plays     (touchdown events)
+players ◄── player_game_stats.player_id / scoring_plays.player_id
+```
 
 ## What makes it "more advanced" than StatMuse
 
 - **Transparency** — every answer exposes the exact SQL + source rows.
-- **Situational/advanced stats** — play-by-play powers "3rd-and-long conversion
-  rate when trailing in Q4," EPA/WP splits, etc.
-- **Conversational follow-ups** — "...and in the playoffs?" carries context.
-- **Shareable answer cards** and deeper free historical coverage.
+- **Deep coverage** — a full 1999–present warehouse of box scores and rollups.
+- **Shareable answer cards** and computed-on-the-fly standings/leaderboards.
 
-## Roadmap
+## Testing
 
-**Query engine** ✅ — structured `QuerySpec` pipeline (rules fast-path + LLM
-function-call → deterministic SQL builder), fuzzy entity resolution, two-tier
-cache (L1 text + L2 spec), templated narration (≤1 LLM call), with a guarded raw
-NL→SQL fallback for the long tail.
-
-**Warehouse & product (Phases 1–4)** ✅
-- **Phase 1** — warehouse + ingest 2022–2024 (box score + rollups + PBP), least-privilege read-only role, **eval harness** (parse + execution accuracy).
-- **Phase 2** — entity resolution (pg_trgm + pgvector over `entity_aliases`) and few-shot retrieval (pgvector over `query_examples`, keyword fallback).
-- **Phase 3** — bar charts, season leaderboards (`/api/leaderboards`), shareable answer pages (`/a/<share_id>` backed by `answer_cache`), Redis + Postgres write-through.
-- **Phase 4** — play-by-play ingest + situational/EPA metrics.
-
-**Deploy** ✅ — Vercel (web), Render/Fly (API), docker-compose (local).
-
-**Next** ⬜ — full 1999–present backfill (widen `--years`/`--all`), more intents (team/comparison/situational, with eval cases), semantic cache (pgvector slot exists), multi-sport (engine is sport-agnostic; e.g. `pybaseball`).
-
-> **Local dev note.** Runs against Docker Postgres+pgvector / Redis with real
-> nflverse data. `nfl_data_py` constrains the toolchain to Python 3.11
-> (`pandas<2`/`numpy<2`). The LLM-dependent stages (NL→SQL, narration,
-> embeddings) activate when `OPENAI_API_KEY` is set; trigram resolution, keyword
-> few-shot, leaderboards, shareable pages, and the reference eval run without it.
-
-## Eval (non-negotiable)
-
-Accuracy is the product. `app/eval` runs a golden `question → expected` set
-through the real pipeline, scoring **parse accuracy** (right `QuerySpec`) and
-**execution accuracy** (right top answer), and gates CI at 100%. Grow the golden
-set with every new intent so accuracy stays measured, not assumed.
+- `apps/server/test/engine.test.ts` — parser/builder/narration golden cases,
+  including a check that the similarity port matches CPython's difflib.
+- `apps/server/test/ingest.test.ts` — messy-data suite (relocations, duplicate
+  ids, postponed games, orphan stats, dry-run, idempotency, schema drift)
+  against a scratch Postgres database.
+- Playwright e2e (`apps/web/e2e`) over both servers; CI ingests a real season
+  into a service Postgres before running it.

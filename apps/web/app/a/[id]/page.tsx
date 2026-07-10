@@ -26,9 +26,6 @@ export default async function SharedAnswerPage({
           </>
         ) : (
           <div className="yb-state">
-            <div className="yb-glyph" aria-hidden="true">
-              🔗
-            </div>
             <h2>Answer not found</h2>
             <p>This shared answer has expired or never existed.</p>
             <Link href="/" className="yb-btn">

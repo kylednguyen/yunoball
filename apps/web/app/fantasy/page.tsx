@@ -164,14 +164,11 @@ export default function FantasyPage() {
           )}
         </div>
         <p className="yb-page-sub">
-          Build a PPR lineup from real season production. Saved locally, scored from the warehouse.
+          Build a PPR lineup from real season production. Your picks save locally.
         </p>
 
         {error && (
           <div className="yb-state error" role="alert">
-            <div className="yb-glyph" aria-hidden="true">
-              ⚠️
-            </div>
             <h2>Couldn&apos;t load the player pool</h2>
             <p>{error}</p>
           </div>

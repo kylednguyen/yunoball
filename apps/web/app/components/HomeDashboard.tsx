@@ -4,21 +4,20 @@ import { useEffect, useState } from "react";
 
 import { Headshot } from "./Headshot";
 import { Performers } from "./Performers";
+import { TeamLogo } from "./TeamLogo";
 import {
   fetchFantasyPlayers,
-  fetchGames,
   fetchPerformers,
   fetchStandings,
   type FantasyPlayersResponse,
-  type GamesResponse,
   type PerformersResponse,
   type StandingsResponse,
 } from "../lib/api";
 
-/** The sports-platform front page: latest scores, the standings picture and
- *  the top fantasy performers — every panel a doorway into its full page. */
+/** The sports-platform front page below the ticker: performers of the week,
+ *  the standings picture and the top fantasy performers. Every panel is a
+ *  doorway into its full page. */
 export function HomeDashboard() {
-  const [games, setGames] = useState<GamesResponse | null>(null);
   const [standings, setStandings] = useState<StandingsResponse | null>(null);
   const [fantasy, setFantasy] = useState<FantasyPlayersResponse | null>(null);
   const [performers, setPerformers] = useState<PerformersResponse | null>(null);
@@ -27,17 +26,17 @@ export function HomeDashboard() {
   useEffect(() => {
     let active = true;
     Promise.allSettled([
-      fetchGames(),
       fetchStandings(),
       fetchFantasyPlayers(),
       fetchPerformers(undefined, undefined, 4),
-    ]).then(([g, s, f, p]) => {
+    ]).then(([s, f, p]) => {
       if (!active) return;
-      if (g.status === "fulfilled") setGames(g.value);
       if (s.status === "fulfilled") setStandings(s.value);
       if (f.status === "fulfilled") setFantasy(f.value);
       if (p.status === "fulfilled") setPerformers(p.value);
-      setFailed(g.status === "rejected" && s.status === "rejected" && f.status === "rejected");
+      setFailed(
+        s.status === "rejected" && f.status === "rejected" && p.status === "rejected",
+      );
     });
     return () => {
       active = false;
@@ -53,38 +52,6 @@ export function HomeDashboard() {
 
   return (
     <div className="yb-dash">
-      {/* This week's finals */}
-      <section aria-label="Latest scores">
-        <div className="yb-dash-head">
-          <h2>
-            {games ? `Week ${games.week} · ${games.season}` : "This week"}
-          </h2>
-          <a href="/scores">All scores →</a>
-        </div>
-        <div className="yb-strip">
-          {games
-            ? games.games.map((g) => {
-                const homeWon = (g.home.score ?? 0) > (g.away.score ?? 0);
-                return (
-                  <a key={g.game_id} className="yb-strip-card" href="/scores">
-                    <span className={`row${homeWon ? "" : " win"}`}>
-                      <span>{g.away.team_id}</span>
-                      <span className="pts">{g.away.score}</span>
-                    </span>
-                    <span className={`row${homeWon ? " win" : ""}`}>
-                      <span>{g.home.team_id}</span>
-                      <span className="pts">{g.home.score}</span>
-                    </span>
-                    <span className="tag">{g.final ? "Final" : "—"}</span>
-                  </a>
-                );
-              })
-            : Array.from({ length: 10 }, (_, i) => (
-                <div key={i} className="yb-skel yb-strip-card" style={{ height: 86 }} />
-              ))}
-        </div>
-      </section>
-
       {/* Performers of the week */}
       <section aria-label="Performers of the week">
         <div className="yb-dash-head">
@@ -99,7 +66,7 @@ export function HomeDashboard() {
         <section className="yb-card" aria-label="Division leaders">
           <div className="yb-dash-head">
             <h2>Division leaders</h2>
-            <a href="/standings">Standings →</a>
+            <a href="/teams">All teams →</a>
           </div>
           {leaders ? (
             <table className="yb-mini-table">
@@ -107,7 +74,15 @@ export function HomeDashboard() {
                 {leaders.map(({ division, team }) => (
                   <tr key={division}>
                     <td className="dim">{division}</td>
-                    <td>{team.nickname ?? team.name}</td>
+                    <td>
+                      <a
+                        href={`/teams/${team.team_id}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                      >
+                        <TeamLogo team={team.team_id} size={18} />
+                        {team.nickname ?? team.name}
+                      </a>
+                    </td>
                     <td className="num">
                       {team.wins}-{team.losses}
                       {team.ties ? `-${team.ties}` : ""}

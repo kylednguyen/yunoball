@@ -1,32 +1,20 @@
 import { HomeDashboard } from "./components/HomeDashboard";
 import { Leaders } from "./components/Leaders";
 import { Nav } from "./components/Nav";
+import { ScoreTicker } from "./components/ScoreTicker";
 import { Search } from "./search";
 
 export default function Home() {
   return (
     <>
       <Nav />
+      <ScoreTicker />
       <main id="main">
-        <section
-          style={{
-            maxWidth: 720,
-            margin: "0 auto",
-            padding: "48px 20px 36px",
-            textAlign: "center",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 52,
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              margin: "0 0 10px",
-            }}
-          >
-            Ask anything about the <span style={{ color: "var(--accent)" }}>NFL</span>
+        <section className="yb-hero">
+          <h1>
+            Ask anything about the <span>NFL</span>
           </h1>
-          <p style={{ color: "var(--muted)", fontSize: 18, margin: "0 auto 32px", maxWidth: 520 }}>
+          <p>
             Every answer is computed from real historical data, and we show you the
             query behind it.
           </p>

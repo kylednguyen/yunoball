@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Nav } from "../components/Nav";
 import { Performers } from "../components/Performers";
+import { TeamLogo } from "../components/TeamLogo";
 import {
   fetchGames,
   fetchPerformers,
@@ -28,16 +30,23 @@ function GameCard({ game }: { game: GameRow }) {
         { side: game.home, won: homeWon },
       ].map(({ side, won }) => (
         <div key={side.team_id} className={`yb-game-row${won ? " winner" : ""}`}>
-          <span className="yb-game-team">
+          <Link className="yb-game-team" href={`/teams/${side.team_id}?season=${game.season}`}>
+            <TeamLogo team={side.team_id} />
             <span className="abbr">{side.team_id}</span>
             <span className="nick">{side.nickname ?? side.name}</span>
-          </span>
-          <span className="yb-game-score">{side.score ?? "–"}</span>
+          </Link>
+          <span className="yb-game-score">{side.score ?? "-"}</span>
         </div>
       ))}
       <div className="yb-game-foot">
         <span>{formatDate(game.date)}</span>
-        {game.final && <span className="yb-final-chip">FINAL</span>}
+        {game.final ? (
+          <Link className="yb-link" style={{ fontSize: 12 }} href={`/games/${encodeURIComponent(game.game_id)}`}>
+            Box score →
+          </Link>
+        ) : (
+          <span className="yb-final-chip">UPCOMING</span>
+        )}
       </div>
     </div>
   );
@@ -114,7 +123,7 @@ export default function ScoresPage() {
             </select>
           )}
         </div>
-        <p className="yb-page-sub">Every final from the warehouse, week by week.</p>
+        <p className="yb-page-sub">Every final, week by week.</p>
 
         {data && (
           <div className="yb-week-tabs" role="tablist" aria-label="Week">
@@ -134,9 +143,6 @@ export default function ScoresPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <div className="yb-glyph" aria-hidden="true">
-              ⚠️
-            </div>
             <h2>Couldn&apos;t load scores</h2>
             <p>{error}</p>
           </div>

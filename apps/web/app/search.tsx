@@ -3,14 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 
 import { AnswerCard } from "./components/AnswerCard";
+import { SearchSuggest } from "./components/SearchSuggest";
 import { AnswerSkeleton } from "./components/Skeleton";
 import { ask, type AnswerResult } from "./lib/api";
 
-const EXAMPLES = [
-  "Who threw the most touchdowns in 2023?",
-  "Patrick Mahomes career passing yards",
-  "Most rushing yards in a single game",
-];
+const RECENTS_KEY = "yb:recent-searches";
+
+function loadRecents(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENTS_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export function Search() {
   const [question, setQuestion] = useState("");
@@ -18,7 +24,12 @@ export function Search() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
+  const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setRecents(loadRecents());
+  }, []);
 
   // Global shortcut: "/" or ⌘K / Ctrl-K focuses the search from anywhere.
   useEffect(() => {
@@ -68,6 +79,9 @@ export function Search() {
     setResult(null);
     try {
       setResult(await ask(q));
+      const next = [q, ...loadRecents().filter((r) => r !== q)].slice(0, 4);
+      localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+      setRecents(next);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -81,56 +95,69 @@ export function Search() {
 
   return (
     <div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (question.trim()) run(question.trim());
-        }}
-      >
-        <div className="yb-search-wrap">
-          <input
-            ref={inputRef}
-            className="yb-search"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Search NFL stats, players, teams…"
-            aria-label="Search NFL stats, players, and teams"
-            autoFocus
-          />
+      <div className="yb-search-wrap" role="search">
+        <SearchSuggest
+          value={question}
+          onValueChange={setQuestion}
+          onSearch={(q) => run(q)}
+          placeholder="Search NFL stats, players, teams…"
+          inputClass="yb-search"
+          ariaLabel="Search NFL stats, players, and teams"
+          autoFocus
+          inputRef={inputRef}
+        >
           <span className="yb-kbd-hint" aria-hidden="true">
             /
           </span>
-        </div>
-      </form>
+        </SearchSuggest>
+      </div>
 
-      <div
-        style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, justifyContent: "center" }}
-      >
-        {EXAMPLES.map((ex) => (
+      {recents.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            marginTop: 10,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <span className="yb-muted" style={{ fontSize: 12 }}>
+            Recent:
+          </span>
+          {recents.map((r) => (
+            <button
+              key={r}
+              className="yb-chip"
+              onClick={() => {
+                setQuestion(r);
+                run(r);
+              }}
+            >
+              {r}
+            </button>
+          ))}
           <button
-            key={ex}
-            className="yb-chip"
-            aria-pressed={active === ex}
+            className="yb-link"
+            style={{ fontSize: 12 }}
             onClick={() => {
-              setQuestion(ex);
-              run(ex);
+              localStorage.removeItem(RECENTS_KEY);
+              setRecents([]);
             }}
           >
-            {ex}
+            Clear
           </button>
-        ))}
-      </div>
+        </div>
+      )}
 
       <div aria-live="polite" aria-busy={loading}>
         {loading && <AnswerSkeleton />}
 
         {error && (
           <div className="yb-state error" role="alert">
-            <div className="yb-glyph" aria-hidden="true">
-              ⚠️
-            </div>
             <h2>Something went wrong</h2>
-            <p>{error}. Your question is fine. This one is on us.</p>
+            <p>{error}</p>
             <button className="yb-btn" onClick={() => active && run(active)}>
               Try again
             </button>
@@ -139,9 +166,6 @@ export function Search() {
 
         {empty && (
           <div className="yb-state">
-            <div className="yb-glyph" aria-hidden="true">
-              🔍
-            </div>
             <h2>No data for that question yet</h2>
             <p>We couldn&apos;t find stats matching your query. Try a different season, player, or phrasing.</p>
           </div>
