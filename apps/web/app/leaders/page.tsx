@@ -13,7 +13,7 @@ import { SeasonSelect } from "../components/SeasonSelect";
 import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
-import { useLeaderboards, useSeasonParam, useStandings, useTitle } from "../lib/hooks";
+import { useLeaderboards, useSeasonParam, useStandings, useStrParam, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
 import type { LeaderRow, StandingRow } from "../lib/api";
 
@@ -28,8 +28,9 @@ export default function LeadersPage() {
   useTitle("League leaders");
   const [season, setSeason] = useSeasonParam();
   const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [team, setTeam] = useState("ALL");
-  const [position, setPosition] = useState("ALL");
+  // Filters live in the URL — shareable and stable across back-navigation.
+  const [team, setTeam] = useStrParam("team", "ALL");
+  const [position, setPosition] = useStrParam("position", "ALL");
 
   const { data, error, loading } = useLeaderboards(
     season,

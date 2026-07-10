@@ -113,6 +113,32 @@ export function useSeasonParam(): [number | undefined, (s: number | undefined) =
   return useNumParam("season");
 }
 
+/** String view state mirrored into the URL; `def` values stay out of it. */
+export function useStrParam(
+  name: string,
+  def: string,
+): [string, (v: string) => void] {
+  const [value, setValue] = useState(def);
+
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get(name);
+    if (v) setValue(v);
+  }, [name]);
+
+  const set = useCallback(
+    (v: string) => {
+      setValue(v);
+      const url = new URL(window.location.href);
+      if (v && v !== def) url.searchParams.set(name, v);
+      else url.searchParams.delete(name);
+      window.history.replaceState(null, "", url);
+    },
+    [name, def],
+  );
+
+  return [value, set];
+}
+
 /** Per-page document title — client pages can't export metadata, so tabs,
  * history and screen readers get their titles here. */
 export function useTitle(title: string | null | undefined): void {
