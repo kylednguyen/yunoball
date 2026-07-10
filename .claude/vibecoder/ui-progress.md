@@ -61,7 +61,7 @@ Prompts:
 - [x] 53. Build Fully Accessible Modals — n/a: no modals; popovers follow combobox/listbox patterns
 - [x] 54. Don't Rely on Color Alone — underlined in-prose links; other signals already paired with weight/text
 - [x] 55. Add a Skip-To-Content Link — n/a: already present, focus-revealed, #main on every page
-- [ ] 56. Fix Page Titles and Language
+- [x] 56. Fix Page Titles and Language — %s · YunoBall template + useTitle hook on all client pages incl. dynamic player/team names
 - [ ] 57. Add Small Purposeful Micro-Interactions
 - [ ] 58. Standardize Animation Timing and Easing
 - [ ] 59. Implement Smooth Page Transitions

@@ -4,7 +4,7 @@ import { Nav } from "../components/Nav";
 import { Glossary } from "./glossary";
 
 export const metadata: Metadata = {
-  title: "NFL glossary - YunoBall",
+  title: "NFL glossary",
   description:
     "Every stat, fantasy term and league concept used across YunoBall, defined in plain language.",
 };

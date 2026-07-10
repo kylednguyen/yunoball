@@ -24,7 +24,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "YunoBall - the all-in-one NFL platform",
+  title: {
+    default: "YunoBall — the all-in-one NFL platform",
+    template: "%s · YunoBall",
+  },
   description:
     "Scores, standings, fantasy lineups, leaderboards and an AI assistant. Every number computed from real data.",
 };

@@ -6,11 +6,12 @@ import { Crumbs } from "../components/Crumbs";
 import { Nav } from "../components/Nav";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { TeamLogo } from "../components/TeamLogo";
-import { useSeasonParam, useStandings } from "../lib/hooks";
+import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 
 /** All 32 teams as clickable cards, grouped by division. Records come from the
  *  standings endpoint so this page needs no API of its own. */
 export default function TeamsPage() {
+  useTitle("Teams");
   const [season, setSeason] = useSeasonParam();
   const { data, error, loading } = useStandings(season);
 

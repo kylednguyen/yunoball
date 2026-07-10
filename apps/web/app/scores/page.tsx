@@ -1,5 +1,7 @@
 "use client";
 
+import { useTitle } from "../lib/hooks";
+
 import { tablistKeys } from "../components/tablist";
 
 import Link from "next/link";
@@ -55,6 +57,7 @@ function GameCard({ game }: { game: GameRow }) {
 }
 
 export default function ScoresPage() {
+  useTitle("Scores");
   const [data, setData] = useState<GamesResponse | null>(null);
   const [season, setSeason] = useState<number | undefined>(undefined);
   const [week, setWeek] = useState<number | undefined>(undefined);

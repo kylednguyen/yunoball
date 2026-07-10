@@ -1,5 +1,7 @@
 "use client";
 
+import { useTitle } from "../lib/hooks";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -45,6 +47,7 @@ function statLine(p: FantasyPlayer): string {
 }
 
 export default function FantasyPage() {
+  useTitle("Fantasy lineup builder");
   const [data, setData] = useState<FantasyPlayersResponse | null>(null);
   const [season, setSeason] = useState<number | undefined>(undefined);
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");

@@ -13,7 +13,7 @@ import { SeasonSelect } from "../components/SeasonSelect";
 import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
-import { useLeaderboards, useSeasonParam, useStandings } from "../lib/hooks";
+import { useLeaderboards, useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 import type { LeaderRow, StandingRow } from "../lib/api";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"] as const;
@@ -24,6 +24,7 @@ const TEAM_TAB = "team_rankings";
  * whole-league team rankings tab. Every row links to a player or team page.
  */
 export default function LeadersPage() {
+  useTitle("League leaders");
   const [season, setSeason] = useSeasonParam();
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [team, setTeam] = useState("ALL");

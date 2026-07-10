@@ -1,5 +1,7 @@
 "use client";
 
+import { useTitle } from "../lib/hooks";
+
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -19,6 +21,7 @@ const SUGGESTIONS = [
 ];
 
 export default function AssistantPage() {
+  useTitle("Fantasy assistant");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);

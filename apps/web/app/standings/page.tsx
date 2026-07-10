@@ -7,7 +7,7 @@ import { Nav } from "../components/Nav";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { SortTable, type SortColumn } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
-import { useSeasonParam, useStandings } from "../lib/hooks";
+import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 import type { StandingsResponse } from "../lib/api";
 
 type TeamRow = StandingsResponse["conferences"][number]["divisions"][number]["teams"][number];
@@ -66,6 +66,7 @@ const columnsFor = (season: number): SortColumn<TeamRow>[] => [
 ];
 
 export default function StandingsPage() {
+  useTitle("Standings");
   const [season, setSeason] = useSeasonParam();
   const { data, error, loading } = useStandings(season);
 

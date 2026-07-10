@@ -12,7 +12,7 @@ import { Headshot } from "../../components/Headshot";
 import { Nav } from "../../components/Nav";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
-import { usePlayer, usePlayerSplits, useSeasonParam } from "../../lib/hooks";
+import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
 import type { PlayerProfile, PlayerSeasonLine, SplitRow } from "../../lib/api";
 
@@ -414,6 +414,7 @@ export default function PlayerPage() {
   const [tab, setTab] = useState<Tab>("Overview");
   const [perGame, setPerGame] = useState(false);
   const { data: profile, error, loading } = usePlayer(playerId);
+  useTitle(profile?.name);
   const { data: splits, loading: splitsLoading } = usePlayerSplits(
     playerId,
     season,

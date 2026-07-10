@@ -101,3 +101,19 @@ export function useSeasonParam(): [number | undefined, (s: number | undefined) =
 
   return [season, set];
 }
+
+/** Per-page document title — client pages can't export metadata, so tabs,
+ * history and screen readers get their titles here. */
+export function useTitle(title: string | null | undefined): void {
+  useEffect(() => {
+    if (!title) return;
+    const full = `${title} · YunoBall`;
+    document.title = full;
+    // Next applies the route's static metadata asynchronously after mount on
+    // first load — re-apply once it has settled.
+    const t = setTimeout(() => {
+      document.title = full;
+    }, 300);
+    return () => clearTimeout(t);
+  }, [title]);
+}

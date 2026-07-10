@@ -9,7 +9,7 @@ import { Nav } from "../../components/Nav";
 import { SeasonSelect } from "../../components/SeasonSelect";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
-import { useSeasonParam, useTeam } from "../../lib/hooks";
+import { useSeasonParam, useTeam, useTitle } from "../../lib/hooks";
 import type { TeamGame, TeamKeyPlayer, TeamStat } from "../../lib/api";
 
 /** 1 -> "1st", 22 -> "22nd" — league rank chips. */
@@ -54,6 +54,7 @@ export default function TeamPage() {
   const params = useParams<{ teamId: string }>();
   const [season, setSeason] = useSeasonParam();
   const { data: team, error, loading } = useTeam(params?.teamId, season);
+  useTitle(team?.name);
   const notFound = !loading && !error && team === null;
 
   return (
