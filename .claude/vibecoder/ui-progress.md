@@ -12,7 +12,7 @@ Prompts:
 - [x] 4. Create an Elevation Shadow System — tiers existed; moved suggest/dropdown popovers to --shadow-pop and layered it
 - [x] 5. Standardize the Border Radius Scale — scale existed; fixed one skeleton radius mismatch (12→14); micro-radii deliberate
 - [x] 6. Strengthen Overall Visual Hierarchy — verified strong 3-tier hierarchy on home/leaders/scores/fantasy; no change needed. Scores' active week tab can be off-screen → handle in 89/92
-- [ ] 7. Polish All Button Interaction States
+- [x] 7. Polish All Button Interaction States — all states existed; fixed hover firing on disabled buttons
 - [ ] 8. Design Helpful Empty States
 - [ ] 9. Unify the App's Iconography
 - [ ] 10. Run a Full Consistency Audit

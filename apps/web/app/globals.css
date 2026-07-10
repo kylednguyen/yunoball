@@ -652,7 +652,7 @@ pre.yb-sql {
   color: var(--accent-contrast);
   border: 1px solid var(--accent);
 }
-.yb-btn:hover {
+.yb-btn:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
   text-decoration: none;
@@ -666,7 +666,7 @@ pre.yb-sql {
   color: var(--text);
   border-color: var(--border);
 }
-.yb-btn.ghost:hover {
+.yb-btn.ghost:hover:not(:disabled) {
   background: var(--bg-soft);
   border-color: var(--border-strong);
 }
