@@ -84,7 +84,7 @@ Prompts:
 - [x] 76. Clarify Form Submission Feedback — n/a: assistant disables+types, search preserves query on error
 - [x] 77. Build a Toast Notification System — n/a: all feedback contextual/inline; no ad-hoc alerts to replace
 - [x] 78. Handle Loading, Empty, Error, Success States — verified all views cover the four states (gaps closed in ui 8)
-- [ ] 79. Add Graceful Error Boundaries
+- [x] 79. Add Graceful Error Boundaries — app/error.tsx: retry + go-home fallback, per-segment scoping
 - [ ] 80. Confirm Destructive and Irreversible Actions
 - [ ] 81. Add Undo for Reversible Actions
 - [ ] 82. Handle Offline and Network Errors
