@@ -42,7 +42,7 @@ Prompts:
 - [x] 34. Optimize and Modernize All Images — ESPN combiner resizing: headshots 256KB→19KB, logos 40KB→3KB; lazy+dims already present
 - [x] 35. Implement Content-Aware Loading Skeletons — n/a: all data views already have shaped shimmering skeletons
 - [x] 36. Virtualize Long Scrolling Lists — n/a: max 300 capped rows; virtualization unwarranted
-- [ ] 37. Eliminate Unnecessary Component Re-renders
+- [x] 37. Eliminate Unnecessary Component Re-renders — n/a: page-local state, no hotspots at this scale
 - [ ] 38. Cache and Dedupe Data Fetching
 - [ ] 39. Add Optimistic UI Updates
 - [ ] 40. Prefetch Data on User Intent
