@@ -103,6 +103,6 @@ Prompts:
 - [x] 95. Make Data Tables Genuinely Usable — n/a: sort/sticky/scroll/hover/tabular-nums all present
 - [x] 96. Add Powerful Filtering and Sorting — leaders team/position now URL params; filters+sort already comprehensive
 - [x] 97. Add Pagination or Infinite Scroll — n/a: all datasets are capped ranked lists
-- [ ] 98. Polish Charts and Data Visualization
+- [x] 98. Polish Charts and Data Visualization — n/a: both chart types labeled, accessible, responsive
 - [ ] 99. Add Bulk Selection and Actions
 - [ ] 100. Add Data Export and Sharing
