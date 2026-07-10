@@ -325,7 +325,7 @@ function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[
   const isQB = position === "QB";
   return (
     <section className="yb-split-group">
-      <h3>{title}</h3>
+      <h2>{title}</h2>
       <div className="yb-table-scroll">
         <table className="yb-table">
           <thead>
