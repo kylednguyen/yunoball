@@ -11,7 +11,7 @@ Prompts:
 - [x] 3. Define a Consistent Spacing Scale — snapped 21 odd px values to the app's 2px grid; --s-* scale already existed
 - [x] 4. Create an Elevation Shadow System — tiers existed; moved suggest/dropdown popovers to --shadow-pop and layered it
 - [x] 5. Standardize the Border Radius Scale — scale existed; fixed one skeleton radius mismatch (12→14); micro-radii deliberate
-- [ ] 6. Strengthen Overall Visual Hierarchy
+- [x] 6. Strengthen Overall Visual Hierarchy — verified strong 3-tier hierarchy on home/leaders/scores/fantasy; no change needed. Scores' active week tab can be off-screen → handle in 89/92
 - [ ] 7. Polish All Button Interaction States
 - [ ] 8. Design Helpful Empty States
 - [ ] 9. Unify the App's Iconography
