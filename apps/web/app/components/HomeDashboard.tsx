@@ -69,6 +69,7 @@ export function HomeDashboard() {
             <a href="/teams">All teams →</a>
           </div>
           {leaders ? (
+            <div className="yb-scroll-x">
             <table className="yb-mini-table">
               <tbody>
                 {leaders.map(({ division, team }) => (
@@ -102,6 +103,7 @@ export function HomeDashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
           ) : (
             <div className="yb-skel" style={{ height: 300 }} />
           )}
@@ -114,6 +116,7 @@ export function HomeDashboard() {
             <a href="/fantasy">Build a lineup →</a>
           </div>
           {topFantasy ? (
+            <div className="yb-scroll-x">
             <table className="yb-mini-table">
               <tbody>
                 {topFantasy.map((p, i) => (
@@ -139,6 +142,7 @@ export function HomeDashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
           ) : (
             <div className="yb-skel" style={{ height: 300 }} />
           )}

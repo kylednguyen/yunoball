@@ -44,7 +44,7 @@ export function Performers({
         <div className="yb-potw-body">
           <span className="yb-potw-tag">Player of the week</span>
           <span className="yb-potw-name">
-            {top.name}
+            <span className="t">{top.name}</span>
             <span className={`yb-pos ${top.position ?? ""}`}>{top.position}</span>
           </span>
           <span className="yb-potw-line">
@@ -65,7 +65,7 @@ export function Performers({
               <Headshot src={p.headshot_url} name={p.name} size={34} />
               <span className="who">
                 <span className="nm">
-                  {p.name}
+                  <span className="t">{p.name}</span>
                   <span className={`yb-pos ${p.position ?? ""}`}>{p.position}</span>
                 </span>
                 <span className="ln">

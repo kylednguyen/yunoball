@@ -18,17 +18,10 @@
     },
     {
       "name": "web",
-      "runtimeExecutable": "env",
+      "runtimeExecutable": "sh",
       "runtimeArgs": [
-        "NEXT_PUBLIC_API_URL=http://localhost:4001",
-        "pnpm",
-        "--dir",
-        "apps/web",
-        "exec",
-        "next",
-        "dev",
-        "-p",
-        "3100"
+        "-c",
+        "NEXT_PUBLIC_API_URL=http://localhost:4001 exec pnpm --dir apps/web exec next dev -p 3100"
       ],
       "port": 3100
     }

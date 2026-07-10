@@ -16,7 +16,7 @@ Prompts:
 - [x] 8. Design Helpful Empty States — added scores empty-week state and Performers empty fallback; others already covered
 - [x] 9. Unify the App's Iconography — verified: single stroke set + consistent text glyphs, labeled icon buttons; no change
 - [x] 10. Run a Full Consistency Audit — deleted stray 'globals 2.css' duplicate; casing/padding consistent; font sizes deferred to 21
-- [ ] 11. Audit Mobile and Tablet Breakpoints
+- [x] 11. Audit Mobile and Tablet Breakpoints — fixed grid min-content overflow on home/fantasy/players/standings at 360px; 768 and 1366 clean
 - [ ] 12. Eliminate Horizontal Scroll on Mobile
 - [ ] 13. Build a Flexible Responsive Grid
 - [ ] 14. Enlarge Mobile Touch Targets
