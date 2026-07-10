@@ -27,7 +27,7 @@ Prompts:
 - [x] 19. Use Container Queries for Components — compare chart now container-aware; others self-size via grid tracks
 - [x] 20. Untangle Z-Index Stacking Issues — tokenized the 5-value scale; hit-tested popover over sticky headers, no conflicts
 - [x] 21. Establish a Modular Type Scale — 6 --fs-* tiers cover all text sizes; half-pixel one-offs snapped
-- [ ] 22. Add Fluid Responsive Typography
+- [x] 22. Add Fluid Responsive Typography — clamp() on page titles, answer narration, board and box-score numbers; desktop unchanged
 - [ ] 23. Optimize Reading Line Length
 - [ ] 24. Optimize Web Font Loading
 - [ ] 25. Tune Text Color and Contrast

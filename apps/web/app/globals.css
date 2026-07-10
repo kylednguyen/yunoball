@@ -571,7 +571,7 @@ input.yb-search:focus {
 /* p.yb-answer outranks the ".yb-hero p" body rule when the card sits in the hero. */
 p.yb-answer {
   font-family: var(--display);
-  font-size: 33px;
+  font-size: clamp(26px, 22px + 1.1vw, 33px);
   line-height: 1.12;
   font-weight: 800;
   letter-spacing: 0;
@@ -1013,7 +1013,7 @@ pre.yb-sql {
 }
 .yb-page-title {
   font-family: var(--display);
-  font-size: 40px;
+  font-size: clamp(31px, 26px + 1.4vw, 40px);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.015em;
@@ -2347,7 +2347,7 @@ mark.yb-hit {
 }
 .yb-board-top .val {
   font-family: var(--display);
-  font-size: 38px;
+  font-size: clamp(31px, 27px + 1.1vw, 38px);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
@@ -2449,7 +2449,7 @@ mark.yb-hit {
 }
 .yb-boxhead .score {
   font-family: var(--display);
-  font-size: 40px;
+  font-size: clamp(32px, 27px + 1.4vw, 40px);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
