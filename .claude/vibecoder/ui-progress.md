@@ -30,7 +30,7 @@ Prompts:
 - [x] 22. Add Fluid Responsive Typography — clamp() on page titles, answer narration, board and box-score numbers; desktop unchanged
 - [x] 23. Optimize Reading Line Length — capped page subtitles at 62ch; other measures already sane
 - [x] 24. Optimize Web Font Loading — next/font handles swap/subset/self-host/preload + size-adjust fallbacks; verified in served CSS
-- [ ] 25. Tune Text Color and Contrast
+- [x] 25. Tune Text Color and Contrast — all pairs ≥4.5:1 (worst: faint 5.0:1 after ui-2 fix); hierarchy intact
 - [ ] 26. Fix Semantic Heading Structure
 - [ ] 27. Handle Text Overflow Gracefully
 - [ ] 28. Format Numbers, Dates, and Currency
