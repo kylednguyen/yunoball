@@ -33,7 +33,7 @@ Prompts:
 - [x] 25. Tune Text Color and Contrast — all pairs ≥4.5:1 (worst: faint 5.0:1 after ui-2 fix); hierarchy intact
 - [x] 26. Fix Semantic Heading Structure — one h1 per page verified; fixed h1→h3 skip in player splits
 - [x] 27. Handle Text Overflow Gracefully — verified ellipsis/break-word/scroll coverage on all dynamic text
-- [ ] 28. Format Numbers, Dates, and Currency
+- [x] 28. Format Numbers, Dates, and Currency — thousands separators in answer tables (with season/week exclusions); rest already formatted
 - [ ] 29. Add Refined Typographic Details
 - [ ] 30. Standardize Text Casing and Labels
 - [ ] 31. Run a Full Performance Audit

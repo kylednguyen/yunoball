@@ -48,6 +48,16 @@ function fmtGameDate(v: unknown): string {
 const fmtStat = (v: number, dp = 0) =>
   Number.isInteger(v) && dp === 0 ? v.toLocaleString() : v.toFixed(dp || 1);
 
+// Identifier-like columns must never get thousands separators ("2,025").
+const NO_GROUPING = new Set(["season", "week", "year", "round", "pick", "rank", "qtr"]);
+
+/** Table-cell number: separators for real quantities, identity for ids. */
+function fmtCell(c: string, v: unknown): string {
+  const n = Number(v);
+  if (!Number.isFinite(n) || NO_GROUPING.has(c)) return String(v);
+  return n.toLocaleString("en-US");
+}
+
 type MiniCard = NonNullable<AnswerResult["player_card"]>;
 
 /** Head-to-head chart: one compact element — both players (headshot, name,
@@ -282,7 +292,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
                 if (TEAM_COLS.has(c) && typeof v === "string" && /^[A-Z]{2,3}$/.test(v)) {
                   return <a href={`/teams/${v}`}>{v}</a>;
                 }
-                return <>{String(v)}</>;
+                return <>{numericCols.has(c) ? fmtCell(c, v) : String(v)}</>;
               },
             }))}
           />
