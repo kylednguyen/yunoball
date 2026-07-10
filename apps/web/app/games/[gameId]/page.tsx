@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { Crumbs } from "../../components/Crumbs";
 import { Headshot } from "../../components/Headshot";
 import { TeamLogo } from "../../components/TeamLogo";
-import { useBoxScore } from "../../lib/hooks";
+import { useBoxScore, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
 import type { BoxScorePlayer, BoxScoreTeam } from "../../lib/api";
@@ -153,6 +153,7 @@ export default function BoxScorePage() {
   const gameId = params?.gameId ? decodeURIComponent(params.gameId) : undefined;
   const { data: box, error, loading } = useBoxScore(gameId);
   const notFound = !loading && !error && box === null;
+  useTitle(box ? `${box.away.team_id} @ ${box.home.team_id} box score` : undefined);
 
   return (
     <>
@@ -190,6 +191,12 @@ export default function BoxScorePage() {
                 { label: `${box.away.team_id} @ ${box.home.team_id}` },
               ]}
             />
+            {/* Page-level heading for the outline; the boxhead carries the
+                visible scoreline. */}
+            <h1 className="yb-sr-only">
+              {box.away.name} {box.away.score ?? ""} at {box.home.name} {box.home.score ?? ""},{" "}
+              box score
+            </h1>
             <div className="yb-boxhead">
               {[box.away, box.home].map((t, i) => {
                 const other = i === 0 ? box.home : box.away;
