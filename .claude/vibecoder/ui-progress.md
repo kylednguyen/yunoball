@@ -10,7 +10,7 @@ Prompts:
 - [x] 2. Build a Semantic Color System — already semantic; contrast audit found --faint at 3.4:1, lifted to #82828c (4.7:1)
 - [x] 3. Define a Consistent Spacing Scale — snapped 21 odd px values to the app's 2px grid; --s-* scale already existed
 - [x] 4. Create an Elevation Shadow System — tiers existed; moved suggest/dropdown popovers to --shadow-pop and layered it
-- [ ] 5. Standardize the Border Radius Scale
+- [x] 5. Standardize the Border Radius Scale — scale existed; fixed one skeleton radius mismatch (12→14); micro-radii deliberate
 - [ ] 6. Strengthen Overall Visual Hierarchy
 - [ ] 7. Polish All Button Interaction States
 - [ ] 8. Design Helpful Empty States

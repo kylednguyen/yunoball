@@ -18,7 +18,7 @@ export function Performers({
     return (
       <ol className="yb-performers">
         {Array.from({ length: count }, (_, i) => (
-          <li key={i} className="yb-skel" style={{ height: 64, borderRadius: 12 }} />
+          <li key={i} className="yb-skel" style={{ height: 64, borderRadius: 14 }} />
         ))}
       </ol>
     );
