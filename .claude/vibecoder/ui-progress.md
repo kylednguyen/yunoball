@@ -17,7 +17,7 @@ Prompts:
 - [x] 9. Unify the App's Iconography — verified: single stroke set + consistent text glyphs, labeled icon buttons; no change
 - [x] 10. Run a Full Consistency Audit — deleted stray 'globals 2.css' duplicate; casing/padding consistent; font sizes deferred to 21
 - [x] 11. Audit Mobile and Tablet Breakpoints — fixed grid min-content overflow on home/fantasy/players/standings at 360px; 768 and 1366 clean
-- [ ] 12. Eliminate Horizontal Scroll on Mobile
+- [x] 12. Eliminate Horizontal Scroll on Mobile — verified all 10 routes at 360px after ui-11 fixes; zero overflow
 - [ ] 13. Build a Flexible Responsive Grid
 - [ ] 14. Enlarge Mobile Touch Targets
 - [ ] 15. Eliminate Cumulative Layout Shift
