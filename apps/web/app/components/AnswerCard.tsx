@@ -188,6 +188,22 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
     (c) => !(linkPlayers && c === "player_id") && !(linkGames && c === "game_id"),
   );
 
+  function downloadCsv() {
+    const esc = (v: unknown) => {
+      const t = String(v ?? "");
+      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    };
+    const csv = [
+      columns.join(","),
+      ...result.rows.map((r) => columns.map((c) => esc(r[c])).join(",")),
+    ].join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = `yunoball-${(result.question || "answer").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   async function copyShareLink() {
     if (!result.share_id) return;
     const url = `${window.location.origin}/a/${result.share_id}`;
@@ -322,6 +338,11 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         <button onClick={() => setShowSql((s) => !s)} className="yb-link">
           {showSql ? "Hide" : "Show"} the query
         </button>
+        {result.rows.length > 0 && (
+          <button onClick={downloadCsv} className="yb-link">
+            Download CSV
+          </button>
+        )}
         {result.share_id && (
           <button onClick={copyShareLink} className="yb-link">
             {copied ? "Link copied ✓" : "Share"}
