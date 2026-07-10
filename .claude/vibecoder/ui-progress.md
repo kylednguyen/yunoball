@@ -41,7 +41,7 @@ Prompts:
 - [x] 33. Add Route-Based Code Splitting — n/a: app router auto-splits; no heavy lazy candidates
 - [x] 34. Optimize and Modernize All Images — ESPN combiner resizing: headshots 256KB→19KB, logos 40KB→3KB; lazy+dims already present
 - [x] 35. Implement Content-Aware Loading Skeletons — n/a: all data views already have shaped shimmering skeletons
-- [ ] 36. Virtualize Long Scrolling Lists
+- [x] 36. Virtualize Long Scrolling Lists — n/a: max 300 capped rows; virtualization unwarranted
 - [ ] 37. Eliminate Unnecessary Component Re-renders
 - [ ] 38. Cache and Dedupe Data Fetching
 - [ ] 39. Add Optimistic UI Updates
