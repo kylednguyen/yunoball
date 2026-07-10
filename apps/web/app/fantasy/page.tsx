@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Headshot } from "../components/Headshot";
@@ -202,12 +203,12 @@ export default function FantasyPage() {
                       <>
                         <span className="yb-slot-name">
                           <div className="who">
-                            <a
+                            <Link
                               href={`/players/${encodeURIComponent(p.player_id)}`}
                               style={{ color: "inherit" }}
                             >
                               {p.name}
-                            </a>
+                            </Link>
                           </div>
                           <div className="meta">
                             {p.team} · {statLine(p)}
@@ -291,12 +292,12 @@ export default function FantasyPage() {
                               <Headshot src={p.headshot_url} name={p.name} size={32} />
                               <div>
                                 <div>
-                                  <a
+                                  <Link
                                     href={`/players/${encodeURIComponent(p.player_id)}`}
                                     style={{ color: "inherit" }}
                                   >
                                     {p.name}
-                                  </a>
+                                  </Link>
                                 </div>
                                 <div
                                   style={{ fontSize: 12, color: "var(--faint)", fontWeight: 400 }}

@@ -450,7 +450,7 @@ export default function PlayerPage() {
             <h2>Player not found</h2>
             <p>
               That player isn’t in the warehouse yet. Try the{" "}
-              <a href="/leaders">leaders</a> or <a href="/">search</a>.
+              <Link href="/leaders">leaders</Link> or <Link href="/">search</Link>.
             </p>
           </div>
         )}

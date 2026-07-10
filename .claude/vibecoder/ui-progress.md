@@ -45,7 +45,7 @@ Prompts:
 - [x] 37. Eliminate Unnecessary Component Re-renders — n/a: page-local state, no hotspots at this scale
 - [x] 38. Cache and Dedupe Data Fetching — getJson helper: 60s TTL cache + in-flight dedupe across all 12 GET endpoints
 - [x] 39. Add Optimistic UI Updates — n/a: no server mutations; local actions already instant
-- [ ] 40. Prefetch Data on User Intent
+- [x] 40. Prefetch Data on User Intent — all internal <a> → next/link: viewport/hover prefetch + client nav preserving the data cache
 - [ ] 41. Debounce and Throttle Costly Handlers
 - [ ] 42. Optimize the Critical Rendering Path
 - [ ] 43. Audit Third-Party Script Performance

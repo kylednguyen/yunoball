@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Nav } from "../components/Nav";
@@ -57,7 +58,7 @@ export default function AssistantPage() {
         <p className="yb-page-sub">
           Judgment calls, not just lookups: start/sit verdicts weigh production, PPR floor, offense
           environment and TD reliance. Every number comes from the warehouse. For basic stat questions,
-          use <a href="/">Search</a>.
+          use <Link href="/">Search</Link>.
         </p>
 
         <div className="yb-chat" aria-live="polite">

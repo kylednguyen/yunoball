@@ -94,7 +94,7 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
         {[a, b].map((p, i) => {
           const card = cards.find((c) => c.player_id === String(p.player_id));
           const side = (
-            <a
+            <Link
               key={String(p.player_id)}
               className={`nm ${i === 0 ? "a" : "b"}`}
               href={`/players/${encodeURIComponent(String(p.player_id))}`}
@@ -112,7 +112,7 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
                   </span>
                 )}
               </span>
-            </a>
+            </Link>
           );
           if (i === 0) {
             return (
@@ -232,7 +232,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
       {chips.length > 0 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
           {chips.map((e) => (
-            <a
+            <Link
               key={`${e.entity_type}-${e.display_name}`}
               className="yb-chip-static"
               href={
@@ -243,7 +243,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
               title={`View ${e.display_name}'s ${e.entity_type} page`}
             >
               {e.display_name} →
-            </a>
+            </Link>
           ))}
         </div>
       )}
@@ -275,22 +275,22 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
                 if (v === null || v === undefined || v === "") return <>{""}</>;
                 if (c === "full_name" && linkPlayers && row.player_id) {
                   return (
-                    <a href={`/players/${encodeURIComponent(String(row.player_id))}`}>
+                    <Link href={`/players/${encodeURIComponent(String(row.player_id))}`}>
                       {String(v)}
-                    </a>
+                    </Link>
                   );
                 }
                 if (c === "game_date") {
                   const d = fmtGameDate(v);
                   if (linkGames && row.game_id) {
                     return (
-                      <a href={`/games/${encodeURIComponent(String(row.game_id))}`}>{d}</a>
+                      <Link href={`/games/${encodeURIComponent(String(row.game_id))}`}>{d}</Link>
                     );
                   }
                   return <>{d}</>;
                 }
                 if (TEAM_COLS.has(c) && typeof v === "string" && /^[A-Z]{2,3}$/.test(v)) {
-                  return <a href={`/teams/${v}`}>{v}</a>;
+                  return <Link href={`/teams/${v}`}>{v}</Link>;
                 }
                 return <>{numericCols.has(c) ? fmtCell(c, v) : String(v)}</>;
               },

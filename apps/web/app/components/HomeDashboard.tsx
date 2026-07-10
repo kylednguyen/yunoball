@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Headshot } from "./Headshot";
@@ -56,7 +57,7 @@ export function HomeDashboard() {
       <section aria-label="Performers of the week">
         <div className="yb-dash-head">
           <h2>Performers of the week</h2>
-          <a href="/scores">Full board →</a>
+          <Link href="/scores">Full board →</Link>
         </div>
         <Performers performers={performers?.performers ?? null} loading={!performers} count={4} />
       </section>
@@ -66,7 +67,7 @@ export function HomeDashboard() {
         <section className="yb-card" aria-label="Division leaders">
           <div className="yb-dash-head">
             <h2>Division leaders</h2>
-            <a href="/teams">All teams →</a>
+            <Link href="/teams">All teams →</Link>
           </div>
           {leaders ? (
             <div className="yb-scroll-x">
@@ -76,13 +77,13 @@ export function HomeDashboard() {
                   <tr key={division}>
                     <td className="dim">{division}</td>
                     <td>
-                      <a
+                      <Link
                         href={`/teams/${team.team_id}`}
                         style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
                       >
                         <TeamLogo team={team.team_id} size={18} />
                         {team.nickname ?? team.name}
-                      </a>
+                      </Link>
                     </td>
                     <td className="num">
                       {team.wins}-{team.losses}
@@ -113,7 +114,7 @@ export function HomeDashboard() {
         <section className="yb-card" aria-label="Top fantasy performers">
           <div className="yb-dash-head">
             <h2>Fantasy leaders</h2>
-            <a href="/fantasy">Build a lineup →</a>
+            <Link href="/fantasy">Build a lineup →</Link>
           </div>
           {topFantasy ? (
             <div className="yb-scroll-x">
@@ -125,13 +126,13 @@ export function HomeDashboard() {
                       {i + 1}
                     </td>
                     <td>
-                      <a
+                      <Link
                         href={`/players/${encodeURIComponent(p.player_id)}`}
                         style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
                       >
                         <Headshot src={p.headshot_url} name={p.name} size={26} />
                         {p.name}
-                      </a>
+                      </Link>
                     </td>
                     <td>
                       <span className={`yb-pos ${p.position ?? ""}`}>{p.position}</span>
@@ -151,9 +152,9 @@ export function HomeDashboard() {
             <span className="yb-muted" style={{ fontSize: 13 }}>
               Not sure who to start?
             </span>
-            <a className="yb-btn sm" href="/assistant">
+            <Link className="yb-btn sm" href="/assistant">
               Ask the Fantasy Assistant
-            </a>
+            </Link>
           </div>
         </section>
       </div>

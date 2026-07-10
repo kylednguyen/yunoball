@@ -79,7 +79,7 @@ export default function TeamPage() {
           <div className="yb-state">
             <h2>Team not found</h2>
             <p>
-              That team isn’t in the warehouse. Browse the <a href="/teams">team list</a>.
+              That team isn’t in the warehouse. Browse the <Link href="/teams">team list</Link>.
             </p>
           </div>
         )}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Headshot } from "./Headshot";
 import type { Performer } from "../lib/api";
 
@@ -35,7 +36,7 @@ export function Performers({
   return (
     <div className="yb-performers-wrap">
       {/* Player of the week — the single best calculated fantasy line. */}
-      <a
+      <Link
         className="yb-potw"
         href={`/players/${encodeURIComponent(top.player_id)}`}
         aria-label={`Player of the week: ${top.name}`}
@@ -55,12 +56,12 @@ export function Performers({
           <span className="n">{top.fantasy_points_ppr.toFixed(1)}</span>
           <span className="u">PPR</span>
         </div>
-      </a>
+      </Link>
 
       <ol className="yb-performers">
         {rest.map((p) => (
           <li key={p.player_id}>
-            <a className="yb-performer" href={`/players/${encodeURIComponent(p.player_id)}`}>
+            <Link className="yb-performer" href={`/players/${encodeURIComponent(p.player_id)}`}>
               <span className="rk">{p.rank}</span>
               <Headshot src={p.headshot_url} name={p.name} size={34} />
               <span className="who">
@@ -73,7 +74,7 @@ export function Performers({
                 </span>
               </span>
               <span className="pts">{p.fantasy_points_ppr.toFixed(1)}</span>
-            </a>
+            </Link>
           </li>
         ))}
       </ol>

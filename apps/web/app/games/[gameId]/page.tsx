@@ -177,7 +177,7 @@ export default function BoxScorePage() {
             <h2>Game not found</h2>
             <p>
               That game isn’t in the warehouse. Head back to{" "}
-              <a href="/scores">Scores</a>.
+              <Link href="/scores">Scores</Link>.
             </p>
           </div>
         )}

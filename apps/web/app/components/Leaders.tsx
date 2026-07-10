@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -163,9 +164,9 @@ export function Leaders() {
         <h2 id="leaders-heading" className="yb-leaders-title">
           The record books, since 1999
         </h2>
-        <a className="yb-leaders-more" href="/leaders">
+        <Link className="yb-leaders-more" href="/leaders">
           Live leaderboards →
-        </a>
+        </Link>
       </div>
       <p className="yb-leaders-sub">
         Single-season leaders from the warehouse. Pick a stat, then tap a name to
