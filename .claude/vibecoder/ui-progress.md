@@ -15,7 +15,7 @@ Prompts:
 - [x] 7. Polish All Button Interaction States — all states existed; fixed hover firing on disabled buttons
 - [x] 8. Design Helpful Empty States — added scores empty-week state and Performers empty fallback; others already covered
 - [x] 9. Unify the App's Iconography — verified: single stroke set + consistent text glyphs, labeled icon buttons; no change
-- [ ] 10. Run a Full Consistency Audit
+- [x] 10. Run a Full Consistency Audit — deleted stray 'globals 2.css' duplicate; casing/padding consistent; font sizes deferred to 21
 - [ ] 11. Audit Mobile and Tablet Breakpoints
 - [ ] 12. Eliminate Horizontal Scroll on Mobile
 - [ ] 13. Build a Flexible Responsive Grid
