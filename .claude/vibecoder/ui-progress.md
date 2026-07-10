@@ -49,7 +49,7 @@ Prompts:
 - [x] 41. Debounce and Throttle Costly Handlers — n/a: suggest 180ms debounce, filters client-side, passive scroll
 - [x] 42. Optimize the Critical Rendering Path — preconnect to ESPN CDN + API origin; rest already tight
 - [x] 43. Audit Third-Party Script Performance — n/a: zero third-party scripts
-- [ ] 44. Load Critical Content First
+- [x] 44. Load Critical Content First — n/a: parallel panel fetches, lazy tab data, instant shell
 - [ ] 45. Run a Full Accessibility Audit
 - [ ] 46. Make Everything Keyboard Navigable
 - [ ] 47. Add Clear Visible Focus Indicators
