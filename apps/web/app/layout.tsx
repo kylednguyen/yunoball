@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,12 @@ const body = Geist({
   subsets: ["latin"],
   variable: "--font-body",
 });
+
+/* viewport-fit=cover exposes env(safe-area-inset-*) on notched phones;
+   globals.css guards the sticky bar and page padding with them. */
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "YunoBall - the all-in-one NFL platform",
