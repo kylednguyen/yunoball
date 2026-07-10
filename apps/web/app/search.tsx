@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnswerCard } from "./components/AnswerCard";
 import { SearchSuggest } from "./components/SearchSuggest";
 import { AnswerSkeleton } from "./components/Skeleton";
-import { ask, type AnswerResult } from "./lib/api";
+import { ask, friendlyError, type AnswerResult } from "./lib/api";
 
 const RECENTS_KEY = "yb:recent-searches";
 
@@ -158,7 +158,7 @@ export function Search() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Something went wrong</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
             <button className="yb-btn" onClick={() => active && run(active)}>
               Try again
             </button>

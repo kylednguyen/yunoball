@@ -9,6 +9,7 @@ import { Nav } from "../../components/Nav";
 import { TeamLogo } from "../../components/TeamLogo";
 import { useBoxScore } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
+import { friendlyError } from "../../lib/api";
 import type { BoxScorePlayer, BoxScoreTeam } from "../../lib/api";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -168,7 +169,7 @@ export default function BoxScorePage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load this game</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 

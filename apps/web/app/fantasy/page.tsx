@@ -7,7 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Headshot } from "../components/Headshot";
 import { Nav } from "../components/Nav";
-import { fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
+import {
+  friendlyError, fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
 
 const SLOTS = [
   { id: "QB", label: "QB", accepts: ["QB"] },
@@ -174,7 +175,7 @@ export default function FantasyPage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load the player pool</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 

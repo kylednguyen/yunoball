@@ -72,8 +72,8 @@ Prompts:
 - [x] 64. Improve Drag-And-Drop Interface Affordances — n/a: no DnD interfaces exist
 - [x] 65. Add Mobile Gesture Support — n/a: browsing UI; custom swipes would conflict with native scroll/back-swipe for no benefit
 - [x] 66. Add Subtle Success Moments — lineup-complete accent+pulse on fantasy total; share ✓ existed
-- [ ] 67. Add Real-Time Inline Validation
-- [ ] 68. Write Clear Helpful Error Messages
+- [x] 67. Add Real-Time Inline Validation — n/a: no validating forms, free-text search only
+- [x] 68. Write Clear Helpful Error Messages — friendlyError translator for raw fetch/5xx/429 strings at all 9 error states
 - [ ] 69. Polish Input Field Design and States
 - [ ] 70. Add Smart Input Masking and Formatting
 - [ ] 71. Add Form Autosave and Recovery

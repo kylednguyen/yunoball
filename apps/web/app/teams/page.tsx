@@ -6,6 +6,7 @@ import { Crumbs } from "../components/Crumbs";
 import { Nav } from "../components/Nav";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { TeamLogo } from "../components/TeamLogo";
+import { friendlyError } from "../lib/api";
 import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 
 /** All 32 teams as clickable cards, grouped by division. Records come from the
@@ -35,7 +36,7 @@ export default function TeamsPage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load teams</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 

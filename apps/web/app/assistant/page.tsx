@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Nav } from "../components/Nav";
-import { askAgent, type AgentStep, type ChatTurn } from "../lib/api";
+import { friendlyError, askAgent, type AgentStep, type ChatTurn } from "../lib/api";
 
 interface Message extends ChatTurn {
   steps?: AgentStep[];
@@ -104,7 +104,7 @@ export default function AssistantPage() {
 
         {error && (
           <p role="alert" style={{ color: "var(--danger)", fontSize: 14 }}>
-            {error}. Try again.
+            {friendlyError(error)} Try again.
           </p>
         )}
 

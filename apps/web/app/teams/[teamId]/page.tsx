@@ -10,6 +10,7 @@ import { SeasonSelect } from "../../components/SeasonSelect";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
 import { useSeasonParam, useTeam, useTitle } from "../../lib/hooks";
+import { friendlyError } from "../../lib/api";
 import type { TeamGame, TeamKeyPlayer, TeamStat } from "../../lib/api";
 
 /** 1 -> "1st", 22 -> "22nd" — league rank chips. */
@@ -72,7 +73,7 @@ export default function TeamPage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load this team</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 
