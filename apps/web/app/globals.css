@@ -161,6 +161,16 @@ p.yb-answer {
   text-wrap: pretty;
 }
 
+/* Visually hidden but announced — for live-region text. */
+.yb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Skip link — first focusable element for keyboard users. */
 .yb-skip {
   position: absolute;

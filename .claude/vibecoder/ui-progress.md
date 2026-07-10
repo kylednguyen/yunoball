@@ -57,7 +57,7 @@ Prompts:
 - [x] 49. Use Proper Semantic HTML — n/a: verified buttons/links/landmarks/lists/dl/table semantics throughout
 - [x] 50. Add Meaningful Image Alt Text — n/a: decorative alt="" discipline correct everywhere, adjacent text names everything
 - [x] 51. Respect Reduced Motion Preferences — guard was thorough; stopped the one leaking infinite loop (typing dots)
-- [ ] 52. Announce Dynamic Changes to Screen Readers
+- [x] 52. Announce Dynamic Changes to Screen Readers — added share-copied status + fantasy total status; results/thread/errors already live
 - [ ] 53. Build Fully Accessible Modals
 - [ ] 54. Don't Rely on Color Alone
 - [ ] 55. Add a Skip-To-Content Link

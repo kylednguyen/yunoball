@@ -315,6 +315,9 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         {result.share_id && (
           <button onClick={copyShareLink} className="yb-link">
             {copied ? "Link copied ✓" : "Share"}
+            <span role="status" className="yb-sr-only">
+              {copied ? "Share link copied to clipboard" : ""}
+            </span>
           </button>
         )}
         {result.cached && <span className="yb-muted" style={{ fontSize: 12 }}>Cached</span>}
