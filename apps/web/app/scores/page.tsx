@@ -143,7 +143,7 @@ export default function ScoresPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load scores</h2>
+            <h2>Couldn’t load scores</h2>
             <p>{error}</p>
           </div>
         )}

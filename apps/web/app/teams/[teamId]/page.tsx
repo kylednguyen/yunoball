@@ -70,7 +70,7 @@ export default function TeamPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load this team</h2>
+            <h2>Couldn’t load this team</h2>
             <p>{error}</p>
           </div>
         )}
@@ -79,7 +79,7 @@ export default function TeamPage() {
           <div className="yb-state">
             <h2>Team not found</h2>
             <p>
-              That team isn&apos;t in the warehouse. Browse the <a href="/teams">team list</a>.
+              That team isn’t in the warehouse. Browse the <a href="/teams">team list</a>.
             </p>
           </div>
         )}
@@ -187,7 +187,7 @@ export default function TeamPage() {
                 <h2 className="yb-conf-title">Defense</h2>
                 <StatTable stats={team.defense} caption="Defense" />
                 <p className="yb-muted" style={{ fontSize: 13, marginTop: 8 }}>
-                  Defensive player stats aren&apos;t in the warehouse yet. Points allowed is the
+                  Defensive player stats aren’t in the warehouse yet. Points allowed is the
                   defensive picture for now.
                 </p>
               </section>

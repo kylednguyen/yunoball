@@ -76,7 +76,7 @@ export default function LeadersPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load leaders</h2>
+            <h2>Couldn’t load leaders</h2>
             <p>{error}</p>
           </div>
         )}

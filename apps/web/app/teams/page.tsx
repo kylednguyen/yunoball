@@ -33,7 +33,7 @@ export default function TeamsPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load teams</h2>
+            <h2>Couldn’t load teams</h2>
             <p>{error}</p>
           </div>
         )}

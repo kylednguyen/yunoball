@@ -169,7 +169,7 @@ export default function FantasyPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load the player pool</h2>
+            <h2>Couldn’t load the player pool</h2>
             <p>{error}</p>
           </div>
         )}

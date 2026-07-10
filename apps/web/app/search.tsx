@@ -167,7 +167,7 @@ export function Search() {
         {empty && (
           <div className="yb-state">
             <h2>No data for that question yet</h2>
-            <p>We couldn&apos;t find stats matching your query. Try a different season, player, or phrasing.</p>
+            <p>We couldn’t find stats matching your query. Try a different season, player, or phrasing.</p>
           </div>
         )}
 

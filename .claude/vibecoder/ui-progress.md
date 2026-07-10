@@ -34,7 +34,7 @@ Prompts:
 - [x] 26. Fix Semantic Heading Structure — one h1 per page verified; fixed h1→h3 skip in player splits
 - [x] 27. Handle Text Overflow Gracefully — verified ellipsis/break-word/scroll coverage on all dynamic text
 - [x] 28. Format Numbers, Dates, and Currency — thousands separators in answer tables (with season/week exclusions); rest already formatted
-- [ ] 29. Add Refined Typographic Details
+- [x] 29. Add Refined Typographic Details — curly apostrophes in all web copy; balance/pretty/legibility already present
 - [ ] 30. Standardize Text Casing and Labels
 - [ ] 31. Run a Full Performance Audit
 - [ ] 32. Shrink the JavaScript Bundle

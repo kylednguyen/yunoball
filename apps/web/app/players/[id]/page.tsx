@@ -440,7 +440,7 @@ export default function PlayerPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load this player</h2>
+            <h2>Couldn’t load this player</h2>
             <p>{error}</p>
           </div>
         )}
@@ -449,7 +449,7 @@ export default function PlayerPage() {
           <div className="yb-state">
             <h2>Player not found</h2>
             <p>
-              That player isn&apos;t in the warehouse yet. Try the{" "}
+              That player isn’t in the warehouse yet. Try the{" "}
               <a href="/leaders">leaders</a> or <a href="/">search</a>.
             </p>
           </div>

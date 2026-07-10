@@ -88,7 +88,7 @@ export default function StandingsPage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load standings</h2>
+            <h2>Couldn’t load standings</h2>
             <p>{error}</p>
           </div>
         )}

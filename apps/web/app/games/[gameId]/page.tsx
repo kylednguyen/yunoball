@@ -167,7 +167,7 @@ export default function BoxScorePage() {
 
         {error && (
           <div className="yb-state error" role="alert">
-            <h2>Couldn&apos;t load this game</h2>
+            <h2>Couldn’t load this game</h2>
             <p>{error}</p>
           </div>
         )}
@@ -176,7 +176,7 @@ export default function BoxScorePage() {
           <div className="yb-state">
             <h2>Game not found</h2>
             <p>
-              That game isn&apos;t in the warehouse. Head back to{" "}
+              That game isn’t in the warehouse. Head back to{" "}
               <a href="/scores">Scores</a>.
             </p>
           </div>
