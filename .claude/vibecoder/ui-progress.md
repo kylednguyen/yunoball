@@ -47,7 +47,7 @@ Prompts:
 - [x] 39. Add Optimistic UI Updates — n/a: no server mutations; local actions already instant
 - [x] 40. Prefetch Data on User Intent — all internal <a> → next/link: viewport/hover prefetch + client nav preserving the data cache
 - [x] 41. Debounce and Throttle Costly Handlers — n/a: suggest 180ms debounce, filters client-side, passive scroll
-- [ ] 42. Optimize the Critical Rendering Path
+- [x] 42. Optimize the Critical Rendering Path — preconnect to ESPN CDN + API origin; rest already tight
 - [ ] 43. Audit Third-Party Script Performance
 - [ ] 44. Load Critical Content First
 - [ ] 45. Run a Full Accessibility Audit
