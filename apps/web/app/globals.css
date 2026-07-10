@@ -1023,6 +1023,7 @@ pre.yb-sql {
 .yb-page-sub {
   color: var(--muted);
   margin: 0 0 24px;
+  max-width: 62ch; /* keep the intro line readable on wide screens */
 }
 
 /* ---- Stat tiles (dashboard headline numbers) ---- */
