@@ -2557,15 +2557,15 @@ mark.yb-hit {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--panel);
-  padding: 6px 20px 12px;
-  margin-bottom: 26px;
+  padding: 4px 20px 10px;
+  margin-bottom: 18px;
 }
 .yb-boxhead .side {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 12px 0;
+  padding: 10px 0;
 }
 .yb-boxhead .side + .side {
   border-top: 1px solid var(--border);
@@ -2613,5 +2613,32 @@ mark.yb-hit {
 .yb-box-teams {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
+  gap: 0;
+}
+/* ---- Compact box score: denser than the default split tables ---- */
+.yb-box-teams > div + div {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.yb-box-teams .yb-conf-title {
+  font-size: 19px;
+  margin: 6px 0 10px;
+}
+.yb-box-teams .yb-split-group {
+  margin-bottom: 12px;
+}
+/* Box sections use <h3> (nested under the team <h2>); style them like the
+   compact split headers (ui-26 restyled only the <h2> variant). */
+.yb-box-teams .yb-split-group h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yb-box-teams table.yb-table th,
+.yb-box-teams table.yb-table td {
+  padding: 7px 12px;
 }
