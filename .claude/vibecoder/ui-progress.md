@@ -50,7 +50,7 @@ Prompts:
 - [x] 42. Optimize the Critical Rendering Path — preconnect to ESPN CDN + API origin; rest already tight
 - [x] 43. Audit Third-Party Script Performance — n/a: zero third-party scripts
 - [x] 44. Load Critical Content First — n/a: parallel panel fetches, lazy tab data, instant shell
-- [ ] 45. Run a Full Accessibility Audit
+- [x] 45. Run a Full Accessibility Audit — report: tablist keyboard gap (→46), static titles (→56), reduced-motion sweep (→51); baseline strong
 - [ ] 46. Make Everything Keyboard Navigable
 - [ ] 47. Add Clear Visible Focus Indicators
 - [ ] 48. Make Forms Fully Accessible
