@@ -5,7 +5,6 @@ import { useTitle } from "../lib/hooks";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Nav } from "../components/Nav";
 import { friendlyError, askAgent, type AgentStep, type ChatTurn } from "../lib/api";
 
 interface Message extends ChatTurn {
@@ -53,7 +52,6 @@ export default function AssistantPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page" style={{ maxWidth: 780 }}>
         <div className="yb-page-head">
           <h1 className="yb-page-title">Fantasy Assistant</h1>

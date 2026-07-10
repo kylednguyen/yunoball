@@ -7,7 +7,6 @@ import { tablistKeys } from "../components/tablist";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Nav } from "../components/Nav";
 import { Performers } from "../components/Performers";
 import { TeamLogo } from "../components/TeamLogo";
 import {
@@ -108,7 +107,6 @@ export default function ScoresPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page">
         <div className="yb-page-head">
           <h1 className="yb-page-title">Scores &amp; Results</h1>

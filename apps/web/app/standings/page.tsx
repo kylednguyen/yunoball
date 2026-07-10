@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import { Crumbs } from "../components/Crumbs";
-import { Nav } from "../components/Nav";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { SortTable, type SortColumn } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
@@ -73,7 +72,6 @@ export default function StandingsPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page">
         <Crumbs
           items={[

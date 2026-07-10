@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist } from "next/font/google";
 import "./globals.css";
+import { Nav } from "./components/Nav";
 
 /* Display face for headlines, scores and big numbers. Exposed as
    --font-display for globals.css. */
@@ -50,6 +51,10 @@ export default function RootLayout({
         <a href="#main" className="yb-skip">
           Skip to content
         </a>
+        {/* Nav is persistent (outside the per-route transition wrapper) so the
+            fixed sidebar keeps a viewport containing block and never re-animates
+            on navigation. */}
+        <Nav />
         {children}
       </body>
     </html>

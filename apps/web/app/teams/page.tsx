@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import { Crumbs } from "../components/Crumbs";
-import { Nav } from "../components/Nav";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { TeamLogo } from "../components/TeamLogo";
 import { friendlyError } from "../lib/api";
@@ -18,7 +17,6 @@ export default function TeamsPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page">
         <Crumbs
           items={[

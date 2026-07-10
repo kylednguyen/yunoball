@@ -9,7 +9,6 @@ import { useState } from "react";
 import { Crumbs } from "../../components/Crumbs";
 import { Dropdown } from "../../components/Dropdown";
 import { Headshot } from "../../components/Headshot";
-import { Nav } from "../../components/Nav";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
@@ -432,7 +431,6 @@ export default function PlayerPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
         {loading && (
           <>
