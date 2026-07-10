@@ -304,6 +304,33 @@ body {
   overflow-x: auto;
 }
 
+
+/* ---- Mobile touch targets: 44px minimum (WCAG 2.5.8 / Apple HIG) ---- */
+@media (max-width: 860px) {
+  .yb-nav-links a,
+  .yb-btn,
+  .yb-tab,
+  .yb-week-tab,
+  .yb-chip,
+  .yb-dd-btn,
+  .yb-lb-name,
+  .yb-input,
+  .yb-x,
+  .yb-suggest-item {
+    min-height: 44px;
+  }
+  .yb-x {
+    min-width: 44px;
+  }
+  /* Inline text links: grow the hit area, not the glyphs. */
+  .yb-link,
+  .yb-leaders-more,
+  .yb-dash-head a {
+    padding-block: 12px;
+    margin-block: -12px;
+  }
+}
+
 /* ---- Score ticker (front-page scoreboard strip) ---- */
 .yb-ticker {
   display: flex;

@@ -19,7 +19,7 @@ Prompts:
 - [x] 11. Audit Mobile and Tablet Breakpoints — fixed grid min-content overflow on home/fantasy/players/standings at 360px; 768 and 1366 clean
 - [x] 12. Eliminate Horizontal Scroll on Mobile — verified all 10 routes at 360px after ui-11 fixes; zero overflow
 - [x] 13. Build a Flexible Responsive Grid — already auto-fit/fill everywhere + 1080px centered container; verified
-- [ ] 14. Enlarge Mobile Touch Targets
+- [x] 14. Enlarge Mobile Touch Targets — 44px min-height block for all controls ≤860px; hit-area extension for text links
 - [ ] 15. Eliminate Cumulative Layout Shift
 - [ ] 16. Respect Mobile Safe Area Insets
 - [ ] 17. Build a Smart Sticky Header
