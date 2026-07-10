@@ -75,13 +75,13 @@ Prompts:
 - [x] 67. Add Real-Time Inline Validation — n/a: no validating forms, free-text search only
 - [x] 68. Write Clear Helpful Error Messages — friendlyError translator for raw fetch/5xx/429 strings at all 9 error states
 - [x] 69. Polish Input Field Design and States — enterKeyHint/spellCheck on search; states/labels/targets already done
-- [ ] 70. Add Smart Input Masking and Formatting
-- [ ] 71. Add Form Autosave and Recovery
-- [ ] 72. Improve Multi-Step Form Experience
-- [ ] 73. Upgrade Select and Dropdown Inputs
-- [ ] 74. Improve Password Field UX
-- [ ] 75. Add Input Hints and Affordances
-- [ ] 76. Clarify Form Submission Feedback
+- [x] 70. Add Smart Input Masking and Formatting — n/a: no structured inputs to mask
+- [x] 71. Add Form Autosave and Recovery — n/a: fantasy lineup + recent searches already persist to localStorage
+- [x] 72. Improve Multi-Step Form Experience — n/a: no multi-step forms
+- [x] 73. Upgrade Select and Dropdown Inputs — n/a: in-house dropdown already full ARIA listbox with keyboard; lists ≤27 options
+- [x] 74. Improve Password Field UX — n/a: no auth/passwords
+- [x] 75. Add Input Hints and Affordances — n/a: search has placeholder examples, / hint, recents, suggestions
+- [x] 76. Clarify Form Submission Feedback — n/a: assistant disables+types, search preserves query on error
 - [ ] 77. Build a Toast Notification System
 - [ ] 78. Handle Loading, Empty, Error, Success States
 - [ ] 79. Add Graceful Error Boundaries
