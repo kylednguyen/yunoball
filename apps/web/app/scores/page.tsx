@@ -140,6 +140,11 @@ export default function ScoresPage() {
                 aria-selected={w === data.week}
                 className="yb-week-tab"
                 onClick={() => setWeek(w)}
+                ref={(el) => {
+                  // The selected week must be visible, not parked off-screen
+                  // to the right of the scrolling strip.
+                  if (el && w === data.week) el.scrollIntoView({ block: "nearest", inline: "center" });
+                }}
               >
                 Wk {w}
               </button>
