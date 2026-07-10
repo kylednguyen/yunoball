@@ -99,7 +99,7 @@ Prompts:
 - [x] 91. Improve In-App Search Experience — match highlighting in suggestions; rest already strong
 - [x] 92. Fix Scroll Position and Back Behavior — scores week/season now URL-mirrored; router scroll restoration native
 - [x] 93. Add Useful Keyboard Shortcuts — n/a: //⌘K global, Escape, arrows all present; help dialog overkill for 2 bindings
-- [ ] 94. Reduce Friction in Key Flows
+- [x] 94. Reduce Friction in Key Flows — n/a: all three core flows already 1-2 actions with smart defaults
 - [ ] 95. Make Data Tables Genuinely Usable
 - [ ] 96. Add Powerful Filtering and Sorting
 - [ ] 97. Add Pagination or Infinite Scroll
