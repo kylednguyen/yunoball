@@ -1,0 +1,108 @@
+# UI audit progress
+
+Custom user requests (from /ui-audit args):
+- [x] 0a. Nav bar → sidebar — already a fixed left rail (wip commit); verified at 1366px
+- [x] 0b. Player name-only queries → show season stats — new player_seasons intent, season-by-season table
+- [x] 0c. Head-to-head → one compact element (headshots+names in chart header), toggle centered, games fix (pipeline stripped `games` from compare rows)
+
+Prompts:
+- [x] 1. Establish a Design Token System — system already existed; consolidated 6 hardcoded colors into new tokens (--bg-scrim, --danger-text/border, --accent-border, --shimmer)
+- [x] 2. Build a Semantic Color System — already semantic; contrast audit found --faint at 3.4:1, lifted to #82828c (4.7:1)
+- [x] 3. Define a Consistent Spacing Scale — snapped 21 odd px values to the app's 2px grid; --s-* scale already existed
+- [x] 4. Create an Elevation Shadow System — tiers existed; moved suggest/dropdown popovers to --shadow-pop and layered it
+- [x] 5. Standardize the Border Radius Scale — scale existed; fixed one skeleton radius mismatch (12→14); micro-radii deliberate
+- [x] 6. Strengthen Overall Visual Hierarchy — verified strong 3-tier hierarchy on home/leaders/scores/fantasy; no change needed. Scores' active week tab can be off-screen → handle in 89/92
+- [x] 7. Polish All Button Interaction States — all states existed; fixed hover firing on disabled buttons
+- [x] 8. Design Helpful Empty States — added scores empty-week state and Performers empty fallback; others already covered
+- [x] 9. Unify the App's Iconography — verified: single stroke set + consistent text glyphs, labeled icon buttons; no change
+- [x] 10. Run a Full Consistency Audit — deleted stray 'globals 2.css' duplicate; casing/padding consistent; font sizes deferred to 21
+- [x] 11. Audit Mobile and Tablet Breakpoints — fixed grid min-content overflow on home/fantasy/players/standings at 360px; 768 and 1366 clean
+- [x] 12. Eliminate Horizontal Scroll on Mobile — verified all 10 routes at 360px after ui-11 fixes; zero overflow
+- [x] 13. Build a Flexible Responsive Grid — already auto-fit/fill everywhere + 1080px centered container; verified
+- [x] 14. Enlarge Mobile Touch Targets — 44px min-height block for all controls ≤860px; hit-area extension for text links
+- [x] 15. Eliminate Cumulative Layout Shift — measured CLS=0 on home/scores/player via PerformanceObserver; imgs have dims, next/font, sized skeletons
+- [x] 16. Respect Mobile Safe Area Insets — viewport-fit=cover + env() guards on sticky bar and page padding
+- [x] 17. Build a Smart Sticky Header — mobile bar hides on scroll down, reveals on up; reduced-motion + focus guards
+- [x] 18. Balance Content Density and Whitespace — verified deliberate dense-tables/airy-forms balance; no change
+- [x] 19. Use Container Queries for Components — compare chart now container-aware; others self-size via grid tracks
+- [x] 20. Untangle Z-Index Stacking Issues — tokenized the 5-value scale; hit-tested popover over sticky headers, no conflicts
+- [x] 21. Establish a Modular Type Scale — 6 --fs-* tiers cover all text sizes; half-pixel one-offs snapped
+- [x] 22. Add Fluid Responsive Typography — clamp() on page titles, answer narration, board and box-score numbers; desktop unchanged
+- [x] 23. Optimize Reading Line Length — capped page subtitles at 62ch; other measures already sane
+- [x] 24. Optimize Web Font Loading — next/font handles swap/subset/self-host/preload + size-adjust fallbacks; verified in served CSS
+- [x] 25. Tune Text Color and Contrast — all pairs ≥4.5:1 (worst: faint 5.0:1 after ui-2 fix); hierarchy intact
+- [x] 26. Fix Semantic Heading Structure — one h1 per page verified; fixed h1→h3 skip in player splits
+- [x] 27. Handle Text Overflow Gracefully — verified ellipsis/break-word/scroll coverage on all dynamic text
+- [x] 28. Format Numbers, Dates, and Currency — thousands separators in answer tables (with season/week exclusions); rest already formatted
+- [x] 29. Add Refined Typographic Details — curly apostrophes in all web copy; balance/pretty/legibility already present
+- [x] 30. Standardize Text Casing and Labels — leaderboard categories sentence-cased; convention verified elsewhere in ui 10
+- [x] 31. Run a Full Performance Audit — report: no-store fetches everywhere (→38), 300-row fantasy fetch (→44), suggest debounce check (→41); bundle already minimal
+- [x] 32. Shrink the JavaScript Bundle — n/a: deps are next+react only, all components imported
+- [x] 33. Add Route-Based Code Splitting — n/a: app router auto-splits; no heavy lazy candidates
+- [x] 34. Optimize and Modernize All Images — ESPN combiner resizing: headshots 256KB→19KB, logos 40KB→3KB; lazy+dims already present
+- [x] 35. Implement Content-Aware Loading Skeletons — n/a: all data views already have shaped shimmering skeletons
+- [x] 36. Virtualize Long Scrolling Lists — n/a: max 300 capped rows; virtualization unwarranted
+- [x] 37. Eliminate Unnecessary Component Re-renders — n/a: page-local state, no hotspots at this scale
+- [x] 38. Cache and Dedupe Data Fetching — getJson helper: 60s TTL cache + in-flight dedupe across all 12 GET endpoints
+- [x] 39. Add Optimistic UI Updates — n/a: no server mutations; local actions already instant
+- [x] 40. Prefetch Data on User Intent — all internal <a> → next/link: viewport/hover prefetch + client nav preserving the data cache
+- [x] 41. Debounce and Throttle Costly Handlers — n/a: suggest 180ms debounce, filters client-side, passive scroll
+- [x] 42. Optimize the Critical Rendering Path — preconnect to ESPN CDN + API origin; rest already tight
+- [x] 43. Audit Third-Party Script Performance — n/a: zero third-party scripts
+- [x] 44. Load Critical Content First — n/a: parallel panel fetches, lazy tab data, instant shell
+- [x] 45. Run a Full Accessibility Audit — report: tablist keyboard gap (→46), static titles (→56), reduced-motion sweep (→51); baseline strong
+- [x] 46. Make Everything Keyboard Navigable — shared arrow-key handler on all 4 tablists; rest verified in ui 45
+- [x] 47. Add Clear Visible Focus Indicators — n/a: global 2px accent focus-visible ring; inputs swap to accent border
+- [x] 48. Make Forms Fully Accessible — n/a: all inputs labeled, combobox pattern correct, alerts announced
+- [x] 49. Use Proper Semantic HTML — n/a: verified buttons/links/landmarks/lists/dl/table semantics throughout
+- [x] 50. Add Meaningful Image Alt Text — n/a: decorative alt="" discipline correct everywhere, adjacent text names everything
+- [x] 51. Respect Reduced Motion Preferences — guard was thorough; stopped the one leaking infinite loop (typing dots)
+- [x] 52. Announce Dynamic Changes to Screen Readers — added share-copied status + fantasy total status; results/thread/errors already live
+- [x] 53. Build Fully Accessible Modals — n/a: no modals; popovers follow combobox/listbox patterns
+- [x] 54. Don't Rely on Color Alone — underlined in-prose links; other signals already paired with weight/text
+- [x] 55. Add a Skip-To-Content Link — n/a: already present, focus-revealed, #main on every page
+- [x] 56. Fix Page Titles and Language — %s · YunoBall template + useTitle hook on all client pages incl. dynamic player/team names
+- [x] 57. Add Small Purposeful Micro-Interactions — n/a: press/hover/bars/confirmations all present on token timing
+- [x] 58. Standardize Animation Timing and Easing — system existed; added --dur-reveal for the one literal, loops exempt
+- [x] 59. Implement Smooth Page Transitions — template.tsx entrance fade per navigation, reduced-motion safe
+- [x] 60. Animate Value and State Changes — n/a: bars/fills/entries animate; counters static by design
+- [x] 61. Refine Hover and Focus Feedback — n/a: verified hover+focus+active on every control class
+- [x] 62. Add Tasteful Scroll-Triggered Animations — n/a: data-scanning UI; entrances exist at route/answer level
+- [x] 63. Smooth the Loading-To-Content Transition — 150ms skeleton anti-flash delay; swaps already CLS-free
+- [x] 64. Improve Drag-And-Drop Interface Affordances — n/a: no DnD interfaces exist
+- [x] 65. Add Mobile Gesture Support — n/a: browsing UI; custom swipes would conflict with native scroll/back-swipe for no benefit
+- [ ] 66. Add Subtle Success Moments
+- [ ] 67. Add Real-Time Inline Validation
+- [ ] 68. Write Clear Helpful Error Messages
+- [ ] 69. Polish Input Field Design and States
+- [ ] 70. Add Smart Input Masking and Formatting
+- [ ] 71. Add Form Autosave and Recovery
+- [ ] 72. Improve Multi-Step Form Experience
+- [ ] 73. Upgrade Select and Dropdown Inputs
+- [ ] 74. Improve Password Field UX
+- [ ] 75. Add Input Hints and Affordances
+- [ ] 76. Clarify Form Submission Feedback
+- [ ] 77. Build a Toast Notification System
+- [ ] 78. Handle Loading, Empty, Error, Success States
+- [ ] 79. Add Graceful Error Boundaries
+- [ ] 80. Confirm Destructive and Irreversible Actions
+- [ ] 81. Add Undo for Reversible Actions
+- [ ] 82. Handle Offline and Network Errors
+- [ ] 83. Show Progress for Long Operations
+- [ ] 84. Improve Perceived Performance Everywhere
+- [ ] 85. Add Contextual Help and Tooltips
+- [ ] 86. Standardize Status and State Indicators
+- [ ] 87. Clarify Primary Navigation Structure
+- [ ] 88. Add a Command Palette
+- [ ] 89. Show Clear Active Location Indicators
+- [ ] 90. Add Breadcrumbs for Deep Navigation
+- [ ] 91. Improve In-App Search Experience
+- [ ] 92. Fix Scroll Position and Back Behavior
+- [ ] 93. Add Useful Keyboard Shortcuts
+- [ ] 94. Reduce Friction in Key Flows
+- [ ] 95. Make Data Tables Genuinely Usable
+- [ ] 96. Add Powerful Filtering and Sorting
+- [ ] 97. Add Pagination or Infinite Scroll
+- [ ] 98. Polish Charts and Data Visualization
+- [ ] 99. Add Bulk Selection and Actions
+- [ ] 100. Add Data Export and Sharing

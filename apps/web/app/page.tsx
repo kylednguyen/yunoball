@@ -1,0 +1,32 @@
+import { HomeDashboard } from "./components/HomeDashboard";
+import { Leaders } from "./components/Leaders";
+import { Nav } from "./components/Nav";
+import { ScoreTicker } from "./components/ScoreTicker";
+import { Search } from "./search";
+
+export default function Home() {
+  return (
+    <>
+      <Nav />
+      <ScoreTicker />
+      <main id="main">
+        <section className="yb-hero">
+          <h1>
+            Ask anything about the <span>NFL</span>
+          </h1>
+          <p>
+            Every answer is computed from real historical data, and we show you the
+            query behind it.
+          </p>
+          <div style={{ textAlign: "left" }}>
+            <Search />
+          </div>
+        </section>
+
+        <HomeDashboard />
+
+        <Leaders />
+      </main>
+    </>
+  );
+}

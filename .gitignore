@@ -1,0 +1,42 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env.*.local
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python-version
+*.egg-info/
+
+# data artifacts (raw downloads / parquet caches)
+packages/ingest/data/
+*.parquet
+
+# demo database (regenerated on startup)
+*.db
+
+# turbo
+.turbo/
+
+# local docker override (machine-specific port remap)
+docker-compose.override.yml
+
+# next.js generated
+next-env.d.ts
+
+# logs / os
+*.log
+.DS_Store

@@ -1,0 +1,438 @@
+{
+  "_doc": "The query language: 50 common questions across every format the rule-based parser (query/parse_rules.py) understands. Each entry pins the expected intent + stat; tests/test_platform_routers.py asserts all of them parse. GET /api/search/examples samples from here for the home-page chips.",
+  "formats": [
+    {
+      "intent": "leaders",
+      "template": "Who <threw / rushed for / caught / had> the most <stat> in <year>?",
+      "also": "Most <stat> in <year> | Who led the league in <stat> in <year>?"
+    },
+    {
+      "intent": "leaders",
+      "template": "Most <stat> in a season",
+      "note": "No year means the best single-season marks since 1999."
+    },
+    {
+      "intent": "player_total",
+      "template": "<Player> career <stat>",
+      "also": "<Player> <stat> (no year reads as career)"
+    },
+    {
+      "intent": "player_total",
+      "template": "<Player> <stat> in <year>",
+      "also": "How many <stat> did <Player> <throw / have / rush for> in <year>?"
+    },
+    {
+      "intent": "single_game",
+      "template": "Most <stat> in a single game",
+      "also": "Most <stat> in one game"
+    },
+    {
+      "intent": "compare",
+      "template": "<Player A> versus <Player B>",
+      "also": "<Player A> vs <Player B> <stat>; scope modifiers apply to both sides",
+      "note": "No stat compares the full stat line, narrated on the matchup's primary real stat (QB passing, RB rushing, WR/TE receiving)."
+    },
+    {
+      "modifier": "postseason",
+      "template": "\u2026 in the playoffs / postseason / post season",
+      "note": "Works with every intent; switches season_type REG -> POST."
+    },
+    {
+      "modifier": "first_n",
+      "template": "\u2026 first <N> games",
+      "note": "First N games in career order (digits or one through ten); combines with postseason."
+    }
+  ],
+  "stats": {
+    "passing_yards": [
+      "passing yards",
+      "threw for",
+      "pass yards"
+    ],
+    "passing_tds": [
+      "passing touchdowns",
+      "touchdown passes",
+      "td passes",
+      "touchdowns (generic)"
+    ],
+    "interceptions": [
+      "interceptions",
+      "picked off",
+      "int thrown"
+    ],
+    "rushing_yards": [
+      "rushing yards",
+      "rushed for",
+      "rushing"
+    ],
+    "rushing_tds": [
+      "rushing touchdowns",
+      "rush tds"
+    ],
+    "receptions": [
+      "receptions",
+      "catches",
+      "caught"
+    ],
+    "receiving_yards": [
+      "receiving yards",
+      "rec yards"
+    ],
+    "receiving_tds": [
+      "receiving touchdowns",
+      "rec tds"
+    ]
+  },
+  "questions": [
+    {
+      "question": "Who threw the most touchdowns in 2024?",
+      "intent": "leaders",
+      "stat": "passing_tds"
+    },
+    {
+      "question": "Who threw for the most yards in 2023?",
+      "intent": "leaders",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Who threw the most interceptions in 2022?",
+      "intent": "leaders",
+      "stat": "interceptions"
+    },
+    {
+      "question": "Who rushed for the most yards in 2021?",
+      "intent": "leaders",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Who caught the most passes in 2019?",
+      "intent": "leaders",
+      "stat": "receptions"
+    },
+    {
+      "question": "Who had the most receiving yards in 2020?",
+      "intent": "leaders",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Who had the most rushing touchdowns in 2024?",
+      "intent": "leaders",
+      "stat": "rushing_tds"
+    },
+    {
+      "question": "Who had the most receiving touchdowns in 2023?",
+      "intent": "leaders",
+      "stat": "receiving_tds"
+    },
+    {
+      "question": "Most passing yards in 2025",
+      "intent": "leaders",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Most rushing yards in 2023",
+      "intent": "leaders",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Most receiving yards in 2024",
+      "intent": "leaders",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Most receptions in 2022",
+      "intent": "leaders",
+      "stat": "receptions"
+    },
+    {
+      "question": "Most passing touchdowns in 2018",
+      "intent": "leaders",
+      "stat": "passing_tds"
+    },
+    {
+      "question": "Most rushing touchdowns in 2019",
+      "intent": "leaders",
+      "stat": "rushing_tds"
+    },
+    {
+      "question": "Most interceptions thrown in 2013",
+      "intent": "leaders",
+      "stat": "interceptions"
+    },
+    {
+      "question": "Who led the league in rushing in 2012?",
+      "intent": "leaders",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Who led the league in receiving yards in 2015?",
+      "intent": "leaders",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Who threw the most touchdown passes in 2011?",
+      "intent": "leaders",
+      "stat": "passing_tds"
+    },
+    {
+      "question": "Who was picked off the most in 2020?",
+      "intent": "leaders",
+      "stat": "interceptions"
+    },
+    {
+      "question": "Most passing yards in a season",
+      "intent": "leaders",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Most rushing yards in a season",
+      "intent": "leaders",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Most receiving yards in a season",
+      "intent": "leaders",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Patrick Mahomes career passing yards",
+      "intent": "player_total",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Tom Brady career passing touchdowns",
+      "intent": "player_total",
+      "stat": "passing_tds"
+    },
+    {
+      "question": "Drew Brees career passing yards",
+      "intent": "player_total",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Derrick Henry career rushing yards",
+      "intent": "player_total",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Adrian Peterson career rushing touchdowns",
+      "intent": "player_total",
+      "stat": "rushing_tds"
+    },
+    {
+      "question": "Travis Kelce career receptions",
+      "intent": "player_total",
+      "stat": "receptions"
+    },
+    {
+      "question": "Davante Adams career receiving touchdowns",
+      "intent": "player_total",
+      "stat": "receiving_tds"
+    },
+    {
+      "question": "Julio Jones career receiving yards",
+      "intent": "player_total",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Aaron Rodgers career interceptions",
+      "intent": "player_total",
+      "stat": "interceptions"
+    },
+    {
+      "question": "Christian McCaffrey rushing yards",
+      "intent": "player_total",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Patrick Mahomes passing yards in 2022",
+      "intent": "player_total",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "How many touchdowns did Patrick Mahomes throw in 2018?",
+      "intent": "player_total",
+      "stat": "passing_tds"
+    },
+    {
+      "question": "Josh Allen rushing touchdowns in 2023",
+      "intent": "player_total",
+      "stat": "rushing_tds"
+    },
+    {
+      "question": "Lamar Jackson rushing yards in 2019",
+      "intent": "player_total",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Joe Burrow passing yards in 2021",
+      "intent": "player_total",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Justin Jefferson receiving yards in 2022",
+      "intent": "player_total",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Ja'Marr Chase receptions in 2024",
+      "intent": "player_total",
+      "stat": "receptions"
+    },
+    {
+      "question": "Cooper Kupp receiving touchdowns in 2021",
+      "intent": "player_total",
+      "stat": "receiving_tds"
+    },
+    {
+      "question": "Tyreek Hill receiving yards in 2023",
+      "intent": "player_total",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "How many yards did Derrick Henry rush for in 2020?",
+      "intent": "player_total",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "How many catches did Travis Kelce have in 2022?",
+      "intent": "player_total",
+      "stat": "receptions"
+    },
+    {
+      "question": "How many interceptions did Jameis Winston throw in 2019?",
+      "intent": "player_total",
+      "stat": "interceptions"
+    },
+    {
+      "question": "Saquon Barkley rushing yards in 2024",
+      "intent": "player_total",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Peyton Manning passing touchdowns in 2013",
+      "intent": "player_total",
+      "stat": "passing_tds"
+    },
+    {
+      "question": "Most rushing yards in a single game",
+      "intent": "single_game",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Most receiving yards in a single game",
+      "intent": "single_game",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Most passing yards in one game",
+      "intent": "single_game",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Most receptions in a single game",
+      "intent": "single_game",
+      "stat": "receptions"
+    },
+    {
+      "question": "Josh Allen post season first 5 games versus Drake Maye first 5",
+      "intent": "compare",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Patrick Mahomes versus Josh Allen",
+      "intent": "compare",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Lamar Jackson vs Jalen Hurts rushing yards",
+      "intent": "compare",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Justin Jefferson vs Ja'Marr Chase first 20 games",
+      "intent": "compare",
+      "stat": "receiving_yards"
+    },
+    {
+      "question": "Who threw the most touchdowns in the playoffs in 2024?",
+      "intent": "leaders",
+      "stat": "passing_tds"
+    },
+    {
+      "question": "Patrick Mahomes career postseason passing yards",
+      "intent": "player_total",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Most rushing yards in a single playoff game",
+      "intent": "single_game",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Most fantasy points in 2024",
+      "intent": "leaders",
+      "stat": "fantasy_points_ppr"
+    },
+    {
+      "question": "Who has the most career passing yards?",
+      "intent": "leaders",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Most career rushing touchdowns",
+      "intent": "leaders",
+      "stat": "rushing_tds"
+    },
+    {
+      "question": "Top 5 rushing yards this season",
+      "intent": "leaders",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Most total touchdowns in 2024",
+      "intent": "leaders",
+      "stat": "total_tds"
+    },
+    {
+      "question": "Most yards from scrimmage in 2024",
+      "intent": "leaders",
+      "stat": "scrimmage_yards"
+    },
+    {
+      "question": "Derrick Henry touchdowns",
+      "intent": "player_total",
+      "stat": "rushing_tds"
+    },
+    {
+      "question": "Who threw the most picks last season?",
+      "intent": "leaders",
+      "stat": "interceptions"
+    },
+    {
+      "question": "Joe Burrow completion percentage",
+      "intent": "player_total",
+      "stat": "completion_pct"
+    },
+    {
+      "question": "Derrick Henry 100+ rushing yard games",
+      "intent": "game_count",
+      "stat": "rushing_yards"
+    },
+    {
+      "question": "Patrick Mahomes passing yards at home",
+      "intent": "player_total",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Best rookie QB this season",
+      "intent": "leaders",
+      "stat": "passing_yards"
+    },
+    {
+      "question": "Josh Allen and Lamar Jackson",
+      "intent": "compare",
+      "stat": "passing_yards"
+    }
+  ]
+}

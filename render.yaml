@@ -1,0 +1,23 @@
+# Render blueprint — one-click deploy of the YunoBall API (persistent container).
+# Frontend deploys separately on Vercel (see docs/DEPLOYMENT.md).
+#
+#   render.com → New → Blueprint → point at this repo.
+#   Then set DATABASE_URL / READONLY_DATABASE_URL in the dashboard — they are
+#   marked sync:false so they are never committed.
+services:
+  - type: web
+    name: yunoball-api
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @yunoball/server start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # Supabase pooled connection
+      - key: READONLY_DATABASE_URL
+        sync: false          # read-only role for engine-executed SQL
+      - key: CORS_ORIGINS
+        sync: false          # comma-separated origins, e.g. https://yunoball-web.vercel.app
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "30"          # per-IP cap on POST /api/search and /api/agent (0 disables)
