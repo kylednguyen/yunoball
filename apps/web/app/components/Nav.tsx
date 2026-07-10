@@ -75,9 +75,26 @@ const LINKS = [
 function QuickSearch() {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const wrap = useRef<HTMLDivElement>(null);
+
+  // Same global shortcut the home search owns: "/" or ⌘K / Ctrl-K focuses
+  // the quick search on every other page (command-palette entry point).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(
+        (document.activeElement as HTMLElement)?.tagName ?? "",
+      );
+      if ((e.key === "/" && !typing) || ((e.metaKey || e.ctrlKey) && e.key === "k")) {
+        e.preventDefault();
+        wrap.current?.querySelector("input")?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
-    <div className="yb-nav-search" role="search">
+    <div className="yb-nav-search" role="search" ref={wrap}>
       <SearchSuggest
         value={q}
         onValueChange={setQ}

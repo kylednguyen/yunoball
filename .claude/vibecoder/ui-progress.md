@@ -92,8 +92,8 @@ Prompts:
 - [x] 84. Improve Perceived Performance Everywhere — n/a: covered by ui 35/38/40/63 (skeletons, cache, client nav, anti-flash)
 - [x] 85. Add Contextual Help and Tooltips — header abbr tooltips added; glossary/chips/kbd-hint already covered the rest
 - [x] 86. Standardize Status and State Indicators — n/a: text-first status chips already consistent per domain
-- [ ] 87. Clarify Primary Navigation Structure
-- [ ] 88. Add a Command Palette
+- [x] 87. Clarify Primary Navigation Structure — n/a: 8 clear items, icons, aria-current, desktop rail + mobile bar verified
+- [x] 88. Add a Command Palette — ⌘K//' now focuses the fuzzy quick search on every page (it already was the palette)
 - [ ] 89. Show Clear Active Location Indicators
 - [ ] 90. Add Breadcrumbs for Deep Navigation
 - [ ] 91. Improve In-App Search Experience
