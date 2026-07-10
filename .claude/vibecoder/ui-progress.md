@@ -26,7 +26,7 @@ Prompts:
 - [x] 18. Balance Content Density and Whitespace — verified deliberate dense-tables/airy-forms balance; no change
 - [x] 19. Use Container Queries for Components — compare chart now container-aware; others self-size via grid tracks
 - [x] 20. Untangle Z-Index Stacking Issues — tokenized the 5-value scale; hit-tested popover over sticky headers, no conflicts
-- [ ] 21. Establish a Modular Type Scale
+- [x] 21. Establish a Modular Type Scale — 6 --fs-* tiers cover all text sizes; half-pixel one-offs snapped
 - [ ] 22. Add Fluid Responsive Typography
 - [ ] 23. Optimize Reading Line Length
 - [ ] 24. Optimize Web Font Loading
