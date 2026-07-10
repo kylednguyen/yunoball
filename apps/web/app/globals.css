@@ -1395,6 +1395,70 @@ input.yb-input:focus {
 }
 
 /* ---- Assistant (chat) ---- */
+/* ---- Assistant Pro paywall (feature-gated until the agent ships) ---- */
+.yb-paywall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  margin-top: 48px;
+  padding: 40px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--panel);
+}
+.yb-paywall-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.yb-paywall-tag {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.yb-paywall .yb-page-title {
+  margin: 0;
+}
+.yb-paywall-lede {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+}
+.yb-paywall-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  padding: 0;
+  list-style: none;
+}
+.yb-paywall-list li {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--bg-soft);
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+.yb-paywall-note {
+  max-width: 44ch;
+  margin: 2px 0 0;
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+
 .yb-chat {
   display: flex;
   flex-direction: column;
