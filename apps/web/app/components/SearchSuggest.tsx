@@ -130,6 +130,10 @@ export function SearchSuggest({
       if (show && items[hi]) pick(items[hi]);
       else if (q) onSearch(q);
     } else if (e.key === "Escape") {
+      // When the suggestion popup is open, consume Escape so an enclosing
+      // handler (e.g. the mobile nav drawer) doesn't also close on the same
+      // keystroke — first Escape dismisses suggestions, a second closes the drawer.
+      if (show) e.stopPropagation();
       setOpen(false);
     }
   }

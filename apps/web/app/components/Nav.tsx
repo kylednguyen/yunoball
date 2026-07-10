@@ -145,8 +145,9 @@ export function Nav() {
   // transform only ≤860px; the desktop rail ignores the class).
   const [hidden, setHidden] = useState(false);
   const lastY = useRef(0);
-  // Mobile drawer open state.
+  // Mobile drawer open state, and whether we're at the drawer breakpoint.
   const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   // Non-alarming offline notice; recovers automatically when back online.
@@ -175,25 +176,56 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Track the drawer breakpoint; leaving mobile force-closes the drawer so a
+  // widened/rotated viewport never keeps body scroll locked with no visible
+  // way to close it.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 860px)");
+    const apply = () => {
+      setIsMobile(mq.matches);
+      if (!mq.matches) setOpen(false);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
   // Close the drawer whenever the route changes.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  // While the drawer is open: lock body scroll, close on Escape (returning
-  // focus to the toggle), and move focus into the drawer.
+  // Open drawer behaves as a modal: lock body scroll, trap Tab within the
+  // panel, close on Escape (returning focus to the toggle), and move focus in.
   useEffect(() => {
     if (!open) return;
+    const panel = panelRef.current;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setOpen(false);
         toggleRef.current?.focus();
+        return;
+      }
+      if (e.key === "Tab" && panel) {
+        const f = panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
+        );
+        if (f.length === 0) return;
+        const first = f[0]!;
+        const last = f[f.length - 1]!;
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    panelRef.current?.querySelector<HTMLElement>("a, button, input")?.focus();
+    panel?.querySelector<HTMLElement>("a, button, input")?.focus();
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
@@ -223,7 +255,18 @@ export function Nav() {
         </button>
       </div>
 
-      <div className="yb-nav-panel" id="yb-nav-drawer" ref={panelRef}>
+      <div
+        className="yb-nav-panel"
+        id="yb-nav-drawer"
+        ref={panelRef}
+        // On mobile the panel is a modal drawer; when closed it's off-canvas,
+        // so `inert` keeps its links/search out of the tab order and AT tree.
+        // On desktop it's the always-visible rail — never a dialog, never inert.
+        role={isMobile ? "dialog" : undefined}
+        aria-modal={isMobile ? true : undefined}
+        aria-label={isMobile ? "Site navigation" : undefined}
+        inert={isMobile && !open}
+      >
         {offline && (
           <p className="yb-offline" role="status">
             Offline — data may be stale
@@ -255,11 +298,14 @@ export function Nav() {
         <p className="yb-nav-foot">Every number computed from nflverse data.</p>
       </div>
 
+      {/* Mouse-only dismiss target; keyboard/AT users close via Escape or the
+          toggle (which is the labelled control), so the scrim stays out of the
+          tab order and the accessibility tree. */}
       <button
         type="button"
         className="yb-nav-scrim"
-        aria-label="Close menu"
-        tabIndex={open ? 0 : -1}
+        aria-hidden="true"
+        tabIndex={-1}
         onClick={() => setOpen(false)}
       />
     </nav>
