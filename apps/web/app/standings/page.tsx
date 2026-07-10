@@ -8,6 +8,7 @@ import { SeasonSelect } from "../components/SeasonSelect";
 import { SortTable, type SortColumn } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
 import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
+import { friendlyError } from "../lib/api";
 import type { StandingsResponse } from "../lib/api";
 
 type TeamRow = StandingsResponse["conferences"][number]["divisions"][number]["teams"][number];
@@ -90,7 +91,7 @@ export default function StandingsPage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load standings</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 

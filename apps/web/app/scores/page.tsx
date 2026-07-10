@@ -11,6 +11,7 @@ import { Nav } from "../components/Nav";
 import { Performers } from "../components/Performers";
 import { TeamLogo } from "../components/TeamLogo";
 import {
+  friendlyError,
   fetchGames,
   fetchPerformers,
   type GamesResponse,
@@ -149,7 +150,7 @@ export default function ScoresPage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load scores</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 

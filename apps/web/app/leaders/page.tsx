@@ -14,6 +14,7 @@ import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
 import { useLeaderboards, useSeasonParam, useStandings, useTitle } from "../lib/hooks";
+import { friendlyError } from "../lib/api";
 import type { LeaderRow, StandingRow } from "../lib/api";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"] as const;
@@ -80,7 +81,7 @@ export default function LeadersPage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load leaders</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 

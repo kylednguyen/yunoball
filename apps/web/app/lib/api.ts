@@ -222,3 +222,19 @@ export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return (await res.json()) as AgentResponse;
 }
+
+/** Raw fetch errors ("Failed to fetch", "Request failed (500)") read as
+ * jargon — every error state renders them through this translation. */
+export function friendlyError(message: string | null | undefined): string {
+  if (!message) return "Something unexpected went wrong. Please try again.";
+  if (/failed to fetch|networkerror|load failed/i.test(message)) {
+    return "Can’t reach the server — check your connection and try again.";
+  }
+  if (/request failed \(429\)/i.test(message)) {
+    return "Too many requests — give it a few seconds and try again.";
+  }
+  if (/request failed \(5\d\d\)/i.test(message)) {
+    return "The server hit an error answering that. Try again in a moment.";
+  }
+  return message;
+}

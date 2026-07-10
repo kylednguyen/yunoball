@@ -14,6 +14,7 @@ import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
+import { friendlyError } from "../../lib/api";
 import type { PlayerProfile, PlayerSeasonLine, SplitRow } from "../../lib/api";
 
 type SeasonRow = PlayerProfile["seasons"][number];
@@ -444,7 +445,7 @@ export default function PlayerPage() {
         {error && (
           <div className="yb-state error" role="alert">
             <h2>Couldn’t load this player</h2>
-            <p>{error}</p>
+            <p>{friendlyError(error)}</p>
           </div>
         )}
 
