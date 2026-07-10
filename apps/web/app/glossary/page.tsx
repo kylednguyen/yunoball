@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { Nav } from "../components/Nav";
 import { Glossary } from "./glossary";
 
 export const metadata: Metadata = {
@@ -12,7 +11,6 @@ export const metadata: Metadata = {
 export default function GlossaryPage() {
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page">
         <div className="yb-page-head">
           <h1 className="yb-page-title">NFL Glossary</h1>

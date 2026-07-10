@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 
 import { Crumbs } from "../../components/Crumbs";
 import { Headshot } from "../../components/Headshot";
-import { Nav } from "../../components/Nav";
 import { TeamLogo } from "../../components/TeamLogo";
 import { useBoxScore } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
@@ -157,7 +156,6 @@ export default function BoxScorePage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
         {loading && (
           <>

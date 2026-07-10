@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { AnswerCard } from "../../components/AnswerCard";
-import { Nav } from "../../components/Nav";
 import { fetchSharedAnswer } from "../../lib/api";
 
 export default async function SharedAnswerPage({
@@ -14,7 +13,6 @@ export default async function SharedAnswerPage({
 
   return (
     <>
-      <Nav />
       <main id="main" style={{ maxWidth: 820, margin: "0 auto", padding: "48px 20px 120px" }}>
         {result ? (
           <>

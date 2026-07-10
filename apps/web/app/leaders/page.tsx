@@ -8,7 +8,6 @@ import { useMemo, useState } from "react";
 import { Crumbs } from "../components/Crumbs";
 import { Dropdown } from "../components/Dropdown";
 import { Headshot } from "../components/Headshot";
-import { Nav } from "../components/Nav";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
@@ -62,7 +61,6 @@ export default function LeadersPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
         <Crumbs
           items={[

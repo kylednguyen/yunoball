@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 
 import { Crumbs } from "../../components/Crumbs";
 import { Headshot } from "../../components/Headshot";
-import { Nav } from "../../components/Nav";
 import { SeasonSelect } from "../../components/SeasonSelect";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
@@ -60,7 +59,6 @@ export default function TeamPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
         {loading && !team && (
           <>

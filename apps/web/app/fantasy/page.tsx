@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Headshot } from "../components/Headshot";
-import { Nav } from "../components/Nav";
 import {
   friendlyError, fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
 
@@ -151,7 +150,6 @@ export default function FantasyPage() {
 
   return (
     <>
-      <Nav />
       <main id="main" className="yb-page">
         <div className="yb-page-head">
           <h1 className="yb-page-title">Fantasy Lineup Builder</h1>

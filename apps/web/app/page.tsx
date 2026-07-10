@@ -1,13 +1,11 @@
 import { HomeDashboard } from "./components/HomeDashboard";
 import { Leaders } from "./components/Leaders";
-import { Nav } from "./components/Nav";
 import { ScoreTicker } from "./components/ScoreTicker";
 import { Search } from "./search";
 
 export default function Home() {
   return (
     <>
-      <Nav />
       <ScoreTicker />
       <main id="main">
         <section className="yb-hero">
