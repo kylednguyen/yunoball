@@ -69,8 +69,8 @@ Prompts:
 - [x] 61. Refine Hover and Focus Feedback — n/a: verified hover+focus+active on every control class
 - [x] 62. Add Tasteful Scroll-Triggered Animations — n/a: data-scanning UI; entrances exist at route/answer level
 - [x] 63. Smooth the Loading-To-Content Transition — 150ms skeleton anti-flash delay; swaps already CLS-free
-- [ ] 64. Improve Drag-And-Drop Interface Affordances
-- [ ] 65. Add Mobile Gesture Support
+- [x] 64. Improve Drag-And-Drop Interface Affordances — n/a: no DnD interfaces exist
+- [x] 65. Add Mobile Gesture Support — n/a: browsing UI; custom swipes would conflict with native scroll/back-swipe for no benefit
 - [ ] 66. Add Subtle Success Moments
 - [ ] 67. Add Real-Time Inline Validation
 - [ ] 68. Write Clear Helpful Error Messages
