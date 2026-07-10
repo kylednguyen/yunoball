@@ -32,7 +32,7 @@ Prompts:
 - [x] 24. Optimize Web Font Loading — next/font handles swap/subset/self-host/preload + size-adjust fallbacks; verified in served CSS
 - [x] 25. Tune Text Color and Contrast — all pairs ≥4.5:1 (worst: faint 5.0:1 after ui-2 fix); hierarchy intact
 - [x] 26. Fix Semantic Heading Structure — one h1 per page verified; fixed h1→h3 skip in player splits
-- [ ] 27. Handle Text Overflow Gracefully
+- [x] 27. Handle Text Overflow Gracefully — verified ellipsis/break-word/scroll coverage on all dynamic text
 - [ ] 28. Format Numbers, Dates, and Currency
 - [ ] 29. Add Refined Typographic Details
 - [ ] 30. Standardize Text Casing and Labels
