@@ -855,6 +855,25 @@ pre.yb-sql {
   }
 }
 
+/* Lineup complete: one celebratory pulse on the projected total. */
+.yb-card.complete {
+  border-color: var(--accent-border);
+}
+.yb-card.complete .yb-total-hero {
+  animation: yb-pop 500ms var(--ease) 1;
+}
+@keyframes yb-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 /* ---- Motion preferences ---- */
 @media (prefers-reduced-motion: reduce) {
   html {

@@ -71,7 +71,7 @@ Prompts:
 - [x] 63. Smooth the Loading-To-Content Transition — 150ms skeleton anti-flash delay; swaps already CLS-free
 - [x] 64. Improve Drag-And-Drop Interface Affordances — n/a: no DnD interfaces exist
 - [x] 65. Add Mobile Gesture Support — n/a: browsing UI; custom swipes would conflict with native scroll/back-swipe for no benefit
-- [ ] 66. Add Subtle Success Moments
+- [x] 66. Add Subtle Success Moments — lineup-complete accent+pulse on fantasy total; share ✓ existed
 - [ ] 67. Add Real-Time Inline Validation
 - [ ] 68. Write Clear Helpful Error Messages
 - [ ] 69. Polish Input Field Design and States

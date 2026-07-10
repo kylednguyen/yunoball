@@ -189,7 +189,11 @@ export default function FantasyPage() {
           <div className="yb-fantasy-grid">
             <section aria-label="Your lineup">
               {/* role=status: lineup edits announce the recalculated total. */}
-              <div className="yb-card" style={{ marginBottom: 16 }} role="status">
+              <div
+                className={`yb-card${filled === SLOTS.length ? " complete" : ""}`}
+                style={{ marginBottom: 16 }}
+                role="status"
+              >
                 <div className="yb-tile-label">Projected points per game</div>
                 <div className="yb-total-hero">{totalPpg.toFixed(1)}</div>
                 <div className="yb-tile-meta">
