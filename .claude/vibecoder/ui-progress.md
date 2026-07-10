@@ -56,7 +56,7 @@ Prompts:
 - [x] 48. Make Forms Fully Accessible — n/a: all inputs labeled, combobox pattern correct, alerts announced
 - [x] 49. Use Proper Semantic HTML — n/a: verified buttons/links/landmarks/lists/dl/table semantics throughout
 - [x] 50. Add Meaningful Image Alt Text — n/a: decorative alt="" discipline correct everywhere, adjacent text names everything
-- [ ] 51. Respect Reduced Motion Preferences
+- [x] 51. Respect Reduced Motion Preferences — guard was thorough; stopped the one leaking infinite loop (typing dots)
 - [ ] 52. Announce Dynamic Changes to Screen Readers
 - [ ] 53. Build Fully Accessible Modals
 - [ ] 54. Don't Rely on Color Alone

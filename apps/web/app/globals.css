@@ -822,6 +822,11 @@ pre.yb-sql {
   .yb-enter {
     animation: none;
   }
+  /* Infinite loops must STOP, not spin at 0.001ms (repaint churn). */
+  .yb-typing i {
+    animation: none;
+    opacity: 0.7;
+  }
   * {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
