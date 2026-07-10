@@ -7,6 +7,8 @@ export interface SortColumn<T> {
   label: ReactNode;
   /** Right-aligned, tabular numerals; first click sorts descending. */
   numeric?: boolean;
+  /** Hover/focus tooltip — spells out abbreviated headers. */
+  title?: string;
   width?: number | string;
   /** Value used for sorting (and display when no render is given). */
   value: (row: T) => string | number | null;
@@ -79,6 +81,7 @@ export function SortTable<T>({
                     type="button"
                     className={`yb-th-sort${active ? " on" : ""}`}
                     onClick={() => toggle(c)}
+                    title={c.title}
                   >
                     {c.label}
                     <span className="dir" aria-hidden="true">
