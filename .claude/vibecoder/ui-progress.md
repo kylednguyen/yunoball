@@ -35,7 +35,7 @@ Prompts:
 - [x] 27. Handle Text Overflow Gracefully — verified ellipsis/break-word/scroll coverage on all dynamic text
 - [x] 28. Format Numbers, Dates, and Currency — thousands separators in answer tables (with season/week exclusions); rest already formatted
 - [x] 29. Add Refined Typographic Details — curly apostrophes in all web copy; balance/pretty/legibility already present
-- [ ] 30. Standardize Text Casing and Labels
+- [x] 30. Standardize Text Casing and Labels — leaderboard categories sentence-cased; convention verified elsewhere in ui 10
 - [ ] 31. Run a Full Performance Audit
 - [ ] 32. Shrink the JavaScript Bundle
 - [ ] 33. Add Route-Based Code Splitting

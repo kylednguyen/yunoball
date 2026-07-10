@@ -8,11 +8,11 @@ import { loadedSeasons } from "../repositories/seasons.js";
 
 // key -> [label, unit]. Column name == key (allowlisted, safe to interpolate).
 export const PLAYER_CATEGORIES: [string, string, string][] = [
-  ["passing_yards", "Passing Yards", "yds"],
+  ["passing_yards", "Passing yards", "yds"],
   ["passing_tds", "Passing TDs", "TD"],
-  ["rushing_yards", "Rushing Yards", "yds"],
+  ["rushing_yards", "Rushing yards", "yds"],
   ["rushing_tds", "Rushing TDs", "TD"],
-  ["receiving_yards", "Receiving Yards", "yds"],
+  ["receiving_yards", "Receiving yards", "yds"],
   ["receptions", "Receptions", "rec"],
   ["receiving_tds", "Receiving TDs", "TD"],
   ["fantasy_points_ppr", "Fantasy PPG (PPR)", "ppg"],
