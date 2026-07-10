@@ -277,6 +277,16 @@ body {
     backdrop-filter: saturate(180%) blur(8px);
     -webkit-backdrop-filter: saturate(180%) blur(8px);
     overflow: visible;
+    transition: transform var(--dur-slow) var(--ease);
+  }
+  /* Scrolling down slides the bar away; any upward scroll brings it back. */
+  .yb-nav.is-hidden {
+    transform: translateY(-100%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .yb-nav {
+      transition: none;
+    }
   }
   .yb-brand {
     padding: 0;

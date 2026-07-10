@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SearchSuggest } from "./SearchSuggest";
 
@@ -92,9 +92,29 @@ function QuickSearch() {
 
 export function Nav() {
   const pathname = usePathname();
+  // Mobile top bar: hide scrolling down, reveal scrolling up (CSS applies the
+  // transform only ≤860px; the desktop rail ignores the class).
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastY.current;
+      if (Math.abs(delta) > 8) {
+        setHidden(delta > 0 && y > 64);
+        lastY.current = y;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <nav className="yb-nav" aria-label="Primary">
+    <nav
+      className={`yb-nav${hidden ? " is-hidden" : ""}`}
+      aria-label="Primary"
+      onFocusCapture={() => setHidden(false)}
+    >
       <Link href="/" className="yb-brand">
         Yuno<span>Ball</span>
       </Link>
