@@ -1,12 +1,12 @@
 # UI audit progress
 
 Custom user requests (from /ui-audit args):
-- [ ] 0a. Nav bar → sidebar
-- [ ] 0b. Player name-only queries → show season stats
-- [ ] 0c. Head-to-head → compact single element, toggle in middle, fix game count
+- [x] 0a. Nav bar → sidebar — already a fixed left rail (wip commit); verified at 1366px
+- [x] 0b. Player name-only queries → show season stats — new player_seasons intent, season-by-season table
+- [x] 0c. Head-to-head → one compact element (headshots+names in chart header), toggle centered, games fix (pipeline stripped `games` from compare rows)
 
 Prompts:
-- [ ] 1. Establish a Design Token System
+- [x] 1. Establish a Design Token System — system already existed; consolidated 6 hardcoded colors into new tokens (--bg-scrim, --danger-text/border, --accent-border, --shimmer)
 - [ ] 2. Build a Semantic Color System
 - [ ] 3. Define a Consistent Spacing Scale
 - [ ] 4. Create an Elevation Shadow System
