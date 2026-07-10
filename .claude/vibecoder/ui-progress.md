@@ -74,7 +74,7 @@ Prompts:
 - [x] 66. Add Subtle Success Moments — lineup-complete accent+pulse on fantasy total; share ✓ existed
 - [x] 67. Add Real-Time Inline Validation — n/a: no validating forms, free-text search only
 - [x] 68. Write Clear Helpful Error Messages — friendlyError translator for raw fetch/5xx/429 strings at all 9 error states
-- [ ] 69. Polish Input Field Design and States
+- [x] 69. Polish Input Field Design and States — enterKeyHint/spellCheck on search; states/labels/targets already done
 - [ ] 70. Add Smart Input Masking and Formatting
 - [ ] 71. Add Form Autosave and Recovery
 - [ ] 72. Improve Multi-Step Form Experience

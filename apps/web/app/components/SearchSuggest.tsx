@@ -135,6 +135,8 @@ export function SearchSuggest({
         aria-label={ariaLabel}
         placeholder={placeholder}
         autoComplete="off"
+        enterKeyHint="search"
+        spellCheck={false}
         autoFocus={autoFocus}
         value={value}
         onChange={(e) => {
