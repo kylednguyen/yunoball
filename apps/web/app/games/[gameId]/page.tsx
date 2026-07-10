@@ -158,6 +158,14 @@ export default function BoxScorePage() {
   return (
     <>
       <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
+        {/* One page-level heading present in every state (loading, error,
+            not-found, success) so the document outline never starts at an
+            orphan <h2>. The boxhead carries the visible scoreline. */}
+        <h1 className="yb-sr-only">
+          {box
+            ? `${box.away.name} ${box.away.score ?? ""} at ${box.home.name} ${box.home.score ?? ""}, box score`
+            : "Box score"}
+        </h1>
         {loading && (
           <>
             <div className="yb-skel" style={{ height: 90, borderRadius: 14, marginBottom: 20 }} />
@@ -191,12 +199,6 @@ export default function BoxScorePage() {
                 { label: `${box.away.team_id} @ ${box.home.team_id}` },
               ]}
             />
-            {/* Page-level heading for the outline; the boxhead carries the
-                visible scoreline. */}
-            <h1 className="yb-sr-only">
-              {box.away.name} {box.away.score ?? ""} at {box.home.name} {box.home.score ?? ""},{" "}
-              box score
-            </h1>
             <div className="yb-boxhead">
               {[box.away, box.home].map((t, i) => {
                 const other = i === 0 ? box.home : box.away;

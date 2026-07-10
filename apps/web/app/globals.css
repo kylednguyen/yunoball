@@ -477,6 +477,12 @@ body {
   font-size: var(--fs-small);
   font-weight: 600;
 }
+/* Sits below the bar on mobile (outside the drawer) — inset it from the edge. */
+@media (max-width: 860px) {
+  .yb-nav > .yb-offline {
+    margin: 0 max(14px, env(safe-area-inset-right)) 8px max(14px, env(safe-area-inset-left));
+  }
+}
 
 /* ---- Score ticker (front-page scoreboard strip) ---- */
 .yb-ticker {
