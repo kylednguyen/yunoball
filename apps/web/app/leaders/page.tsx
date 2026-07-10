@@ -1,5 +1,7 @@
 "use client";
 
+import { tablistKeys } from "../components/tablist";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -89,7 +91,7 @@ export default function LeadersPage() {
 
         {data && (
           <>
-            <div className="yb-tabs" role="tablist" aria-label="Stat category">
+            <div className="yb-tabs" role="tablist" aria-label="Stat category" onKeyDown={tablistKeys}>
               {boards.map((b) => (
                 <button
                   key={b.key}

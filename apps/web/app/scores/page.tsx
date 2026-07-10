@@ -1,5 +1,7 @@
 "use client";
 
+import { tablistKeys } from "../components/tablist";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -126,7 +128,7 @@ export default function ScoresPage() {
         <p className="yb-page-sub">Every final, week by week.</p>
 
         {data && (
-          <div className="yb-week-tabs" role="tablist" aria-label="Week">
+          <div className="yb-week-tabs" role="tablist" aria-label="Week" onKeyDown={tablistKeys}>
             {data.weeks.map((w) => (
               <button
                 key={w}

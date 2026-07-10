@@ -1,5 +1,7 @@
 "use client";
 
+import { tablistKeys } from "./tablist";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -173,7 +175,7 @@ export function Leaders() {
         ask about that season.
       </p>
 
-      <div className="yb-tabs" role="tablist" aria-label="Stat category">
+      <div className="yb-tabs" role="tablist" aria-label="Stat category" onKeyDown={tablistKeys}>
         {CATEGORIES.map((c) => (
           <button
             key={c.key}

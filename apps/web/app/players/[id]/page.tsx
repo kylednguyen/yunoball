@@ -1,5 +1,7 @@
 "use client";
 
+import { tablistKeys } from "../../components/tablist";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -533,7 +535,7 @@ export default function PlayerPage() {
                 ))}
             </dl>
 
-            <div className="yb-player-tabs" role="tablist" aria-label="Player views">
+            <div className="yb-player-tabs" role="tablist" aria-label="Player views" onKeyDown={tablistKeys}>
               {TABS.filter((t) => t !== "Playoffs" || hasPlayoffs).map((t) => (
                 <button
                   key={t}

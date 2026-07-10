@@ -51,7 +51,7 @@ Prompts:
 - [x] 43. Audit Third-Party Script Performance — n/a: zero third-party scripts
 - [x] 44. Load Critical Content First — n/a: parallel panel fetches, lazy tab data, instant shell
 - [x] 45. Run a Full Accessibility Audit — report: tablist keyboard gap (→46), static titles (→56), reduced-motion sweep (→51); baseline strong
-- [ ] 46. Make Everything Keyboard Navigable
+- [x] 46. Make Everything Keyboard Navigable — shared arrow-key handler on all 4 tablists; rest verified in ui 45
 - [ ] 47. Add Clear Visible Focus Indicators
 - [ ] 48. Make Forms Fully Accessible
 - [ ] 49. Use Proper Semantic HTML
