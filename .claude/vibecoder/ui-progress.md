@@ -24,7 +24,7 @@ Prompts:
 - [x] 16. Respect Mobile Safe Area Insets — viewport-fit=cover + env() guards on sticky bar and page padding
 - [x] 17. Build a Smart Sticky Header — mobile bar hides on scroll down, reveals on up; reduced-motion + focus guards
 - [x] 18. Balance Content Density and Whitespace — verified deliberate dense-tables/airy-forms balance; no change
-- [ ] 19. Use Container Queries for Components
+- [x] 19. Use Container Queries for Components — compare chart now container-aware; others self-size via grid tracks
 - [ ] 20. Untangle Z-Index Stacking Issues
 - [ ] 21. Establish a Modular Type Scale
 - [ ] 22. Add Fluid Responsive Typography

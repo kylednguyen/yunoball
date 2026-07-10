@@ -1834,6 +1834,7 @@ a.yb-game-team:hover {
 /* Head-to-head comparison: mirrored bars per stat, values at the edges,
    the leader's bar and value in the accent color. */
 .yb-cmp {
+  container-type: inline-size;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--bg-soft);
@@ -1946,7 +1947,9 @@ a.yb-game-team:hover {
 .yb-cmp-row .track .bar.lead {
   background: var(--accent);
 }
-@media (max-width: 640px) {
+/* Container query: the chart adapts to ITS width, not the viewport — it
+   renders in the main column, the 820px share page and anywhere else. */
+@container (max-width: 560px) {
   /* Stacked rows: the label gets its own line so the bars keep their length. */
   .yb-cmp-row {
     grid-template-columns: 48px 1fr 1fr 48px;
