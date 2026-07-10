@@ -59,7 +59,7 @@ Prompts:
 - [x] 51. Respect Reduced Motion Preferences — guard was thorough; stopped the one leaking infinite loop (typing dots)
 - [x] 52. Announce Dynamic Changes to Screen Readers — added share-copied status + fantasy total status; results/thread/errors already live
 - [x] 53. Build Fully Accessible Modals — n/a: no modals; popovers follow combobox/listbox patterns
-- [ ] 54. Don't Rely on Color Alone
+- [x] 54. Don't Rely on Color Alone — underlined in-prose links; other signals already paired with weight/text
 - [ ] 55. Add a Skip-To-Content Link
 - [ ] 56. Fix Page Titles and Language
 - [ ] 57. Add Small Purposeful Micro-Interactions

@@ -130,6 +130,14 @@ a {
 a:hover {
   text-decoration: underline;
 }
+/* Links inside running text need a non-color cue (WCAG 1.4.1) — standalone
+   links (nav, cards, rows) identify themselves by position instead. */
+p a,
+dd a,
+.yb-state a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* Visible focus everywhere; never removed without replacement. */
 :focus-visible {
