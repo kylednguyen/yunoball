@@ -58,7 +58,7 @@ Prompts:
 - [x] 50. Add Meaningful Image Alt Text — n/a: decorative alt="" discipline correct everywhere, adjacent text names everything
 - [x] 51. Respect Reduced Motion Preferences — guard was thorough; stopped the one leaking infinite loop (typing dots)
 - [x] 52. Announce Dynamic Changes to Screen Readers — added share-copied status + fantasy total status; results/thread/errors already live
-- [ ] 53. Build Fully Accessible Modals
+- [x] 53. Build Fully Accessible Modals — n/a: no modals; popovers follow combobox/listbox patterns
 - [ ] 54. Don't Rely on Color Alone
 - [ ] 55. Add a Skip-To-Content Link
 - [ ] 56. Fix Page Titles and Language
