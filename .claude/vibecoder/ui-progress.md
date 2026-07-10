@@ -88,8 +88,8 @@ Prompts:
 - [x] 80. Confirm Destructive and Irreversible Actions — undo (8s) on lineup Clear, the only consequential destructive action
 - [x] 81. Add Undo for Reversible Actions — lineup Clear undo (ui 80); slot removes are one-click re-addable, searches trivial
 - [x] 82. Handle Offline and Network Errors — 15s abort on all GETs, offline pill in nav, friendly timeout copy
-- [ ] 83. Show Progress for Long Operations
-- [ ] 84. Improve Perceived Performance Everywhere
+- [x] 83. Show Progress for Long Operations — n/a: no multi-second ops; search/assistant already indicated
+- [x] 84. Improve Perceived Performance Everywhere — n/a: covered by ui 35/38/40/63 (skeletons, cache, client nav, anti-flash)
 - [ ] 85. Add Contextual Help and Tooltips
 - [ ] 86. Standardize Status and State Indicators
 - [ ] 87. Clarify Primary Navigation Structure
