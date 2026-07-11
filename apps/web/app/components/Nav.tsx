@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BarChart3,
   BookOpen,
@@ -46,10 +46,30 @@ function QuickSearch() {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
   const [q, setQ] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Global shortcut: "/" or ⌘K / Ctrl-K focuses the search from anywhere,
+  // matching the home-page search (search.tsx) on the pages where it mounts.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const typing =
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement;
+      if ((e.key === "/" && !typing) || ((e.metaKey || e.ctrlKey) && e.key === "k")) {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <SearchSuggest
       value={q}
       onValueChange={setQ}
+      inputRef={inputRef}
       onSearch={(question) => {
         setOpenMobile(false);
         router.push(`/?q=${encodeURIComponent(question)}`);

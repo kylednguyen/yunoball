@@ -24,3 +24,7 @@ services:
         sync: false          # comma-separated origins, e.g. https://yunoball-web.vercel.app
       - key: RATE_LIMIT_PER_MINUTE
         value: "30"          # per-IP cap on POST /api/search and /api/agent (0 disables)
+      - key: ANSWER_CACHE_TTL_SECONDS
+        value: "86400"       # TTL for cached answers in answer_cache (24h)
+      - key: LOG_LEVEL
+        value: "info"        # pino log level: fatal|error|warn|info|debug|trace|silent
