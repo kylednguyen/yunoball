@@ -212,6 +212,9 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfile>
     points_per_game: r.gp ? round(r.fp / r.gp, 1) : 0,
   }));
 
+  // first/last span REG and POST so postseason-only careers aren't dropped.
+  const allSeasonNums = [...seasons, ...postseasons].map((s) => s.season);
+
   const sum = (f: (s: PlayerSeasonLine) => number) => seasons.reduce((a, s) => a + f(s), 0);
   const career = {
     seasons: seasons.length,
@@ -268,8 +271,8 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfile>
       height_inches: p.height_inches,
       weight_lbs: p.weight_lbs,
       college: p.college,
-      first_season: seasons.at(-1)?.season ?? null, // seasons sort newest-first
-      last_season: seasons[0]?.season ?? null,
+      first_season: allSeasonNums.length ? Math.min(...allSeasonNums) : null,
+      last_season: allSeasonNums.length ? Math.max(...allSeasonNums) : null,
     },
     career,
     seasons,
@@ -357,7 +360,7 @@ export async function getPlayerSplits(
     await q<{ season: number }>(
       `SELECT DISTINCT g.season FROM player_game_stats s
        JOIN games g ON g.game_id = s.game_id
-       WHERE s.player_id = $1 ORDER BY g.season DESC`,
+       WHERE s.player_id = $1 AND g.season_type = 'REG' ORDER BY g.season DESC`,
       [playerId],
     )
   ).map((r) => r.season);
