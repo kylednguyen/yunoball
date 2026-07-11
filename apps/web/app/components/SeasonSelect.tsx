@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dropdown } from "./Dropdown";
 
-/** The season dropdown every stat page shares. */
+/** The season dropdown every stat page shares (in-house, not the OS menu). */
 export function SeasonSelect({
   seasons,
   value,
@@ -19,17 +13,11 @@ export function SeasonSelect({
   onChange: (season: number) => void;
 }) {
   return (
-    <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
-      <SelectTrigger className="w-[160px]" aria-label="Select season">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {seasons.map((s) => (
-          <SelectItem key={s} value={String(s)}>
-            {s} season
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Dropdown
+      ariaLabel="Select season"
+      value={String(value)}
+      onChange={(v) => onChange(Number(v))}
+      options={seasons.map((s) => ({ value: String(s), label: `${s} season` }))}
+    />
   );
 }

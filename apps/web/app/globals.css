@@ -1,130 +1,3128 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
-
-/* Fonts come from next/font in layout.tsx as CSS vars on <html>:
-   --font-body (Geist) and --font-display (Barlow Condensed). */
-@theme inline {
-  --font-sans: var(--font-body, ui-sans-serif, system-ui, sans-serif);
-  --font-heading: var(--font-display, var(--font-body, ui-sans-serif, system-ui, sans-serif));
-
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
+/* ============================================================
+   YunoBall design system — shadcn-inspired dark theme, lime accent.
+   Zinc surfaces, content-over-chrome, dense-but-readable.
+   Tokens here are the runtime source of truth for the app.
+   ============================================================ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.841 0.238 128.85);
-  --primary-foreground: oklch(0.405 0.101 131.063);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.897 0.196 126.665);
-  --chart-2: oklch(0.768 0.233 130.85);
-  --chart-3: oklch(0.648 0.2 131.684);
-  --chart-4: oklch(0.532 0.157 131.589);
-  --chart-5: oklch(0.453 0.124 130.933);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.648 0.2 131.684);
-  --sidebar-primary-foreground: oklch(0.986 0.031 120.757);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  color-scheme: dark;
+
+  /* Surfaces — zinc scale */
+  --bg: #09090b;
+  --bg-soft: #18181b;
+  --panel: #101013;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+
+  /* Ink */
+  --text: #fafafa;
+  --muted: #a1a1aa;
+  /* Tertiary ink — lightened from #6b6b74, which fell below 4.5:1 on every
+     surface. 4.7:1 on --bg-soft, the worst case. */
+  --faint: #82828c;
+
+  /* Brand — lime. UI accent is bright; text on accent is near-black. */
+  --accent: #a3e635;
+  --accent-hover: #bef264;
+  --accent-soft: rgba(163, 230, 53, 0.12);
+  --accent-contrast: #131603;
+  /* legacy alias — some rules used accent-ink as the hover/bg-strong color */
+  --accent-ink: #bef264;
+
+  /* Data marks — validated for the dark surface (do not use raw accent). */
+  --chart: #65a30d;
+  --chart-strong: #4d7c0f;
+
+  /* Semantic */
+  --success: #4ade80;
+  --warning: #facc15;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.1);
+  --danger-text: #fca5a5;
+  --danger-border: #7f1d1d;
+
+  /* Derived surfaces */
+  --bg-scrim: rgba(9, 9, 11, 0.85); /* translucent bg for blurred bars */
+  --accent-border: rgba(163, 230, 53, 0.45);
+  --shimmer: rgba(255, 255, 255, 0.07); /* skeleton sweep highlight */
+
+  /* Radii */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 14px;
+  --r-pill: 999px;
+  --radius: var(--r-lg); /* legacy alias */
+
+  /* Spacing scale — 4px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+
+  /* Type. --font-display (Barlow Condensed) and --font-body (Geist) are
+     injected by next/font in layout.tsx; these compose them with fallbacks. */
+  --font: var(--font-body, "Geist"), -apple-system, BlinkMacSystemFont,
+    "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --display: var(--font-display, "Arial Narrow"), var(--font);
+
+  /* Type scale — text tiers (display sizes stay per-context in the
+     display face). caption 11 / small 12 / body 13 / ui 14 / body-lg 15 /
+     lead 16. */
+  --fs-caption: 11px;
+  --fs-small: 12px;
+  --fs-body: 13px;
+  --fs-ui: 14px;
+  --fs-body-lg: 15px;
+  --fs-lead: 16px;
+
+  /* Elevation — flat, borders do the work on dark */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 2px 6px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.55);
+
+  /* Stacking — one documented scale, no arbitrary numbers.
+     sticky < nav < popover < skip-link. Overlays render in-flow (no
+     portals needed): each popover's parent stacks above table headers. */
+  --z-sticky: 1;
+  --z-nav: 10;
+  --z-pop: 40;
+  --z-skip: 100;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 160ms;
+  --dur-slow: 240ms;
+  --dur-reveal: 700ms; /* data draw-ins (bars); loops keep their own rhythm */
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.768 0.233 130.85);
-  --primary-foreground: oklch(0.405 0.101 131.063);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.897 0.196 126.665);
-  --chart-2: oklch(0.768 0.233 130.85);
-  --chart-3: oklch(0.648 0.2 131.684);
-  --chart-4: oklch(0.532 0.157 131.589);
-  --chart-5: oklch(0.453 0.124 130.933);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.768 0.233 130.85);
-  --sidebar-primary-foreground: oklch(0.274 0.072 132.109);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+* {
+  box-sizing: border-box;
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv05" 1, "ss01" 1;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+/* Links inside running text need a non-color cue (WCAG 1.4.1) — standalone
+   links (nav, cards, rows) identify themselves by position instead. */
+p a,
+dd a,
+.yb-state a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Visible focus everywhere; never removed without replacement. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Tactile press: every button-like control gives a 1px physical push. */
+.yb-btn:active:not(:disabled),
+.yb-chip:active,
+.yb-tab:active,
+.yb-week-tab:active,
+.yb-link:active,
+.yb-th-sort:active,
+.yb-nav-links a:active {
+  transform: translateY(1px);
+}
+
+/* Ragged-line control on display type. */
+.yb-hero h1,
+.yb-page-title,
+p.yb-answer {
+  text-wrap: balance;
+}
+.yb-hero p,
+.yb-page-sub,
+.yb-gloss-item dd {
+  text-wrap: pretty;
+}
+
+/* Visually hidden but announced — for live-region text. */
+.yb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Skip link — first focusable element for keyboard users. */
+.yb-skip {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: var(--z-skip);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  transition: top var(--dur) var(--ease);
+}
+.yb-skip:focus {
+  top: 12px;
+  text-decoration: none;
+}
+
+/* ---- Navigation: fixed left rail on desktop, top bar on small screens.
+   The rail is position:fixed, so pages can render <Nav/> anywhere in their
+   tree; body padding reserves its column. ---- */
+:root {
+  --sidebar-w: 196px;
+}
+body {
+  padding-left: var(--sidebar-w);
+}
+.yb-nav {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 14px 16px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  z-index: var(--z-nav);
+  overflow-y: auto;
+}
+/* Rail structure: a top bar (brand + mobile toggle) above a panel that holds
+   search + links + footer. On desktop both flow in the fixed column; on mobile
+   the panel becomes a slide-in drawer (see the ≤860px block). */
+.yb-nav-bar {
+  display: flex;
+  align-items: center;
+}
+.yb-nav-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+.yb-nav-toggle {
+  display: none; /* desktop rail is always expanded */
+}
+.yb-nav-scrim {
+  display: none; /* drawer backdrop is mobile-only */
+}
+.yb-brand {
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  white-space: nowrap;
+  padding: 0 8px;
+}
+.yb-brand span {
+  color: var(--accent);
+}
+.yb-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-ui);
+  font-weight: 500;
+}
+.yb-nav-links a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.yb-nav-links a svg {
+  flex: none;
+  opacity: 0.75;
+}
+.yb-nav-links a[aria-current="page"] svg {
+  opacity: 1;
+}
+.yb-nav-links a:hover {
+  color: var(--text);
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+.yb-nav-links a[aria-current="page"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.yb-nav-search {
+  padding: 0 2px;
+}
+.yb-nav-search input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: var(--fs-body);
+}
+.yb-nav-foot {
+  margin: auto 0 0;
+  padding: 12px 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  color: var(--faint);
+}
+.yb-nav-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r-sm);
+  padding: 0 5px;
+  margin-left: 6px;
+  vertical-align: 2px;
+}
+/* Small screens: the rail collapses to a sticky top bar (brand + hamburger)
+   and the panel becomes a slide-in drawer over a scrim. */
+@media (max-width: 860px) {
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-sans);
+    padding-left: 0;
   }
+  .yb-nav {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    width: auto;
+    gap: 0;
+    padding: 0;
+    border-right: none;
+    /* No backdrop-filter here: it would establish a containing block and clamp
+       the fixed drawer/scrim to the bar's height. The bar carries the blur. */
+    background: transparent;
+    overflow: visible;
+    /* Above page popovers (--z-pop): the nav forms a stacking context, so its
+       drawer/scrim subtree must outrank any open dropdown behind it. */
+    z-index: calc(var(--z-pop) + 1);
+    transition: transform var(--dur-slow) var(--ease);
+  }
+  /* Scrolling down slides the bar away; any upward scroll brings it back. */
+  .yb-nav.is-hidden {
+    transform: translateY(-100%);
+  }
+  .yb-nav-bar {
+    justify-content: space-between;
+    gap: 12px;
+    padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      10px max(14px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-scrim);
+    backdrop-filter: saturate(180%) blur(8px);
+    -webkit-backdrop-filter: saturate(180%) blur(8px);
+  }
+  .yb-brand {
+    padding: 0;
+    font-size: 19px;
+  }
+  /* Icon-only toggle with a full 44px hit area. */
+  .yb-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: -6px -8px -6px 0;
+    background: none;
+    border: none;
+    border-radius: var(--r-md);
+    color: var(--text);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease);
+  }
+  .yb-nav-toggle:hover {
+    background: var(--bg-soft);
+  }
+  /* Keep the toggle crisp and tappable above the scrim while the drawer is open. */
+  .yb-nav.is-open .yb-nav-toggle {
+    position: relative;
+    z-index: calc(var(--z-pop) + 2);
+  }
+
+  /* Drawer */
+  .yb-nav-panel {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(82vw, 320px);
+    gap: 16px;
+    flex: none;
+    padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-100%);
+    transition: transform var(--dur-slow) var(--ease);
+    z-index: calc(var(--z-pop) + 1);
+  }
+  .yb-nav.is-open .yb-nav-panel {
+    transform: none;
+  }
+  .yb-nav-search {
+    padding: 0;
+  }
+  .yb-nav-foot {
+    margin-top: auto;
+  }
+
+  /* Scrim */
+  .yb-nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-slow) var(--ease);
+    z-index: var(--z-pop);
+  }
+  .yb-nav.is-open .yb-nav-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .yb-nav,
+    .yb-nav-panel,
+    .yb-nav-scrim {
+      transition: none;
+    }
+  }
+}
+
+/* Horizontal scroll region — the responsive-table escape hatch. */
+.yb-scroll-x {
+  overflow-x: auto;
+}
+
+
+/* ---- Mobile touch targets: 44px minimum (WCAG 2.5.8 / Apple HIG) ---- */
+@media (max-width: 860px) {
+  .yb-nav-links a,
+  .yb-btn,
+  .yb-tab,
+  .yb-week-tab,
+  .yb-chip,
+  .yb-dd-btn,
+  .yb-lb-name,
+  .yb-input,
+  .yb-x,
+  .yb-suggest-item {
+    min-height: 44px;
+  }
+  .yb-x {
+    min-width: 44px;
+  }
+  /* Inline text links: grow the hit area, not the glyphs. */
+  .yb-link,
+  .yb-leaders-more,
+  .yb-dash-head a {
+    padding-block: 12px;
+    margin-block: -12px;
+  }
+}
+
+/* Offline notice in the nav — calm, not alarming. */
+.yb-offline {
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+/* Sits below the bar on mobile (outside the drawer) — inset it from the edge. */
+@media (max-width: 860px) {
+  .yb-nav > .yb-offline {
+    margin: 0 max(14px, env(safe-area-inset-right)) 8px max(14px, env(safe-area-inset-left));
+  }
+}
+
+/* ---- Score ticker (front-page scoreboard strip) ---- */
+.yb-ticker {
+  display: flex;
+  align-items: stretch;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.yb-tick-label {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 16px;
+  border-right: 1px solid var(--border);
+  font-family: var(--display);
+  text-transform: uppercase;
+  line-height: 1.05;
+  color: var(--text);
+}
+.yb-tick-label strong {
+  font-size: 17px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.yb-tick-label span {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.yb-tick-label:hover {
+  text-decoration: none;
+  color: var(--accent);
+}
+.yb-tick-scroll {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.yb-tick-scroll::-webkit-scrollbar {
+  display: none;
+}
+.yb-tick-game {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 8px 14px 6px;
+  border-right: 1px solid var(--border);
+  color: var(--muted);
+  transition: background var(--dur) var(--ease);
+}
+.yb-tick-game:hover {
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+.yb-tick-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--display);
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.yb-tick-row.win {
+  color: var(--text);
+  font-weight: 800;
+}
+.yb-tick-row.win .yb-tick-score {
+  color: var(--accent);
+}
+.yb-tick-team {
+  width: 36px;
+  letter-spacing: 0.03em;
+}
+.yb-tick-score {
+  min-width: 20px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.yb-tick-status {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.yb-tick-skel {
+  flex: none;
+  width: 104px;
+  height: 100%;
+  min-height: 62px;
+  border-radius: 0;
+  border-right: 1px solid var(--border);
+}
+
+/* ---- Front-page hero ---- */
+.yb-hero {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 24px 20px 18px;
+  text-align: center;
+}
+.yb-hero h1 {
+  font-family: var(--display);
+  font-size: clamp(38px, 5.8vw, 58px);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+  margin: 0 0 8px;
+  padding-right: 0.04em; /* italic overhang */
+}
+.yb-hero h1 span {
+  color: var(--accent);
+}
+.yb-hero p {
+  color: var(--muted);
+  font-size: var(--fs-body-lg);
+  margin: 0 auto 18px;
+  max-width: 520px;
+}
+.yb-search-shell {
+  text-align: left;
+}
+
+/* ---- Search input ---- */
+.yb-search-wrap {
+  position: relative;
+}
+input.yb-search {
+  width: 100%;
+  padding: 16px 46px 16px 18px;
+  font-size: 19px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+input.yb-search::placeholder {
+  color: var(--faint);
+}
+input.yb-search:hover {
+  border-color: var(--border-strong);
+}
+input.yb-search:focus {
+  border-color: var(--accent);
+}
+.yb-kbd-hint {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fs-caption);
+  color: var(--faint);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: var(--bg-soft);
+  pointer-events: none;
+}
+
+/* ---- Chips (example queries) ---- */
+.yb-chip {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--r-md);
+  padding: 7px 12px;
+  font-size: var(--fs-body);
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.yb-chip:hover,
+.yb-chip[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+.yb-query-prompt,
+.yb-recent-searches {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.yb-query-prompt {
+  justify-content: flex-start;
+}
+.yb-query-prompt > span,
+.yb-recent-searches > span {
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 2.4;
+  white-space: nowrap;
+}
+.yb-query-prompt-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+.yb-sample-query,
+.yb-recent-query {
+  max-width: min(100%, 310px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-recent-searches .yb-link {
+  font-size: var(--fs-small);
+}
+
+/* ---- Answer card ---- */
+.yb-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 22px 22px 18px;
+  box-shadow: var(--shadow-card);
+}
+
+/* ---- Shared surface system ---- */
+.yb-surface {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+.yb-surface-standard {
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+.yb-surface-feature {
+  border-radius: var(--r-xl);
+  padding: 18px 20px;
+  border-color: var(--accent-border);
+}
+.yb-surface-dense {
+  border-radius: var(--r-lg);
+  padding: 0;
+  overflow: hidden;
+}
+.yb-surface.is-interactive {
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.yb-surface.is-interactive:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+
+.yb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 2px 7px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.yb-badge.accent {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.yb-badge.success {
+  border-color: rgba(74, 222, 128, 0.35);
+  color: var(--success);
+}
+.yb-badge.danger {
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+  background: var(--danger-soft);
+}
+/* One-time entrance: fade + rise. Respects reduced-motion below. */
+.yb-enter {
+  animation: yb-rise var(--dur-slow) var(--ease) both;
+}
+@keyframes yb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* p.yb-answer outranks the ".yb-hero p" body rule when the card sits in the hero. */
+p.yb-answer {
+  font-family: var(--display);
+  font-size: clamp(26px, 22px + 1.1vw, 33px);
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 14px;
+}
+.yb-query-result {
+  margin-top: 24px;
+}
+.yb-query-result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.yb-result-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+.yb-query-interpretation {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 2px 0 14px;
+}
+.yb-query-interpretation > span {
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+.yb-query-interpretation > div,
+.yb-result-entities {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.yb-result-entities {
+  margin-bottom: 12px;
+}
+.yb-result-body {
+  margin-top: 14px;
+}
+.yb-result-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  align-items: center;
+}
+.yb-source-note {
+  margin: 12px 0 0;
+  color: var(--faint);
+  font-size: var(--fs-small);
+}
+
+/* ---- Table ---- */
+.yb-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+table.yb-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: var(--fs-body-lg);
+}
+table.yb-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: var(--fs-small);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+}
+table.yb-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+}
+table.yb-table td.num,
+table.yb-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+table.yb-table tbody tr:hover {
+  background: var(--bg-soft);
+}
+table.yb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+table.yb-table td:first-child,
+table.yb-table th:first-child {
+  font-weight: 600;
+}
+
+/* Click-to-sort column headers (SortTable). The button inherits the th's
+   small-caps styling so sortable and plain headers look identical at rest. */
+.yb-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  white-space: nowrap;
+}
+.yb-th-sort:hover {
+  color: var(--text);
+}
+.yb-th-sort.on {
+  color: var(--accent);
+}
+.yb-th-sort .dir {
+  font-size: 9px;
+  min-width: 9px;
+}
+table.yb-table th.num .yb-th-sort {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.yb-team-logo {
+  object-fit: contain;
+  flex: none;
+  vertical-align: -3px;
+}
+
+/* ---- SQL / misc ---- */
+pre.yb-sql {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: var(--fs-body);
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+.yb-link {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: var(--fs-body);
+  font-family: inherit;
+  font-weight: 600;
+}
+.yb-link:hover {
+  text-decoration: underline;
+}
+.yb-muted {
+  color: var(--muted);
+}
+.yb-chip-static {
+  font-size: var(--fs-small);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+}
+
+/* ---- Buttons ---- */
+.yb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent);
+}
+.yb-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  text-decoration: none;
+}
+.yb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.yb-btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+.yb-btn.ghost:hover:not(:disabled) {
+  background: var(--bg-soft);
+  border-color: var(--border-strong);
+}
+.yb-btn.sm {
+  font-size: var(--fs-small);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+}
+
+/* ---- Select ---- */
+.yb-select {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  font-size: var(--fs-ui);
+  font-family: inherit;
+  cursor: pointer;
+}
+.yb-select:hover {
+  border-color: var(--border-strong);
+}
+
+/* ---- Empty & error states ---- */
+.yb-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-2);
+  padding: var(--s-10) var(--s-6);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  color: var(--muted);
+  margin-top: 28px;
+}
+.yb-state h2 {
+  color: var(--text);
+  font-size: 18px;
+  margin: 0;
+}
+.yb-state p {
+  margin: 0;
+  max-width: 44ch;
+}
+.yb-state.error {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  border-style: solid;
+  color: var(--danger-text);
+}
+.yb-state.error h2 {
+  color: var(--danger-text);
+}
+
+/* ---- Skeleton loaders ---- */
+.yb-skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-soft);
+  border-radius: var(--r-sm);
+  /* Anti-flash: invisible for 150ms, so cache hits and fast responses
+     never blink a skeleton; slow loads fade one in. */
+  opacity: 0;
+  animation: yb-skel-in var(--dur-slow) var(--ease) 150ms forwards;
+}
+@keyframes yb-skel-in {
+  to {
+    opacity: 1;
+  }
+}
+.yb-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--shimmer),
+    transparent
+  );
+  animation: yb-shimmer 1.3s infinite;
+}
+@keyframes yb-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Route transition: a quick fade + 4px rise on every navigation. Fast
+   enough to never feel like a delay; no layout shift (opacity/transform). */
+.yb-route-enter {
+  animation: yb-route-in var(--dur-slow) var(--ease) both;
+}
+@keyframes yb-route-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Lineup complete: one celebratory pulse on the projected total. */
+.yb-card.complete {
+  border-color: var(--accent-border);
+}
+.yb-card.complete .yb-total-hero {
+  animation: yb-pop 500ms var(--ease) 1;
+}
+@keyframes yb-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---- Motion preferences ---- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .yb-skel::after {
+    animation: none;
+  }
+  .yb-enter,
+  .yb-route-enter {
+    animation: none;
+  }
+  /* Infinite loops must STOP, not spin at 0.001ms (repaint churn). */
+  .yb-typing i {
+    animation: none;
+    opacity: 0.7;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---- Single-season leaders (landing showcase) ---- */
+.yb-leaders {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 20px 48px;
+}
+.yb-leaders-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.yb-leaders-title {
+  font-size: 27px;
+  line-height: 1.1;
+}
+.yb-leaders-more {
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.yb-leaders-sub {
+  color: var(--muted);
+  font-size: var(--fs-body-lg);
+  margin: 6px 0 18px;
+  max-width: 60ch;
+}
+
+.yb-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.yb-tab {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--r-md);
+  padding: 7px 12px;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.yb-tab:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+}
+.yb-tab[aria-selected="true"] {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.yb-lb {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.yb-lb-row {
+  display: grid;
+  grid-template-columns: 20px minmax(120px, 190px) minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  transition: background var(--dur) var(--ease);
+}
+.yb-lb-row:hover {
+  background: var(--bg-soft);
+}
+.yb-lb-rank {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.yb-lb-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.yb-lb-player {
+  max-width: 100%;
+  font-size: var(--fs-body-lg);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--dur) var(--ease);
+}
+.yb-lb-name:hover .yb-lb-player {
+  color: var(--accent);
+}
+.yb-lb-meta {
+  font-size: var(--fs-small);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.yb-lb-track {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+.yb-lb-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  border-radius: var(--r-pill);
+  background: var(--chart);
+  transition: transform var(--dur-reveal) var(--ease);
+}
+.yb-lb-row:hover .yb-lb-fill {
+  background: var(--accent);
+}
+.yb-lb-value {
+  font-size: var(--fs-body-lg);
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.yb-lb-unit {
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--faint);
+}
+
+@media (max-width: 560px) {
+  .yb-leaders-head {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .yb-lb-row {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+  }
+  .yb-lb-track {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Platform pages — scores, standings, fantasy, assistant
+   ============================================================ */
+
+/* ---- Page scaffolding ---- */
+.yb-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px max(20px, env(safe-area-inset-right))
+    max(120px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+}
+/* Header sits over a hairline: gives every page one consistent baseline the
+   title, sub, controls and filters hang from — cohesion without decoration. */
+.yb-page-header {
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.yb-page-head {
+  display: flex;
+  align-items: flex-end; /* title cap-height and controls share a baseline */
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.yb-page-copy {
+  min-width: min(100%, 420px);
+  flex: 1;
+}
+/* Shared display-heading ramp — declared once so page/section/conf titles
+   can't drift apart. Per-context sizes live on each selector below. */
+.yb-page-title,
+.yb-section-head h2,
+.yb-conf-title,
+.yb-leaders-title {
+  font-family: var(--display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  margin: 0;
+}
+/* Brand cue: a short lime rule under the page title, tying every header to the
+   accent that defines the product without touching the glyphs themselves (so
+   proper-noun titles like a player name stay clean). */
+.yb-page-title {
+  position: relative;
+  font-size: clamp(31px, 26px + 1.4vw, 40px);
+  line-height: 1;
+  padding-bottom: 10px;
+}
+.yb-page-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 34px;
+  height: 3px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+.yb-page-sub {
+  color: var(--muted);
+  margin: 12px 0 0;
+  max-width: 62ch; /* keep the intro line readable on wide screens */
+}
+.yb-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.yb-page-filters {
+  margin-top: 16px;
+}
+.yb-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+.yb-section-head h2 {
+  font-size: 21px;
+  line-height: 1.1;
+}
+.yb-section-head p {
+  margin: 3px 0 0;
+  color: var(--faint);
+  font-size: var(--fs-body);
+}
+.yb-section-head a {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Stat tiles (dashboard headline numbers) ---- */
+.yb-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+}
+.yb-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+}
+.yb-tile-label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yb-tile-value {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.yb-tile-meta {
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+
+/* ---- Scoreboard ---- */
+.yb-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 12px;
+}
+.yb-game-card {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.yb-game-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+.yb-game-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: var(--fs-body-lg);
+}
+.yb-game-row.winner {
+  color: var(--text);
+  font-weight: 700;
+}
+.yb-game-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.yb-game-team .abbr {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--faint);
+  width: 34px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.yb-game-team .nick {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-game-score {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1;
+}
+.yb-game-row.winner .yb-game-score {
+  color: var(--accent);
+}
+.yb-game-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+.yb-final-chip {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 1px 8px;
+}
+.yb-week-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin: 0;
+  scrollbar-width: thin;
+  min-width: 0;
+  flex: 1;
+}
+.yb-week-tab {
+  flex: none;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--r-md);
+  padding: 6px 12px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.yb-week-tab:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.yb-week-tab[aria-selected="true"] {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.yb-week-rail-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.yb-score-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 18px;
+}
+.yb-score-context span {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 4px 8px;
+  color: var(--muted);
+  background: var(--bg-soft);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+.yb-score-group {
+  margin-bottom: 20px;
+}
+.yb-score-group h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.yb-score-performers {
+  margin-top: 30px;
+}
+
+/* ---- Standings ---- */
+.yb-standings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 20px;
+}
+@media (max-width: 520px) {
+  .yb-standings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.yb-division {
+  margin-bottom: 18px;
+}
+.yb-division h3 {
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.yb-conf-title {
+  font-size: 23px;
+  margin-bottom: 12px;
+}
+tr.yb-div-leader td:first-child {
+  box-shadow: inset 3px 0 0 var(--chart);
+}
+.yb-seed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  background: var(--bg-soft);
+  font-size: var(--fs-small);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+tr.yb-div-leader .yb-seed {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.yb-standing-team-name {
+  white-space: nowrap;
+}
+.yb-streak-w {
+  color: var(--success);
+  font-weight: 600;
+}
+.yb-streak-l {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ---- Positions: plain text, pure white, readable — no bubble. ---- */
+.yb-pos {
+  display: inline-block;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+}
+
+/* ---- Fantasy builder ---- */
+.yb-fantasy-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.yb-lineup-panel {
+  position: sticky;
+  top: 20px;
+}
+@media (max-width: 860px) {
+  .yb-fantasy-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .yb-lineup-panel {
+    position: static;
+  }
+}
+.yb-lineup-summary {
+  margin-bottom: 14px;
+}
+.yb-lineup-season-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--faint);
+  font-size: var(--fs-small);
+}
+.yb-lineup-season-total strong {
+  color: var(--text);
+  font-size: var(--fs-body-lg);
+  font-variant-numeric: tabular-nums;
+}
+.yb-slot {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+  margin-bottom: 8px;
+}
+.yb-slot.filled {
+  background: var(--panel);
+  border-color: var(--border-strong);
+}
+.yb-slot.target {
+  border-color: var(--accent);
+}
+.yb-slot-name {
+  min-width: 0;
+}
+.yb-slot-name .who {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-slot-name .meta {
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+.yb-slot-pts {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.yb-slot-empty {
+  color: var(--faint);
+  font-size: var(--fs-ui);
+}
+.yb-x {
+  background: transparent;
+  border: none;
+  color: var(--faint);
+  font-size: var(--fs-body-lg);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  line-height: 1;
+}
+.yb-x:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.yb-pool-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.yb-lineup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.yb-player-pool {
+  min-width: 0;
+}
+.yb-format-lock {
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+}
+input.yb-input {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  font-size: var(--fs-ui);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+input.yb-input:focus {
+  border-color: var(--accent);
+}
+.yb-total-hero {
+  font-family: var(--display);
+  font-size: 46px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  line-height: 1.05;
+}
+
+/* ---- Assistant (chat) ---- */
+/* ---- Assistant Pro paywall (feature-gated until the agent ships) ---- */
+.yb-paywall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  margin-top: 48px;
+  padding: 40px 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--panel);
+}
+.yb-paywall-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.yb-paywall-tag {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.yb-paywall .yb-page-title {
+  margin: 0;
+}
+.yb-paywall-lede {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+}
+.yb-paywall-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  padding: 0;
+  list-style: none;
+}
+.yb-paywall-list li {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--bg-soft);
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+.yb-paywall-note {
+  max-width: 44ch;
+  margin: 2px 0 0;
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+
+.yb-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 340px;
+}
+.yb-msg {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: var(--r-lg);
+  font-size: var(--fs-body-lg);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.yb-msg.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-bottom-right-radius: var(--r-sm);
+}
+.yb-msg.assistant {
+  align-self: flex-start;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: var(--r-sm);
+}
+.yb-msg-tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.yb-chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.yb-chat-form input {
+  flex: 1;
+}
+.yb-typing {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 12px 14px;
+}
+.yb-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--faint);
+  animation: yb-blink 1.2s infinite;
+}
+.yb-typing i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.yb-typing i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes yb-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* ---- Performers of the week ---- */
+.yb-performers-wrap {
+  display: grid;
+  /* minmax(0) — the track must never inherit a child's min-content width,
+     or long names push the whole page wide on phones. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.yb-potw {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--panel);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease);
+}
+.yb-potw:hover {
+  text-decoration: none;
+  border-color: var(--accent-hover);
+}
+.yb-potw .yb-avatar {
+  border-color: var(--accent);
+}
+.yb-potw-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.yb-potw-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.yb-potw-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+}
+/* Wrapped name text — clips with an ellipsis on narrow screens. */
+.yb-potw-name .t,
+.yb-performer .nm .t {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-potw-line {
+  font-size: var(--fs-body);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-potw-pts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+}
+.yb-potw-pts .n {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.yb-potw-pts .u {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+.yb-performers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* same guard as the wrap above */
+  gap: 6px;
+}
+.yb-performer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.yb-performer:hover {
+  text-decoration: none;
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+}
+.yb-performer .rk {
+  width: 18px;
+  text-align: center;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.yb-performer .who {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.yb-performer .nm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.yb-performer .ln {
+  font-size: var(--fs-small);
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-performer .pts {
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+/* ---- Player avatars ---- */
+.yb-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  object-fit: cover;
+  vertical-align: middle;
+}
+.yb-avatar.fallback {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+/* ---- Home dashboard ---- */
+.yb-dash {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 8px 20px 40px;
+  display: grid;
+  gap: 28px;
+}
+/* Let overflow-x children (the scores strip) scroll instead of widening the
+   grid: grid items default to min-width:auto, which is their content size. */
+.yb-dash > * {
+  min-width: 0;
+}
+.yb-dash-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.yb-dash-head h2 {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  line-height: 1.1;
+  margin: 0;
+}
+.yb-dash-head a {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.yb-dash-grid {
+  display: grid;
+  /* min(340px, 100%): the 340px floor must yield on narrower phones. */
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 20px;
+  align-items: start;
+}
+table.yb-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-ui);
+}
+.yb-mini-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.yb-mini-table tr:last-child td {
+  border-bottom: none;
+}
+.yb-mini-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.yb-mini-table td.dim {
+  color: var(--faint);
+  font-size: var(--fs-small);
+}
+.yb-mini-table td.strong {
+  font-weight: 700;
+}
+.yb-mini-table a {
+  color: var(--text);
+  font-weight: 600;
+}
+.yb-mini-table a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+.yb-dash-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+/* ---- Explore: breadcrumbs, team cards, leader cards, filters ---- */
+.yb-crumbs {
+  font-size: var(--fs-body);
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.yb-crumbs a {
+  color: var(--muted);
+}
+.yb-crumbs a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+.yb-crumbs .sep {
+  margin: 0 8px;
+  color: var(--faint);
+}
+.yb-crumbs [aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Entity links inside stat tables: quiet at rest, accent on hover. */
+table.yb-table a {
+  color: inherit;
+}
+table.yb-table a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.yb-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+  gap: 12px;
+}
+.yb-team-card {
+  display: grid;
+  grid-template-columns: 34px 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  min-height: 86px;
+  padding: 12px 14px;
+  color: var(--text);
+  transition:
+    border-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+.yb-team-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+}
+.yb-team-card-rank {
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.yb-team-card-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+.yb-team-card .nm {
+  min-width: 0;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-team-card .rec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: var(--fs-body);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.yb-team-card .rec .yb-badge {
+  padding-block: 1px;
+}
+.yb-team-card .go {
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  transition:
+    color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.yb-team-card:hover .go {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+.yb-conf-nav {
+  position: sticky;
+  top: 10px;
+  z-index: var(--z-sticky);
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.yb-conf-nav a {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 7px 12px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.yb-conf-nav a:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+  text-decoration: none;
+}
+.yb-conference-section {
+  scroll-margin-top: 24px;
+  margin-top: 26px;
+}
+.yb-conference-section:first-of-type {
+  margin-top: 0;
+}
+
+.yb-leader-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(185px, 100%), 1fr));
+  gap: 12px;
+}
+.yb-leader-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  color: var(--text);
+  transition:
+    border-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.yb-leader-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+.yb-leader-card .body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.yb-leader-card .lbl {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yb-leader-card .nm {
+  font-weight: 600;
+  font-size: var(--fs-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-leader-card .val {
+  font-size: var(--fs-body-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.yb-filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+.yb-filters label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-body);
+}
+.yb-leader-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+.yb-leader-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-body);
+}
+.yb-leader-scope button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.yb-qualification-note {
+  margin: 0 0 14px;
+  color: var(--faint);
+  font-size: var(--fs-small);
+}
+
+/* Game-card team rows are links to team pages now. */
+a.yb-game-team {
+  color: inherit;
+}
+a.yb-game-team:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ---- Search typeahead (nav quick-search + home hero) ---- */
+.yb-suggest {
+  position: relative;
+  width: 100%;
+}
+.yb-suggest-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: var(--z-pop); /* above sticky table headers */
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  max-height: 380px;
+  overflow-y: auto;
+}
+.yb-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-size: var(--fs-ui);
+}
+.yb-suggest-item[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+.yb-suggest-item .glyph {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+.yb-suggest-item .who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.yb-suggest-item .nm {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yb-suggest-item .sub {
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+.yb-suggest-item.muted {
+  cursor: default;
+}
+
+/* Head-to-head comparison: mirrored bars per stat, values at the edges,
+   the leader's bar and value in the accent color. */
+.yb-cmp {
+  container-type: inline-size;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  padding: 14px 16px 16px;
+}
+/* One compact element: player A | toggle | player B. */
+.yb-cmp-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.yb-cmp-head .nm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 700;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.yb-cmp-head .nm:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+.yb-cmp-head .nm.b {
+  flex-direction: row-reverse;
+  justify-self: end;
+  text-align: right;
+}
+.yb-cmp-head .who {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.yb-cmp-head .who > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.yb-cmp-head .nm.b .who > span:first-child {
+  justify-content: flex-end;
+}
+.yb-cmp-head .sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--muted);
+}
+.yb-cmp-head .nm.b .sub {
+  justify-content: flex-end;
+}
+.yb-cmp-head .yb-seg button {
+  padding: 4px 10px;
+  font-size: var(--fs-small);
+}
+.yb-cmp-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 96px 1fr 72px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+.yb-cmp-row .val {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--text);
+}
+.yb-cmp-row .val.right {
+  text-align: right;
+}
+.yb-cmp-row .val.lead {
+  color: var(--accent);
+  font-weight: 700;
+}
+.yb-cmp-row .lbl {
+  text-align: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.yb-cmp-row .track {
+  height: 8px;
+  border-radius: 2px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.yb-cmp-row .track .bar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--border-strong);
+  transition: width var(--dur) var(--ease);
+}
+/* Left column mirrors: bar grows from the center outward. */
+.yb-cmp-row .track.left {
+  display: flex;
+  justify-content: flex-end;
+}
+.yb-cmp-row .track .bar.lead {
+  background: var(--accent);
+}
+/* Container query: the chart adapts to ITS width, not the viewport — it
+   renders in the main column, the 820px share page and anywhere else. */
+@container (max-width: 560px) {
+  /* Stacked rows: the label gets its own line so the bars keep their length. */
+  .yb-cmp-row {
+    grid-template-columns: 48px 1fr 1fr 48px;
+    grid-template-areas:
+      "lbl lbl lbl lbl"
+      "va  tl  tr  vb";
+    row-gap: 2px;
+    gap: 6px;
+    padding: 8px 0;
+  }
+  .yb-cmp-row .lbl {
+    grid-area: lbl;
+  }
+  .yb-cmp-row .val {
+    grid-area: va;
+    font-size: var(--fs-small);
+  }
+  .yb-cmp-row .val.right {
+    grid-area: vb;
+  }
+  .yb-cmp-row .track.left {
+    grid-area: tl;
+  }
+  .yb-cmp-row .track:not(.left) {
+    grid-area: tr;
+  }
+  /* Names stay on top, toggle drops to its own centered row. */
+  .yb-cmp-head {
+    grid-template-columns: 1fr 1fr;
+  }
+  .yb-cmp-head .yb-seg {
+    order: 3;
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}
+
+/* ---- Mini player card (search answers) ---- */
+.yb-player-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  color: var(--text);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.yb-player-mini:hover {
+  text-decoration: none;
+  border-color: var(--border-strong);
+  background: var(--panel);
+}
+.yb-player-mini .who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.yb-player-mini .nm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: var(--fs-lead);
+  white-space: nowrap;
+}
+.yb-player-mini .sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+.yb-player-mini .go {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--faint);
+  white-space: nowrap;
+  transition: color var(--dur) var(--ease);
+}
+.yb-player-mini:hover .go {
+  color: var(--accent);
+}
+
+/* ---- Player bio strip (profile pages) ---- */
+.yb-bio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0 0 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  overflow: hidden;
+}
+.yb-bio > div {
+  flex: 1 1 110px;
+  padding: 10px 16px;
+  border-right: 1px solid var(--border);
+}
+.yb-bio > div:last-child {
+  border-right: none;
+}
+.yb-bio dt {
+  margin: 0;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.yb-bio dd {
+  margin: 1px 0 0;
+  font-size: var(--fs-body-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .yb-bio > div {
+    flex-basis: 33%;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* ---- Segmented mode toggle (Totals / Per game) ---- */
+.yb-seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.yb-seg button {
+  background: var(--bg-soft);
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.yb-seg button + button {
+  border-left: 1px solid var(--border);
+}
+.yb-seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* ---- Glossary ---- */
+.yb-gloss-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 26px;
+}
+.yb-gloss-controls input {
+  flex: 1;
+  min-width: 220px;
+  max-width: 380px;
+}
+.yb-gloss-group {
+  margin: 0 0 34px;
+}
+.yb-gloss-group h2 {
+  font-family: var(--display);
+  font-size: 23px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  margin: 0 0 4px;
+}
+.yb-gloss-group > p {
+  color: var(--muted);
+  font-size: var(--fs-ui);
+  margin: 0 0 14px;
+  max-width: 62ch;
+}
+.yb-gloss-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.yb-gloss-item {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 12px 14px;
+  transition: border-color var(--dur) var(--ease);
+}
+.yb-gloss-item:hover {
+  border-color: var(--border-strong);
+}
+.yb-gloss-item dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: var(--fs-body-lg);
+  margin: 0 0 4px;
+}
+.yb-gloss-item dt .abbr {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--faint);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 1px 8px;
+}
+.yb-gloss-item dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+}
+mark.yb-hit {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* ---- In-house dropdown (replaces native <select>) ---- */
+.yb-dd {
+  position: relative;
+  display: inline-block;
+}
+.yb-dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  font-size: var(--fs-ui);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease);
+}
+.yb-dd-btn:hover {
+  border-color: var(--border-strong);
+}
+.yb-dd-btn svg {
+  color: var(--faint);
+}
+.yb-dd-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-pop);
+  min-width: 100%;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+}
+.yb-dd-item {
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--muted);
+}
+.yb-dd-item.hi {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+.yb-dd-item[aria-selected="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ---- Player page tabs ---- */
+.yb-player-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 4px 0 22px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; /* five tabs outgrow a phone; scroll like the nav */
+  scrollbar-width: none;
+}
+.yb-player-tabs::-webkit-scrollbar {
+  display: none;
+}
+.yb-player-tabs button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+.yb-player-tabs button:hover {
+  color: var(--text);
+}
+.yb-player-tabs button[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* ---- Splits tables ---- */
+.yb-split-group {
+  margin: 0 0 26px;
+}
+.yb-split-group h2 {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+/* ---- Leaders page boards ---- */
+.yb-board {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  overflow: hidden;
+}
+.yb-board-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  transition: background var(--dur) var(--ease);
+}
+.yb-board-top:hover {
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+.yb-board-top .who {
+  min-width: 0;
+  flex: 1;
+}
+.yb-board-top .nm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.yb-board-top .meta {
+  font-size: var(--fs-body);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.yb-board-top .val {
+  font-family: var(--display);
+  font-size: clamp(28px, 24px + 0.9vw, 34px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  line-height: 1;
+  white-space: nowrap;
+}
+.yb-board-top .val .yb-lb-unit {
+  font-family: var(--font);
+  font-size: var(--fs-small);
+}
+.yb-board-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  transition: background var(--dur) var(--ease);
+}
+.yb-board-row:last-child {
+  border-bottom: none;
+}
+.yb-board-row:hover {
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+.yb-board-row .rk {
+  width: 22px;
+  text-align: center;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.yb-board-row .nm {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.yb-board-row .tm {
+  font-size: var(--fs-small);
+  color: var(--faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.yb-board-row .val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- Box score page ---- */
+.yb-boxhead {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  padding: 4px 20px 10px;
+  margin-bottom: 18px;
+}
+.yb-boxhead .side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+}
+.yb-boxhead .side + .side {
+  border-top: 1px solid var(--border);
+}
+.yb-boxhead .tm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+}
+.yb-boxhead .tm:hover {
+  text-decoration: none;
+  color: var(--accent);
+}
+.yb-boxhead .tm .nm {
+  display: block;
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+.yb-boxhead .tm .sub {
+  font-size: var(--fs-caption);
+  color: var(--faint);
+}
+.yb-boxhead .score {
+  font-family: var(--display);
+  font-size: clamp(32px, 27px + 1.4vw, 40px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  line-height: 1;
+}
+.yb-boxhead .side.won .score {
+  color: var(--accent);
+}
+.yb-boxhead .meta {
+  margin: 8px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+.yb-box-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+/* ---- Compact box score: denser than the default split tables ---- */
+.yb-box-teams > div + div {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.yb-box-teams .yb-conf-title {
+  font-size: 19px;
+  margin: 6px 0 10px;
+}
+.yb-box-teams .yb-split-group {
+  margin-bottom: 12px;
+}
+/* Box sections use <h3> (nested under the team <h2>); style them like the
+   compact split headers (ui-26 restyled only the <h2> variant). */
+.yb-box-teams .yb-split-group h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.yb-box-teams table.yb-table th,
+.yb-box-teams table.yb-table td {
+  padding: 7px 12px;
 }

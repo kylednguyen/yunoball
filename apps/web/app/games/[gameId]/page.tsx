@@ -3,12 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { Crumbs } from "../../components/Crumbs";
 import { Headshot } from "../../components/Headshot";
-import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
 import { useBoxScore, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
@@ -26,12 +22,14 @@ function PlayerCell({ p }: { p: BoxScorePlayer }) {
   return (
     <Link
       href={`/players/${encodeURIComponent(p.player_id)}`}
-      className="inline-flex items-center gap-2"
+      style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
     >
       <Headshot src={p.headshot_url} name={p.name} size={24} />
       {p.name}
       {p.position && (
-        <span className="text-xs font-bold tracking-wide text-muted-foreground">{p.position}</span>
+        <span className="yb-muted" style={{ fontSize: 12 }}>
+          {p.position}
+        </span>
       )}
     </Link>
   );
@@ -48,28 +46,36 @@ function StatSection({
 }) {
   if (players.length === 0) return null;
   return (
-    <section className="mt-4">
-      <h3 className="mb-2 text-sm font-bold tracking-wide text-muted-foreground uppercase">
-        {title}
-      </h3>
-      <SortTable
-        rows={players}
-        rowKey={(p) => p.player_id}
-        columns={[
-          {
-            key: "player",
-            label: "Player",
-            value: (p) => p.name,
-            render: (p) => <PlayerCell p={p} />,
-          },
-          ...columns.map((c) => ({
-            key: c.label,
-            label: c.label,
-            numeric: true,
-            value: (p: BoxScorePlayer) => c.value(p),
-          })),
-        ]}
-      />
+    <section className="yb-split-group">
+      <h3>{title}</h3>
+      <div className="yb-table-scroll">
+        <table className="yb-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              {columns.map((c) => (
+                <th key={c.label} className="num">
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((p) => (
+              <tr key={p.player_id}>
+                <td>
+                  <PlayerCell p={p} />
+                </td>
+                {columns.map((c) => (
+                  <td key={c.label} className="num">
+                    {c.value(p)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -84,7 +90,7 @@ function TeamBox({ team }: { team: BoxScoreTeam }) {
 
   return (
     <div>
-      <h2 className="flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight">
+      <h2 className="yb-conf-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <TeamLogo team={team.team_id} size={22} /> {team.name}
       </h2>
       <StatSection
@@ -150,98 +156,81 @@ export default function BoxScorePage() {
   useTitle(box ? `${box.away.team_id} @ ${box.home.team_id} box score` : undefined);
 
   return (
-    <main id="main" className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-      {/* One page-level heading present in every state (loading, error,
-          not-found, success) so the document outline never starts at an
-          orphan <h2>. The boxhead carries the visible scoreline. */}
-      <h1 className="sr-only">
-        {box
-          ? `${box.away.name} ${box.away.score ?? ""} at ${box.home.name} ${box.home.score ?? ""}, box score`
-          : "Box score"}
-      </h1>
-      {loading && (
-        <>
-          <Skeleton className="mb-5 h-[90px] rounded-xl" />
-          <Skeleton className="h-[340px] rounded-xl" />
-        </>
-      )}
+    <>
+      <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
+        {/* One page-level heading present in every state (loading, error,
+            not-found, success) so the document outline never starts at an
+            orphan <h2>. The boxhead carries the visible scoreline. */}
+        <h1 className="yb-sr-only">
+          {box
+            ? `${box.away.name} ${box.away.score ?? ""} at ${box.home.name} ${box.home.score ?? ""}, box score`
+            : "Box score"}
+        </h1>
+        {loading && (
+          <>
+            <div className="yb-skel" style={{ height: 90, borderRadius: 14, marginBottom: 20 }} />
+            <div className="yb-skel" style={{ height: 340, borderRadius: 14 }} />
+          </>
+        )}
 
-      {error && (
-        <div
-          className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
-          role="alert"
-        >
-          <h2 className="text-lg font-semibold">Couldn’t load this game</h2>
-          <p className="max-w-prose">{friendlyError(error)}</p>
-        </div>
-      )}
-
-      {notFound && (
-        <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-          <h2 className="text-lg font-semibold text-foreground">Game not found</h2>
-          <p className="max-w-prose">
-            That game isn’t in the warehouse. Head back to{" "}
-            <Link href="/scores" className="text-primary hover:underline">
-              Scores
-            </Link>
-            .
-          </p>
-        </div>
-      )}
-
-      {box && (
-        <>
-          <Crumbs
-            items={[
-              { label: "NFL", href: "/" },
-              { label: `${box.season} Week ${box.week}`, href: `/scores?season=${box.season}` },
-              { label: `${box.away.team_id} @ ${box.home.team_id}` },
-            ]}
-          />
-          <Card className="mt-4 flex-row flex-wrap items-center justify-center gap-x-8 gap-y-2 p-6">
-            {[box.away, box.home].map((t, i) => {
-              const other = i === 0 ? box.home : box.away;
-              const won = t.score !== null && other.score !== null && t.score > other.score;
-              return (
-                <div key={t.team_id} className="flex items-center gap-4">
-                  <Link
-                    href={`/teams/${t.team_id}?season=${box.season}`}
-                    className="flex items-center gap-2.5 hover:text-primary"
-                  >
-                    <TeamLogo team={t.team_id} size={40} />
-                    <span className="flex flex-col leading-tight">
-                      <span className="font-heading text-lg font-bold tracking-tight">
-                        {t.nickname ?? t.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {i === 0 ? "Away" : "Home"}
-                      </span>
-                    </span>
-                  </Link>
-                  <span
-                    className={cn(
-                      "font-heading text-4xl font-bold tabular-nums",
-                      won ? "text-primary" : "text-foreground",
-                    )}
-                  >
-                    {t.score ?? "-"}
-                  </span>
-                </div>
-              );
-            })}
-            <p className="w-full text-center text-sm text-muted-foreground">
-              {box.season_type === "POST" ? "Postseason" : "Week"} {box.week} ·{" "}
-              {fmtDate(box.date) ?? box.season}
-              {box.stadium ? ` · ${box.stadium}` : ""}
-            </p>
-          </Card>
-
-          <div className="mt-6 grid gap-8 lg:grid-cols-2">
-            <TeamBox team={box.away} />
-            <TeamBox team={box.home} />
+        {error && (
+          <div className="yb-state error" role="alert">
+            <h2>Couldn’t load this game</h2>
+            <p>{friendlyError(error)}</p>
           </div>
-        </>
-      )}
-    </main>
+        )}
+
+        {notFound && (
+          <div className="yb-state">
+            <h2>Game not found</h2>
+            <p>
+              That game isn’t in the warehouse. Head back to{" "}
+              <Link href="/scores">Scores</Link>.
+            </p>
+          </div>
+        )}
+
+        {box && (
+          <>
+            <Crumbs
+              items={[
+                { label: "NFL", href: "/" },
+                { label: `${box.season} Week ${box.week}`, href: `/scores?season=${box.season}` },
+                { label: `${box.away.team_id} @ ${box.home.team_id}` },
+              ]}
+            />
+            <div className="yb-boxhead">
+              {[box.away, box.home].map((t, i) => {
+                const other = i === 0 ? box.home : box.away;
+                const won =
+                  t.score !== null && other.score !== null && t.score > other.score;
+                return (
+                  <div key={t.team_id} className={`side${won ? " won" : ""}`}>
+                    <Link href={`/teams/${t.team_id}?season=${box.season}`} className="tm">
+                      <TeamLogo team={t.team_id} size={40} />
+                      <span>
+                        <span className="nm">{t.nickname ?? t.name}</span>
+                        <span className="sub">{i === 0 ? "Away" : "Home"}</span>
+                      </span>
+                    </Link>
+                    <span className="score">{t.score ?? "-"}</span>
+                  </div>
+                );
+              })}
+              <p className="meta">
+                {box.season_type === "POST" ? "Postseason" : "Week"} {box.week} ·{" "}
+                {fmtDate(box.date) ?? box.season}
+                {box.stadium ? ` · ${box.stadium}` : ""}
+              </p>
+            </div>
+
+            <div className="yb-box-teams">
+              <TeamBox team={box.away} />
+              <TeamBox team={box.home} />
+            </div>
+          </>
+        )}
+      </main>
+    </>
   );
 }

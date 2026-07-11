@@ -44,6 +44,7 @@ next-env.d.ts
 # local tooling / editor / agent state
 .claude/
 .vercel
+.mcp.json
 
 # keys & certs — never commit
 *.pem

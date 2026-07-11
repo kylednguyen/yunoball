@@ -10,15 +10,17 @@ export const metadata: Metadata = {
 
 export default function GlossaryPage() {
   return (
-    <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-        NFL Glossary
-      </h1>
-      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
-        Every stat, fantasy term and league concept used across YunoBall, in plain
-        language, no jargon required.
-      </p>
-      <Glossary />
-    </main>
+    <>
+      <main id="main" className="yb-page">
+        <div className="yb-page-head">
+          <h1 className="yb-page-title">NFL Glossary</h1>
+        </div>
+        <p className="yb-page-sub">
+          Every stat, fantasy term and league concept used across YunoBall, in plain
+          language, no jargon required.
+        </p>
+        <Glossary />
+      </main>
+    </>
   );
 }

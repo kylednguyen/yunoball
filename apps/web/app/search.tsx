@@ -1,13 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { AnswerCard } from "./components/AnswerCard";
 import { SearchSuggest } from "./components/SearchSuggest";
 import { AnswerSkeleton } from "./components/Skeleton";
-import { ask, friendlyError, type AnswerResult } from "./lib/api";
+import { ask, fetchExamples, friendlyError, type AnswerResult } from "./lib/api";
 
 const RECENTS_KEY = "yb:recent-searches";
 
@@ -27,10 +26,27 @@ export function Search() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [recents, setRecents] = useState<string[]>([]);
+  const [examples, setExamples] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setRecents(loadRecents());
+    let active = true;
+    fetchExamples(4)
+      .then((items) => active && setExamples(items))
+      .catch(() => {
+        if (active) {
+          setExamples([
+            "Who threw the most touchdowns in 2024?",
+            "Most rushing yards in a season",
+            "Patrick Mahomes passing yards in 2023",
+            "Josh Allen versus Lamar Jackson",
+          ]);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Global shortcut: "/" or ⌘K / Ctrl-K focuses the search from anywhere.
@@ -97,52 +113,70 @@ export function Search() {
 
   return (
     <div>
-      <div className="relative" role="search">
+      <div className="yb-search-wrap" role="search">
         <SearchSuggest
           value={question}
           onValueChange={setQuestion}
           onSearch={(q) => run(q)}
           placeholder="Search NFL stats, players, teams…"
-          inputClass="h-14 rounded-xl pr-12 text-lg"
+          inputClass="yb-search"
           ariaLabel="Search NFL stats, players, and teams"
           autoFocus
           inputRef={inputRef}
         >
-          <kbd
-            className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none items-center rounded border bg-muted px-1.5 font-mono text-sm text-muted-foreground sm:inline-flex"
-            aria-hidden="true"
-          >
+          <span className="yb-kbd-hint" aria-hidden="true">
             /
-          </kbd>
+          </span>
         </SearchSuggest>
       </div>
 
-      {recents.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs text-muted-foreground">Recent:</span>
-          {recents.map((r) => (
-            <Badge key={r} variant="secondary" asChild>
+      {examples.length > 0 && !result && !loading && (
+        <div className="yb-query-prompt" aria-label="Supported sample queries">
+          <span>Try a supported query</span>
+          <div className="yb-query-prompt-list">
+            {examples.map((example) => (
               <button
+                key={example}
+                className="yb-chip yb-sample-query"
+                type="button"
                 onClick={() => {
-                  setQuestion(r);
-                  run(r);
+                  setQuestion(example);
+                  run(example);
                 }}
               >
-                {r}
+                {example}
               </button>
-            </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {recents.length > 0 && (
+        <div className="yb-recent-searches">
+          <span className="yb-muted">Recent:</span>
+          {recents.map((r) => (
+            <button
+              key={r}
+              className="yb-chip yb-recent-query"
+              type="button"
+              onClick={() => {
+                setQuestion(r);
+                run(r);
+              }}
+            >
+              {r}
+            </button>
           ))}
-          <Button
-            variant="link"
-            size="sm"
-            className="h-auto p-0 text-xs"
+          <button
+            className="yb-link"
+            type="button"
             onClick={() => {
               localStorage.removeItem(RECENTS_KEY);
               setRecents([]);
             }}
           >
             Clear
-          </Button>
+          </button>
         </div>
       )}
 
@@ -150,24 +184,19 @@ export function Search() {
         {loading && <AnswerSkeleton />}
 
         {error && (
-          <div
-            className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
-            role="alert"
-          >
-            <h2 className="text-lg font-semibold">Something went wrong</h2>
-            <p className="max-w-prose">{friendlyError(error)}</p>
-            <Button variant="outline" className="mt-2" onClick={() => active && run(active)}>
+          <div className="yb-state error" role="alert">
+            <h2>Something went wrong</h2>
+            <p>{friendlyError(error)}</p>
+            <button className="yb-btn" onClick={() => active && run(active)}>
               Try again
-            </Button>
+            </button>
           </div>
         )}
 
         {empty && (
-          <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-            <h2 className="text-lg font-semibold text-foreground">No data for that question yet</h2>
-            <p className="max-w-prose">
-              We couldn’t find stats matching your query. Try a different season, player, or phrasing.
-            </p>
+          <div className="yb-state">
+            <h2>No data for that question yet</h2>
+            <p>We couldn’t find stats matching your query. Try a different season, player, or phrasing.</p>
           </div>
         )}
 

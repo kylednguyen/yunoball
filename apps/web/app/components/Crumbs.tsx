@@ -1,13 +1,4 @@
-import { Fragment } from "react";
 import Link from "next/link";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 
 export interface Crumb {
   label: string;
@@ -17,23 +8,17 @@ export interface Crumb {
 /** Breadcrumb trail, e.g. NFL > 2025 > 49ers. Last item is the current page. */
 export function Crumbs({ items }: { items: Crumb[] }) {
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {items.map((c, i) => (
-          <Fragment key={`${c.label}-${i}`}>
-            {i > 0 && <BreadcrumbSeparator />}
-            <BreadcrumbItem>
-              {c.href ? (
-                <BreadcrumbLink asChild>
-                  <Link href={c.href}>{c.label}</Link>
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbPage>{c.label}</BreadcrumbPage>
-              )}
-            </BreadcrumbItem>
-          </Fragment>
-        ))}
-      </BreadcrumbList>
-    </Breadcrumb>
+    <nav className="yb-crumbs" aria-label="Breadcrumb">
+      {items.map((c, i) => (
+        <span key={`${c.label}-${i}`}>
+          {i > 0 && (
+            <span className="sep" aria-hidden="true">
+              ›
+            </span>
+          )}
+          {c.href ? <Link href={c.href}>{c.label}</Link> : <span aria-current="page">{c.label}</span>}
+        </span>
+      ))}
+    </nav>
   );
 }

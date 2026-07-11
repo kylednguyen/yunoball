@@ -1,10 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 
 interface Term {
   term: string;
@@ -304,9 +301,7 @@ function Highlight({ text, needle }: { text: string; needle: string }) {
   return (
     <>
       {text.slice(0, i)}
-      <mark className="rounded-[3px] bg-primary/15 px-0.5 text-primary">
-        {text.slice(i, i + needle.length)}
-      </mark>
+      <mark className="yb-hit">{text.slice(i, i + needle.length)}</mark>
       {text.slice(i + needle.length)}
     </>
   );
@@ -334,54 +329,42 @@ export function Glossary() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Input
+      <div className="yb-gloss-controls">
+        <input
+          className="yb-input"
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Filter terms… e.g. PPR, streak, interception"
           aria-label="Filter glossary terms"
-          className="max-w-sm"
         />
-        <span className="text-sm text-muted-foreground" role="status">
+        <span className="yb-muted" role="status">
           {count} term{count === 1 ? "" : "s"}
         </span>
       </div>
 
       {groups.length === 0 ? (
-        <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-          <h2 className="text-lg font-semibold text-foreground">No matching terms</h2>
-          <p className="max-w-prose">Try a shorter fragment: “yards”, “TD”, “playoff”.</p>
+        <div className="yb-state">
+          <h2>No matching terms</h2>
+          <p>Try a shorter fragment: “yards”, “TD”, “playoff”.</p>
         </div>
       ) : (
         groups.map((g) => (
-          <section key={g.title} className="mb-10" aria-label={g.title}>
-            <h2 className="font-heading text-xl font-bold tracking-tight">{g.title}</h2>
-            <p className="mt-1 mb-4 max-w-prose text-muted-foreground">{g.blurb}</p>
-            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <section key={g.title} className="yb-gloss-group" aria-label={g.title}>
+            <h2>{g.title}</h2>
+            <p>{g.blurb}</p>
+            <dl className="yb-gloss-list">
               {g.terms.map((t) => (
-                <Card key={t.term} className="gap-0 py-0">
-                  <CardContent className="flex flex-col gap-1.5 p-4">
-                    <dt className="flex flex-wrap items-center gap-2 font-semibold">
-                      {t.pos && (
-                        <span className="text-xs font-bold tracking-wide text-muted-foreground">
-                          {t.pos}
-                        </span>
-                      )}
-                      <span>
-                        <Highlight text={t.term} needle={needle} />
-                      </span>
-                      {t.abbr && (
-                        <Badge variant="secondary" className="font-mono text-[10px]">
-                          {t.abbr}
-                        </Badge>
-                      )}
-                    </dt>
-                    <dd className="text-sm text-muted-foreground">
-                      <Highlight text={t.def} needle={needle} />
-                    </dd>
-                  </CardContent>
-                </Card>
+                <div key={t.term} className="yb-gloss-item">
+                  <dt>
+                    {t.pos && <span className={`yb-pos ${t.pos}`}>{t.pos}</span>}
+                    <Highlight text={t.term} needle={needle} />
+                    {t.abbr && <span className="abbr">{t.abbr}</span>}
+                  </dt>
+                  <dd>
+                    <Highlight text={t.def} needle={needle} />
+                  </dd>
+                </div>
               ))}
             </dl>
           </section>

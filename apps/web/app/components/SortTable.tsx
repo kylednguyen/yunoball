@@ -2,16 +2,6 @@
 
 import { type ReactNode, useMemo, useState } from "react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-
 export interface SortColumn<T> {
   key: string;
   label: ReactNode;
@@ -71,20 +61,17 @@ export function SortTable<T>({
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
+    <div className="yb-table-scroll">
+      <table className="yb-table">
+        <thead>
+          <tr>
             {columns.map((c) => {
               const active = sort?.key === c.key;
               return (
-                <TableHead
+                <th
                   key={c.key}
                   scope="col"
-                  className={cn(
-                    "whitespace-nowrap text-xs uppercase tracking-wide",
-                    c.numeric && "text-right",
-                  )}
+                  className={c.numeric ? "num" : undefined}
                   style={c.width ? { width: c.width } : undefined}
                   aria-sort={
                     active ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined
@@ -92,42 +79,32 @@ export function SortTable<T>({
                 >
                   <button
                     type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1 whitespace-nowrap uppercase tracking-wide transition-colors hover:text-foreground",
-                      c.numeric && "w-full justify-end",
-                      active ? "text-foreground" : "text-muted-foreground",
-                    )}
+                    className={`yb-th-sort${active ? " on" : ""}`}
                     onClick={() => toggle(c)}
                     title={c.title}
                   >
                     {c.label}
-                    <span className="min-w-[9px] text-[9px]" aria-hidden="true">
+                    <span className="dir" aria-hidden="true">
                       {active ? (sort!.dir === "asc" ? "▴" : "▾") : ""}
                     </span>
                   </button>
-                </TableHead>
+                </th>
               );
             })}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+          </tr>
+        </thead>
+        <tbody>
           {sorted.map((row) => (
-            <TableRow key={rowKey(row)} className={rowClass?.(row)}>
+            <tr key={rowKey(row)} className={rowClass?.(row)}>
               {columns.map((c) => (
-                <TableCell
-                  key={c.key}
-                  className={cn(
-                    "[&_a]:text-foreground [&_a:hover]:text-primary [&_a]:no-underline",
-                    c.numeric && "text-right tabular-nums",
-                  )}
-                >
+                <td key={c.key} className={c.numeric ? "num" : undefined}>
                   {c.render ? c.render(row) : (c.value(row) ?? "-")}
-                </TableCell>
+                </td>
               ))}
-            </TableRow>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }

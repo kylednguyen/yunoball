@@ -3,12 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-
 import { Headshot } from "./Headshot";
 import { Performers } from "./Performers";
 import { TeamLogo } from "./TeamLogo";
@@ -21,18 +15,6 @@ import {
   type StandingsResponse,
 } from "../lib/api";
 
-/** Section header: a heading with a "see all" link to its full page. */
-function SectionHead({ title, href, label }: { title: string; href: string; label: string }) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="font-heading text-lg font-bold tracking-tight">{title}</h2>
-      <Button asChild variant="link" size="sm" className="h-auto p-0">
-        <Link href={href}>{label} →</Link>
-      </Button>
-    </div>
-  );
-}
-
 /** The sports-platform front page below the ticker: performers of the week,
  *  the standings picture and the top fantasy performers. Every panel is a
  *  doorway into its full page. */
@@ -41,9 +23,6 @@ export function HomeDashboard() {
   const [fantasy, setFantasy] = useState<FantasyPlayersResponse | null>(null);
   const [performers, setPerformers] = useState<PerformersResponse | null>(null);
   const [failed, setFailed] = useState(false);
-  // Settles true once the batch resolves (success OR failure), so a failed
-  // performers fetch shows the empty state instead of a permanent skeleton.
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -59,7 +38,6 @@ export function HomeDashboard() {
       setFailed(
         s.status === "rejected" && f.status === "rejected" && p.status === "rejected",
       );
-      setLoaded(true);
     });
     return () => {
       active = false;
@@ -74,108 +52,111 @@ export function HomeDashboard() {
   const topFantasy = fantasy?.players.slice(0, 6);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="yb-dash">
       {/* Performers of the week */}
       <section aria-label="Performers of the week">
-        <SectionHead title="Performers of the week" href="/scores" label="Full board" />
-        <Performers performers={performers?.performers ?? null} loading={!loaded} count={4} />
+        <div className="yb-dash-head">
+          <h2>Performers of the week</h2>
+          <Link href="/scores">Full board →</Link>
+        </div>
+        <Performers performers={performers?.performers ?? null} loading={!performers} count={4} />
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="yb-dash-grid">
         {/* Division leaders */}
-        <Card aria-label="Division leaders">
-          <CardContent>
-            <SectionHead title="Division leaders" href="/teams" label="All teams" />
-            {leaders ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableBody>
-                    {leaders.map(({ division, team }) => (
-                      <TableRow key={division}>
-                        <TableCell className="text-muted-foreground">{division}</TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/teams/${team.team_id}`}
-                            className="inline-flex items-center gap-2 hover:text-primary"
-                          >
-                            <TeamLogo team={team.team_id} size={18} />
-                            {team.nickname ?? team.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {team.wins}-{team.losses}
-                          {team.ties ? `-${team.ties}` : ""}
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            "text-right tabular-nums font-semibold",
-                            team.streak.startsWith("W") && "text-primary",
-                            team.streak.startsWith("L") && "text-destructive",
-                          )}
-                        >
-                          {team.streak}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <Skeleton className="h-[300px] w-full rounded-lg" />
-            )}
-          </CardContent>
-        </Card>
+        <section className="yb-card" aria-label="Division leaders">
+          <div className="yb-dash-head">
+            <h2>Division leaders</h2>
+            <Link href="/teams">All teams →</Link>
+          </div>
+          {leaders ? (
+            <div className="yb-scroll-x">
+            <table className="yb-mini-table">
+              <tbody>
+                {leaders.map(({ division, team }) => (
+                  <tr key={division}>
+                    <td className="dim">{division}</td>
+                    <td>
+                      <Link
+                        href={`/teams/${team.team_id}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                      >
+                        <TeamLogo team={team.team_id} size={18} />
+                        {team.nickname ?? team.name}
+                      </Link>
+                    </td>
+                    <td className="num">
+                      {team.wins}-{team.losses}
+                      {team.ties ? `-${team.ties}` : ""}
+                    </td>
+                    <td
+                      className={`num ${
+                        team.streak.startsWith("W")
+                          ? "yb-streak-w"
+                          : team.streak.startsWith("L")
+                            ? "yb-streak-l"
+                            : ""
+                      }`}
+                    >
+                      {team.streak}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          ) : (
+            <div className="yb-skel" style={{ height: 300 }} />
+          )}
+        </section>
 
         {/* Fantasy leaders */}
-        <Card aria-label="Top fantasy performers">
-          <CardContent>
-            <SectionHead title="Fantasy leaders" href="/fantasy" label="Build a lineup" />
-            {topFantasy ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableBody>
-                    {topFantasy.map((p, i) => (
-                      <TableRow key={p.player_id}>
-                        <TableCell className="w-6 text-right tabular-nums text-muted-foreground">
-                          {i + 1}
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/players/${encodeURIComponent(p.player_id)}`}
-                            className="inline-flex items-center gap-2 hover:text-primary"
-                          >
-                            <Headshot src={p.headshot_url} name={p.name} size={26} />
-                            {p.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-bold tracking-wide text-muted-foreground">
-                            {p.position}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums font-semibold">
-                          {p.points_per_game.toFixed(1)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          pts/gm
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <Skeleton className="h-[300px] w-full rounded-lg" />
-            )}
+        <section className="yb-card" aria-label="Top fantasy performers">
+          <div className="yb-dash-head">
+            <h2>Fantasy leaders</h2>
+            <Link href="/fantasy">Build a lineup →</Link>
+          </div>
+          {topFantasy ? (
+            <div className="yb-scroll-x">
+            <table className="yb-mini-table">
+              <tbody>
+                {topFantasy.map((p, i) => (
+                  <tr key={p.player_id}>
+                    <td className="dim num" style={{ width: 24 }}>
+                      {i + 1}
+                    </td>
+                    <td>
+                      <Link
+                        href={`/players/${encodeURIComponent(p.player_id)}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                      >
+                        <Headshot src={p.headshot_url} name={p.name} size={26} />
+                        {p.name}
+                      </Link>
+                    </td>
+                    <td>
+                      <span className={`yb-pos ${p.position ?? ""}`}>{p.position}</span>
+                    </td>
+                    <td className="num strong">{p.points_per_game.toFixed(1)}</td>
+                    <td className="dim num">pts/gm</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          ) : (
+            <div className="yb-skel" style={{ height: 300 }} />
+          )}
 
-            <div className="mt-4 flex items-center justify-between gap-3 border-t pt-4">
-              <span className="text-sm text-muted-foreground">Not sure who to start?</span>
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/assistant">Ask the Fantasy Assistant</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="yb-dash-foot">
+            <span className="yb-muted" style={{ fontSize: 13 }}>
+              Not sure who to start?
+            </span>
+            <Link className="yb-btn sm" href="/assistant">
+              Ask the Fantasy Assistant
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );

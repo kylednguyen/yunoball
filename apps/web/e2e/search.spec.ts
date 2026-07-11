@@ -11,11 +11,11 @@ test.describe("search", () => {
 
     await expect(page.locator(".yb-answer")).toContainText("passing touchdowns in 2023");
     // Real 2023 leader, linked to his player page.
-    const topRow = page.locator(".yb-card tbody a").first();
+    const topRow = page.locator(".yb-query-result tbody a").first();
     await expect(topRow).toHaveText("Dak Prescott");
     await expect(topRow).toHaveAttribute("href", /\/players\//);
     // The raw player_id column stays hidden.
-    await expect(page.locator(".yb-card thead")).not.toContainText("player id");
+    await expect(page.locator(".yb-query-result thead")).not.toContainText("player id");
   });
 
   test("typeahead jumps straight to a player page", async ({ page }) => {
@@ -27,13 +27,12 @@ test.describe("search", () => {
     await expect(page.getByRole("heading", { name: "Patrick Mahomes" })).toBeVisible();
   });
 
-  test("nav quick-search finds teams from any page", async ({ page }) => {
+  test("inner-page sidebar keeps search focused on the primary Search page", async ({ page }) => {
     await page.goto("/standings");
-    await page.getByRole("combobox", { name: "Search NFL teams, players, and stats" }).fill("49ers");
-    await page.getByRole("option", { name: /San Francisco 49ers/ }).click();
 
-    await expect(page).toHaveURL(/\/teams\/SF/);
-    await expect(page.getByRole("heading", { name: "San Francisco 49ers" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Search NFL teams, players, and stats" })).toHaveCount(0);
+    await page.getByRole("link", { name: "Search" }).click();
+    await expect(heroSearch(page)).toBeVisible();
   });
 
   test("player comparison renders a head-to-head table on real stats", async ({ page }) => {
@@ -46,11 +45,27 @@ test.describe("search", () => {
     );
     const compare = page.locator(".yb-compare");
     await expect(compare).toBeVisible();
-    await expect(compare.locator("thead")).toContainText("Josh Allen");
-    await expect(compare.locator("thead")).toContainText("Drake Maye");
+    await expect(compare).toContainText("Josh Allen");
+    await expect(compare).toContainText("Drake Maye");
     await expect(compare).toContainText("Pass yds");
     await expect(compare).not.toContainText("Fantasy"); // actual stats only
-    await expect(compare.locator("td.lead").first()).toBeVisible();
+    await expect(compare.locator(".lead").first()).toBeVisible();
+  });
+
+  test("home search leads with supported sample queries and structured result actions", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByText("Try a supported query")).toBeVisible();
+    const sample = page.locator(".yb-sample-query").first();
+    const question = await sample.textContent();
+    await sample.click();
+
+    await expect(page.locator(".yb-query-result")).toBeVisible();
+    await expect(page.getByText("Query interpretation")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Show query/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Download CSV" })).toBeVisible();
+    await expect(page.getByText("Recent:")).toBeVisible();
+    await expect(page.locator(".yb-recent-query", { hasText: question! })).toBeVisible();
   });
 
   test("example chips run a query and land in recents", async ({ page }) => {
