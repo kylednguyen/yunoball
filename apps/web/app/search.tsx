@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AnswerCard } from "./components/AnswerCard";
 import { SearchSuggest } from "./components/SearchSuggest";
 import { AnswerSkeleton } from "./components/Skeleton";
@@ -96,59 +97,52 @@ export function Search() {
 
   return (
     <div>
-      <div className="yb-search-wrap" role="search">
+      <div className="relative" role="search">
         <SearchSuggest
           value={question}
           onValueChange={setQuestion}
           onSearch={(q) => run(q)}
           placeholder="Search NFL stats, players, teams…"
-          inputClass="yb-search"
+          inputClass="h-14 rounded-xl pr-12 text-lg"
           ariaLabel="Search NFL stats, players, and teams"
           autoFocus
           inputRef={inputRef}
         >
-          <span className="yb-kbd-hint" aria-hidden="true">
+          <kbd
+            className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none items-center rounded border bg-muted px-1.5 font-mono text-sm text-muted-foreground sm:inline-flex"
+            aria-hidden="true"
+          >
             /
-          </span>
+          </kbd>
         </SearchSuggest>
       </div>
 
       {recents.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            marginTop: 10,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <span className="yb-muted" style={{ fontSize: 12 }}>
-            Recent:
-          </span>
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs text-muted-foreground">Recent:</span>
           {recents.map((r) => (
-            <button
-              key={r}
-              className="yb-chip"
-              onClick={() => {
-                setQuestion(r);
-                run(r);
-              }}
-            >
-              {r}
-            </button>
+            <Badge key={r} variant="secondary" asChild>
+              <button
+                onClick={() => {
+                  setQuestion(r);
+                  run(r);
+                }}
+              >
+                {r}
+              </button>
+            </Badge>
           ))}
-          <button
-            className="yb-link"
-            style={{ fontSize: 12 }}
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
             onClick={() => {
               localStorage.removeItem(RECENTS_KEY);
               setRecents([]);
             }}
           >
             Clear
-          </button>
+          </Button>
         </div>
       )}
 
@@ -156,19 +150,24 @@ export function Search() {
         {loading && <AnswerSkeleton />}
 
         {error && (
-          <div className="yb-state error" role="alert">
-            <h2>Something went wrong</h2>
-            <p>{friendlyError(error)}</p>
-            <button className="yb-btn" onClick={() => active && run(active)}>
+          <div
+            className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
+            role="alert"
+          >
+            <h2 className="text-lg font-semibold">Something went wrong</h2>
+            <p className="max-w-prose">{friendlyError(error)}</p>
+            <Button variant="outline" className="mt-2" onClick={() => active && run(active)}>
               Try again
-            </button>
+            </Button>
           </div>
         )}
 
         {empty && (
-          <div className="yb-state">
-            <h2>No data for that question yet</h2>
-            <p>We couldn’t find stats matching your query. Try a different season, player, or phrasing.</p>
+          <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+            <h2 className="text-lg font-semibold text-foreground">No data for that question yet</h2>
+            <p className="max-w-prose">
+              We couldn’t find stats matching your query. Try a different season, player, or phrasing.
+            </p>
           </div>
         )}
 

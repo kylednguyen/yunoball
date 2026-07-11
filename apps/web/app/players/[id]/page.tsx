@@ -1,10 +1,23 @@
 "use client";
 
-import { tablistKeys } from "../../components/tablist";
-
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 import { Crumbs } from "../../components/Crumbs";
 import { Dropdown } from "../../components/Dropdown";
@@ -191,13 +204,7 @@ function SeasonTable({
             s.team ? (
               <Link
                 href={`/teams/${s.team}?season=${s.season}`}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  color: "var(--muted)",
-                  fontWeight: 400,
-                }}
+                className="inline-flex items-center gap-1.5 font-normal text-muted-foreground"
               >
                 <TeamLogo team={s.team} size={16} />
                 {s.team}
@@ -231,7 +238,7 @@ function SeasonTable({
           numeric: true,
           value: (s) => s.points_per_game,
           render: (s) => (
-            <span style={{ fontWeight: 700 }}>{s.points_per_game.toFixed(1)}</span>
+            <span className="font-bold">{s.points_per_game.toFixed(1)}</span>
           ),
         },
         ...(showRank
@@ -243,9 +250,9 @@ function SeasonTable({
                 value: (s: SeasonRow) => s.position_rank,
                 render: (s: SeasonRow) =>
                   s.position_rank ? (
-                    <span className={s.position_rank <= 5 ? "yb-streak-w" : undefined}>
+                    <span className={s.position_rank <= 5 ? "font-semibold text-primary" : undefined}>
                       #{s.position_rank}
-                      <span className="yb-lb-unit"> of {s.position_players}</span>
+                      <span className="text-muted-foreground"> of {s.position_players}</span>
                     </span>
                   ) : (
                     <>-</>
@@ -273,7 +280,7 @@ function GameLogTable({ rows, position }: { rows: GameRow[]; position: string | 
             <Link
               href={`/games/${encodeURIComponent(g.game_id)}`}
               title="Open box score"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              className="inline-flex items-center gap-1.5"
             >
               {fmtDate(g.date) ?? `${g.season} Wk ${g.week}`} {g.home ? "vs" : "@"}
               <TeamLogo team={g.opponent} size={16} /> {g.opponent}
@@ -287,7 +294,11 @@ function GameLogTable({ rows, position }: { rows: GameRow[]; position: string | 
           render: (g) => (
             <span
               className={
-                g.result === "W" ? "yb-streak-w" : g.result === "L" ? "yb-streak-l" : undefined
+                g.result === "W"
+                  ? "font-semibold text-primary"
+                  : g.result === "L"
+                    ? "font-semibold text-destructive"
+                    : undefined
               }
             >
               {g.result} {g.team_score ?? "-"}-{g.opp_score ?? "-"}
@@ -326,84 +337,110 @@ function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[
   const per = (v: number, gp: number) => (gp ? (v / gp).toFixed(1) : "-");
   const isQB = position === "QB";
   return (
-    <section className="yb-split-group">
-      <h2>{title}</h2>
-      <div className="yb-table-scroll">
-        <table className="yb-table">
-          <thead>
-            <tr>
-              <th>{title === "Overall" ? "Season" : title}</th>
-              <th className="num">GP</th>
+    <section className="mt-6">
+      <h2 className="mb-3 font-heading text-lg font-semibold">{title}</h2>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="whitespace-nowrap text-xs uppercase tracking-wide">
+                {title === "Overall" ? "Season" : title}
+              </TableHead>
+              <TableHead className="text-right text-xs uppercase tracking-wide">GP</TableHead>
               {isQB && (
                 <>
-                  <th className="num">CMP</th>
-                  <th className="num">ATT</th>
-                  <th className="num">PCT</th>
-                  <th className="num">Pass yds</th>
-                  <th className="num">Yds/G</th>
-                  <th className="num">TD</th>
-                  <th className="num">INT</th>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">CMP</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">ATT</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">PCT</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Pass yds</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Yds/G</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">TD</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">INT</TableHead>
                 </>
               )}
               {!isQB && (
                 <>
-                  <th className="num">Rush yds</th>
-                  <th className="num">Rush TD</th>
-                  <th className="num">Rec</th>
-                  <th className="num">Rec yds</th>
-                  <th className="num">Yds/G</th>
-                  <th className="num">Rec TD</th>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Rush yds</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Rush TD</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Rec</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Rec yds</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Yds/G</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wide">Rec TD</TableHead>
                 </>
               )}
-              <th className="num">Rush yds</th>
-              <th className="num">Rush TD</th>
-              <th className="num">PPG</th>
-            </tr>
-          </thead>
-          <tbody>
+              <TableHead className="text-right text-xs uppercase tracking-wide">Rush yds</TableHead>
+              <TableHead className="text-right text-xs uppercase tracking-wide">Rush TD</TableHead>
+              <TableHead className="text-right text-xs uppercase tracking-wide">PPG</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((r) => (
-              <tr key={r.label}>
-                <td>{r.label}</td>
-                <td className="num">{r.gp}</td>
+              <TableRow key={r.label}>
+                <TableCell>{r.label}</TableCell>
+                <TableCell className="text-right tabular-nums">{r.gp}</TableCell>
                 {isQB && (
                   <>
-                    <td className="num">{r.completions.toLocaleString()}</td>
-                    <td className="num">{r.attempts.toLocaleString()}</td>
-                    <td className="num">
+                    <TableCell className="text-right tabular-nums">{r.completions.toLocaleString()}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.attempts.toLocaleString()}</TableCell>
+                    <TableCell className="text-right tabular-nums">
                       {r.attempts ? ((r.completions / r.attempts) * 100).toFixed(1) : "-"}
-                    </td>
-                    <td className="num">{r.passing_yards.toLocaleString()}</td>
-                    <td className="num">{per(r.passing_yards, r.gp)}</td>
-                    <td className="num">{r.passing_tds}</td>
-                    <td className="num">{r.interceptions}</td>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{r.passing_yards.toLocaleString()}</TableCell>
+                    <TableCell className="text-right tabular-nums">{per(r.passing_yards, r.gp)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.passing_tds}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.interceptions}</TableCell>
                   </>
                 )}
                 {!isQB && (
                   <>
-                    <td className="num">{r.rushing_yards.toLocaleString()}</td>
-                    <td className="num">{r.rushing_tds}</td>
-                    <td className="num">{r.receptions}</td>
-                    <td className="num">{r.receiving_yards.toLocaleString()}</td>
-                    <td className="num">
+                    <TableCell className="text-right tabular-nums">{r.rushing_yards.toLocaleString()}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.rushing_tds}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.receptions}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.receiving_yards.toLocaleString()}</TableCell>
+                    <TableCell className="text-right tabular-nums">
                       {per(
                         position === "RB" ? r.rushing_yards : r.receiving_yards,
                         r.gp,
                       )}
-                    </td>
-                    <td className="num">{r.receiving_tds}</td>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{r.receiving_tds}</TableCell>
                   </>
                 )}
-                <td className="num">{r.rushing_yards.toLocaleString()}</td>
-                <td className="num">{r.rushing_tds}</td>
-                <td className="num" style={{ fontWeight: 700 }}>
+                <TableCell className="text-right tabular-nums">{r.rushing_yards.toLocaleString()}</TableCell>
+                <TableCell className="text-right tabular-nums">{r.rushing_tds}</TableCell>
+                <TableCell className="text-right font-bold tabular-nums">
                   {per(r.fantasy_points_ppr, r.gp)}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </section>
+  );
+}
+
+/** Stat tiles grid — season and career overview. */
+function Tiles({ items }: { items: { label: string; value: string; meta: string }[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {items.map((t) => (
+        <Card key={t.label} className="gap-1 p-4">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t.label}</div>
+          <div className="font-heading text-2xl font-bold tabular-nums">{t.value}</div>
+          <div className="text-xs text-muted-foreground">{t.meta}</div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+/** Section heading shared across tabs. */
+function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <h2 className={cn("mb-3 font-heading text-xl font-semibold tracking-tight", className)}>
+      {children}
+    </h2>
   );
 }
 
@@ -430,321 +467,312 @@ export default function PlayerPage() {
   const logSeasons = [...new Set(regLog.map((g) => g.season))];
 
   return (
-    <>
-      <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
-        {loading && (
-          <>
-            <div className="yb-skel" style={{ height: 60, width: 380, marginBottom: 20 }} />
-            <div className="yb-skel" style={{ height: 110, borderRadius: 14, marginBottom: 20 }} />
-            <div className="yb-skel" style={{ height: 300, borderRadius: 14 }} />
-          </>
-        )}
+    <main id="main" className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+      {loading && (
+        <>
+          <Skeleton className="mb-5 h-[60px] w-[380px] max-w-full rounded-lg" />
+          <Skeleton className="mb-5 h-28 rounded-xl" />
+          <Skeleton className="h-72 rounded-xl" />
+        </>
+      )}
 
-        {error && (
-          <div className="yb-state error" role="alert">
-            <h2>Couldn’t load this player</h2>
-            <p>{friendlyError(error)}</p>
-          </div>
-        )}
+      {error && (
+        <div
+          className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
+          role="alert"
+        >
+          <h2 className="text-lg font-semibold">Couldn’t load this player</h2>
+          <p className="max-w-prose">{friendlyError(error)}</p>
+        </div>
+      )}
 
-        {notFound && (
-          <div className="yb-state">
-            <h2>Player not found</h2>
-            <p>
-              That player isn’t in the warehouse yet. Try the{" "}
-              <Link href="/leaders">leaders</Link> or <Link href="/">search</Link>.
-            </p>
-          </div>
-        )}
+      {notFound && (
+        <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+          <h2 className="text-lg font-semibold text-foreground">Player not found</h2>
+          <p className="max-w-prose">
+            That player isn’t in the warehouse yet. Try the{" "}
+            <Link href="/leaders" className="text-primary hover:underline">
+              leaders
+            </Link>{" "}
+            or{" "}
+            <Link href="/" className="text-primary hover:underline">
+              search
+            </Link>
+            .
+          </p>
+        </div>
+      )}
 
-        {profile && (
-          <>
-            <Crumbs
-              items={[
-                { label: "NFL", href: "/" },
-                ...(profile.team ? [{ label: profile.team, href: `/teams/${profile.team}` }] : []),
-                { label: profile.name },
-              ]}
-            />
-            <div className="yb-page-head" style={{ alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <Headshot src={profile.headshot_url} name={profile.name} size={72} />
-                <h1 className="yb-page-title">{profile.name}</h1>
-                {profile.position && <span className="yb-pos">{profile.position}</span>}
-              </div>
-              <button
-                className="yb-btn ghost"
-                onClick={() =>
-                  (window.location.href = `/?q=${encodeURIComponent(
-                    `${profile.name} career stats`,
-                  )}`)
-                }
-              >
-                Ask about {profile.name.split(" ").pop()} →
-              </button>
+      {profile && (
+        <>
+          <Crumbs
+            items={[
+              { label: "NFL", href: "/" },
+              ...(profile.team ? [{ label: profile.team, href: `/teams/${profile.team}` }] : []),
+              { label: profile.name },
+            ]}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <Headshot src={profile.headshot_url} name={profile.name} size={72} />
+              <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+                {profile.name}
+              </h1>
+              {profile.position && (
+                <span className="text-xs font-bold tracking-wide text-muted-foreground">
+                  {profile.position}
+                </span>
+              )}
             </div>
-            <p className="yb-page-sub">
-              {profile.team ? (
-                <Link className="yb-link" href={`/teams/${profile.team}`}>
-                  {profile.team_name ?? profile.team}
-                </Link>
-              ) : (
-                "-"
-              )}{" "}
-              · {profile.career.seasons} season
-              {profile.career.seasons === 1 ? "" : "s"}, {profile.career.games_played} games
-              {latest?.position_rank && profile.position ? (
-                <>
-                  {" "}
-                  · {profile.position} #{latest.position_rank} of {latest.position_players} in{" "}
-                  {latest.season} (PPR)
-                </>
-              ) : null}
-            </p>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                (window.location.href = `/?q=${encodeURIComponent(
+                  `${profile.name} career stats`,
+                )}`)
+              }
+            >
+              Ask about {profile.name.split(" ").pop()} →
+            </Button>
+          </div>
+          <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
+            {profile.team ? (
+              <Link className="text-primary hover:underline" href={`/teams/${profile.team}`}>
+                {profile.team_name ?? profile.team}
+              </Link>
+            ) : (
+              "-"
+            )}{" "}
+            · {profile.career.seasons} season
+            {profile.career.seasons === 1 ? "" : "s"}, {profile.career.games_played} games
+            {latest?.position_rank && profile.position ? (
+              <>
+                {" "}
+                · {profile.position} #{latest.position_rank} of {latest.position_players} in{" "}
+                {latest.season} (PPR)
+              </>
+            ) : null}
+          </p>
 
-            <dl className="yb-bio">
-              {[
-                { label: "Height", value: fmtHeight(profile.bio.height_inches) },
-                {
-                  label: "Weight",
-                  value: profile.bio.weight_lbs ? `${profile.bio.weight_lbs} lbs` : null,
-                },
-                {
-                  label: "Age",
-                  value: (() => {
-                    const age = ageFrom(profile.bio.birth_date);
-                    return age ? `${age} years` : null;
-                  })(),
-                },
-                { label: "Born", value: fmtDate(profile.bio.birth_date) },
-                { label: "College", value: profile.bio.college },
-                {
-                  label: "Seasons",
-                  value:
-                    profile.bio.first_season && profile.bio.last_season
-                      ? `${profile.bio.first_season}–${profile.bio.last_season}`
-                      : null,
-                },
-              ]
-                .filter((f) => f.value)
-                .map((f) => (
-                  <div key={f.label}>
-                    <dt>{f.label}</dt>
-                    <dd>{f.value}</dd>
-                  </div>
-                ))}
-            </dl>
+          <Card className="mb-6">
+            <CardContent>
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 md:grid-cols-6">
+                {[
+                  { label: "Height", value: fmtHeight(profile.bio.height_inches) },
+                  {
+                    label: "Weight",
+                    value: profile.bio.weight_lbs ? `${profile.bio.weight_lbs} lbs` : null,
+                  },
+                  {
+                    label: "Age",
+                    value: (() => {
+                      const age = ageFrom(profile.bio.birth_date);
+                      return age ? `${age} years` : null;
+                    })(),
+                  },
+                  { label: "Born", value: fmtDate(profile.bio.birth_date) },
+                  { label: "College", value: profile.bio.college },
+                  {
+                    label: "Seasons",
+                    value:
+                      profile.bio.first_season && profile.bio.last_season
+                        ? `${profile.bio.first_season}–${profile.bio.last_season}`
+                        : null,
+                  },
+                ]
+                  .filter((f) => f.value)
+                  .map((f) => (
+                    <div key={f.label}>
+                      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {f.label}
+                      </dt>
+                      <dd className="mt-0.5 font-medium">{f.value}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </CardContent>
+          </Card>
 
-            <div className="yb-player-tabs" role="tablist" aria-label="Player views" onKeyDown={tablistKeys}>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+            <TabsList aria-label="Player views">
               {TABS.filter((t) => t !== "Playoffs" || hasPlayoffs).map((t) => (
-                <button
-                  key={t}
-                  role="tab"
-                  aria-selected={tab === t}
-                  onClick={() => setTab(t)}
-                >
+                <TabsTrigger key={t} value={t}>
                   {t}
-                </button>
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
 
-            {tab === "Overview" && (
-              <>
-                {latest && (
-                  <>
-                    <h2 className="yb-conf-title">{latest.season} season</h2>
-                    <div className="yb-tiles">
-                      {tiles(profile, latest, `${latest.games_played} games`).map((t) => (
-                        <div key={t.label} className="yb-tile">
-                          <div className="yb-tile-label">{t.label}</div>
-                          <div className="yb-tile-value">{t.value}</div>
-                          <div className="yb-tile-meta">{t.meta}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-                <h2 className="yb-conf-title" style={{ marginTop: 24 }}>
-                  Career
-                </h2>
-                <div className="yb-tiles">
-                  {tiles(profile, profile.career, "career").map((t) => (
-                    <div key={t.label} className="yb-tile">
-                      <div className="yb-tile-label">{t.label}</div>
-                      <div className="yb-tile-value">{t.value}</div>
-                      <div className="yb-tile-meta">{t.meta}</div>
-                    </div>
-                  ))}
-                </div>
-                {regLog.length > 0 && (
-                  <>
-                    <h2 className="yb-conf-title" style={{ marginTop: 24 }}>
-                      Recent games
-                    </h2>
-                    <GameLogTable rows={regLog.slice(0, 5)} position={profile.position} />
-                  </>
-                )}
-                {profile.scoring_plays.length > 0 && (
-                  <p className="yb-page-sub" style={{ marginTop: 14 }}>
-                    {profile.scoring_plays.length} career touchdowns. First on{" "}
-                    {fmtDate(profile.scoring_plays.at(-1)!.date)} against{" "}
-                    {profile.scoring_plays.at(-1)!.opponent}, most recent on{" "}
-                    {fmtDate(profile.scoring_plays[0]!.date)} against{" "}
-                    {profile.scoring_plays[0]!.opponent}.
-                  </p>
-                )}
-              </>
-            )}
+            <TabsContent value="Overview" className="mt-6">
+              {latest && (
+                <>
+                  <SectionTitle>{latest.season} season</SectionTitle>
+                  <Tiles items={tiles(profile, latest, `${latest.games_played} games`)} />
+                </>
+              )}
+              <SectionTitle className="mt-6">Career</SectionTitle>
+              <Tiles items={tiles(profile, profile.career, "career")} />
+              {regLog.length > 0 && (
+                <>
+                  <SectionTitle className="mt-6">Recent games</SectionTitle>
+                  <GameLogTable rows={regLog.slice(0, 5)} position={profile.position} />
+                </>
+              )}
+              {profile.scoring_plays.length > 0 && (
+                <p className="mt-3.5 text-muted-foreground">
+                  {profile.scoring_plays.length} career touchdowns. First on{" "}
+                  {fmtDate(profile.scoring_plays.at(-1)!.date)} against{" "}
+                  {profile.scoring_plays.at(-1)!.opponent}, most recent on{" "}
+                  {fmtDate(profile.scoring_plays[0]!.date)} against{" "}
+                  {profile.scoring_plays[0]!.opponent}.
+                </p>
+              )}
+            </TabsContent>
 
-            {tab === "Splits" && (
-              <>
-                <div className="yb-page-head" style={{ marginBottom: 16 }}>
-                  <h2 className="yb-conf-title" style={{ margin: 0 }}>
-                    Splits
-                  </h2>
-                  {splits && (
-                    <Dropdown
-                      ariaLabel="Splits season"
-                      value={String(splits.season)}
-                      onChange={(v) => setSeason(Number(v))}
-                      options={splits.seasons.map((s) => ({
-                        value: String(s),
-                        label: `${s} season`,
-                      }))}
-                    />
-                  )}
-                </div>
-                {splitsLoading && <div className="yb-skel" style={{ height: 260, borderRadius: 14 }} />}
-                {!splitsLoading && splits === null && (
-                  <div className="yb-state">
-                    <h2>No splits available</h2>
-                    <p>No per-game data for this player yet.</p>
-                  </div>
-                )}
-                {!splitsLoading &&
-                  splits?.groups.map((g) => (
-                    <SplitsGroup
-                      key={g.title}
-                      title={g.title}
-                      rows={g.rows}
-                      position={profile.position}
-                    />
-                  ))}
-              </>
-            )}
-
-            {tab === "Game Log" && (
-              <>
-                <div className="yb-page-head" style={{ marginBottom: 16 }}>
-                  <h2 className="yb-conf-title" style={{ margin: 0 }}>
-                    Game log
-                  </h2>
+            <TabsContent value="Splits" className="mt-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <SectionTitle className="mb-0">Splits</SectionTitle>
+                {splits && (
                   <Dropdown
-                    ariaLabel="Filter game log by season"
-                    value={season ? String(season) : "all"}
-                    onChange={(v) => setSeason(v === "all" ? undefined : Number(v))}
-                    options={[
-                      { value: "all", label: "All seasons" },
-                      ...logSeasons.map((s) => ({ value: String(s), label: `${s} season` })),
+                    ariaLabel="Splits season"
+                    value={String(splits.season)}
+                    onChange={(v) => setSeason(Number(v))}
+                    options={splits.seasons.map((s) => ({
+                      value: String(s),
+                      label: `${s} season`,
+                    }))}
+                  />
+                )}
+              </div>
+              {splitsLoading && <Skeleton className="h-64 rounded-xl" />}
+              {!splitsLoading && splits === null && (
+                <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+                  <h2 className="text-lg font-semibold text-foreground">No splits available</h2>
+                  <p className="max-w-prose">No per-game data for this player yet.</p>
+                </div>
+              )}
+              {!splitsLoading &&
+                splits?.groups.map((g) => (
+                  <SplitsGroup
+                    key={g.title}
+                    title={g.title}
+                    rows={g.rows}
+                    position={profile.position}
+                  />
+                ))}
+            </TabsContent>
+
+            <TabsContent value="Game Log" className="mt-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <SectionTitle className="mb-0">Game log</SectionTitle>
+                <Dropdown
+                  ariaLabel="Filter game log by season"
+                  value={season ? String(season) : "all"}
+                  onChange={(v) => setSeason(v === "all" ? undefined : Number(v))}
+                  options={[
+                    { value: "all", label: "All seasons" },
+                    ...logSeasons.map((s) => ({ value: String(s), label: `${s} season` })),
+                  ]}
+                />
+              </div>
+              {gameLog.length === 0 ? (
+                <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    No games{season ? ` for ${season}` : ""}
+                  </h2>
+                  <p className="max-w-prose">No per-game rows here. Pick another season above.</p>
+                </div>
+              ) : (
+                <GameLogTable rows={gameLog} position={profile.position} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="Career" className="mt-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <SectionTitle className="mb-0">Season by season</SectionTitle>
+                <div
+                  className="inline-flex overflow-hidden rounded-md border"
+                  role="group"
+                  aria-label="Stat display mode"
+                >
+                  {(["Totals", "Per game"] as const).map((m) => {
+                    const on = perGame === (m === "Per game");
+                    return (
+                      <button
+                        key={m}
+                        aria-pressed={on}
+                        onClick={() => setPerGame(m === "Per game")}
+                        className={cn(
+                          "px-2.5 py-1 text-xs font-semibold transition-colors",
+                          on
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-background text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <SeasonTable
+                rows={profile.seasons}
+                position={profile.position}
+                perGame={perGame}
+                showRank
+              />
+              {profile.scoring_plays.length > 0 && (
+                <>
+                  <SectionTitle className="mt-7">Touchdown log</SectionTitle>
+                  <SortTable
+                    rows={profile.scoring_plays}
+                    rowKey={(t) => `${t.game_id}-${t.description?.slice(0, 24)}`}
+                    columns={[
+                      {
+                        key: "game",
+                        label: "Game",
+                        numeric: true,
+                        value: (t) => t.season * 100 + t.week,
+                        render: (t) => (
+                          <Link
+                            href={`/teams/${t.opponent}?season=${t.season}`}
+                            className="inline-flex items-center gap-1.5"
+                          >
+                            {fmtDate(t.date) ?? `${t.season} Wk ${t.week}`} vs
+                            <TeamLogo team={t.opponent} size={16} /> {t.opponent}
+                          </Link>
+                        ),
+                      },
+                      {
+                        key: "kind",
+                        label: "Type",
+                        value: (t) => TD_KIND[t.play_type ?? ""] ?? t.play_type,
+                        render: (t) => <>{TD_KIND[t.play_type ?? ""] ?? t.play_type ?? "-"}</>,
+                      },
+                      { key: "qtr", label: "Qtr", numeric: true, value: (t) => t.qtr },
+                      {
+                        key: "desc",
+                        label: "Play",
+                        value: (t) => t.description,
+                        render: (t) => (
+                          <span
+                            className="inline-block max-w-[420px] overflow-hidden text-ellipsis whitespace-nowrap align-bottom text-muted-foreground"
+                            title={t.description ?? undefined}
+                          >
+                            {t.description ?? "-"}
+                          </span>
+                        ),
+                      },
                     ]}
                   />
-                </div>
-                {gameLog.length === 0 ? (
-                  <div className="yb-state">
-                    <h2>No games{season ? ` for ${season}` : ""}</h2>
-                    <p>No per-game rows here. Pick another season above.</p>
-                  </div>
-                ) : (
-                  <GameLogTable rows={gameLog} position={profile.position} />
-                )}
-              </>
-            )}
+                </>
+              )}
+            </TabsContent>
 
-            {tab === "Career" && (
-              <>
-                <div className="yb-page-head" style={{ marginBottom: 16 }}>
-                  <h2 className="yb-conf-title" style={{ margin: 0 }}>
-                    Season by season
-                  </h2>
-                  <div className="yb-seg" role="group" aria-label="Stat display mode">
-                    <button aria-pressed={!perGame} onClick={() => setPerGame(false)}>
-                      Totals
-                    </button>
-                    <button aria-pressed={perGame} onClick={() => setPerGame(true)}>
-                      Per game
-                    </button>
-                  </div>
-                </div>
-                <SeasonTable
-                  rows={profile.seasons}
-                  position={profile.position}
-                  perGame={perGame}
-                  showRank
-                />
-                {profile.scoring_plays.length > 0 && (
-                  <>
-                    <h2 className="yb-conf-title" style={{ marginTop: 28 }}>
-                      Touchdown log
-                    </h2>
-                    <SortTable
-                      rows={profile.scoring_plays}
-                      rowKey={(t) => `${t.game_id}-${t.description?.slice(0, 24)}`}
-                      columns={[
-                        {
-                          key: "game",
-                          label: "Game",
-                          numeric: true,
-                          value: (t) => t.season * 100 + t.week,
-                          render: (t) => (
-                            <Link
-                              href={`/teams/${t.opponent}?season=${t.season}`}
-                              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                            >
-                              {fmtDate(t.date) ?? `${t.season} Wk ${t.week}`} vs
-                              <TeamLogo team={t.opponent} size={16} /> {t.opponent}
-                            </Link>
-                          ),
-                        },
-                        {
-                          key: "kind",
-                          label: "Type",
-                          value: (t) => TD_KIND[t.play_type ?? ""] ?? t.play_type,
-                          render: (t) => <>{TD_KIND[t.play_type ?? ""] ?? t.play_type ?? "-"}</>,
-                        },
-                        { key: "qtr", label: "Qtr", numeric: true, value: (t) => t.qtr },
-                        {
-                          key: "desc",
-                          label: "Play",
-                          value: (t) => t.description,
-                          render: (t) => (
-                            <span
-                              className="yb-muted"
-                              style={{
-                                display: "inline-block",
-                                maxWidth: 420,
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                verticalAlign: "bottom",
-                              }}
-                              title={t.description ?? undefined}
-                            >
-                              {t.description ?? "-"}
-                            </span>
-                          ),
-                        },
-                      ]}
-                    />
-                  </>
-                )}
-              </>
-            )}
-
-            {tab === "Playoffs" && (
-              <>
+            {hasPlayoffs && (
+              <TabsContent value="Playoffs" className="mt-6">
                 {profile.postseasons.length > 0 && (
                   <>
-                    <h2 className="yb-conf-title">Postseason, year by year</h2>
+                    <SectionTitle>Postseason, year by year</SectionTitle>
                     <SeasonTable
                       rows={profile.postseasons}
                       position={profile.position}
@@ -755,23 +783,21 @@ export default function PlayerPage() {
                 )}
                 {postLog.length > 0 && (
                   <>
-                    <h2 className="yb-conf-title" style={{ marginTop: 24 }}>
-                      Playoff game log
-                    </h2>
+                    <SectionTitle className="mt-6">Playoff game log</SectionTitle>
                     <GameLogTable rows={postLog} position={profile.position} />
                   </>
                 )}
                 {profile.postseasons.length === 0 && postLog.length === 0 && (
-                  <div className="yb-state">
-                    <h2>No playoff games</h2>
-                    <p>This player has no postseason rows in the warehouse.</p>
+                  <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+                    <h2 className="text-lg font-semibold text-foreground">No playoff games</h2>
+                    <p className="max-w-prose">This player has no postseason rows in the warehouse.</p>
                   </div>
                 )}
-              </>
+              </TabsContent>
             )}
-          </>
-        )}
-      </main>
-    </>
+          </Tabs>
+        </>
+      )}
+    </main>
   );
 }
