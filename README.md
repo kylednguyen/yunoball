@@ -2,113 +2,105 @@
 
 **The all-in-one NFL platform — every number computed from real data.**
 An improved take on StatMuse, NFL-first: natural-language search plus scores,
-standings, leaderboards, a fantasy lineup builder and an AI assistant, all
-served from one authoritative warehouse that shows you the exact query behind
-every answer.
+standings, leaderboards, a fantasy lineup builder and an assistant, all served
+from one authoritative warehouse that shows you the exact query behind every
+answer.
 
 - **Search** — ask anything; answers come from typed QuerySpecs, never hallucinated
 - **Scores & Results** (`/scores`) — week-by-week finals
 - **Standings** (`/standings`) — W-L, points, streaks, computed live from game results
 - **Leaderboards** (`/leaderboards`) — season leaders as dense stat tables
 - **Fantasy** (`/fantasy`) — build a PPR lineup from real season production
-- **Assistant** (`/assistant`) — a tool-calling AI agent over the same trusted endpoints
+- **Assistant** (`/assistant`) — a tool-routing agent over the same trusted endpoints
 
 ## How it works
 
-A question is parsed into a typed **`QuerySpec`** (a small JSON intent), not raw
-SQL — by rules for common shapes (zero LLM), or an LLM function-call for the long
-tail. A deterministic builder turns the spec into safe, parameterized SQL over a
-curated NFL warehouse, so numbers are **computed from facts, never hallucinated**,
-and the SQL is injection-proof by construction. Fuzzy resolution maps names to
-canonical ids; a two-tier cache lets repeats skip the LLM entirely; narration is
-templated from the result. The head of the distribution answers in **≤1 LLM call
-(often 0)**. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+A question is parsed into a typed **`QuerySpec`** (a small structured intent),
+not raw SQL — deterministically, by rules. A builder turns the spec into safe,
+parameterized SQL over a curated NFL warehouse, so numbers are **computed from
+facts, never hallucinated**, and the SQL is injection-proof by construction.
+Fuzzy resolution maps names to canonical ids; a two-tier cache dedupes repeats;
+narration is templated from the result. Zero LLM calls anywhere. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Stack
 
-- **Frontend:** Next.js (TypeScript) — `apps/web`
-- **Backend:** FastAPI (Python) — `apps/api`
-- **Database:** Postgres + pgvector (Supabase) — schema in `packages/db`
-- **Cache:** two-tier answer cache — Redis, or in-memory when Redis is absent
-- **Data:** nflverse via `nfl_data_py` — `packages/ingest`
-- **LLM + embeddings:** OpenAI (optional — rule-based engine runs key-less)
+One language, one runtime — TypeScript everywhere:
+
+- **Frontend:** Next.js — `apps/web`
+- **Backend:** Express — `apps/server` (REST APIs + query engine + ingestion CLI)
+- **Shared types:** `packages/types` — the API wire contract, imported by both
+- **Database:** Postgres — schema in `apps/server/src/db/schema.sql`
+- **Data:** nflverse release files (CSV) — `apps/server/src/ingest`
 
 ## Repository layout
 
 ```
 apps/
-  web/        Next.js search UI
-  api/        FastAPI backend + NL→SQL query pipeline
+  web/        Next.js UI
+  server/     Express backend
+    src/routes        path table (thin)
+    src/controllers   request validation
+    src/services      business logic
+    src/repositories  shared SQL helpers
+    src/engine        NL -> QuerySpec -> SQL query engine
+    src/ingest        nflverse -> warehouse pipelines + CLI
+    src/db            pool, schema.sql, migrate
 packages/
-  db/         SQLAlchemy schema + Alembic migrations (shared)
-  ingest/     nflverse → warehouse loader (CLI)
+  types/      shared API types (web <-> server)
 docs/
   ARCHITECTURE.md
-docker-compose.yml   local Postgres (pgvector) + Redis
+docker-compose.yml   local Postgres + Redis
 ```
 
-## Try the prototype now (demo mode — no Docker, no keys)
-
-Demo mode runs on SQLite with a rule-based NL→SQL engine and seeded sample
-2022–2023 stats — zero external services. One command:
+## Quick start
 
 ```bash
-./scripts/demo.sh
-# then open http://localhost:4000  and ask:
-#   "Who threw the most touchdowns in 2023?"
-#   "Patrick Mahomes career passing yards"
-#   "Most rushing yards in a single game"
-```
+cp .env.example .env     # local-Docker defaults are pre-filled
+pnpm install
 
-Every answer shows the exact SQL it ran. Set `OPENAI_API_KEY` + a Postgres
-`DATABASE_URL` to switch to the real LLM + warehouse path automatically.
-
-## Quick start (full stack, local)
-
-> **Python 3.11 required.** `nfl_data_py` pins `pandas<2` / `numpy<2`, whose
-> wheels only exist through CPython 3.11.
-
-```bash
-cp .env.example .env          # local-Docker defaults are pre-filled; add OPENAI_API_KEY
-
-# Python deps — one shared venv (compat editable mode avoids PEP660 finder issues)
-python3.11 -m venv .venv && source .venv/bin/activate
-pip install --config-settings editable_mode=compat \
-    -e packages/db -e packages/ingest -e apps/api
-
-# 1. Infra — Postgres (pgvector) + Redis.
+# 1. Infra — Postgres.
 #    If host port 5432 is taken, drop a docker-compose.override.yml remapping it
 #    (e.g. "5433:5432") and point DATABASE_URL at the new port.
 docker compose up -d
 
-# 2. Schema + least-privilege read-only role
-( cd packages/db && alembic upgrade head )
-yunoball-provision-readonly
+# 2. Schema (idempotent)
+pnpm db:migrate
 
-# 3. Data — box score + season/game stats. Drop --skip to include play-by-play;
-#    use --all instead of --years for every season since 1999.
-yunoball-ingest --years 2022 2023 2024 --skip plays
+# 3. Data — box scores + season/game stats; --all loads every season since 1999.
+pnpm ingest:nfl --season 2024
+pnpm ingest:nfl --season 2024 --dry-run     # preview counts + validation only
 
-# 4. RAG: entity aliases + few-shot library (embeddings computed if a key is set)
-yunoball-seed-rag
-
-# 5. Accuracy eval
-yunoball-eval --reference-only       # validates golden SQL; no key needed
-yunoball-eval --min-accuracy 0.8     # full execution accuracy (needs OPENAI_API_KEY)
-
-# 6. Backend + frontend
-( cd apps/api && uvicorn app.main:app --reload --port 4000 )
-pnpm install && pnpm dev:web         # http://localhost:3000
+# 4. Backend + frontend
+pnpm dev:server          # http://localhost:4000
+pnpm dev:web             # http://localhost:3000
 ```
+
+The ingestion CLI is idempotent (upserts), validates every row before writing,
+logs every skipped row with a reason, and keeps going when one dataset fails.
+See [`apps/server/src/ingest`](apps/server/src/ingest) for the flow and
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for table relationships.
+
+## Tests
+
+```bash
+pnpm --filter @yunoball/server test   # engine + ingestion suites (needs the Docker Postgres)
+pnpm typecheck
+
+# End-to-end browser tests (Playwright; reuses running dev servers, or boots
+# both itself when none are up — same as CI)
+pnpm e2e
+```
+
+CI (`.github/workflows/ci.yml`) runs all of it on every push and pull request,
+including a real one-season ingest against a service Postgres.
 
 ## Status
 
-Working prototype combining a **structured `QuerySpec` query engine** (rules +
-LLM function-call → deterministic SQL, fuzzy entity resolution, two-tier cache,
-templated narration, ≤1 LLM call) with a **real local warehouse** (nflverse
-2022–2024): ingest + eval harness, pg_trgm/pgvector resolution + few-shot
-retrieval, charts + leaderboards + shareable answer pages + Redis/Postgres cache,
-and play-by-play + situational/EPA metrics. Everything except the LLM/embedding
-paths runs without an `OPENAI_API_KEY`; try it key-free with `./scripts/demo.sh`.
-Full 1999–present backfill is a one-command widening of `--years` (or `--all`).
-See the roadmap in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Working prototype: a **structured `QuerySpec` query engine** (rules →
+deterministic SQL, fuzzy entity resolution, two-tier cache, templated
+narration, zero LLM calls) over a **real local warehouse** (nflverse
+1999–present), plus scores, standings, leaderboards,
+fantasy tools, shareable answer pages and an assistant. Additional data
+providers (ESPN media ids are one already) slot in as independent modules
+under `apps/server/src/ingest/providers` without touching the public API.

@@ -1,36 +1,22 @@
 import { HomeDashboard } from "./components/HomeDashboard";
 import { Leaders } from "./components/Leaders";
-import { Nav } from "./components/Nav";
+import { ScoreTicker } from "./components/ScoreTicker";
 import { Search } from "./search";
 
 export default function Home() {
   return (
     <>
-      <Nav />
-      <main id="main">
-        <section
-          style={{
-            maxWidth: 720,
-            margin: "0 auto",
-            padding: "48px 20px 36px",
-            textAlign: "center",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 52,
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              margin: "0 0 10px",
-            }}
-          >
-            Ask anything about the <span style={{ color: "var(--accent)" }}>NFL</span>
+      <ScoreTicker />
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+        <section className="mb-10 text-center">
+          <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+            Ask anything about the <span className="text-primary">NFL</span>
           </h1>
-          <p style={{ color: "var(--muted)", fontSize: 18, margin: "0 auto 32px", maxWidth: 520 }}>
+          <p className="mx-auto mt-1 mb-6 max-w-prose text-muted-foreground">
             Every answer is computed from real historical data, and we show you the
             query behind it.
           </p>
-          <div style={{ textAlign: "left" }}>
+          <div className="text-left">
             <Search />
           </div>
         </section>
@@ -38,7 +24,7 @@ export default function Home() {
         <HomeDashboard />
 
         <Leaders />
-      </main>
+      </div>
     </>
   );
 }

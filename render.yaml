@@ -2,35 +2,25 @@
 # Frontend deploys separately on Vercel (see docs/DEPLOYMENT.md).
 #
 #   render.com → New → Blueprint → point at this repo.
-#   Then set DATABASE_URL / READONLY_DATABASE_URL (and optionally OPENAI_API_KEY)
-#   in the dashboard — they are marked sync:false so they are never committed.
+#   Then set DATABASE_URL / READONLY_DATABASE_URL in the dashboard — they are
+#   marked sync:false so they are never committed.
 services:
   - type: web
     name: yunoball-api
-    runtime: python
-    rootDir: apps/api
+    runtime: node
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @yunoball/server start
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: "22"          # repo requires node >=22
       - key: DATABASE_URL
-        sync: false          # Supabase pooled connection
+        sync: false          # Supabase SESSION pooler (…pooler.supabase.com:5432) — this is a
+                             # persistent server, not serverless; do NOT use the :6543 txn pooler
       - key: READONLY_DATABASE_URL
-        sync: false          # read-only role for generated SQL
-      - key: OPENAI_API_KEY
-        sync: false          # optional — rule-based engine works without it
+        sync: false          # read-only role for engine-executed SQL (falls back to DATABASE_URL)
       - key: CORS_ORIGINS
-        sync: false          # JSON array of allowed origins, e.g. ["https://yunoball-web.vercel.app"]
+        sync: false          # comma-separated origins, e.g. https://yunoball-web.vercel.app
       - key: RATE_LIMIT_PER_MINUTE
-        value: "30"          # per-IP cap on POST /api/search (0 disables)
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: yunoball-redis
-          property: connectionString
-
-  - type: keyvalue
-    name: yunoball-redis
-    plan: free
-    ipAllowList: []          # only reachable from Render services
+        value: "30"          # per-IP cap on POST /api/search and /api/agent (0 disables)

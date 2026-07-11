@@ -1,8 +1,8 @@
 # Local dev infrastructure: Postgres (with pgvector) + Redis.
-# The API (FastAPI) and web (Next.js) run on the host against these.
+# The API (Express) and web (Next.js) run on the host against these.
 #
 #   docker compose up -d
-#   # then, in packages/db:  alembic upgrade head
+#   # then: pnpm db:migrate
 services:
   postgres:
     image: pgvector/pgvector:pg16
