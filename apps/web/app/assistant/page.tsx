@@ -4,8 +4,14 @@ import { useTitle } from "../lib/hooks";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Lock } from "lucide-react";
 
 import { friendlyError, askAgent, type AgentStep, type ChatTurn } from "../lib/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface Message extends ChatTurn {
   steps?: AgentStep[];
@@ -32,43 +38,44 @@ export default function AssistantPage() {
 /** Pro paywall shown while the assistant is in development. */
 function AssistantLocked() {
   return (
-    <main id="main" className="yb-page" style={{ maxWidth: 620 }}>
-      <div className="yb-paywall">
-        <span className="yb-paywall-icon" aria-hidden="true">
-          <svg
-            width={26}
-            height={26}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.7}
-            strokeLinecap="round"
-            strokeLinejoin="round"
+    <main id="main" className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6">
+      <Card className="items-center text-center">
+        <CardHeader className="items-center gap-3">
+          <span
+            className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary"
+            aria-hidden="true"
           >
-            <rect x="4" y="11" width="16" height="9" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-          </svg>
-        </span>
-        <span className="yb-paywall-tag">Pro · Coming soon</span>
-        <h1 className="yb-page-title">Fantasy Assistant</h1>
-        <p className="yb-paywall-lede">
-          An AI teammate that makes the call, not just the lookup: start/sit verdicts that weigh
-          production, PPR floor, offense environment and touchdown reliance — every number pulled
-          live from the warehouse.
-        </p>
-        <ul className="yb-paywall-list">
-          {SUGGESTIONS.slice(0, 4).map((s) => (
-            <li key={s}>{s}</li>
-          ))}
-        </ul>
-        <button className="yb-btn" disabled>
-          Coming soon
-        </button>
-        <p className="yb-paywall-note">
-          The assistant is still in development and will launch on a Pro plan. Meanwhile, every stat
-          it draws on is already free in <Link href="/">Search</Link>.
-        </p>
-      </div>
+            <Lock className="size-6" strokeWidth={1.7} />
+          </span>
+          <Badge variant="secondary">Pro · Coming soon</Badge>
+          <CardTitle className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+            Fantasy Assistant
+          </CardTitle>
+          <CardDescription className="max-w-prose text-base">
+            An AI teammate that makes the call, not just the lookup: start/sit verdicts that weigh
+            production, PPR floor, offense environment and touchdown reliance — every number pulled
+            live from the warehouse.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-5">
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {SUGGESTIONS.slice(0, 4).map((s) => (
+              <Badge key={s} variant="outline">
+                {s}
+              </Badge>
+            ))}
+          </div>
+          <Button disabled>Coming soon</Button>
+          <p className="max-w-prose text-sm text-muted-foreground">
+            The assistant is still in development and will launch on a Pro plan. Meanwhile, every
+            stat it draws on is already free in{" "}
+            <Link href="/" className="text-primary hover:underline">
+              Search
+            </Link>
+            .
+          </p>
+        </CardContent>
+      </Card>
     </main>
   );
 }
@@ -105,40 +112,52 @@ function AssistantChat() {
   };
 
   return (
-    <main id="main" className="yb-page" style={{ maxWidth: 780 }}>
-      <div className="yb-page-head">
-        <h1 className="yb-page-title">Fantasy Assistant</h1>
-      </div>
-      <p className="yb-page-sub">
+    <main id="main" className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
+      <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+        Fantasy Assistant
+      </h1>
+      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
         Judgment calls, not just lookups: start/sit verdicts weigh production, PPR floor, offense
-        environment and TD reliance. Every number comes from the warehouse. For basic stat questions,
-        use <Link href="/">Search</Link>.
+        environment and TD reliance. Every number comes from the warehouse. For basic stat
+        questions, use{" "}
+        <Link href="/" className="text-primary hover:underline">
+          Search
+        </Link>
+        .
       </p>
 
-      <div className="yb-chat" aria-live="polite">
+      <div className="flex flex-col gap-3" aria-live="polite">
         {messages.length === 0 && (
-          <div className="yb-state" style={{ marginTop: 0 }}>
-            <h2>What do you want to know?</h2>
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+            <h2 className="text-lg font-semibold text-foreground">What do you want to know?</h2>
             <p>Try one of these to get going:</p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+            <div className="mt-1 flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
-                <button key={s} className="yb-chip" onClick={() => send(s)}>
+                <Button key={s} variant="outline" size="sm" onClick={() => send(s)}>
                   {s}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
         )}
 
         {messages.map((m, i) => (
-          <div key={i} className={`yb-msg ${m.role} yb-enter`}>
+          <div
+            key={i}
+            className={cn(
+              "max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm",
+              m.role === "user"
+                ? "self-end bg-primary text-primary-foreground"
+                : "self-start bg-muted text-foreground",
+            )}
+          >
             {m.content}
             {m.steps && m.steps.length > 0 && (
-              <div className="yb-msg-tools">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {m.steps.map((s, j) => (
-                  <span key={j} className="yb-chip-static" title={s.summary}>
+                  <Badge key={j} variant="secondary" title={s.summary}>
                     {s.tool}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}
@@ -146,37 +165,41 @@ function AssistantChat() {
         ))}
 
         {busy && (
-          <div className="yb-msg assistant yb-typing" aria-label="Assistant is thinking">
-            <i /> <i /> <i />
+          <div
+            className="flex max-w-[85%] items-center gap-1 self-start rounded-lg bg-muted px-3.5 py-3"
+            aria-label="Assistant is thinking"
+          >
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-0.3s]" />
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-0.15s]" />
+            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60" />
           </div>
         )}
         <div ref={endRef} />
       </div>
 
       {error && (
-        <p role="alert" style={{ color: "var(--danger)", fontSize: 14 }}>
+        <p role="alert" className="mt-3 text-sm text-destructive">
           {friendlyError(error)} Try again.
         </p>
       )}
 
       <form
-        className="yb-chat-form"
+        className="mt-4 flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           void send(input);
         }}
       >
-        <input
-          className="yb-input"
+        <Input
           placeholder="Ask the assistant…"
           aria-label="Message the assistant"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={busy}
         />
-        <button className="yb-btn" type="submit" disabled={busy || !input.trim()}>
+        <Button type="submit" disabled={busy || !input.trim()}>
           Send
-        </button>
+        </Button>
       </form>
     </main>
   );

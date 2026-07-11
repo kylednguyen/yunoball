@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Crumbs } from "../components/Crumbs";
 import { SeasonSelect } from "../components/SeasonSelect";
+import { Skel } from "../components/Skeleton";
 import { SortTable, type SortColumn } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
 import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
@@ -13,8 +16,12 @@ import type { StandingsResponse } from "../lib/api";
 type TeamRow = StandingsResponse["conferences"][number]["divisions"][number]["teams"][number];
 
 function StreakCell({ streak }: { streak: string }) {
-  const cls = streak.startsWith("W") ? "yb-streak-w" : streak.startsWith("L") ? "yb-streak-l" : "";
-  return <span className={cls}>{streak}</span>;
+  const cls = streak.startsWith("W")
+    ? "text-chart-2"
+    : streak.startsWith("L")
+      ? "text-destructive"
+      : "";
+  return <span className={cn("font-semibold", cls)}>{streak}</span>;
 }
 
 /** "W3" -> 3, "L2" -> -2, so streaks sort from hottest to coldest. */
@@ -31,7 +38,7 @@ const columnsFor = (season: number): SortColumn<TeamRow>[] => [
     render: (t) => (
       <Link
         href={`/teams/${t.team_id}?season=${season}`}
-        style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+        className="inline-flex items-center gap-2"
       >
         <TeamLogo team={t.team_id} />
         {t.name}
@@ -71,60 +78,71 @@ export default function StandingsPage() {
   const { data, error, loading } = useStandings(season);
 
   return (
-    <>
-      <main id="main" className="yb-page">
-        <Crumbs
-          items={[
-            { label: "NFL", href: "/" },
-            ...(data ? [{ label: String(data.season) }] : []),
-            { label: "Standings" },
-          ]}
-        />
-        <div className="yb-page-head">
-          <h1 className="yb-page-title">Standings</h1>
-          {data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
+    <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+      <Crumbs
+        items={[
+          { label: "NFL", href: "/" },
+          ...(data ? [{ label: String(data.season) }] : []),
+          { label: "Standings" },
+        ]}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">Standings</h1>
+        {data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
+      </div>
+      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
+        Computed live from game results. Click a column to sort.
+      </p>
+
+      {error && (
+        <div
+          className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
+          role="alert"
+        >
+          <h2 className="text-lg font-semibold">Couldn’t load standings</h2>
+          <p className="max-w-prose">{friendlyError(error)}</p>
         </div>
-        <p className="yb-page-sub">Computed live from game results. Click a column to sort.</p>
+      )}
 
-        {error && (
-          <div className="yb-state error" role="alert">
-            <h2>Couldn’t load standings</h2>
-            <p>{friendlyError(error)}</p>
-          </div>
-        )}
+      {loading && !data && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {[0, 1].map((i) => (
+            <Skel key={i} h={480} r={14} />
+          ))}
+        </div>
+      )}
 
-        {loading && !data && (
-          <div className="yb-standings-grid">
-            {[0, 1].map((i) => (
-              <div key={i} className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
-            ))}
-          </div>
-        )}
-
-        {data && !error && (
-          <div className="yb-standings-grid" style={{ opacity: loading ? 0.6 : 1 }}>
-            {data.conferences.map((conf) => (
-              <section key={conf.conference} aria-label={`${conf.conference} standings`}>
-                <h2 className="yb-conf-title">{conf.conference}</h2>
+      {data && !error && (
+        <div className={cn("grid gap-6 lg:grid-cols-2", loading && "opacity-60")}>
+          {data.conferences.map((conf) => (
+            <section key={conf.conference} aria-label={`${conf.conference} standings`}>
+              <h2 className="font-heading text-xl font-bold tracking-tight">{conf.conference}</h2>
+              <div className="mt-3 flex flex-col gap-4">
                 {conf.divisions.map((div) => {
                   const leader = div.teams[0]?.team_id;
                   return (
-                    <div key={div.division} className="yb-division">
-                      <h3>{div.division}</h3>
-                      <SortTable<TeamRow>
-                        rows={div.teams}
-                        rowKey={(t) => t.team_id}
-                        rowClass={(t) => (t.team_id === leader ? "yb-div-leader" : undefined)}
-                        columns={columnsFor(data.season)}
-                      />
-                    </div>
+                    <Card key={div.division}>
+                      <CardHeader>
+                        <CardTitle>{div.division}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <SortTable<TeamRow>
+                          rows={div.teams}
+                          rowKey={(t) => t.team_id}
+                          rowClass={(t) =>
+                            t.team_id === leader ? "border-l-2 border-primary bg-primary/5" : undefined
+                          }
+                          columns={columnsFor(data.season)}
+                        />
+                      </CardContent>
+                    </Card>
                   );
                 })}
-              </section>
-            ))}
-          </div>
-        )}
-      </main>
-    </>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+    </main>
   );
 }

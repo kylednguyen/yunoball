@@ -24,6 +24,15 @@
         "NEXT_PUBLIC_API_URL=http://localhost:4001 exec pnpm --dir apps/web exec next dev -p 3100"
       ],
       "port": 3100
+    },
+    {
+      "name": "shadcn-web",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "NEXT_PUBLIC_API_URL=http://localhost:4000 exec pnpm --dir apps/web exec next dev -p 3200"
+      ],
+      "port": 3200
     }
   ]
 }
