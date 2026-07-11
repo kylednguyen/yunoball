@@ -41,7 +41,9 @@ export interface AnswerResult {
   /** Second card for head-to-head answers. */
   player_card2?: PlayerCard | null;
   /** Second-layer audit verdict: validation status, warnings shown to the
-   * user, and overall confidence in the interpretation. */
+   * user, and overall confidence in the interpretation. Backend-diagnostic
+   * only — the frontend never reads this (warnings are already folded into
+   * `narration` server-side), so its absence from the UI is intentional. */
   audit?: {
     status: string;
     warnings: string[];
@@ -473,5 +475,5 @@ export interface AgentStep {
 export interface AgentResponse {
   reply: string;
   steps: AgentStep[];
-  mode: "demo" | "llm";
+  mode: "demo";
 }

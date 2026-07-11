@@ -19,6 +19,7 @@ import {
   cacheGet, cacheSet, persistAnswer, shareId, specKey, textKey,
 } from "../lib/cache.js";
 import { headshotUrl } from "../lib/espn.js";
+import { logger } from "../lib/logger.js";
 import { audit, logAudit } from "./audit.js";
 import { narrate, buildSql } from "./build.js";
 import { isRefusal, parseRules } from "./parseRules.js";
@@ -169,8 +170,15 @@ export async function runQueryPipeline(
     }
 
     const { sql, params } = buildSql(spec);
-    const rows = await q(sql, params);
-    let narration = narrate(spec, rows);
+    let rows: Record<string, unknown>[];
+    let narration: string;
+    try {
+      rows = await q(sql, params);
+      narration = narrate(spec, rows);
+    } catch (err) {
+      logger.error({ err, question, sql, params, intent: spec.intent }, "query execution failed");
+      throw err;
+    }
     if (verdict.warnings.length) {
       narration += ` Note: ${verdict.warnings.join(" ")}`;
     }

@@ -16,7 +16,9 @@ function int(v: string | undefined, fallback: number): number {
 }
 
 export const config = {
-  port: int(process.env.API_PORT, 4000),
+  // Hosts like Render/Fly inject the port to bind as $PORT; API_PORT is the
+  // local-dev override; 4000 is the fallback.
+  port: int(process.env.PORT ?? process.env.API_PORT, 4000),
   databaseUrl: process.env.DATABASE_URL ?? "",
   // Least-privilege role for engine-executed SQL; falls back to the app URL.
   readonlyDatabaseUrl: process.env.READONLY_DATABASE_URL || process.env.DATABASE_URL || "",

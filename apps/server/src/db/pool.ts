@@ -14,7 +14,12 @@ pg.types.setTypeParser(pg.types.builtins.DATE, (v: string) => v);
 
 function makePool(url: string): pg.Pool {
   if (!url) throw new Error("No database URL set (DATABASE_URL).");
-  return new pg.Pool({ connectionString: url, max: 10 });
+  // Hosted Postgres (Supabase, etc.) requires TLS; local Docker does not.
+  // Supabase's pooler presents a chain node-postgres won't verify by default,
+  // so accept it without CA verification (the connection is still encrypted).
+  const local = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url);
+  const ssl = local ? undefined : { rejectUnauthorized: false };
+  return new pg.Pool({ connectionString: url, max: 10, ssl });
 }
 
 let rw: pg.Pool | undefined;
