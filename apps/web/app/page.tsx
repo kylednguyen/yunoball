@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <>
       <ScoreTicker />
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+      <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
         <section className="mb-10 text-center">
           <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
             Ask anything about the <span className="text-primary">NFL</span>
@@ -24,7 +24,7 @@ export default function Home() {
         <HomeDashboard />
 
         <Leaders />
-      </div>
+      </main>
     </>
   );
 }

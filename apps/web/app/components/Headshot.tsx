@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,9 @@ export function Headshot({
   size?: number;
 }) {
   const [broken, setBroken] = useState(false);
+  // Reset on src change so a prior 404 (broken=true) doesn't stick to a later,
+  // valid image when this instance is reused in place (e.g. Performers).
+  useEffect(() => setBroken(false), [src]);
   const initials = name
     .split(" ")
     .filter(Boolean)

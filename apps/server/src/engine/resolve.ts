@@ -128,11 +128,6 @@ export async function loadTeamIndex(): Promise<Map<string, IndexedTeam>> {
   return index;
 }
 
-export function clearIndexCache(): void {
-  indexCache = null;
-  teamIndexCache = null;
-}
-
 function spans(question: string): string[] {
   const words = question.match(/[A-Za-z.'-]+/g) ?? [];
   const out: string[] = [];

@@ -41,6 +41,9 @@ export function HomeDashboard() {
   const [fantasy, setFantasy] = useState<FantasyPlayersResponse | null>(null);
   const [performers, setPerformers] = useState<PerformersResponse | null>(null);
   const [failed, setFailed] = useState(false);
+  // Settles true once the batch resolves (success OR failure), so a failed
+  // performers fetch shows the empty state instead of a permanent skeleton.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -56,6 +59,7 @@ export function HomeDashboard() {
       setFailed(
         s.status === "rejected" && f.status === "rejected" && p.status === "rejected",
       );
+      setLoaded(true);
     });
     return () => {
       active = false;
@@ -74,7 +78,7 @@ export function HomeDashboard() {
       {/* Performers of the week */}
       <section aria-label="Performers of the week">
         <SectionHead title="Performers of the week" href="/scores" label="Full board" />
-        <Performers performers={performers?.performers ?? null} loading={!performers} count={4} />
+        <Performers performers={performers?.performers ?? null} loading={!loaded} count={4} />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">

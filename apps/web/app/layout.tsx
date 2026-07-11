@@ -59,7 +59,7 @@ export default function RootLayout({
         <TooltipProvider delayDuration={0}>
           <SidebarProvider>
             <Nav />
-            <SidebarInset id="main">
+            <SidebarInset>
               {/* Mobile-only bar: the sidebar collapses to an off-canvas sheet
                   below the shadcn 768px breakpoint, so surface a trigger. */}
               <header className="flex h-14 items-center gap-2 border-b px-4 md:hidden">
