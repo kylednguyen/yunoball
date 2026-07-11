@@ -13,10 +13,13 @@ services:
     startCommand: pnpm --filter @yunoball/server start
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: "22"          # repo requires node >=22
       - key: DATABASE_URL
-        sync: false          # Supabase pooled connection
+        sync: false          # Supabase SESSION pooler (…pooler.supabase.com:5432) — this is a
+                             # persistent server, not serverless; do NOT use the :6543 txn pooler
       - key: READONLY_DATABASE_URL
-        sync: false          # read-only role for engine-executed SQL
+        sync: false          # read-only role for engine-executed SQL (falls back to DATABASE_URL)
       - key: CORS_ORIGINS
         sync: false          # comma-separated origins, e.g. https://yunoball-web.vercel.app
       - key: RATE_LIMIT_PER_MINUTE

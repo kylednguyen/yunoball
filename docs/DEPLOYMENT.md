@@ -18,17 +18,37 @@ The Next.js app lives in `apps/web` (pnpm monorepo).
    - `NEXT_PUBLIC_API_URL` → your deployed API origin (e.g. `https://yunoball-api.onrender.com`).
 4. Deploy. That's the whole frontend.
 
-## 2. API → persistent host
+## 2. API → Render (persistent Node service)
 
 The API keeps a warm connection pool and an in-process answer cache, so a
-**persistent container** is the right shape.
+**persistent Node service** is the right shape (not serverless functions, not a
+container — Render's native `node` runtime runs it straight from `render.yaml`).
 
-**Render** — `render.yaml` (repo root):
-1. Render → New → **Blueprint** → point at this repo.
-2. Set `DATABASE_URL`, `READONLY_DATABASE_URL` and `CORS_ORIGINS` in the
-   dashboard — they are `sync:false` so they never land in git.
+The code already handles the two things hosts need: it binds Render's injected
+`$PORT`, and it enables TLS automatically for any non-localhost database host.
 
-Any other Node host works the same way:
+**Steps (Render dashboard):**
+1. Push this branch to GitHub.
+2. Render → **New → Blueprint** → pick this repo. Render reads `render.yaml`
+   and provisions the `yunoball-api` web service.
+3. Fill the three `sync:false` secrets when prompted (they never live in git):
+   - `DATABASE_URL` → Supabase **session pooler** string, port **5432**
+     (Supabase → Connect → *Session pooler*). **Not** the 6543 transaction
+     pooler — that's for serverless and drops session features.
+   - `READONLY_DATABASE_URL` → a read-only role's session-pooler string
+     (recommended; leave blank to fall back to `DATABASE_URL`).
+   - `CORS_ORIGINS` → your Vercel origin, e.g. `https://<project>.vercel.app`
+     (comma-separate to allow more, e.g. a custom domain).
+4. **Apply** → first build runs `pnpm install --frozen-lockfile`, start runs
+   `pnpm --filter @yunoball/server start`. Watch **Logs** for
+   `YunoBall API up on :<port>`; the `/health` check must go green.
+5. Copy the service URL (`https://yunoball-api.onrender.com`) — it's the
+   `NEXT_PUBLIC_API_URL` for Vercel (step 1) and must appear in `CORS_ORIGINS`.
+
+> ⚠️ Render's **free** plan sleeps after ~15 min idle → a ~50s cold start on the
+> next request. Use the **Starter** plan for anything user-facing.
+
+Any other Node host works the same way — just provide the env vars and run:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -36,7 +56,7 @@ DATABASE_URL=... pnpm --filter @yunoball/server start
 ```
 
 Env vars (same everywhere):
-- `DATABASE_URL` → Supabase **pooled** connection (`...pooler.supabase.com:6543/...`).
+- `DATABASE_URL` → Supabase **session pooler** connection (`...pooler.supabase.com:5432/...`).
 - `READONLY_DATABASE_URL` → a read-only role (recommended; falls back to `DATABASE_URL`).
 - `CORS_ORIGINS` → comma-separated allowed origins (the Vercel URL).
 - `RATE_LIMIT_PER_MINUTE` → per-IP cap on the search/agent endpoints (default 30).
