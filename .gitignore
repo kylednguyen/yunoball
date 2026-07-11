@@ -50,3 +50,6 @@ next-env.d.ts
 *.key
 *.p12
 *.pfx
+
+# design-spec artifact — kept locally, not shipped to the repo
+docs/frontend-spec.html
