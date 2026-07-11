@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnswerCard } from "./components/AnswerCard";
 import { SearchSuggest } from "./components/SearchSuggest";
 import { AnswerSkeleton } from "./components/Skeleton";
-import { ask, friendlyError, type AnswerResult } from "./lib/api";
+import { ask, fetchExamples, friendlyError, type AnswerResult } from "./lib/api";
 
 const RECENTS_KEY = "yb:recent-searches";
 
@@ -26,10 +26,27 @@ export function Search() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [recents, setRecents] = useState<string[]>([]);
+  const [examples, setExamples] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setRecents(loadRecents());
+    let active = true;
+    fetchExamples(4)
+      .then((items) => active && setExamples(items))
+      .catch(() => {
+        if (active) {
+          setExamples([
+            "Who threw the most touchdowns in 2024?",
+            "Most rushing yards in a season",
+            "Patrick Mahomes passing yards in 2023",
+            "Josh Allen versus Lamar Jackson",
+          ]);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Global shortcut: "/" or ⌘K / Ctrl-K focuses the search from anywhere.
@@ -113,24 +130,35 @@ export function Search() {
         </SearchSuggest>
       </div>
 
+      {examples.length > 0 && !result && !loading && (
+        <div className="yb-query-prompt" aria-label="Supported sample queries">
+          <span>Try a supported query</span>
+          <div className="yb-query-prompt-list">
+            {examples.map((example) => (
+              <button
+                key={example}
+                className="yb-chip yb-sample-query"
+                type="button"
+                onClick={() => {
+                  setQuestion(example);
+                  run(example);
+                }}
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {recents.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            marginTop: 10,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <span className="yb-muted" style={{ fontSize: 12 }}>
-            Recent:
-          </span>
+        <div className="yb-recent-searches">
+          <span className="yb-muted">Recent:</span>
           {recents.map((r) => (
             <button
               key={r}
-              className="yb-chip"
+              className="yb-chip yb-recent-query"
+              type="button"
               onClick={() => {
                 setQuestion(r);
                 run(r);
@@ -141,7 +169,7 @@ export function Search() {
           ))}
           <button
             className="yb-link"
-            style={{ fontSize: 12 }}
+            type="button"
             onClick={() => {
               localStorage.removeItem(RECENTS_KEY);
               setRecents([]);

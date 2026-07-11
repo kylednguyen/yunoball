@@ -1,11 +1,13 @@
 "use client";
 
-import { useTitle } from "../lib/hooks";
+import { useSeasonParam, useTitle } from "../lib/hooks";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Headshot } from "../components/Headshot";
+import { SeasonSelect } from "../components/SeasonSelect";
+import { PageHeader } from "../components/ui";
 import {
   friendlyError, fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
 
@@ -49,7 +51,7 @@ function statLine(p: FantasyPlayer): string {
 export default function FantasyPage() {
   useTitle("Fantasy lineup builder");
   const [data, setData] = useState<FantasyPlayersResponse | null>(null);
-  const [season, setSeason] = useState<number | undefined>(undefined);
+  const [season, setSeason] = useSeasonParam();
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");
   const [query, setQuery] = useState("");
   const [lineup, setLineup] = useState<Lineup>({});
@@ -151,26 +153,16 @@ export default function FantasyPage() {
   return (
     <>
       <main id="main" className="yb-page">
-        <div className="yb-page-head">
-          <h1 className="yb-page-title">Fantasy Lineup Builder</h1>
-          {data && (
-            <select
-              className="yb-select"
-              aria-label="Select season"
-              value={data.season}
-              onChange={(e) => setSeason(Number(e.target.value))}
-            >
-              {data.seasons.map((s) => (
-                <option key={s} value={s}>
-                  {s} season
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <p className="yb-page-sub">
-          Build a PPR lineup from real season production. Your picks save locally.
-        </p>
+        <PageHeader
+          title="Fantasy Lineup Builder"
+          description="Build a PPR lineup from real season production. Your picks save locally."
+          controls={
+            data && (
+              <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />
+            )
+          }
+          action={<div className="yb-format-lock" aria-label="Scoring format">PPR scoring</div>}
+        />
 
         {error && (
           <div className="yb-state error" role="alert">
@@ -188,18 +180,21 @@ export default function FantasyPage() {
 
         {data && !error && (
           <div className="yb-fantasy-grid">
-            <section aria-label="Your lineup">
+            <section aria-label="Your lineup" className="yb-lineup-panel">
               {/* role=status: lineup edits announce the recalculated total. */}
               <div
-                className={`yb-card${filled === SLOTS.length ? " complete" : ""}`}
-                style={{ marginBottom: 16 }}
+                className={`yb-card yb-lineup-summary${filled === SLOTS.length ? " complete" : ""}`}
                 role="status"
               >
-                <div className="yb-tile-label">Projected points per game</div>
+                <div className="yb-tile-label">Actual PPR per game</div>
                 <div className="yb-total-hero">{totalPpg.toFixed(1)}</div>
                 <div className="yb-tile-meta">
-                  {filled}/{SLOTS.length} slots · {totalSeason.toFixed(1)} total PPR pts in{" "}
-                  {data.season}
+                  {filled}/{SLOTS.length} slots
+                </div>
+                <div className="yb-lineup-season-total">
+                  <span>Season PPR points</span>
+                  <strong>{totalSeason.toFixed(1)}</strong>
+                  <span>{data.season}</span>
                 </div>
               </div>
 
@@ -223,7 +218,7 @@ export default function FantasyPage() {
                             {p.team} · {statLine(p)}
                           </div>
                         </span>
-                        <span className="yb-slot-pts">{p.points_per_game.toFixed(1)}/gm</span>
+                        <span className="yb-slot-pts">{p.points_per_game.toFixed(1)} PPG</span>
                         <button
                           className="yb-x"
                           aria-label={`Remove ${p.name}`}
@@ -241,9 +236,9 @@ export default function FantasyPage() {
                 );
               })}
 
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <div className="yb-lineup-actions">
                 <button className="yb-btn" onClick={autoFill} disabled={filled === SLOTS.length}>
-                  Auto-fill best available
+                  Optimize by PPR average
                 </button>
                 <button
                   className="yb-btn ghost"
@@ -270,7 +265,7 @@ export default function FantasyPage() {
               </div>
             </section>
 
-            <section aria-label="Player pool">
+            <section aria-label="Player pool" className="yb-player-pool">
               <div className="yb-pool-controls">
                 <div className="yb-tabs" style={{ marginBottom: 0 }}>
                   {POSITIONS.map((pos) => (

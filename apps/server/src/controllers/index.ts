@@ -22,6 +22,8 @@ const intParam = (min: number, max?: number) => {
   return s.optional();
 };
 
+const idParam = z.string().min(1).max(64);
+
 function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> {
   const res = schema.safeParse(value);
   if (!res.success) {
@@ -43,7 +45,6 @@ function limited(req: Request): void {
 
 const searchBody = z.object({
   question: z.string().min(2).max(500),
-  history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })).optional(),
 });
 
 export async function search(req: Request, res: Response): Promise<void> {
@@ -110,7 +111,7 @@ export async function performers(req: Request, res: Response): Promise<void> {
 }
 
 export async function boxScore(req: Request, res: Response): Promise<void> {
-  res.json(await getBoxScore(String(req.params.gameId)));
+  res.json(await getBoxScore(parse(idParam, req.params.gameId)));
 }
 
 export async function standings(req: Request, res: Response): Promise<void> {
@@ -132,17 +133,17 @@ export async function fantasyPlayers(req: Request, res: Response): Promise<void>
 }
 
 export async function playerProfile(req: Request, res: Response): Promise<void> {
-  res.json(await getPlayerProfile(String(req.params.playerId)));
+  res.json(await getPlayerProfile(parse(idParam, req.params.playerId)));
 }
 
 export async function playerSplits(req: Request, res: Response): Promise<void> {
   const query = parse(z.object({ season: intParam(1) }), req.query);
-  res.json(await getPlayerSplits(String(req.params.playerId), query.season));
+  res.json(await getPlayerSplits(parse(idParam, req.params.playerId), query.season));
 }
 
 export async function teamProfile(req: Request, res: Response): Promise<void> {
   const query = parse(z.object({ season: intParam(1) }), req.query);
-  res.json(await getTeamProfile(String(req.params.teamId), query.season));
+  res.json(await getTeamProfile(parse(idParam, req.params.teamId), query.season));
 }
 
 // ---- agent ----

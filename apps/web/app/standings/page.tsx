@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 
-import { Crumbs } from "../components/Crumbs";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { SortTable, type SortColumn } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
+import { PageHeader } from "../components/ui";
+import { formatPct, formatRecord, formatSigned } from "../lib/format";
 import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
 import type { StandingsResponse } from "../lib/api";
@@ -23,7 +24,18 @@ function streakValue(streak: string): number {
   return streak.startsWith("L") ? -n : n;
 }
 
-const columnsFor = (season: number): SortColumn<TeamRow>[] => [
+const columnsFor = (season: number, conferenceTeams: TeamRow[]): SortColumn<TeamRow>[] => [
+  {
+    key: "seed",
+    label: "Seed",
+    numeric: true,
+    width: 58,
+    value: (t) => conferenceTeams.findIndex((row) => row.team_id === t.team_id) + 1,
+    render: (t) => {
+      const seed = conferenceTeams.findIndex((row) => row.team_id === t.team_id) + 1;
+      return <span className="yb-seed">{seed}</span>;
+    },
+  },
   {
     key: "team",
     label: "Team",
@@ -34,18 +46,22 @@ const columnsFor = (season: number): SortColumn<TeamRow>[] => [
         style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
       >
         <TeamLogo team={t.team_id} />
-        {t.name}
+        <span className="yb-standing-team-name">{t.name}</span>
       </Link>
     ),
   },
-  { key: "wins", label: "W", numeric: true, value: (t) => t.wins },
-  { key: "losses", label: "L", numeric: true, value: (t) => t.losses },
+  {
+    key: "record",
+    label: "Record",
+    value: (t) => `${t.wins}-${t.losses}-${t.ties}`,
+    render: (t) => <>{formatRecord(t.wins, t.losses, t.ties)}</>,
+  },
   {
     key: "pct",
     label: "PCT",
     numeric: true,
     value: (t) => t.pct,
-    render: (t) => <>{t.pct.toFixed(3).replace(/^0/, "")}</>,
+    render: (t) => <>{formatPct(t.pct)}</>,
   },
   { key: "pf", label: "PF", numeric: true, value: (t) => t.points_for },
   { key: "pa", label: "PA", numeric: true, value: (t) => t.points_against },
@@ -54,7 +70,7 @@ const columnsFor = (season: number): SortColumn<TeamRow>[] => [
     label: "DIFF",
     numeric: true,
     value: (t) => t.point_diff,
-    render: (t) => <>{t.point_diff > 0 ? `+${t.point_diff}` : t.point_diff}</>,
+    render: (t) => <>{formatSigned(t.point_diff)}</>,
   },
   {
     key: "streak",
@@ -73,18 +89,16 @@ export default function StandingsPage() {
   return (
     <>
       <main id="main" className="yb-page">
-        <Crumbs
-          items={[
+        <PageHeader
+          crumbs={[
             { label: "NFL", href: "/" },
             ...(data ? [{ label: String(data.season) }] : []),
             { label: "Standings" },
           ]}
+          title="Standings"
+          description="Division tables computed live from game results. Click a column to sort."
+          controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
         />
-        <div className="yb-page-head">
-          <h1 className="yb-page-title">Standings</h1>
-          {data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
-        </div>
-        <p className="yb-page-sub">Computed live from game results. Click a column to sort.</p>
 
         {error && (
           <div className="yb-state error" role="alert">
@@ -108,6 +122,9 @@ export default function StandingsPage() {
                 <h2 className="yb-conf-title">{conf.conference}</h2>
                 {conf.divisions.map((div) => {
                   const leader = div.teams[0]?.team_id;
+                  const conferenceTeams = conf.divisions
+                    .flatMap((d) => d.teams)
+                    .sort((a, b) => b.pct - a.pct || b.point_diff - a.point_diff);
                   return (
                     <div key={div.division} className="yb-division">
                       <h3>{div.division}</h3>
@@ -115,7 +132,7 @@ export default function StandingsPage() {
                         rows={div.teams}
                         rowKey={(t) => t.team_id}
                         rowClass={(t) => (t.team_id === leader ? "yb-div-leader" : undefined)}
-                        columns={columnsFor(data.season)}
+                        columns={columnsFor(data.season, conferenceTeams)}
                       />
                     </div>
                   );
