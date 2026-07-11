@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 /**
@@ -189,9 +189,8 @@ export function Leaders() {
             </TabsTrigger>
           ))}
         </TabsList>
-      </Tabs>
-
-      <ol className="mt-6 flex flex-col gap-3" aria-label={category.label}>
+        <TabsContent value={activeKey}>
+          <ol className="mt-6 flex flex-col gap-3" aria-label={category.label}>
         {category.rows.map((r, i) => {
           const pct = shown ? r.value / max : 0;
           return (
@@ -234,7 +233,9 @@ export function Leaders() {
             </li>
           );
         })}
-      </ol>
+          </ol>
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }

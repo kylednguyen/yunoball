@@ -9,7 +9,7 @@
  */
 
 import type { ResolvedEntity } from "@yunoball/types";
-import { q } from "../db/pool.js";
+import { pool, q } from "../db/pool.js";
 import { sbName } from "./build.js";
 import type { QuerySpec } from "./spec.js";
 
@@ -121,7 +121,7 @@ async function surnameCandidates(surname: string): Promise<SurnameCandidate[]> {
   return q<SurnameCandidate>(
     `SELECT p.player_id, p.full_name, p.position,
             MAX(s.season) AS last_season,
-            COALESCE(SUM(s.fantasy_points_ppr + s.tackles + 6 * s.def_sacks), 0) AS prod
+            COALESCE(SUM(COALESCE(s.fantasy_points_ppr, 0) + COALESCE(s.tackles, 0) + 6 * COALESCE(s.def_sacks, 0)), 0) AS prod
      FROM players p
      JOIN player_season_stats s ON s.player_id = p.player_id
      WHERE lower(p.full_name) LIKE $1
@@ -314,7 +314,7 @@ export function logAudit(entry: {
   rowCount: number;
   durationMs: number;
 }): void {
-  void q(
+  void pool().query(
     `INSERT INTO query_audit (question, spec, status, warnings, confidence, row_count, duration_ms)
      VALUES ($1, $2, $3, $4, $5, $6, $7)`,
     [

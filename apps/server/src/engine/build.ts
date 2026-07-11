@@ -20,7 +20,7 @@ const ALL_STAT_COLS = [
   "completions", "attempts", "passing_yards", "passing_tds", "interceptions",
   "rushing_yards", "rushing_tds", "receptions", "receiving_yards",
   "receiving_tds", "tackles", "def_sacks", "def_interceptions",
-  "forced_fumbles", "passes_defended", "fantasy_points_ppr",
+  "forced_fumbles", "passes_defended", "sacks", "fantasy_points_ppr",
 ] as const;
 
 class Params {

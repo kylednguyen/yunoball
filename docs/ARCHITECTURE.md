@@ -48,6 +48,7 @@ One language, one runtime — TypeScript end to end:
             │  star schema: seasons · teams · players · games                     │
             │              player_game_stats · team_game_stats                    │
             │              player_season_stats (rollup)   answer_cache (shares)   │
+            │              draft_picks · query_audit                              │
             │  (schema.sql + `pnpm db:migrate`, idempotent)                       │
             └──────────────────────────────────▲──────────────────────────────────┘
                                                │  batched idempotent upserts
@@ -66,7 +67,7 @@ One language, one runtime — TypeScript end to end:
 | Structured intent, not raw SQL | The parser emits a typed `QuerySpec`, never SQL → fast, cacheable, and injection-proof: we build the SQL from allowlists. |
 | Numbers from facts, not RAG | Answers are computed from the warehouse, never retrieved from prose. |
 | Express (TypeScript) backend | One language and runtime across the whole app; types shared with the frontend so the contract can't drift. |
-| Plain-SQL schema + idempotent migrate | The warehouse is seven tables; `CREATE TABLE IF NOT EXISTS` beats a migration framework at this size. |
+| Plain-SQL schema + idempotent migrate | The warehouse is eleven tables; `CREATE TABLE IF NOT EXISTS` beats a migration framework at this size. |
 | nflverse release CSVs | Free, open, comprehensive (stats back to 1999). No scraping/ToS risk, no SDK dependency. |
 | Provider modules under `ingest/providers` | New sources (ESPN, SportsDataIO, live scoring, injuries...) are independent modules; the public API never changes. |
 | Read-only role for reads | Engine-executed SQL and API reads run least-privilege when `READONLY_DATABASE_URL` is set. |
@@ -107,6 +108,8 @@ player_season_stats   ├── player_game_stats (player × game)
    │                  ├── team_game_stats   (team × game)
    ▼                  └── scoring_plays     (touchdown events)
 players ◄── player_game_stats.player_id / scoring_plays.player_id
+
+(plus draft_picks and query_audit)
 ```
 
 ## What makes it "more advanced" than StatMuse

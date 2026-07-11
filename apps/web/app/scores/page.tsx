@@ -96,6 +96,9 @@ export default function ScoresPage() {
   const [season, setSeason] = useNumParam("season");
   const [week, setWeek] = useNumParam("week");
   const [performers, setPerformers] = useState<PerformersResponse | null>(null);
+  // Settles true once the performers fetch resolves (success OR failure), so a
+  // failed fetch shows the empty state instead of a permanent skeleton.
+  const [perfLoaded, setPerfLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -120,9 +123,11 @@ export default function ScoresPage() {
     if (!data) return;
     let active = true;
     setPerformers(null);
+    setPerfLoaded(false);
     fetchPerformers(data.season, data.week, 5)
       .then((p) => active && setPerformers(p))
-      .catch(() => active && setPerformers(null));
+      .catch(() => active && setPerformers(null))
+      .finally(() => active && setPerfLoaded(true));
     return () => {
       active = false;
     };
@@ -254,7 +259,7 @@ export default function ScoresPage() {
                 top PPR fantasy lines · week {data.week}
               </span>
             </div>
-            <Performers performers={performers?.performers ?? null} loading={!performers} count={5} />
+            <Performers performers={performers?.performers ?? null} loading={!perfLoaded} count={5} />
           </section>
 
           {data.games.length === 0 ? (
