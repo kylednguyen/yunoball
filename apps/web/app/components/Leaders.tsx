@@ -1,6 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 /**
  * Interactive "single-season leaders" showcase for the landing page.
@@ -158,63 +164,73 @@ export function Leaders() {
   }
 
   return (
-    <section ref={ref} className="yb-leaders" aria-labelledby="leaders-heading">
-      <div className="yb-leaders-head">
-        <h2 id="leaders-heading" className="yb-leaders-title">
+    <section ref={ref} aria-labelledby="leaders-heading">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2
+          id="leaders-heading"
+          className="font-heading text-2xl font-bold tracking-tight sm:text-3xl"
+        >
           The record books, since 1999
         </h2>
-        <a className="yb-leaders-more" href="/leaderboards">
-          Live leaderboards →
-        </a>
+        <Button asChild variant="link" size="sm" className="h-auto p-0">
+          <Link href="/leaders">Live leaderboards →</Link>
+        </Button>
       </div>
-      <p className="yb-leaders-sub">
+      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
         Single-season leaders from the warehouse. Pick a stat, then tap a name to
         ask about that season.
       </p>
 
-      <div className="yb-tabs" role="tablist" aria-label="Stat category">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c.key}
-            role="tab"
-            aria-selected={c.key === activeKey}
-            className="yb-tab"
-            onClick={() => setActiveKey(c.key)}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
+      <Tabs value={activeKey} onValueChange={setActiveKey}>
+        <TabsList aria-label="Stat category" className="flex-wrap">
+          {CATEGORIES.map((c) => (
+            <TabsTrigger key={c.key} value={c.key}>
+              {c.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
-      <ol className="yb-lb" role="tabpanel" aria-label={category.label}>
+      <ol className="mt-6 flex flex-col gap-3" aria-label={category.label}>
         {category.rows.map((r, i) => {
           const pct = shown ? r.value / max : 0;
           return (
-            <li key={`${r.name}-${r.season}`} className="yb-lb-row">
-              <span className="yb-lb-rank">{i + 1}</span>
+            <li
+              key={`${r.name}-${r.season}`}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[auto_minmax(9rem,14rem)_minmax(0,1fr)_auto]"
+            >
+              <span className="font-heading text-lg font-bold tabular-nums text-muted-foreground">
+                {i + 1}
+              </span>
               <button
-                className="yb-lb-name"
                 onClick={() => ask(r)}
                 title={`Ask about ${r.name}'s ${category.label.toLowerCase()} in ${r.season}`}
+                className="flex flex-col items-start rounded-md text-left transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               >
-                <span className="yb-lb-player">{r.name}</span>
-                <span className="yb-lb-meta">
+                <span className="font-medium">{r.name}</span>
+                <span className="text-xs text-muted-foreground">
                   {r.team}, {r.season}
                 </span>
               </button>
-              <span className="yb-lb-track" aria-hidden="true">
+              <span
+                className="col-span-3 order-last h-2 overflow-hidden rounded-full bg-muted sm:order-none sm:col-span-1"
+                aria-hidden="true"
+              >
                 <span
-                  className="yb-lb-fill"
+                  className={cn(
+                    "block h-full origin-left rounded-full bg-primary",
+                    !reduced && "transition-transform duration-700 ease-out",
+                  )}
                   style={{
                     transform: `scaleX(${pct})`,
                     transitionDelay: reduced ? "0ms" : `${i * 70}ms`,
                   }}
                 />
               </span>
-              <span className="yb-lb-value">
+              <Badge variant="secondary" className="justify-self-end tabular-nums">
                 {display[i]?.toLocaleString() ?? 0}
-                <span className="yb-lb-unit"> {category.unit}</span>
-              </span>
+                <span className="ml-1 text-muted-foreground">{category.unit}</span>
+              </Badge>
             </li>
           );
         })}

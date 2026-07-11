@@ -2,64 +2,144 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  BarChart3,
+  BookOpen,
+  Search,
+  Shield,
+  Sparkles,
+  Star,
+  Trophy,
+  Tv,
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
+import { SearchSuggest } from "./SearchSuggest";
 
 const LINKS = [
-  { href: "/", label: "Search" },
-  { href: "/scores", label: "Scores" },
-  { href: "/standings", label: "Standings" },
-  { href: "/fantasy", label: "Fantasy" },
-  { href: "/leaderboards", label: "Leaderboards" },
-  { href: "/assistant", label: "Assistant", badge: "AI" },
+  { href: "/", label: "Search", icon: Search },
+  { href: "/scores", label: "Scores", icon: Tv },
+  { href: "/teams", label: "Teams", icon: Shield },
+  { href: "/standings", label: "Standings", icon: BarChart3 },
+  { href: "/leaders", label: "Leaders", icon: Trophy },
+  { href: "/fantasy", label: "Fantasy", icon: Star },
+  { href: "/assistant", label: "Assistant", badge: "Pro", icon: Sparkles },
+  { href: "/glossary", label: "Glossary", icon: BookOpen },
 ];
 
-/** Compact stat search available on every page; lands on the home search. */
+/** Compact search on every page: teams/players jump to their pages,
+ *  questions land on the home search. */
 function QuickSearch() {
   const router = useRouter();
+  const { setOpenMobile } = useSidebar();
   const [q, setQ] = useState("");
-
   return (
-    <form
-      className="yb-nav-search"
-      role="search"
-      onSubmit={(e) => {
-        e.preventDefault();
-        const question = q.trim();
-        if (question) router.push(`/?q=${encodeURIComponent(question)}`);
+    <SearchSuggest
+      value={q}
+      onValueChange={setQ}
+      onSearch={(question) => {
+        setOpenMobile(false);
+        router.push(`/?q=${encodeURIComponent(question)}`);
       }}
-    >
-      <input
-        className="yb-input"
-        type="search"
-        placeholder="Quick stat search…"
-        aria-label="Search NFL stats"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
-    </form>
+      placeholder="Search…"
+      ariaLabel="Search NFL teams, players, and stats"
+    />
   );
 }
 
 export function Nav() {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+
+  // Non-alarming offline notice; recovers automatically when back online.
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    setOffline(!navigator.onLine);
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
 
   return (
-    <nav className="yb-nav" aria-label="Primary">
-      <Link href="/" className="yb-brand">
-        Yuno<span>Ball</span>
-      </Link>
-      {pathname !== "/" && <QuickSearch />}
-      <div className="yb-nav-links">
-        {LINKS.map(({ href, label, badge }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <Link key={href} href={href} aria-current={active ? "page" : undefined}>
-              {label}
-              {badge && <span className="yb-nav-badge">{badge}</span>}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <Sidebar>
+      <SidebarHeader className="gap-3">
+        <Link
+          href="/"
+          onClick={() => setOpenMobile(false)}
+          className="px-2 py-1 font-heading text-2xl font-extrabold tracking-tight"
+        >
+          Yuno<span className="text-primary">Ball</span>
+        </Link>
+        {pathname !== "/" && <QuickSearch />}
+        {offline && (
+          <p
+            className="rounded-md bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive"
+            role="status"
+          >
+            Offline — data may be stale
+          </p>
+        )}
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {LINKS.map(({ href, label, badge, icon: Icon }) => {
+                const active =
+                  href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(href) ||
+                      // Box scores are children of Scores in the IA.
+                      (href === "/scores" && pathname.startsWith("/games"));
+                return (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      onClick={() => setOpenMobile(false)}
+                    >
+                      <Link href={href}>
+                        <Icon />
+                        <span>{label}</span>
+                        {badge && (
+                          <Badge variant="secondary" className="ml-auto">
+                            {badge}
+                          </Badge>
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <p className="px-2 text-xs leading-relaxed text-muted-foreground">
+          Every number computed from nflverse data.
+        </p>
+      </SidebarFooter>
+    </Sidebar>
   );
 }

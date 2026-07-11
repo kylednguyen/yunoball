@@ -1,22 +1,122 @@
+/** Typed client for the YunoBall Express API. All request/response shapes
+ * come from @yunoball/types — the same definitions the backend implements,
+ * so the two can't drift. */
+
+import type {
+  AgentResponse,
+  AnswerResult,
+  BoxScore,
+  ChatTurn,
+  PlayerSplits,
+  FantasyPlayersResponse,
+  GamesResponse,
+  LeaderboardsResponse,
+  PerformersResponse,
+  PlayerProfile,
+  StandingsResponse,
+  SuggestResponse,
+  TeamProfile,
+} from "@yunoball/types";
+
+export type {
+  AgentResponse,
+  AgentStep,
+  AnswerResult,
+  BoxScore,
+  BoxScorePlayer,
+  BoxScoreTeam,
+  ChatTurn,
+  PlayerBio,
+  PlayerCard,
+  PlayerSplits,
+  ScoringPlay,
+  SplitGroup,
+  SplitRow,
+  ConferenceStandings,
+  DivisionStandings,
+  FantasyPlayer,
+  FantasyPlayersResponse,
+  GameRow,
+  GameTeam,
+  GamesResponse,
+  Leaderboard,
+  LeaderboardsResponse,
+  LeaderRow,
+  Performer,
+  PerformersResponse,
+  PlayerCareer,
+  PlayerGameLogRow,
+  PlayerProfile,
+  PlayerSeasonLine,
+  ResolvedEntity,
+  StandingRow,
+  StandingsResponse,
+  SuggestPlayer,
+  SuggestResponse,
+  SuggestTeam,
+  TeamGame,
+  TeamKeyPlayer,
+  TeamLeader,
+  TeamProfile,
+  TeamRecord,
+  TeamStat,
+} from "@yunoball/types";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-export interface ResolvedEntity {
-  mention: string;
-  entity_type: string;
-  canonical_id: string;
-  display_name: string;
-  confidence: number;
+/* Client-side GET cache: 60s TTL + in-flight dedupe. Revisited screens
+   render instantly from memory while stats change on ingest cadence, not
+   per-second. POSTs (ask/askAgent) stay uncached.
+   ponytail: TTL cache, swap for stale-while-revalidate if freshness bites. */
+const TTL_MS = 60_000;
+const jsonCache = new Map<string, { at: number; data: unknown }>();
+const inflight = new Map<string, Promise<unknown>>();
+
+class HttpError extends Error {
+  constructor(public status: number) {
+    super(`Request failed (${status})`);
+  }
 }
 
-export interface AnswerResult {
-  question: string;
-  narration: string;
-  sql: string;
-  rows: Record<string, unknown>[];
-  columns: string[];
-  entities?: ResolvedEntity[];
-  cached: boolean;
-  share_id?: string | null;
+async function getJson<T>(path: string): Promise<T> {
+  const hit = jsonCache.get(path);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.data as T;
+  const pending = inflight.get(path);
+  if (pending) return pending as Promise<T>;
+  const p = (async () => {
+    // 15s cap: a hung request becomes a retryable error, never a forever-spinner.
+    const res = await fetch(`${API_URL}${path}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new HttpError(res.status);
+    const data = (await res.json()) as unknown;
+    jsonCache.set(path, { at: Date.now(), data });
+    return data;
+  })();
+  inflight.set(path, p);
+  try {
+    return (await p) as T;
+  } finally {
+    inflight.delete(path);
+  }
+}
+
+/** GET where a 404 means "doesn't exist" rather than an error. */
+async function getJsonOr404<T>(path: string): Promise<T | null> {
+  try {
+    return await getJson<T>(path);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+export interface LeaderboardFilters {
+  season?: number;
+  team?: string;
+  position?: string;
+  limit?: number;
 }
 
 export async function ask(question: string): Promise<AnswerResult> {
@@ -29,105 +129,35 @@ export async function ask(question: string): Promise<AnswerResult> {
   return (await res.json()) as AnswerResult;
 }
 
-export async function fetchSharedAnswer(shareId: string): Promise<AnswerResult | null> {
-  const res = await fetch(`${API_URL}/api/search/answer/${shareId}`, {
-    cache: "no-store",
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as AnswerResult;
+export async function fetchExamples(n = 4): Promise<string[]> {
+  return (await getJson<{ examples: string[] }>(`/api/search/examples?n=${n}`)).examples;
 }
 
-export interface LeaderRow {
-  rank: number;
-  player_id: string;
-  name: string;
-  team: string | null;
-  value: number;
+export function fetchSuggest(q: string): Promise<SuggestResponse> {
+  return getJson<SuggestResponse>(`/api/search/suggest?q=${encodeURIComponent(q)}`);
 }
 
-export interface Leaderboard {
-  key: string;
-  label: string;
-  unit: string;
-  rows: LeaderRow[];
-}
-
-export interface LeaderboardsResponse {
-  season: number;
-  seasons: number[];
-  boards: Leaderboard[];
+export function fetchSharedAnswer(shareId: string): Promise<AnswerResult | null> {
+  return getJsonOr404<AnswerResult>(`/api/search/answer/${shareId}`);
 }
 
 export async function fetchLeaderboards(
   season?: number,
   limit = 10,
+  filters?: Pick<LeaderboardFilters, "team" | "position">,
 ): Promise<LeaderboardsResponse> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (season) params.set("season", String(season));
-  const res = await fetch(`${API_URL}/api/leaderboards?${params}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as LeaderboardsResponse;
-}
-
-// ---- Scores & results ----
-
-export interface GameTeam {
-  team_id: string;
-  name: string;
-  nickname: string | null;
-  score: number | null;
-}
-
-export interface GameRow {
-  game_id: string;
-  season: number;
-  week: number;
-  date: string | null;
-  home: GameTeam;
-  away: GameTeam;
-  final: boolean;
-}
-
-export interface GamesResponse {
-  season: number;
-  seasons: number[];
-  week: number;
-  weeks: number[];
-  games: GameRow[];
+  if (filters?.team) params.set("team", filters.team);
+  if (filters?.position) params.set("position", filters.position);
+  return getJson<LeaderboardsResponse>(`/api/leaderboards?${params}`);
 }
 
 export async function fetchGames(season?: number, week?: number): Promise<GamesResponse> {
   const params = new URLSearchParams();
   if (season) params.set("season", String(season));
   if (week) params.set("week", String(week));
-  const res = await fetch(`${API_URL}/api/games?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as GamesResponse;
-}
-
-// ---- Performers of the week ----
-
-export interface Performer {
-  rank: number;
-  player_id: string;
-  name: string;
-  position: string | null;
-  team: string | null;
-  opponent: string | null;
-  headshot_url: string | null;
-  fantasy_points_ppr: number;
-  stat_line: string;
-}
-
-export interface PerformersResponse {
-  season: number;
-  seasons: number[];
-  week: number;
-  weeks: number[];
-  performers: Performer[];
+  return getJson<GamesResponse>(`/api/games?${params}`);
 }
 
 export async function fetchPerformers(
@@ -138,76 +168,13 @@ export async function fetchPerformers(
   const params = new URLSearchParams({ limit: String(limit) });
   if (season) params.set("season", String(season));
   if (week) params.set("week", String(week));
-  const res = await fetch(`${API_URL}/api/games/performers?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as PerformersResponse;
-}
-
-// ---- Standings ----
-
-export interface StandingRow {
-  team_id: string;
-  name: string;
-  nickname: string | null;
-  wins: number;
-  losses: number;
-  ties: number;
-  pct: number;
-  points_for: number;
-  points_against: number;
-  point_diff: number;
-  streak: string;
-}
-
-export interface DivisionStandings {
-  division: string;
-  teams: StandingRow[];
-}
-
-export interface ConferenceStandings {
-  conference: string;
-  divisions: DivisionStandings[];
-}
-
-export interface StandingsResponse {
-  season: number;
-  seasons: number[];
-  conferences: ConferenceStandings[];
+  return getJson<PerformersResponse>(`/api/games/performers?${params}`);
 }
 
 export async function fetchStandings(season?: number): Promise<StandingsResponse> {
   const params = new URLSearchParams();
   if (season) params.set("season", String(season));
-  const res = await fetch(`${API_URL}/api/standings?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as StandingsResponse;
-}
-
-// ---- Fantasy ----
-
-export interface FantasyPlayer {
-  player_id: string;
-  name: string;
-  team: string | null;
-  position: string | null;
-  headshot_url: string | null;
-  games_played: number;
-  passing_yards: number;
-  passing_tds: number;
-  interceptions: number;
-  rushing_yards: number;
-  rushing_tds: number;
-  receptions: number;
-  receiving_yards: number;
-  receiving_tds: number;
-  fantasy_points_ppr: number;
-  points_per_game: number;
-}
-
-export interface FantasyPlayersResponse {
-  season: number;
-  seasons: number[];
-  players: FantasyPlayer[];
+  return getJson<StandingsResponse>(`/api/standings?${params}`);
 }
 
 export async function fetchFantasyPlayers(
@@ -219,99 +186,35 @@ export async function fetchFantasyPlayers(
   if (season) params.set("season", String(season));
   if (position && position !== "ALL") params.set("position", position);
   if (q) params.set("q", q);
-  const res = await fetch(`${API_URL}/api/fantasy/players?${params}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as FantasyPlayersResponse;
+  return getJson<FantasyPlayersResponse>(`/api/fantasy/players?${params}`);
 }
 
-// ---- Player profiles ----
-
-export interface PlayerSeasonLine {
-  season: number;
-  team: string | null;
-  games_played: number;
-  passing_yards: number;
-  passing_tds: number;
-  interceptions: number;
-  rushing_yards: number;
-  rushing_tds: number;
-  receptions: number;
-  receiving_yards: number;
-  receiving_tds: number;
-  fantasy_points_ppr: number;
-  points_per_game: number;
+export function fetchPlayer(playerId: string): Promise<PlayerProfile | null> {
+  return getJsonOr404<PlayerProfile>(`/api/players/${encodeURIComponent(playerId)}`);
 }
 
-export interface PlayerCareer {
-  seasons: number;
-  games_played: number;
-  passing_yards: number;
-  passing_tds: number;
-  interceptions: number;
-  rushing_yards: number;
-  rushing_tds: number;
-  receptions: number;
-  receiving_yards: number;
-  receiving_tds: number;
-  fantasy_points_ppr: number;
+export function fetchBoxScore(gameId: string): Promise<BoxScore | null> {
+  return getJsonOr404<BoxScore>(`/api/games/${encodeURIComponent(gameId)}/boxscore`);
 }
 
-export interface PlayerGameLogRow {
-  game_id: string;
-  season: number;
-  week: number;
-  date: string | null;
-  opponent: string;
-  home: boolean;
-  team_score: number | null;
-  opp_score: number | null;
-  result: string;
-  passing_yards: number;
-  passing_tds: number;
-  rushing_yards: number;
-  rushing_tds: number;
-  receptions: number;
-  receiving_yards: number;
-  receiving_tds: number;
+export async function fetchPlayerSplits(
+  playerId: string,
+  season?: number,
+): Promise<PlayerSplits | null> {
+  const params = new URLSearchParams();
+  if (season) params.set("season", String(season));
+  return getJsonOr404<PlayerSplits>(
+    `/api/players/${encodeURIComponent(playerId)}/splits?${params}`,
+  );
 }
 
-export interface PlayerProfile {
-  player_id: string;
-  name: string;
-  position: string | null;
-  team: string | null;
-  team_name: string | null;
-  headshot_url: string | null;
-  career: PlayerCareer;
-  seasons: PlayerSeasonLine[];
-  game_log: PlayerGameLogRow[];
-}
-
-export async function fetchPlayer(playerId: string): Promise<PlayerProfile | null> {
-  const res = await fetch(`${API_URL}/api/players/${encodeURIComponent(playerId)}`, {
-    cache: "no-store",
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return (await res.json()) as PlayerProfile;
-}
-
-// ---- AI assistant ----
-
-export interface ChatTurn {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export interface AgentStep {
-  tool: string;
-  summary: string;
-}
-
-export interface AgentResponse {
-  reply: string;
-  steps: AgentStep[];
-  mode: "demo" | "llm";
+export async function fetchTeam(
+  teamId: string,
+  season?: number,
+): Promise<TeamProfile | null> {
+  const params = new URLSearchParams();
+  if (season) params.set("season", String(season));
+  return getJsonOr404<TeamProfile>(`/api/teams/${encodeURIComponent(teamId)}?${params}`);
 }
 
 export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
@@ -322,4 +225,23 @@ export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
   });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return (await res.json()) as AgentResponse;
+}
+
+/** Raw fetch errors ("Failed to fetch", "Request failed (500)") read as
+ * jargon — every error state renders them through this translation. */
+export function friendlyError(message: string | null | undefined): string {
+  if (!message) return "Something unexpected went wrong. Please try again.";
+  if (/failed to fetch|networkerror|load failed/i.test(message)) {
+    return "Can’t reach the server — check your connection and try again.";
+  }
+  if (/timed? ?out|abort/i.test(message)) {
+    return "That took too long to answer. Try again in a moment.";
+  }
+  if (/request failed \(429\)/i.test(message)) {
+    return "Too many requests — give it a few seconds and try again.";
+  }
+  if (/request failed \(5\d\d\)/i.test(message)) {
+    return "The server hit an error answering that. Try again in a moment.";
+  }
+  return message;
 }

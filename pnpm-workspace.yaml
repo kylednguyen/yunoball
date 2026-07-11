@@ -1,4 +1,4 @@
 packages:
-  # Only the Next.js frontend is a Node/pnpm workspace; the API and the db /
-  # ingest packages are Python (managed via their own pyproject.toml + venv).
   - "apps/web"
+  - "apps/server"
+  - "packages/types"

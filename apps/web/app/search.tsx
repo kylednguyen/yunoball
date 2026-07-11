@@ -2,15 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AnswerCard } from "./components/AnswerCard";
+import { SearchSuggest } from "./components/SearchSuggest";
 import { AnswerSkeleton } from "./components/Skeleton";
-import { ask, type AnswerResult } from "./lib/api";
+import { ask, friendlyError, type AnswerResult } from "./lib/api";
 
-const EXAMPLES = [
-  "Who threw the most touchdowns in 2023?",
-  "Patrick Mahomes career passing yards",
-  "Most rushing yards in a single game",
-];
+const RECENTS_KEY = "yb:recent-searches";
+
+function loadRecents(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENTS_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export function Search() {
   const [question, setQuestion] = useState("");
@@ -18,7 +26,12 @@ export function Search() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
+  const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setRecents(loadRecents());
+  }, []);
 
   // Global shortcut: "/" or ⌘K / Ctrl-K focuses the search from anywhere.
   useEffect(() => {
@@ -68,6 +81,9 @@ export function Search() {
     setResult(null);
     try {
       setResult(await ask(q));
+      const next = [q, ...loadRecents().filter((r) => r !== q)].slice(0, 4);
+      localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+      setRecents(next);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -81,69 +97,77 @@ export function Search() {
 
   return (
     <div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (question.trim()) run(question.trim());
-        }}
-      >
-        <div className="yb-search-wrap">
-          <input
-            ref={inputRef}
-            className="yb-search"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Search NFL stats, players, teams…"
-            aria-label="Search NFL stats, players, and teams"
-            autoFocus
-          />
-          <span className="yb-kbd-hint" aria-hidden="true">
+      <div className="relative" role="search">
+        <SearchSuggest
+          value={question}
+          onValueChange={setQuestion}
+          onSearch={(q) => run(q)}
+          placeholder="Search NFL stats, players, teams…"
+          inputClass="h-14 rounded-xl pr-12 text-lg"
+          ariaLabel="Search NFL stats, players, and teams"
+          autoFocus
+          inputRef={inputRef}
+        >
+          <kbd
+            className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none items-center rounded border bg-muted px-1.5 font-mono text-sm text-muted-foreground sm:inline-flex"
+            aria-hidden="true"
+          >
             /
-          </span>
-        </div>
-      </form>
+          </kbd>
+        </SearchSuggest>
+      </div>
 
-      <div
-        style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, justifyContent: "center" }}
-      >
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            className="yb-chip"
-            aria-pressed={active === ex}
+      {recents.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs text-muted-foreground">Recent:</span>
+          {recents.map((r) => (
+            <Badge key={r} variant="secondary" asChild>
+              <button
+                onClick={() => {
+                  setQuestion(r);
+                  run(r);
+                }}
+              >
+                {r}
+              </button>
+            </Badge>
+          ))}
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
             onClick={() => {
-              setQuestion(ex);
-              run(ex);
+              localStorage.removeItem(RECENTS_KEY);
+              setRecents([]);
             }}
           >
-            {ex}
-          </button>
-        ))}
-      </div>
+            Clear
+          </Button>
+        </div>
+      )}
 
       <div aria-live="polite" aria-busy={loading}>
         {loading && <AnswerSkeleton />}
 
         {error && (
-          <div className="yb-state error" role="alert">
-            <div className="yb-glyph" aria-hidden="true">
-              ⚠️
-            </div>
-            <h2>Something went wrong</h2>
-            <p>{error}. Your question is fine. This one is on us.</p>
-            <button className="yb-btn" onClick={() => active && run(active)}>
+          <div
+            className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
+            role="alert"
+          >
+            <h2 className="text-lg font-semibold">Something went wrong</h2>
+            <p className="max-w-prose">{friendlyError(error)}</p>
+            <Button variant="outline" className="mt-2" onClick={() => active && run(active)}>
               Try again
-            </button>
+            </Button>
           </div>
         )}
 
         {empty && (
-          <div className="yb-state">
-            <div className="yb-glyph" aria-hidden="true">
-              🔍
-            </div>
-            <h2>No data for that question yet</h2>
-            <p>We couldn&apos;t find stats matching your query. Try a different season, player, or phrasing.</p>
+          <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+            <h2 className="text-lg font-semibold text-foreground">No data for that question yet</h2>
+            <p className="max-w-prose">
+              We couldn’t find stats matching your query. Try a different season, player, or phrasing.
+            </p>
           </div>
         )}
 
