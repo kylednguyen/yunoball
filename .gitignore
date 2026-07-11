@@ -45,6 +45,10 @@ next-env.d.ts
 .claude/
 .vercel
 
+# git worktrees live OUTSIDE the repo (../yunoball-worktrees/) — never nest them
+.worktrees/
+worktrees/
+
 # keys & certs — never commit
 *.pem
 *.key
