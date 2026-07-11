@@ -40,9 +40,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  // Trailing-slash-proof so NEXT_PUBLIC_API_URL="…onrender.com/" can't produce
+  // a double-slashed "//api/…" request.
+  const api = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang="en" className={`dark ${display.variable} ${body.variable}`}>
       <head>
         {/* Every page pulls headshots/logos from ESPN and data from the API —
             warm both connections before first use. */}

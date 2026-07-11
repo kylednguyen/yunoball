@@ -62,7 +62,9 @@ export type {
   TeamStat,
 } from "@yunoball/types";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+// Trailing slash stripped so a NEXT_PUBLIC_API_URL ending in "/" never yields
+// a double-slashed "//api/…" path (which trips CORS/redirects).
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
 /* Client-side GET cache: 60s TTL + in-flight dedupe. Revisited screens
    render instantly from memory while stats change on ingest cadence, not
