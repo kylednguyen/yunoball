@@ -1,19 +1,18 @@
 "use client";
 
-import { tablistKeys } from "../components/tablist";
-
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { Crumbs } from "../components/Crumbs";
 import { Dropdown } from "../components/Dropdown";
 import { Headshot } from "../components/Headshot";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
+import { PageHeader } from "../components/ui";
 import { useLeaderboards, useSeasonParam, useStandings, useStrParam, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
+import { formatPct, formatSigned, formatStatValue } from "../lib/format";
 import type { LeaderRow, StandingRow } from "../lib/api";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"] as const;
@@ -57,25 +56,21 @@ export default function LeadersPage() {
     [allTeams],
   );
 
-  const formatValue = (v: number) => (Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1));
+  const categoryValue = teamTab ? TEAM_TAB : board?.key ?? "";
 
   return (
     <>
       <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
-        <Crumbs
-          items={[
+        <PageHeader
+          crumbs={[
             { label: "NFL", href: "/" },
             ...(data ? [{ label: String(data.season) }] : []),
             { label: "Leaders" },
           ]}
+          title="League Leaders"
+          description="Ranked player and team leaderboards for the selected season."
+          controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
         />
-        <div className="yb-page-head">
-          <h1 className="yb-page-title">League Leaders</h1>
-          {data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
-        </div>
-        <p className="yb-page-sub">
-          Explore every category. Click a player or team to go deeper, a column to sort.
-        </p>
 
         {error && (
           <div className="yb-state error" role="alert">
@@ -92,30 +87,20 @@ export default function LeadersPage() {
 
         {data && (
           <>
-            <div className="yb-tabs" role="tablist" aria-label="Stat category" onKeyDown={tablistKeys}>
-              {boards.map((b) => (
-                <button
-                  key={b.key}
-                  role="tab"
-                  aria-selected={!teamTab && b.key === board?.key}
-                  className="yb-tab"
-                  onClick={() => setActiveKey(b.key)}
-                >
-                  {b.label}
-                </button>
-              ))}
-              <button
-                role="tab"
-                aria-selected={teamTab}
-                className="yb-tab"
-                onClick={() => setActiveKey(TEAM_TAB)}
-              >
-                Team rankings
-              </button>
-            </div>
-
-            {!teamTab && (
-              <div className="yb-filters">
+            <div className="yb-leader-controls">
+              <label>
+                <span className="yb-muted">Category</span>
+                <Dropdown
+                  ariaLabel="Select leaderboard category"
+                  value={categoryValue}
+                  onChange={(v) => setActiveKey(v)}
+                  options={[
+                    ...boards.map((b) => ({ value: b.key, label: b.label })),
+                    { value: TEAM_TAB, label: "Team rankings" },
+                  ]}
+                />
+              </label>
+              {!teamTab && (
                 <label>
                   <span className="yb-muted">Team</span>
                   <Dropdown
@@ -131,6 +116,8 @@ export default function LeadersPage() {
                     ]}
                   />
                 </label>
+              )}
+              {!teamTab && (
                 <label>
                   <span className="yb-muted">Position</span>
                   <Dropdown
@@ -143,7 +130,21 @@ export default function LeadersPage() {
                     }))}
                   />
                 </label>
-              </div>
+              )}
+              {!teamTab && (
+                <div className="yb-seg yb-leader-scope" role="group" aria-label="Stat scope">
+                  <button type="button" aria-pressed="true">Totals</button>
+                  <button type="button" disabled title="Per-game leaderboards need games-played data in this endpoint">
+                    Per game
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {!teamTab && (
+              <p className="yb-qualification-note">
+                Minimum qualification follows the current warehouse leaderboard rules. Values are regular-season totals.
+              </p>
             )}
 
             {!teamTab && !loading && boards.length === 0 && (
@@ -174,7 +175,7 @@ export default function LeadersPage() {
                         </span>
                       </span>
                       <span className="val">
-                        {formatValue(r.value)}
+                        {formatStatValue(r.value)}
                         <span className="yb-lb-unit"> {board.unit}</span>
                       </span>
                     </Link>
@@ -200,7 +201,7 @@ export default function LeadersPage() {
                         )}
                       </span>
                       <span className="val">
-                        {formatValue(r.value)}
+                        {formatStatValue(r.value)}
                         <span className="yb-lb-unit"> {board.unit}</span>
                       </span>
                     </Link>
@@ -241,14 +242,23 @@ export default function LeadersPage() {
                           </Link>
                         ),
                       },
-                      { key: "w", label: "W", numeric: true, value: (t) => t.wins },
-                      { key: "l", label: "L", numeric: true, value: (t) => t.losses },
+                      {
+                        key: "record",
+                        label: "Record",
+                        value: (t) => `${t.wins}-${t.losses}-${t.ties}`,
+                        render: (t) => (
+                          <>
+                            {t.wins}-{t.losses}
+                            {t.ties ? `-${t.ties}` : ""}
+                          </>
+                        ),
+                      },
                       {
                         key: "pct",
                         label: "PCT",
                         numeric: true,
                         value: (t) => t.pct,
-                        render: (t) => <>{t.pct.toFixed(3).replace(/^0/, "")}</>,
+                        render: (t) => <>{formatPct(t.pct)}</>,
                       },
                       { key: "pf", label: "PF", numeric: true, value: (t) => t.points_for },
                       { key: "pa", label: "PA", numeric: true, value: (t) => t.points_against },
@@ -257,7 +267,7 @@ export default function LeadersPage() {
                         label: "DIFF",
                         numeric: true,
                         value: (t) => t.point_diff,
-                        render: (t) => <>{t.point_diff > 0 ? `+${t.point_diff}` : t.point_diff}</>,
+                        render: (t) => <>{formatSigned(t.point_diff)}</>,
                       },
                     ]}
                   />

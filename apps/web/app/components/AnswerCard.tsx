@@ -7,6 +7,7 @@ import type { AnswerResult } from "../lib/api";
 import { Headshot } from "./Headshot";
 import { SortTable } from "./SortTable";
 import { TeamLogo } from "./TeamLogo";
+import { Badge, Surface } from "./ui";
 
 /** A column is numeric if every non-empty cell parses as a number. */
 function isNumericColumn(rows: AnswerResult["rows"], c: string): boolean {
@@ -98,7 +99,7 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
   });
 
   return (
-    <div className="yb-cmp">
+    <div className="yb-cmp yb-compare">
       <div className="yb-cmp-head">
         {[a, b].map((p, i) => {
           const card = cards.find((c) => c.player_id === String(p.player_id));
@@ -222,10 +223,33 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const chips = (result.entities ?? []).filter(
     (e) => !(e.entity_type === "player" && cards.some((c) => c.player_id === e.canonical_id)),
   );
+  const interpretation = [
+    result.intent ? result.intent.replace(/_/g, " ") : null,
+    ...result.entities.map((e) => `${e.entity_type}: ${e.display_name}`),
+    result.rows.length ? `${result.rows.length.toLocaleString()} row${result.rows.length === 1 ? "" : "s"}` : null,
+    result.audit?.status ? `audit: ${result.audit.status}` : null,
+  ].filter(Boolean) as string[];
 
   return (
-    <section className="yb-card yb-enter" style={{ marginTop: 28 }}>
-      <p className="yb-answer">{result.narration}</p>
+    <Surface as="section" variant="standard" className="yb-query-result yb-enter">
+      <div className="yb-query-result-head">
+        <div>
+          <span className="yb-result-kicker">Result</span>
+          <p className="yb-answer">{result.narration}</p>
+        </div>
+        {result.cached && <Badge>Cached</Badge>}
+      </div>
+
+      <div className="yb-query-interpretation" aria-label="Query interpretation">
+        <span>Query interpretation</span>
+        <div>
+          {interpretation.map((item) => (
+            <Badge key={item} tone={item.startsWith("audit:") ? "accent" : "neutral"}>
+              {item}
+            </Badge>
+          ))}
+        </div>
+      </div>
 
       {!isCompare && cards.length > 0 && (
         <div>
@@ -255,7 +279,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
       )}
 
       {chips.length > 0 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+        <div className="yb-result-entities">
           {chips.map((e) => (
             <Link
               key={`${e.entity_type}-${e.display_name}`}
@@ -274,13 +298,13 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
       )}
 
       {isCompare && (
-        <div style={{ marginTop: 16 }}>
+        <div className="yb-result-body">
           <CompareChart rows={result.rows} cards={cards} />
         </div>
       )}
 
       {!isCompare && result.rows.length > 0 && (
-        <div style={{ marginTop: 16 }}>
+        <div className="yb-result-body">
           <SortTable
             rows={result.rows.map((row, i) => ({ row, i }))}
             rowKey={({ i }) => String(i)}
@@ -325,18 +349,9 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          gap: 16,
-          marginTop: 18,
-          paddingTop: 14,
-          borderTop: "1px solid var(--border)",
-          alignItems: "center",
-        }}
-      >
+      <div className="yb-result-actions">
         <button onClick={() => setShowSql((s) => !s)} className="yb-link">
-          {showSql ? "Hide" : "Show"} the query
+          {showSql ? "Hide query" : "Show query"}
         </button>
         {result.rows.length > 0 && (
           <button onClick={downloadCsv} className="yb-link">
@@ -345,16 +360,16 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         )}
         {result.share_id && (
           <button onClick={copyShareLink} className="yb-link">
-            {copied ? "Link copied ✓" : "Share"}
+            {copied ? "Link copied" : "Share"}
             <span role="status" className="yb-sr-only">
               {copied ? "Share link copied to clipboard" : ""}
             </span>
           </button>
         )}
-        {result.cached && <span className="yb-muted" style={{ fontSize: 12 }}>Cached</span>}
       </div>
 
       {showSql && <pre className="yb-sql" style={{ marginTop: 12 }}>{result.sql}</pre>}
-    </section>
+      <p className="yb-source-note">Data source: YunoBall warehouse, computed from nflverse data.</p>
+    </Surface>
   );
 }

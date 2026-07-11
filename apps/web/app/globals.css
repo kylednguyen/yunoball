@@ -46,10 +46,10 @@
   --shimmer: rgba(255, 255, 255, 0.07); /* skeleton sweep highlight */
 
   /* Radii */
-  --r-sm: 8px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 16px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 14px;
   --r-pill: 999px;
   --radius: var(--r-lg); /* legacy alias */
 
@@ -203,7 +203,7 @@ p.yb-answer {
    The rail is position:fixed, so pages can render <Nav/> anywhere in their
    tree; body padding reserves its column. ---- */
 :root {
-  --sidebar-w: 212px;
+  --sidebar-w: 196px;
 }
 body {
   padding-left: var(--sidebar-w);
@@ -214,8 +214,8 @@ body {
   width: var(--sidebar-w);
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 22px 16px 18px;
+  gap: 16px;
+  padding: 20px 14px 16px;
   border-right: 1px solid var(--border);
   background: var(--panel);
   z-index: var(--z-nav);
@@ -231,7 +231,7 @@ body {
 .yb-nav-panel {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   flex: 1;
   min-height: 0;
 }
@@ -247,7 +247,7 @@ body {
   letter-spacing: -0.02em;
   color: var(--text);
   white-space: nowrap;
-  padding: 0 10px;
+  padding: 0 8px;
 }
 .yb-brand span {
   color: var(--accent);
@@ -305,11 +305,12 @@ body {
 .yb-nav-badge {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--accent-contrast);
-  background: var(--accent);
-  border-radius: var(--r-pill);
-  padding: 1px 6px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r-sm);
+  padding: 0 5px;
   margin-left: 6px;
   vertical-align: 2px;
 }
@@ -584,20 +585,20 @@ body {
 
 /* ---- Front-page hero ---- */
 .yb-hero {
-  max-width: 760px;
+  max-width: 820px;
   margin: 0 auto;
-  padding: 34px 20px 26px;
+  padding: 24px 20px 18px;
   text-align: center;
 }
 .yb-hero h1 {
   font-family: var(--display);
-  font-size: clamp(46px, 7vw, 68px);
+  font-size: clamp(38px, 5.8vw, 58px);
   font-weight: 800;
   font-style: italic;
   text-transform: uppercase;
   letter-spacing: 0.01em;
   line-height: 0.95;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   padding-right: 0.04em; /* italic overhang */
 }
 .yb-hero h1 span {
@@ -605,9 +606,12 @@ body {
 }
 .yb-hero p {
   color: var(--muted);
-  font-size: var(--fs-lead);
-  margin: 0 auto 24px;
+  font-size: var(--fs-body-lg);
+  margin: 0 auto 18px;
   max-width: 520px;
+}
+.yb-search-shell {
+  text-align: left;
 }
 
 /* ---- Search input ---- */
@@ -655,8 +659,8 @@ input.yb-search:focus {
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--muted);
-  border-radius: var(--r-pill);
-  padding: 8px 14px;
+  border-radius: var(--r-md);
+  padding: 7px 12px;
   font-size: var(--fs-body);
   font-family: inherit;
   cursor: pointer;
@@ -666,8 +670,44 @@ input.yb-search:focus {
 .yb-chip:hover,
 .yb-chip[aria-pressed="true"] {
   color: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--accent-border);
   background: var(--accent-soft);
+}
+.yb-query-prompt,
+.yb-recent-searches {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.yb-query-prompt {
+  justify-content: flex-start;
+}
+.yb-query-prompt > span,
+.yb-recent-searches > span {
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 2.4;
+  white-space: nowrap;
+}
+.yb-query-prompt-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+.yb-sample-query,
+.yb-recent-query {
+  max-width: min(100%, 310px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-recent-searches .yb-link {
+  font-size: var(--fs-small);
 }
 
 /* ---- Answer card ---- */
@@ -677,6 +717,67 @@ input.yb-search:focus {
   border-radius: var(--r-xl);
   padding: 22px 22px 18px;
   box-shadow: var(--shadow-card);
+}
+
+/* ---- Shared surface system ---- */
+.yb-surface {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+.yb-surface-standard {
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+.yb-surface-feature {
+  border-radius: var(--r-xl);
+  padding: 18px 20px;
+  border-color: var(--accent-border);
+}
+.yb-surface-dense {
+  border-radius: var(--r-lg);
+  padding: 0;
+  overflow: hidden;
+}
+.yb-surface.is-interactive {
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.yb-surface.is-interactive:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+
+.yb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 2px 7px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.yb-badge.accent {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.yb-badge.success {
+  border-color: rgba(74, 222, 128, 0.35);
+  color: var(--success);
+}
+.yb-badge.danger {
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+  background: var(--danger-soft);
 }
 /* One-time entrance: fade + rise. Respects reduced-motion below. */
 .yb-enter {
@@ -700,6 +801,61 @@ p.yb-answer {
   font-weight: 800;
   letter-spacing: 0;
   margin: 0 0 14px;
+}
+.yb-query-result {
+  margin-top: 24px;
+}
+.yb-query-result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.yb-result-kicker {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+.yb-query-interpretation {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 2px 0 14px;
+}
+.yb-query-interpretation > span {
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+.yb-query-interpretation > div,
+.yb-result-entities {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.yb-result-entities {
+  margin-bottom: 12px;
+}
+.yb-result-body {
+  margin-top: 14px;
+}
+.yb-result-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  align-items: center;
+}
+.yb-source-note {
+  margin: 12px 0 0;
+  color: var(--faint);
+  font-size: var(--fs-small);
 }
 
 /* ---- Table ---- */
@@ -725,12 +881,12 @@ table.yb-table th {
   color: var(--muted);
   font-weight: 600;
   font-size: var(--fs-small);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   white-space: nowrap;
 }
 table.yb-table td {
-  padding: 10px 14px;
+  padding: 9px 14px;
   border-bottom: 1px solid var(--border);
 }
 table.yb-table td.num,
@@ -739,7 +895,7 @@ table.yb-table th.num {
   font-variant-numeric: tabular-nums;
 }
 table.yb-table tbody tr:hover {
-  background: var(--accent-soft);
+  background: var(--bg-soft);
 }
 table.yb-table tbody tr:last-child td {
   border-bottom: none;
@@ -1015,13 +1171,8 @@ pre.yb-sql {
   gap: 16px;
 }
 .yb-leaders-title {
-  font-family: var(--display);
   font-size: 27px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.015em;
   line-height: 1.1;
-  margin: 0;
 }
 .yb-leaders-more {
   font-size: var(--fs-ui);
@@ -1045,8 +1196,8 @@ pre.yb-sql {
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--muted);
-  border-radius: var(--r-pill);
-  padding: 8px 16px;
+  border-radius: var(--r-md);
+  padding: 7px 12px;
   font-size: var(--fs-ui);
   font-weight: 600;
   font-family: inherit;
@@ -1174,30 +1325,93 @@ pre.yb-sql {
 .yb-page {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 40px max(20px, env(safe-area-inset-right))
+  padding: 32px max(20px, env(safe-area-inset-right))
     max(120px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+}
+/* Header sits over a hairline: gives every page one consistent baseline the
+   title, sub, controls and filters hang from — cohesion without decoration. */
+.yb-page-header {
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
 }
 .yb-page-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end; /* title cap-height and controls share a baseline */
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
 }
-.yb-page-title {
+.yb-page-copy {
+  min-width: min(100%, 420px);
+  flex: 1;
+}
+/* Shared display-heading ramp — declared once so page/section/conf titles
+   can't drift apart. Per-context sizes live on each selector below. */
+.yb-page-title,
+.yb-section-head h2,
+.yb-conf-title,
+.yb-leaders-title {
   font-family: var(--display);
-  font-size: clamp(31px, 26px + 1.4vw, 40px);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.015em;
-  line-height: 1;
   margin: 0;
+}
+/* Brand cue: a short lime rule under the page title, tying every header to the
+   accent that defines the product without touching the glyphs themselves (so
+   proper-noun titles like a player name stay clean). */
+.yb-page-title {
+  position: relative;
+  font-size: clamp(31px, 26px + 1.4vw, 40px);
+  line-height: 1;
+  padding-bottom: 10px;
+}
+.yb-page-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 34px;
+  height: 3px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
 }
 .yb-page-sub {
   color: var(--muted);
-  margin: 0 0 24px;
+  margin: 12px 0 0;
   max-width: 62ch; /* keep the intro line readable on wide screens */
+}
+.yb-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.yb-page-filters {
+  margin-top: 16px;
+}
+.yb-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+.yb-section-head h2 {
+  font-size: 21px;
+  line-height: 1.1;
+}
+.yb-section-head p {
+  margin: 3px 0 0;
+  color: var(--faint);
+  font-size: var(--fs-body);
+}
+.yb-section-head a {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* ---- Stat tiles (dashboard headline numbers) ---- */
@@ -1235,21 +1449,24 @@ pre.yb-sql {
 /* ---- Scoreboard ---- */
 .yb-games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 12px;
 }
 .yb-game-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: border-color var(--dur) var(--ease);
 }
-.yb-game-card:hover {
-  border-color: var(--border-strong);
+.yb-game-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
 }
 .yb-game-row {
   display: flex;
@@ -1273,7 +1490,7 @@ pre.yb-sql {
   font-size: var(--fs-caption);
   font-weight: 700;
   color: var(--faint);
-  width: 32px;
+  width: 34px;
   flex: none;
   font-variant-numeric: tabular-nums;
 }
@@ -1284,7 +1501,10 @@ pre.yb-sql {
 }
 .yb-game-score {
   font-variant-numeric: tabular-nums;
-  font-size: var(--fs-lead);
+  font-family: var(--display);
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1;
 }
 .yb-game-row.winner .yb-game-score {
   color: var(--accent);
@@ -1312,9 +1532,11 @@ pre.yb-sql {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 16px;
+  padding-bottom: 2px;
+  margin: 0;
   scrollbar-width: thin;
+  min-width: 0;
+  flex: 1;
 }
 .yb-week-tab {
   flex: none;
@@ -1340,6 +1562,39 @@ pre.yb-sql {
   background: var(--accent);
   border-color: var(--accent);
 }
+.yb-week-rail-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.yb-score-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 18px;
+}
+.yb-score-context span {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 4px 8px;
+  color: var(--muted);
+  background: var(--bg-soft);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+.yb-score-group {
+  margin-bottom: 20px;
+}
+.yb-score-group h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.yb-score-performers {
+  margin-top: 30px;
+}
 
 /* ---- Standings ---- */
 .yb-standings-grid {
@@ -1364,15 +1619,32 @@ pre.yb-sql {
   margin: 0 0 8px;
 }
 .yb-conf-title {
-  font-family: var(--display);
   font-size: 23px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.015em;
-  margin: 0 0 12px;
+  margin-bottom: 12px;
 }
 tr.yb-div-leader td:first-child {
   box-shadow: inset 3px 0 0 var(--chart);
+}
+.yb-seed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  background: var(--bg-soft);
+  font-size: var(--fs-small);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+tr.yb-div-leader .yb-seed {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.yb-standing-team-name {
+  white-space: nowrap;
 }
 .yb-streak-w {
   color: var(--success);
@@ -1399,10 +1671,35 @@ tr.yb-div-leader td:first-child {
   gap: 20px;
   align-items: start;
 }
+.yb-lineup-panel {
+  position: sticky;
+  top: 20px;
+}
 @media (max-width: 860px) {
   .yb-fantasy-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  .yb-lineup-panel {
+    position: static;
+  }
+}
+.yb-lineup-summary {
+  margin-bottom: 14px;
+}
+.yb-lineup-season-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--faint);
+  font-size: var(--fs-small);
+}
+.yb-lineup-season-total strong {
+  color: var(--text);
+  font-size: var(--fs-body-lg);
+  font-variant-numeric: tabular-nums;
 }
 .yb-slot {
   display: grid;
@@ -1464,6 +1761,24 @@ tr.yb-div-leader td:first-child {
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: 12px;
+}
+.yb-lineup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.yb-player-pool {
+  min-width: 0;
+}
+.yb-format-lock {
+  border: 1px solid var(--accent-border);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: var(--fs-ui);
+  font-weight: 700;
 }
 input.yb-input {
   background: var(--panel);
@@ -1905,17 +2220,19 @@ table.yb-table a:hover {
 
 .yb-team-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
   gap: 12px;
 }
 .yb-team-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 34px 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 14px 16px;
+  min-height: 86px;
+  padding: 12px 14px;
   color: var(--text);
   transition:
     border-color var(--dur) var(--ease),
@@ -1924,26 +2241,46 @@ table.yb-table a:hover {
 }
 .yb-team-card:hover {
   border-color: var(--border-strong);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-card);
   text-decoration: none;
+}
+.yb-team-card-rank {
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 .yb-team-card-body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  gap: 3px;
 }
 .yb-team-card .nm {
+  min-width: 0;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .yb-team-card .rec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: var(--fs-body);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+.yb-team-card .rec .yb-badge {
+  padding-block: 1px;
+}
 .yb-team-card .go {
-  margin-left: auto;
   color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 700;
   transition:
     color var(--dur) var(--ease),
     transform var(--dur) var(--ease);
@@ -1951,6 +2288,37 @@ table.yb-table a:hover {
 .yb-team-card:hover .go {
   color: var(--accent);
   transform: translateX(2px);
+}
+.yb-conf-nav {
+  position: sticky;
+  top: 10px;
+  z-index: var(--z-sticky);
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.yb-conf-nav a {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 7px 12px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.yb-conf-nav a:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+  text-decoration: none;
+}
+.yb-conference-section {
+  scroll-margin-top: 24px;
+  margin-top: 26px;
+}
+.yb-conference-section:first-of-type {
+  margin-top: 0;
 }
 
 .yb-leader-cards {
@@ -2012,6 +2380,28 @@ table.yb-table a:hover {
   align-items: center;
   gap: 8px;
   font-size: var(--fs-body);
+}
+.yb-leader-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+.yb-leader-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-body);
+}
+.yb-leader-scope button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.yb-qualification-note {
+  margin: 0 0 14px;
+  color: var(--faint);
+  font-size: var(--fs-small);
 }
 
 /* Game-card team rows are links to team pages now. */
@@ -2552,7 +2942,7 @@ mark.yb-hit {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
   transition: background var(--dur) var(--ease);
@@ -2570,7 +2960,7 @@ mark.yb-hit {
   align-items: center;
   gap: 10px;
   font-family: var(--display);
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -2586,7 +2976,7 @@ mark.yb-hit {
 }
 .yb-board-top .val {
   font-family: var(--display);
-  font-size: clamp(31px, 27px + 1.1vw, 38px);
+  font-size: clamp(28px, 24px + 0.9vw, 34px);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--accent);

@@ -16,7 +16,7 @@ export default function Home() {
             Every answer is computed from real historical data, and we show you the
             query behind it.
           </p>
-          <div style={{ textAlign: "left" }}>
+          <div className="yb-search-shell">
             <Search />
           </div>
         </section>

@@ -38,15 +38,46 @@ test.describe("explore", () => {
     await page.goto("/leaders?season=2023");
     await expect(page.getByRole("heading", { name: "League Leaders" })).toBeVisible();
 
-    await page.getByRole("tab", { name: "Rushing Yards" }).click();
-    await page.getByRole("combobox", { name: "Filter by position" }).selectOption("RB");
+    await page.getByRole("button", { name: "Select leaderboard category" }).click();
+    await page.getByRole("option", { name: "Rushing Yards" }).click();
+    await page.getByRole("button", { name: "Filter by position" }).click();
+    await page.getByRole("option", { name: "RB" }).click();
     await expect(page.locator("tbody tr").first()).toContainText("Christian McCaffrey");
 
-    await page.getByRole("tab", { name: "Team rankings" }).click();
+    await page.getByRole("button", { name: "Select leaderboard category" }).click();
+    await page.getByRole("option", { name: "Team rankings" }).click();
     const firstTeam = page.locator("tbody tr").first();
     await expect(firstTeam).toContainText("Baltimore Ravens"); // best 2023 record by pct/diff
     await firstTeam.getByRole("link").click();
     await expect(page).toHaveURL(/\/teams\/BAL/);
+  });
+
+  test("scores page makes games primary and keeps performers below the board", async ({ page }) => {
+    await page.goto("/scores?season=2023&week=1");
+
+    const games = page.getByRole("heading", { name: "Games" });
+    const performers = page.getByRole("heading", { name: "Performers of the week" });
+    await expect(games).toBeVisible();
+    await expect(performers).toBeVisible();
+
+    const order = await page.evaluate(() => {
+      const gameTop = document.querySelector('[data-section="games"]')?.getBoundingClientRect().top ?? 0;
+      const perfTop =
+        document.querySelector('[data-section="performers"]')?.getBoundingClientRect().top ?? 0;
+      return gameTop < perfTop;
+    });
+    expect(order).toBe(true);
+    await expect(page.getByRole("button", { name: "Previous week" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Next week" })).toBeVisible();
+  });
+
+  test("fantasy page labels production honestly and exposes explicit optimizer", async ({ page }) => {
+    await page.goto("/fantasy?season=2023");
+
+    await expect(page.getByText("Actual PPR per game")).toBeVisible();
+    await expect(page.getByText("Season PPR points")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Optimize by PPR average" })).toBeVisible();
+    await expect(page.getByLabel("Scoring format")).toHaveText(/PPR/);
   });
 
   test("player page filters the game log by season", async ({ page }) => {

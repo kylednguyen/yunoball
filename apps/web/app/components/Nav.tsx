@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-import { SearchSuggest } from "./SearchSuggest";
 
 /** Stroke-only 24px icons (no fills, no glows) — rendered at 16px. */
 const ICONS: Record<string, React.ReactNode> = {
@@ -69,50 +67,6 @@ const LINKS = [
   { href: "/assistant", label: "Assistant", badge: "Pro", icon: "assistant" },
   { href: "/glossary", label: "Glossary", icon: "glossary" },
 ];
-
-/** Compact search on every page: teams/players jump to their pages,
- *  questions land on the home search. */
-function QuickSearch({ onNavigate }: { onNavigate?: () => void }) {
-  const router = useRouter();
-  const [q, setQ] = useState("");
-  const wrap = useRef<HTMLDivElement>(null);
-
-  // Same global shortcut the home search owns: "/" or ⌘K / Ctrl-K focuses
-  // the quick search on every other page (command-palette entry point).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(
-        (document.activeElement as HTMLElement)?.tagName ?? "",
-      );
-      if ((e.key === "/" && !typing) || ((e.metaKey || e.ctrlKey) && e.key === "k")) {
-        // On mobile the search lives inside the closed (inert) drawer, so
-        // focusing it is a no-op — don't swallow the key when it can't work.
-        const input = wrap.current?.querySelector("input");
-        if (!input || input.closest("[inert]")) return;
-        e.preventDefault();
-        input.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  return (
-    <div className="yb-nav-search" role="search" ref={wrap}>
-      <SearchSuggest
-        value={q}
-        onValueChange={setQ}
-        onSearch={(question) => {
-          onNavigate?.();
-          router.push(`/?q=${encodeURIComponent(question)}`);
-        }}
-        placeholder="Search…"
-        inputClass="yb-input"
-        ariaLabel="Search NFL teams, players, and stats"
-      />
-    </div>
-  );
-}
 
 /** Hamburger / close icon for the mobile drawer toggle. */
 function MenuIcon({ open }: { open: boolean }) {
@@ -303,7 +257,6 @@ export function Nav() {
         aria-label={isMobile ? "Site navigation" : undefined}
         inert={isMobile && !open}
       >
-        {pathname !== "/" && <QuickSearch onNavigate={close} />}
         <div className="yb-nav-links">
           {LINKS.map(({ href, label, badge, icon }) => {
             const active =
