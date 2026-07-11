@@ -1,34 +1,13 @@
 "use client";
 
-import { useTitle } from "../lib/hooks";
+import { useSeasonParam, useTitle } from "../lib/hooks";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { X } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 
 import { Headshot } from "../components/Headshot";
-import { Skel } from "../components/Skeleton";
+import { SeasonSelect } from "../components/SeasonSelect";
+import { PageHeader } from "../components/ui";
 import {
   friendlyError, fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
 
@@ -72,7 +51,7 @@ function statLine(p: FantasyPlayer): string {
 export default function FantasyPage() {
   useTitle("Fantasy lineup builder");
   const [data, setData] = useState<FantasyPlayersResponse | null>(null);
-  const [season, setSeason] = useState<number | undefined>(undefined);
+  const [season, setSeason] = useSeasonParam();
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");
   const [query, setQuery] = useState("");
   const [lineup, setLineup] = useState<Lineup>({});
@@ -170,263 +149,219 @@ export default function FantasyPage() {
   const totalPpg = picks.reduce((sum, p) => sum + (p?.points_per_game ?? 0), 0);
   const totalSeason = picks.reduce((sum, p) => sum + (p?.fantasy_points_ppr ?? 0), 0);
   const filled = picks.filter(Boolean).length;
-  const complete = filled === SLOTS.length;
 
   return (
-    <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-          Fantasy Lineup Builder
-        </h1>
-        {data && (
-          <Select
-            value={String(data.season)}
-            onValueChange={(v) => setSeason(Number(v))}
-          >
-            <SelectTrigger aria-label="Select season" className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {data.seasons.map((s) => (
-                <SelectItem key={s} value={String(s)}>
-                  {s} season
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <>
+      <main id="main" className="yb-page">
+        <PageHeader
+          title="Fantasy Lineup Builder"
+          description="Build a PPR lineup from real season production. Your picks save locally."
+          controls={
+            data && (
+              <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />
+            )
+          }
+          action={<div className="yb-format-lock" aria-label="Scoring format">PPR scoring</div>}
+        />
+
+        {error && (
+          <div className="yb-state error" role="alert">
+            <h2>Couldn’t load the player pool</h2>
+            <p>{friendlyError(error)}</p>
+          </div>
         )}
-      </div>
-      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
-        Build a PPR lineup from real season production. Your picks save locally.
-      </p>
 
-      {error && (
-        <div
-          className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
-          role="alert"
-        >
-          <h2 className="text-lg font-semibold">Couldn’t load the player pool</h2>
-          <p className="max-w-prose">{friendlyError(error)}</p>
-        </div>
-      )}
+        {loading && !data && (
+          <div className="yb-fantasy-grid">
+            <div className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
+            <div className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
+          </div>
+        )}
 
-      {loading && !data && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Skel h={480} r={14} />
-          <Skel h={480} r={14} />
-        </div>
-      )}
-
-      {data && !error && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section aria-label="Your lineup">
-            {/* role=status: lineup edits announce the recalculated total. */}
-            <Card
-              className={cn(
-                "mb-4 gap-1 p-5 text-center",
-                complete && "border-primary/50 bg-primary/5",
-              )}
-              role="status"
-            >
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Projected points per game
+        {data && !error && (
+          <div className="yb-fantasy-grid">
+            <section aria-label="Your lineup" className="yb-lineup-panel">
+              {/* role=status: lineup edits announce the recalculated total. */}
+              <div
+                className={`yb-card yb-lineup-summary${filled === SLOTS.length ? " complete" : ""}`}
+                role="status"
+              >
+                <div className="yb-tile-label">Actual PPR per game</div>
+                <div className="yb-total-hero">{totalPpg.toFixed(1)}</div>
+                <div className="yb-tile-meta">
+                  {filled}/{SLOTS.length} slots
+                </div>
+                <div className="yb-lineup-season-total">
+                  <span>Season PPR points</span>
+                  <strong>{totalSeason.toFixed(1)}</strong>
+                  <span>{data.season}</span>
+                </div>
               </div>
-              <div className="font-heading text-5xl font-bold tabular-nums text-primary">
-                {totalPpg.toFixed(1)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {filled}/{SLOTS.length} slots · {totalSeason.toFixed(1)} total PPR pts in{" "}
-                {data.season}
-              </div>
-            </Card>
 
-            <div className="flex flex-col gap-2">
               {SLOTS.map((s, i) => {
                 const p = picks[i];
                 return (
-                  <div
-                    key={s.id}
-                    className={cn(
-                      "grid grid-cols-[3rem_1fr_auto_auto] items-center gap-3 rounded-lg border p-3",
-                      p ? "bg-card" : "border-dashed bg-muted/30",
-                    )}
-                  >
-                    <span className="text-xs font-bold tracking-wide text-muted-foreground">
-                      {s.label}
-                    </span>
+                  <div key={s.id} className={`yb-slot${p ? " filled" : ""}`}>
+                    <span className={`yb-pos ${p?.position ?? s.label}`}>{s.label}</span>
                     {p ? (
                       <>
-                        <span className="min-w-0">
-                          <span className="block truncate font-semibold">
+                        <span className="yb-slot-name">
+                          <div className="who">
                             <Link
                               href={`/players/${encodeURIComponent(p.player_id)}`}
-                              className="text-foreground hover:text-primary"
+                              style={{ color: "inherit" }}
                             >
                               {p.name}
                             </Link>
-                          </span>
-                          <span className="block truncate text-xs text-muted-foreground">
+                          </div>
+                          <div className="meta">
                             {p.team} · {statLine(p)}
-                          </span>
+                          </div>
                         </span>
-                        <span className="text-sm font-semibold tabular-nums">
-                          {p.points_per_game.toFixed(1)}/gm
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:text-destructive"
+                        <span className="yb-slot-pts">{p.points_per_game.toFixed(1)} PPG</span>
+                        <button
+                          className="yb-x"
                           aria-label={`Remove ${p.name}`}
                           onClick={() => remove(s.id)}
                         >
-                          <X className="size-4" />
-                        </Button>
+                          ✕
+                        </button>
                       </>
                     ) : (
-                      <span className="col-span-3 text-sm text-muted-foreground">
+                      <span className="yb-slot-empty" style={{ gridColumn: "2 / -1" }}>
                         Add a {s.accepts.join("/")} from the pool →
                       </span>
                     )}
                   </div>
                 );
               })}
-            </div>
 
-            <div className="mt-3 flex items-center gap-2">
-              <Button variant="secondary" onClick={autoFill} disabled={complete}>
-                Auto-fill best available
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setUndoLineup(lineup);
-                  setLineup({});
-                  setTimeout(() => setUndoLineup(null), 8000);
-                }}
-                disabled={filled === 0}
-              >
-                Clear
-              </Button>
-              {undoLineup && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0"
+              <div className="yb-lineup-actions">
+                <button className="yb-btn" onClick={autoFill} disabled={filled === SLOTS.length}>
+                  Optimize by PPR average
+                </button>
+                <button
+                  className="yb-btn ghost"
                   onClick={() => {
-                    setLineup(undoLineup);
-                    setUndoLineup(null);
+                    setUndoLineup(lineup);
+                    setLineup({});
+                    setTimeout(() => setUndoLineup(null), 8000);
                   }}
+                  disabled={filled === 0}
                 >
-                  Undo clear
-                </Button>
-              )}
-            </div>
-          </section>
-
-          <section aria-label="Player pool">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div className="flex gap-1">
-                {POSITIONS.map((pos) => (
-                  <Badge
-                    key={pos}
-                    asChild
-                    variant={position === pos ? "default" : "outline"}
+                  Clear
+                </button>
+                {undoLineup && (
+                  <button
+                    className="yb-link"
+                    onClick={() => {
+                      setLineup(undoLineup);
+                      setUndoLineup(null);
+                    }}
                   >
+                    Undo clear
+                  </button>
+                )}
+              </div>
+            </section>
+
+            <section aria-label="Player pool" className="yb-player-pool">
+              <div className="yb-pool-controls">
+                <div className="yb-tabs" style={{ marginBottom: 0 }}>
+                  {POSITIONS.map((pos) => (
                     <button
+                      key={pos}
+                      className="yb-tab"
                       aria-selected={position === pos}
                       onClick={() => setPosition(pos)}
                     >
                       {pos}
                     </button>
-                  </Badge>
-                ))}
+                  ))}
+                </div>
+                <input
+                  className="yb-input"
+                  style={{ flex: 1, minWidth: 160 }}
+                  placeholder="Search player or team…"
+                  aria-label="Search players"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
               </div>
-              <Input
-                className="min-w-40 flex-1"
-                placeholder="Search player or team…"
-                aria-label="Search players"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
 
-            <div className="max-h-[560px] overflow-y-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Player</TableHead>
-                    <TableHead>Pos</TableHead>
-                    <TableHead className="text-right tabular-nums">PPR</TableHead>
-                    <TableHead className="text-right tabular-nums">Pts/gm</TableHead>
-                    <TableHead aria-label="Add" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pool.map((p) => {
-                    const inLineup = rostered.has(p.player_id);
-                    const slot = openSlotFor(p);
-                    return (
-                      <TableRow key={p.player_id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2.5">
-                            <Headshot src={p.headshot_url} name={p.name} size={32} />
-                            <div className="min-w-0">
-                              <div className="truncate font-medium">
-                                <Link
-                                  href={`/players/${encodeURIComponent(p.player_id)}`}
-                                  className="text-foreground hover:text-primary"
+              <div className="yb-table-scroll" style={{ maxHeight: 560, overflowY: "auto" }}>
+                <table className="yb-table">
+                  <thead>
+                    <tr>
+                      <th>Player</th>
+                      <th>Pos</th>
+                      <th className="num">PPR</th>
+                      <th className="num">Pts/gm</th>
+                      <th aria-label="Add" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pool.map((p) => {
+                      const inLineup = rostered.has(p.player_id);
+                      const slot = openSlotFor(p);
+                      return (
+                        <tr key={p.player_id}>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <Headshot src={p.headshot_url} name={p.name} size={32} />
+                              <div>
+                                <div>
+                                  <Link
+                                    href={`/players/${encodeURIComponent(p.player_id)}`}
+                                    style={{ color: "inherit" }}
+                                  >
+                                    {p.name}
+                                  </Link>
+                                </div>
+                                <div
+                                  style={{ fontSize: 12, color: "var(--faint)", fontWeight: 400 }}
                                 >
-                                  {p.name}
-                                </Link>
-                              </div>
-                              <div className="truncate text-xs font-normal text-muted-foreground">
-                                {p.team} · {statLine(p)}
+                                  {p.team} · {statLine(p)}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-bold tracking-wide text-muted-foreground">
-                            {p.position}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {p.fantasy_points_ppr.toFixed(1)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {p.points_per_game.toFixed(1)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {inLineup ? (
-                            <Badge variant="secondary">In lineup</Badge>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={!slot}
-                              title={slot ? `Add to ${slot}` : "No open slot"}
-                              onClick={() => add(p)}
-                            >
-                              + Add
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {pool.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground">
-                        No players match that filter.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </section>
-        </div>
-      )}
-    </main>
+                          </td>
+                          <td>
+                            <span className={`yb-pos ${p.position ?? ""}`}>{p.position}</span>
+                          </td>
+                          <td className="num">{p.fantasy_points_ppr.toFixed(1)}</td>
+                          <td className="num">{p.points_per_game.toFixed(1)}</td>
+                          <td className="num">
+                            {inLineup ? (
+                              <span className="yb-chip-static">In lineup</span>
+                            ) : (
+                              <button
+                                className="yb-btn sm ghost"
+                                disabled={!slot}
+                                title={slot ? `Add to ${slot}` : "No open slot"}
+                                onClick={() => add(p)}
+                              >
+                                + Add
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {pool.length === 0 && (
+                      <tr>
+                        <td colSpan={5} style={{ color: "var(--muted)" }}>
+                          No players match that filter.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        )}
+      </main>
+    </>
   );
 }

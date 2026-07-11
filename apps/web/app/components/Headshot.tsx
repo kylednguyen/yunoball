@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 /** ESPN's combiner resizes on the CDN: full headshots are ~256KB, a 160px
  *  variant ~19KB. 160 covers the largest render (72px) at 2x. */
@@ -24,9 +22,6 @@ export function Headshot({
   size?: number;
 }) {
   const [broken, setBroken] = useState(false);
-  // Reset on src change so a prior 404 (broken=true) doesn't stick to a later,
-  // valid image when this instance is reused in place (e.g. Performers).
-  useEffect(() => setBroken(false), [src]);
   const initials = name
     .split(" ")
     .filter(Boolean)
@@ -37,7 +32,7 @@ export function Headshot({
   if (!src || broken) {
     return (
       <span
-        className="inline-flex flex-none select-none items-center justify-center rounded-full border bg-muted font-bold text-muted-foreground"
+        className="yb-avatar fallback"
         style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
         aria-hidden="true"
       >
@@ -48,7 +43,7 @@ export function Headshot({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      className={cn("inline-flex flex-none rounded-full border bg-muted object-cover align-middle")}
+      className="yb-avatar"
       src={cdnResize(src, 160)}
       alt=""
       width={size}

@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { Crumbs } from "../components/Crumbs";
 import { SeasonSelect } from "../components/SeasonSelect";
-import { Skel } from "../components/Skeleton";
 import { SortTable, type SortColumn } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
+import { PageHeader } from "../components/ui";
+import { formatPct, formatRecord, formatSigned } from "../lib/format";
 import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
 import type { StandingsResponse } from "../lib/api";
@@ -16,12 +14,8 @@ import type { StandingsResponse } from "../lib/api";
 type TeamRow = StandingsResponse["conferences"][number]["divisions"][number]["teams"][number];
 
 function StreakCell({ streak }: { streak: string }) {
-  const cls = streak.startsWith("W")
-    ? "text-chart-2"
-    : streak.startsWith("L")
-      ? "text-destructive"
-      : "";
-  return <span className={cn("font-semibold", cls)}>{streak}</span>;
+  const cls = streak.startsWith("W") ? "yb-streak-w" : streak.startsWith("L") ? "yb-streak-l" : "";
+  return <span className={cls}>{streak}</span>;
 }
 
 /** "W3" -> 3, "L2" -> -2, so streaks sort from hottest to coldest. */
@@ -30,7 +24,18 @@ function streakValue(streak: string): number {
   return streak.startsWith("L") ? -n : n;
 }
 
-const columnsFor = (season: number): SortColumn<TeamRow>[] => [
+const columnsFor = (season: number, conferenceTeams: TeamRow[]): SortColumn<TeamRow>[] => [
+  {
+    key: "seed",
+    label: "Seed",
+    numeric: true,
+    width: 58,
+    value: (t) => conferenceTeams.findIndex((row) => row.team_id === t.team_id) + 1,
+    render: (t) => {
+      const seed = conferenceTeams.findIndex((row) => row.team_id === t.team_id) + 1;
+      return <span className="yb-seed">{seed}</span>;
+    },
+  },
   {
     key: "team",
     label: "Team",
@@ -38,21 +43,25 @@ const columnsFor = (season: number): SortColumn<TeamRow>[] => [
     render: (t) => (
       <Link
         href={`/teams/${t.team_id}?season=${season}`}
-        className="inline-flex items-center gap-2"
+        style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
       >
         <TeamLogo team={t.team_id} />
-        {t.name}
+        <span className="yb-standing-team-name">{t.name}</span>
       </Link>
     ),
   },
-  { key: "wins", label: "W", numeric: true, value: (t) => t.wins },
-  { key: "losses", label: "L", numeric: true, value: (t) => t.losses },
+  {
+    key: "record",
+    label: "Record",
+    value: (t) => `${t.wins}-${t.losses}-${t.ties}`,
+    render: (t) => <>{formatRecord(t.wins, t.losses, t.ties)}</>,
+  },
   {
     key: "pct",
     label: "PCT",
     numeric: true,
     value: (t) => t.pct,
-    render: (t) => <>{t.pct.toFixed(3).replace(/^0/, "")}</>,
+    render: (t) => <>{formatPct(t.pct)}</>,
   },
   { key: "pf", label: "PF", numeric: true, value: (t) => t.points_for },
   { key: "pa", label: "PA", numeric: true, value: (t) => t.points_against },
@@ -61,7 +70,7 @@ const columnsFor = (season: number): SortColumn<TeamRow>[] => [
     label: "DIFF",
     numeric: true,
     value: (t) => t.point_diff,
-    render: (t) => <>{t.point_diff > 0 ? `+${t.point_diff}` : t.point_diff}</>,
+    render: (t) => <>{formatSigned(t.point_diff)}</>,
   },
   {
     key: "streak",
@@ -78,71 +87,61 @@ export default function StandingsPage() {
   const { data, error, loading } = useStandings(season);
 
   return (
-    <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <Crumbs
-        items={[
-          { label: "NFL", href: "/" },
-          ...(data ? [{ label: String(data.season) }] : []),
-          { label: "Standings" },
-        ]}
-      />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">Standings</h1>
-        {data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
-      </div>
-      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
-        Computed live from game results. Click a column to sort.
-      </p>
+    <>
+      <main id="main" className="yb-page">
+        <PageHeader
+          crumbs={[
+            { label: "NFL", href: "/" },
+            ...(data ? [{ label: String(data.season) }] : []),
+            { label: "Standings" },
+          ]}
+          title="Standings"
+          description="Division tables computed live from game results. Click a column to sort."
+          controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
+        />
 
-      {error && (
-        <div
-          className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
-          role="alert"
-        >
-          <h2 className="text-lg font-semibold">Couldn’t load standings</h2>
-          <p className="max-w-prose">{friendlyError(error)}</p>
-        </div>
-      )}
+        {error && (
+          <div className="yb-state error" role="alert">
+            <h2>Couldn’t load standings</h2>
+            <p>{friendlyError(error)}</p>
+          </div>
+        )}
 
-      {loading && !data && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {[0, 1].map((i) => (
-            <Skel key={i} h={480} r={14} />
-          ))}
-        </div>
-      )}
+        {loading && !data && (
+          <div className="yb-standings-grid">
+            {[0, 1].map((i) => (
+              <div key={i} className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
+            ))}
+          </div>
+        )}
 
-      {data && !error && (
-        <div className={cn("grid gap-6 lg:grid-cols-2", loading && "opacity-60")}>
-          {data.conferences.map((conf) => (
-            <section key={conf.conference} aria-label={`${conf.conference} standings`}>
-              <h2 className="font-heading text-xl font-bold tracking-tight">{conf.conference}</h2>
-              <div className="mt-3 flex flex-col gap-4">
+        {data && !error && (
+          <div className="yb-standings-grid" style={{ opacity: loading ? 0.6 : 1 }}>
+            {data.conferences.map((conf) => (
+              <section key={conf.conference} aria-label={`${conf.conference} standings`}>
+                <h2 className="yb-conf-title">{conf.conference}</h2>
                 {conf.divisions.map((div) => {
                   const leader = div.teams[0]?.team_id;
+                  const conferenceTeams = conf.divisions
+                    .flatMap((d) => d.teams)
+                    .sort((a, b) => b.pct - a.pct || b.point_diff - a.point_diff);
                   return (
-                    <Card key={div.division}>
-                      <CardHeader>
-                        <CardTitle>{div.division}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <SortTable<TeamRow>
-                          rows={div.teams}
-                          rowKey={(t) => t.team_id}
-                          rowClass={(t) =>
-                            t.team_id === leader ? "border-l-2 border-primary bg-primary/5" : undefined
-                          }
-                          columns={columnsFor(data.season)}
-                        />
-                      </CardContent>
-                    </Card>
+                    <div key={div.division} className="yb-division">
+                      <h3>{div.division}</h3>
+                      <SortTable<TeamRow>
+                        rows={div.teams}
+                        rowKey={(t) => t.team_id}
+                        rowClass={(t) => (t.team_id === leader ? "yb-div-leader" : undefined)}
+                        columns={columnsFor(data.season, conferenceTeams)}
+                      />
+                    </div>
                   );
                 })}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-    </main>
+              </section>
+            ))}
+          </div>
+        )}
+      </main>
+    </>
   );
 }

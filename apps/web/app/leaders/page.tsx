@@ -1,21 +1,18 @@
 "use client";
 
-import { tablistKeys } from "../components/tablist";
-
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { Crumbs } from "../components/Crumbs";
 import { Dropdown } from "../components/Dropdown";
 import { Headshot } from "../components/Headshot";
 import { SeasonSelect } from "../components/SeasonSelect";
 import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
+import { PageHeader } from "../components/ui";
 import { useLeaderboards, useSeasonParam, useStandings, useStrParam, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
+import { formatPct, formatSigned, formatStatValue } from "../lib/format";
 import type { LeaderRow, StandingRow } from "../lib/api";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"] as const;
@@ -59,269 +56,227 @@ export default function LeadersPage() {
     [allTeams],
   );
 
-  const formatValue = (v: number) => (Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1));
+  const categoryValue = teamTab ? TEAM_TAB : board?.key ?? "";
 
   return (
-    <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <Crumbs
-        items={[
-          { label: "NFL", href: "/" },
-          ...(data ? [{ label: String(data.season) }] : []),
-          { label: "Leaders" },
-        ]}
-      />
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-          League Leaders
-        </h1>
-        {data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
-      </div>
-      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">
-        Explore every category. Click a player or team to go deeper, a column to sort.
-      </p>
+    <>
+      <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
+        <PageHeader
+          crumbs={[
+            { label: "NFL", href: "/" },
+            ...(data ? [{ label: String(data.season) }] : []),
+            { label: "Leaders" },
+          ]}
+          title="League Leaders"
+          description="Ranked player and team leaderboards for the selected season."
+          controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
+        />
 
-      {error && (
-        <div
-          className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
-          role="alert"
-        >
-          <h2 className="text-lg font-semibold">Couldn’t load leaders</h2>
-          <p className="max-w-prose">{friendlyError(error)}</p>
-        </div>
-      )}
-
-      {loading && !data && (
-        <Card className="p-6">
-          <BoardSkeleton />
-        </Card>
-      )}
-
-      {data && (
-        <>
-          <div
-            className="flex flex-wrap gap-1.5"
-            role="tablist"
-            aria-label="Stat category"
-            onKeyDown={tablistKeys}
-          >
-            {boards.map((b) => {
-              const on = !teamTab && b.key === board?.key;
-              return (
-                <button
-                  key={b.key}
-                  role="tab"
-                  aria-selected={on}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
-                    on
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:text-foreground",
-                  )}
-                  onClick={() => setActiveKey(b.key)}
-                >
-                  {b.label}
-                </button>
-              );
-            })}
-            <button
-              role="tab"
-              aria-selected={teamTab}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
-                teamTab
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => setActiveKey(TEAM_TAB)}
-            >
-              Team rankings
-            </button>
+        {error && (
+          <div className="yb-state error" role="alert">
+            <h2>Couldn’t load leaders</h2>
+            <p>{friendlyError(error)}</p>
           </div>
+        )}
 
-          {!teamTab && (
-            <div className="mt-4 flex flex-wrap gap-4">
-              <label className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Team</span>
+        {loading && !data && (
+          <div className="yb-card">
+            <BoardSkeleton />
+          </div>
+        )}
+
+        {data && (
+          <>
+            <div className="yb-leader-controls">
+              <label>
+                <span className="yb-muted">Category</span>
                 <Dropdown
-                  ariaLabel="Filter by team"
-                  value={team}
-                  onChange={setTeam}
+                  ariaLabel="Select leaderboard category"
+                  value={categoryValue}
+                  onChange={(v) => setActiveKey(v)}
                   options={[
-                    { value: "ALL", label: "All teams" },
-                    ...allTeams.map((t) => ({
-                      value: t.team_id,
-                      label: `${t.team_id} · ${t.nickname ?? t.name}`,
-                    })),
+                    ...boards.map((b) => ({ value: b.key, label: b.label })),
+                    { value: TEAM_TAB, label: "Team rankings" },
                   ]}
                 />
               </label>
-              <label className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Position</span>
-                <Dropdown
-                  ariaLabel="Filter by position"
-                  value={position}
-                  onChange={setPosition}
-                  options={POSITIONS.map((p) => ({
-                    value: p,
-                    label: p === "ALL" ? "All positions" : p,
-                  }))}
-                />
-              </label>
-            </div>
-          )}
-
-          {!teamTab && !loading && boards.length === 0 && (
-            <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-              <h2 className="text-lg font-semibold text-foreground">No leaders match</h2>
-              <p className="max-w-prose">
-                No stats for this season and filter combination. Try widening the filters.
-              </p>
-            </div>
-          )}
-
-          {!teamTab && board && (
-            <div
-              role="tabpanel"
-              aria-label={board.label}
-              className={cn("mt-6", loading && "opacity-60")}
-            >
-              <div className="flex flex-col gap-1.5">
-                {board.rows.slice(0, 1).map((r) => (
-                  <TopRow key={r.player_id} r={r} board={board} season={data.season} format={formatValue} />
-                ))}
-                {board.rows.slice(1, 10).map((r) => (
-                  <Link
-                    key={r.player_id}
-                    href={`/players/${encodeURIComponent(r.player_id)}?season=${data.season}`}
-                    className="flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors hover:bg-muted"
-                  >
-                    <span className="w-6 text-center font-heading text-sm font-bold tabular-nums text-muted-foreground">
-                      {r.rank}
-                    </span>
-                    <Headshot src={r.headshot_url} name={r.name} size={30} />
-                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5 font-semibold">
-                      {r.name}
-                      {r.position && (
-                        <span className="text-xs font-bold tracking-wide text-muted-foreground">
-                          {r.position}
-                        </span>
-                      )}
-                      {r.team && (
-                        <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                          <TeamLogo team={r.team} size={13} />
-                          {r.team}
-                        </span>
-                      )}
-                    </span>
-                    <span className="font-heading text-base font-bold tabular-nums">
-                      {formatValue(r.value)}
-                      <span className="ml-0.5 text-xs font-medium text-muted-foreground">
-                        {board.unit}
-                      </span>
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {teamTab && (
-            <div role="tabpanel" aria-label="Team rankings" className="mt-6">
-              {leagueTable.length === 0 ? (
-                <Card className="p-6">
-                  <BoardSkeleton />
-                </Card>
-              ) : (
-                <SortTable<StandingRow>
-                  rows={leagueTable}
-                  rowKey={(t) => t.team_id}
-                  columns={[
-                    {
-                      key: "rank",
-                      label: "#",
-                      numeric: true,
-                      width: 48,
-                      value: (t) => leagueTable.indexOf(t) + 1,
-                    },
-                    {
-                      key: "team",
-                      label: "Team",
-                      value: (t) => t.name,
-                      render: (t) => (
-                        <Link
-                          href={`/teams/${t.team_id}?season=${data.season}`}
-                          className="inline-flex items-center gap-2"
-                        >
-                          <TeamLogo team={t.team_id} />
-                          {t.name}
-                        </Link>
-                      ),
-                    },
-                    { key: "w", label: "W", numeric: true, value: (t) => t.wins },
-                    { key: "l", label: "L", numeric: true, value: (t) => t.losses },
-                    {
-                      key: "pct",
-                      label: "PCT",
-                      numeric: true,
-                      value: (t) => t.pct,
-                      render: (t) => <>{t.pct.toFixed(3).replace(/^0/, "")}</>,
-                    },
-                    { key: "pf", label: "PF", numeric: true, value: (t) => t.points_for },
-                    { key: "pa", label: "PA", numeric: true, value: (t) => t.points_against },
-                    {
-                      key: "diff",
-                      label: "DIFF",
-                      numeric: true,
-                      value: (t) => t.point_diff,
-                      render: (t) => <>{t.point_diff > 0 ? `+${t.point_diff}` : t.point_diff}</>,
-                    },
-                  ]}
-                />
+              {!teamTab && (
+                <label>
+                  <span className="yb-muted">Team</span>
+                  <Dropdown
+                    ariaLabel="Filter by team"
+                    value={team}
+                    onChange={setTeam}
+                    options={[
+                      { value: "ALL", label: "All teams" },
+                      ...allTeams.map((t) => ({
+                        value: t.team_id,
+                        label: `${t.team_id} · ${t.nickname ?? t.name}`,
+                      })),
+                    ]}
+                  />
+                </label>
+              )}
+              {!teamTab && (
+                <label>
+                  <span className="yb-muted">Position</span>
+                  <Dropdown
+                    ariaLabel="Filter by position"
+                    value={position}
+                    onChange={setPosition}
+                    options={POSITIONS.map((p) => ({
+                      value: p,
+                      label: p === "ALL" ? "All positions" : p,
+                    }))}
+                  />
+                </label>
+              )}
+              {!teamTab && (
+                <div className="yb-seg yb-leader-scope" role="group" aria-label="Stat scope">
+                  <button type="button" aria-pressed="true">Totals</button>
+                  <button type="button" disabled title="Per-game leaderboards need games-played data in this endpoint">
+                    Per game
+                  </button>
+                </div>
               )}
             </div>
-          )}
-        </>
-      )}
-    </main>
-  );
-}
 
-/** #1 in a category — bigger headshot, accent value, its own card-like row. */
-function TopRow({
-  r,
-  board,
-  season,
-  format,
-}: {
-  r: LeaderRow;
-  board: { label: string; unit: string };
-  season: number;
-  format: (v: number) => string;
-}) {
-  return (
-    <Link
-      href={`/players/${encodeURIComponent(r.player_id)}?season=${season}`}
-      className="flex items-center gap-3 rounded-lg border bg-muted/40 px-4 py-3 transition-colors hover:bg-muted"
-    >
-      <Headshot src={r.headshot_url} name={r.name} size={64} />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-center gap-2 font-heading text-lg font-bold">
-          {r.name}
-          {r.position && (
-            <span className="text-xs font-bold tracking-wide text-muted-foreground">
-              {r.position}
-            </span>
-          )}
-        </span>
-        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          {r.team && <TeamLogo team={r.team} size={14} />}
-          {r.team ?? ""} · #1 in {board.label.toLowerCase()}
-        </span>
-      </span>
-      <span className="font-heading text-2xl font-bold tabular-nums text-primary">
-        {format(r.value)}
-        <span className="ml-1 text-xs font-medium text-muted-foreground">{board.unit}</span>
-      </span>
-    </Link>
+            {!teamTab && (
+              <p className="yb-qualification-note">
+                Minimum qualification follows the current warehouse leaderboard rules. Values are regular-season totals.
+              </p>
+            )}
+
+            {!teamTab && !loading && boards.length === 0 && (
+              <div className="yb-state">
+                <h2>No leaders match</h2>
+                <p>No stats for this season and filter combination. Try widening the filters.</p>
+              </div>
+            )}
+
+            {!teamTab && board && (
+              <div role="tabpanel" aria-label={board.label} style={{ opacity: loading ? 0.6 : 1 }}>
+                <div className="yb-board">
+                  {board.rows.slice(0, 1).map((r) => (
+                    <Link
+                      key={r.player_id}
+                      className="yb-board-top"
+                      href={`/players/${encodeURIComponent(r.player_id)}?season=${data.season}`}
+                    >
+                      <Headshot src={r.headshot_url} name={r.name} size={64} />
+                      <span className="who">
+                        <span className="nm">
+                          {r.name}
+                          {r.position && <span className="yb-pos">{r.position}</span>}
+                        </span>
+                        <span className="meta">
+                          {r.team && <TeamLogo team={r.team} size={14} />}
+                          {r.team ?? ""} · #1 in {board.label.toLowerCase()}
+                        </span>
+                      </span>
+                      <span className="val">
+                        {formatStatValue(r.value)}
+                        <span className="yb-lb-unit"> {board.unit}</span>
+                      </span>
+                    </Link>
+                  ))}
+                  {board.rows.slice(1, 10).map((r) => (
+                    <Link
+                      key={r.player_id}
+                      className="yb-board-row"
+                      href={`/players/${encodeURIComponent(r.player_id)}?season=${data.season}`}
+                    >
+                      <span className="rk">{r.rank}</span>
+                      <Headshot src={r.headshot_url} name={r.name} size={30} />
+                      <span className="nm">
+                        {r.name}
+                        {r.position && (
+                          <span className="tm">{r.position}</span>
+                        )}
+                        {r.team && (
+                          <span className="tm">
+                            <TeamLogo team={r.team} size={13} />
+                            {r.team}
+                          </span>
+                        )}
+                      </span>
+                      <span className="val">
+                        {formatStatValue(r.value)}
+                        <span className="yb-lb-unit"> {board.unit}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {teamTab && (
+              <div role="tabpanel" aria-label="Team rankings">
+                {leagueTable.length === 0 ? (
+                  <div className="yb-card">
+                    <BoardSkeleton />
+                  </div>
+                ) : (
+                  <SortTable<StandingRow>
+                    rows={leagueTable}
+                    rowKey={(t) => t.team_id}
+                    columns={[
+                      {
+                        key: "rank",
+                        label: "#",
+                        numeric: true,
+                        width: 48,
+                        value: (t) => leagueTable.indexOf(t) + 1,
+                      },
+                      {
+                        key: "team",
+                        label: "Team",
+                        value: (t) => t.name,
+                        render: (t) => (
+                          <Link
+                            href={`/teams/${t.team_id}?season=${data.season}`}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                          >
+                            <TeamLogo team={t.team_id} />
+                            {t.name}
+                          </Link>
+                        ),
+                      },
+                      {
+                        key: "record",
+                        label: "Record",
+                        value: (t) => `${t.wins}-${t.losses}-${t.ties}`,
+                        render: (t) => (
+                          <>
+                            {t.wins}-{t.losses}
+                            {t.ties ? `-${t.ties}` : ""}
+                          </>
+                        ),
+                      },
+                      {
+                        key: "pct",
+                        label: "PCT",
+                        numeric: true,
+                        value: (t) => t.pct,
+                        render: (t) => <>{formatPct(t.pct)}</>,
+                      },
+                      { key: "pf", label: "PF", numeric: true, value: (t) => t.points_for },
+                      { key: "pa", label: "PA", numeric: true, value: (t) => t.points_against },
+                      {
+                        key: "diff",
+                        label: "DIFF",
+                        numeric: true,
+                        value: (t) => t.point_diff,
+                        render: (t) => <>{formatSigned(t.point_diff)}</>,
+                      },
+                    ]}
+                  />
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </>
   );
 }

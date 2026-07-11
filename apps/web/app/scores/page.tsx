@@ -7,21 +7,10 @@ import { tablistKeys } from "../components/tablist";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-
 import { Performers } from "../components/Performers";
+import { SeasonSelect } from "../components/SeasonSelect";
 import { TeamLogo } from "../components/TeamLogo";
+import { Badge, PageHeader, SectionHeader, Surface } from "../components/ui";
 import {
   friendlyError,
   fetchGames,
@@ -30,62 +19,43 @@ import {
   type GameRow,
   type PerformersResponse,
 } from "../lib/api";
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
+import { formatGameDate } from "../lib/format";
 
 function GameCard({ game }: { game: GameRow }) {
   const homeWon = game.final && (game.home.score ?? 0) > (game.away.score ?? 0);
   const awayWon = game.final && (game.away.score ?? 0) > (game.home.score ?? 0);
+  const hasScore = game.home.score !== null || game.away.score !== null;
+  const status = game.final ? "Final" : hasScore ? "Live" : "Scheduled";
   return (
-    <Card className="gap-0 overflow-hidden p-0">
+    <Surface as="article" variant="standard" interactive className="yb-game-card yb-enter">
+      <div className="yb-game-card-head">
+        <Badge tone={game.final ? "neutral" : hasScore ? "success" : "accent"}>{status}</Badge>
+        <span>Week {game.week}</span>
+      </div>
       {[
         { side: game.away, won: awayWon },
         { side: game.home, won: homeWon },
       ].map(({ side, won }) => (
-        <div
-          key={side.team_id}
-          className={cn(
-            "flex items-center gap-3 px-4 py-3",
-            won && "bg-muted/40",
-          )}
-        >
-          <Link
-            className="flex min-w-0 flex-1 items-center gap-2.5 hover:text-primary"
-            href={`/teams/${side.team_id}?season=${game.season}`}
-          >
+        <div key={side.team_id} className={`yb-game-row${won ? " winner" : ""}`}>
+          <Link className="yb-game-team" href={`/teams/${side.team_id}?season=${game.season}`}>
             <TeamLogo team={side.team_id} />
-            <span className={cn("text-sm font-bold tracking-wide", won && "text-foreground")}>
-              {side.team_id}
-            </span>
-            <span className="min-w-0 truncate text-sm text-muted-foreground">
-              {side.nickname ?? side.name}
-            </span>
+            <span className="abbr">{side.team_id}</span>
+            <span className="nick">{side.nickname ?? side.name}</span>
           </Link>
-          <span
-            className={cn(
-              "font-heading text-xl tabular-nums",
-              won ? "font-bold text-primary" : "text-foreground",
-            )}
-          >
-            {side.score ?? "-"}
-          </span>
+          <span className="yb-game-score">{side.score ?? "-"}</span>
         </div>
       ))}
-      <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground">
-        <span>{formatDate(game.date)}</span>
+      <div className="yb-game-foot">
+        <span>{formatGameDate(game.date)}</span>
         {game.final ? (
-          <Button variant="link" size="sm" className="h-auto p-0" asChild>
-            <Link href={`/games/${encodeURIComponent(game.game_id)}`}>Box score →</Link>
-          </Button>
+          <Link className="yb-link" style={{ fontSize: 12 }} href={`/games/${encodeURIComponent(game.game_id)}`}>
+            Box score
+          </Link>
         ) : (
-          <Badge variant="outline">UPCOMING</Badge>
+          <span className="yb-final-chip">Pregame</span>
         )}
       </div>
-    </Card>
+    </Surface>
   );
 }
 
@@ -96,9 +66,6 @@ export default function ScoresPage() {
   const [season, setSeason] = useNumParam("season");
   const [week, setWeek] = useNumParam("week");
   const [performers, setPerformers] = useState<PerformersResponse | null>(null);
-  // Settles true once the performers fetch resolves (success OR failure), so a
-  // failed fetch shows the empty state instead of a permanent skeleton.
-  const [perfLoaded, setPerfLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -123,11 +90,9 @@ export default function ScoresPage() {
     if (!data) return;
     let active = true;
     setPerformers(null);
-    setPerfLoaded(false);
     fetchPerformers(data.season, data.week, 5)
       .then((p) => active && setPerformers(p))
-      .catch(() => active && setPerformers(null))
-      .finally(() => active && setPerfLoaded(true));
+      .catch(() => active && setPerformers(null));
     return () => {
       active = false;
     };
@@ -142,155 +107,155 @@ export default function ScoresPage() {
     const bt = best ? (best.home.score ?? 0) + (best.away.score ?? 0) : -1;
     return t > bt ? g : best;
   }, null);
+  const closestGame = data?.games.reduce<GameRow | null>((best, g) => {
+    if (!g.final || g.home.score === null || g.away.score === null) return best;
+    const margin = Math.abs(g.home.score - g.away.score);
+    if (!best || margin < Math.abs((best.home.score ?? 0) - (best.away.score ?? 0))) return g;
+    return best;
+  }, null);
+  const biggestMargin = data?.games.reduce<GameRow | null>((best, g) => {
+    if (!g.final || g.home.score === null || g.away.score === null) return best;
+    const margin = Math.abs(g.home.score - g.away.score);
+    if (!best || margin > Math.abs((best.home.score ?? 0) - (best.away.score ?? 0))) return g;
+    return best;
+  }, null);
+  const gamesByDate = (data?.games ?? []).reduce<Map<string, GameRow[]>>((map, game) => {
+    const key = game.date ?? "Date TBD";
+    map.set(key, [...(map.get(key) ?? []), game]);
+    return map;
+  }, new Map());
+  const weekIndex = data ? data.weeks.indexOf(data.week) : -1;
+  const previousWeek = data && weekIndex > 0 ? data.weeks[weekIndex - 1] : undefined;
+  const nextWeek =
+    data && weekIndex >= 0 && weekIndex < data.weeks.length - 1
+      ? data.weeks[weekIndex + 1]
+      : undefined;
 
   return (
-    <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-          Scores &amp; Results
-        </h1>
-        {data && (
-          <Select
-            value={String(data.season)}
-            onValueChange={(v) => {
-              setSeason(Number(v));
-              setWeek(undefined);
-            }}
-          >
-            <SelectTrigger className="w-[160px]" aria-label="Select season">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {data.seasons.map((s) => (
-                <SelectItem key={s} value={String(s)}>
-                  {s} season
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-      <p className="mt-1 mb-6 max-w-prose text-muted-foreground">Every final, week by week.</p>
-
-      {data && (
-        <div
-          className="-mx-1 mb-6 flex gap-2 overflow-x-auto px-1 pb-2"
-          role="tablist"
-          aria-label="Week"
-          onKeyDown={tablistKeys}
-        >
-          {data.weeks.map((w) => {
-            const selected = w === data.week;
-            return (
-              <button
-                key={w}
-                role="tab"
-                aria-selected={selected}
-                onClick={() => setWeek(w)}
-                className={cn(
-                  "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold tabular-nums transition-colors",
-                  selected
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:text-foreground",
-                )}
-                ref={(el) => {
-                  // The selected week must be visible, not parked off-screen
-                  // to the right of the scrolling strip.
-                  if (el && selected) el.scrollIntoView({ block: "nearest", inline: "center" });
+    <>
+      <main id="main" className="yb-page">
+        <PageHeader
+          title="Scores & Results"
+          description={data ? `Week ${data.week}, ${data.season}. Finals and scheduled games grouped by date.` : "Every final, week by week."}
+          controls={
+            data && (
+              <SeasonSelect
+                seasons={data.seasons}
+                value={data.season}
+                onChange={(nextSeason) => {
+                  setSeason(nextSeason);
+                  setWeek(undefined);
                 }}
-              >
-                Wk {w}
-              </button>
-            );
-          })}
-        </div>
-      )}
+              />
+            )
+          }
+          filters={
+            data && (
+              <div className="yb-week-rail-wrap">
+                <button
+                  className="yb-btn ghost sm"
+                  type="button"
+                  aria-label="Previous week"
+                  disabled={!previousWeek}
+                  onClick={() => previousWeek && setWeek(previousWeek)}
+                >
+                  Prev
+                </button>
+                <div className="yb-week-tabs" role="tablist" aria-label="Week" onKeyDown={tablistKeys}>
+                  {data.weeks.map((w) => (
+                    <button
+                      key={w}
+                      role="tab"
+                      aria-selected={w === data.week}
+                      className="yb-week-tab"
+                      onClick={() => setWeek(w)}
+                      ref={(el) => {
+                        if (el && w === data.week) el.scrollIntoView({ block: "nearest", inline: "center" });
+                      }}
+                    >
+                      Wk {w}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="yb-btn ghost sm"
+                  type="button"
+                  aria-label="Next week"
+                  disabled={!nextWeek}
+                  onClick={() => nextWeek && setWeek(nextWeek)}
+                >
+                  Next
+                </button>
+              </div>
+            )
+          }
+        />
 
-      {error && (
-        <div
-          className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-10 text-center text-destructive"
-          role="alert"
-        >
-          <h2 className="text-lg font-semibold">Couldn&rsquo;t load scores</h2>
-          <p className="max-w-prose">{friendlyError(error)}</p>
-        </div>
-      )}
-
-      {data && !error && (
-        <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Card className="gap-1 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Games
-              </div>
-              <div className="font-heading text-3xl font-bold tabular-nums">{data.games.length}</div>
-              <div className="text-xs text-muted-foreground">
-                week {data.week}, {data.season}
-              </div>
-            </Card>
-            <Card className="gap-1 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Points scored
-              </div>
-              <div className="font-heading text-3xl font-bold tabular-nums">{totalPoints}</div>
-              <div className="text-xs text-muted-foreground">across the week</div>
-            </Card>
-            {topGame && (
-              <Card className="gap-1 p-4">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Highest scoring
-                </div>
-                <div className="font-heading text-3xl font-bold tabular-nums">
-                  {(topGame.home.score ?? 0) + (topGame.away.score ?? 0)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {topGame.away.team_id} @ {topGame.home.team_id}
-                </div>
-              </Card>
-            )}
+        {error && (
+          <div className="yb-state error" role="alert">
+            <h2>Couldn’t load scores</h2>
+            <p>{friendlyError(error)}</p>
           </div>
+        )}
 
-          <section aria-label="Performers of the week" className="mt-6 mb-6">
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-heading text-xl font-bold tracking-tight">
-                Performers of the week
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                top PPR fantasy lines · week {data.week}
-              </span>
-            </div>
-            <Performers performers={performers?.performers ?? null} loading={!perfLoaded} count={5} />
-          </section>
-
-          {data.games.length === 0 ? (
-            <div className="mt-7 flex flex-col items-center gap-2 rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-              <h2 className="text-lg font-semibold text-foreground">No games this week</h2>
-              <p className="max-w-prose">
-                Nothing final for week {data.week} yet. Pick another week above.
-              </p>
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
-                loading && "opacity-60",
+        {data && !error && (
+          <>
+            <div className="yb-score-context" aria-label="Week context">
+              <span>{data.games.length} games</span>
+              <span>{totalPoints?.toLocaleString()} points</span>
+              {topGame && (
+                <span>
+                  Highest scoring: {topGame.away.team_id} @ {topGame.home.team_id}
+                </span>
               )}
-            >
-              {data.games.map((g) => (
-                <GameCard key={g.game_id} game={g} />
-              ))}
+              {closestGame && (
+                <span>
+                  Closest: {closestGame.away.team_id} @ {closestGame.home.team_id}
+                </span>
+              )}
+              {biggestMargin && (
+                <span>
+                  Biggest margin: {biggestMargin.away.team_id} @ {biggestMargin.home.team_id}
+                </span>
+              )}
             </div>
-          )}
-        </>
-      )}
 
-      {loading && !data && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 8 }, (_, i) => (
-            <Skeleton key={i} className="h-[110px] rounded-xl" />
-          ))}
-        </div>
-      )}
-    </main>
+            {data.games.length === 0 ? (
+              <div className="yb-state">
+                <h2>No games this week</h2>
+                <p>Nothing final for week {data.week} yet. Pick another week above.</p>
+              </div>
+            ) : (
+              <section data-section="games" aria-label="Games" style={{ opacity: loading ? 0.6 : 1 }}>
+                <SectionHeader title="Games" meta={`${data.games.length} matchups`} />
+                {[...gamesByDate.entries()].map(([date, games]) => (
+                  <div key={date} className="yb-score-group">
+                    <h3>{formatGameDate(date === "Date TBD" ? null : date)}</h3>
+                    <div className="yb-games-grid">
+                      {games.map((g) => (
+                        <GameCard key={g.game_id} game={g} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
+
+            <section data-section="performers" aria-label="Performers of the week" className="yb-score-performers">
+              <SectionHeader title="Performers of the week" meta={`Top PPR fantasy lines · week ${data.week}`} />
+              <Performers performers={performers?.performers ?? null} loading={!performers} count={5} />
+            </section>
+          </>
+        )}
+
+        {loading && !data && (
+          <div className="yb-games-grid">
+            {Array.from({ length: 8 }, (_, i) => (
+              <div key={i} className="yb-skel" style={{ height: 110, borderRadius: 14 }} />
+            ))}
+          </div>
+        )}
+      </main>
+    </>
   );
 }

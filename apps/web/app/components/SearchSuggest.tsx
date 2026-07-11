@@ -10,8 +10,6 @@ import {
   type RefObject,
 } from "react";
 
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { Headshot } from "./Headshot";
 import { TeamLogo } from "./TeamLogo";
 import { fetchSuggest, type SuggestResponse } from "../lib/api";
@@ -30,9 +28,7 @@ function Hit({ text, q }: { text: string; q: string }) {
   return (
     <>
       {text.slice(0, i)}
-      <mark className="rounded-[3px] bg-primary/15 px-0.5 text-primary">
-        {text.slice(i, i + q.length)}
-      </mark>
+      <mark className="yb-hit">{text.slice(i, i + q.length)}</mark>
       {text.slice(i + q.length)}
     </>
   );
@@ -53,7 +49,7 @@ export function SearchSuggest({
   onValueChange: (v: string) => void;
   onSearch: (q: string) => void;
   placeholder: string;
-  inputClass?: string;
+  inputClass: string;
   ariaLabel: string;
   autoFocus?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
@@ -145,10 +141,10 @@ export function SearchSuggest({
   }
 
   return (
-    <div className="relative w-full">
-      <Input
+    <div className="yb-suggest">
+      <input
         ref={inputRef}
-        className={cn(inputClass)}
+        className={inputClass}
         type="text"
         role="combobox"
         aria-expanded={show}
@@ -172,19 +168,14 @@ export function SearchSuggest({
       />
       {children}
       {show && (
-        <ul
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 m-0 max-h-[380px] list-none overflow-y-auto rounded-lg border bg-popover p-1.5 text-popover-foreground shadow-md"
-          id={listId}
-          role="listbox"
-          aria-label="Suggestions"
-        >
+        <ul className="yb-suggest-pop" id={listId} role="listbox" aria-label="Suggestions">
           {items.map((item, i) => (
             <li
               key={item.kind === "search" ? "search" : `${item.kind}-${item.id}`}
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === hi}
-              className="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-sm aria-selected:bg-accent aria-selected:text-accent-foreground"
+              className="yb-suggest-item"
               onMouseDown={(e) => {
                 e.preventDefault();
                 pick(item);
@@ -193,41 +184,38 @@ export function SearchSuggest({
             >
               {item.kind === "search" && (
                 <>
-                  <span
-                    className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full border text-xs font-bold text-muted-foreground"
-                    aria-hidden="true"
-                  >
+                  <span className="glyph" aria-hidden="true">
                     ?
                   </span>
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium">Ask: &ldquo;{item.label}&rdquo;</span>
-                    <span className="text-xs text-muted-foreground">Answer from the stats warehouse</span>
+                  <span className="who">
+                    <span className="nm">Ask: &ldquo;{item.label}&rdquo;</span>
+                    <span className="sub">Answer from the stats warehouse</span>
                   </span>
                 </>
               )}
               {item.kind === "team" && (
                 <>
                   <TeamLogo team={item.id} size={24} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium"><Hit text={item.label} q={value} /></span>
-                    <span className="text-xs text-muted-foreground">{item.sub}</span>
+                  <span className="who">
+                    <span className="nm"><Hit text={item.label} q={value} /></span>
+                    <span className="sub">{item.sub}</span>
                   </span>
                 </>
               )}
               {item.kind === "player" && (
                 <>
                   <Headshot src={item.headshot} name={item.label} size={24} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium"><Hit text={item.label} q={value} /></span>
-                    <span className="text-xs text-muted-foreground">{item.sub}</span>
+                  <span className="who">
+                    <span className="nm"><Hit text={item.label} q={value} /></span>
+                    <span className="sub">{item.sub}</span>
                   </span>
                 </>
               )}
             </li>
           ))}
           {sug === null && (
-            <li className="flex cursor-default items-center gap-2.5 rounded-md px-2.5 py-2 text-sm" aria-hidden="true">
-              <span className="text-xs text-muted-foreground">Looking up players and teams…</span>
+            <li className="yb-suggest-item muted" aria-hidden="true">
+              <span className="sub">Looking up players and teams…</span>
             </li>
           )}
         </ul>

@@ -22,7 +22,13 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL ?? "",
   // Least-privilege role for engine-executed SQL; falls back to the app URL.
   readonlyDatabaseUrl: process.env.READONLY_DATABASE_URL || process.env.DATABASE_URL || "",
-  corsOrigins: (process.env.CORS_ORIGINS ?? "http://localhost:3000").split(","),
+  // ponytail: always allow any localhost port so dynamically-assigned dev
+  // ports work. Harmless — cors() sends no credentials. Tighten if a prod
+  // deploy ever needs to reject localhost.
+  corsOrigins: [
+    ...(process.env.CORS_ORIGINS ?? "http://localhost:3000").split(","),
+    /^https?:\/\/localhost:\d+$/,
+  ],
   answerCacheTtlSeconds: int(process.env.ANSWER_CACHE_TTL_SECONDS, 60 * 60 * 24),
   // Requests per client IP per minute on POST /api/search and /api/agent
   // (0 disables).

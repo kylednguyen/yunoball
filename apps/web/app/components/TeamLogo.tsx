@@ -8,7 +8,7 @@ import { cdnResize } from "./Headshot";
 export function TeamLogo({ team, size = 18 }: { team: string; size?: number }) {
   return (
     <img
-      className="inline-block flex-none object-contain align-[-3px]"
+      className="yb-team-logo"
       src={cdnResize(`https://a.espncdn.com/i/teamlogos/nfl/500/${team.toLowerCase()}.png`, 128)}
       alt=""
       width={size}
