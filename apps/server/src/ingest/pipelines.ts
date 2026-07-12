@@ -88,8 +88,11 @@ export async function loadGames(ctx: Ctx, years: number[]): Promise<number> {
     roof: str(r.roof),
     surface: str(r.surface),
   }));
-  rows = ctx.drop(rows, (r) => r.season_type !== "", "games",
-    `unrecognized game_type (known: ${Object.keys(SEASON_TYPE).sort().join(", ")})`,
+  // The warehouse only models REG and POST; preseason ("PRE") and unrecognized
+  // game types are excluded. Dropping PRE here also stops it from colliding
+  // with regular-season week numbers in gameIdLookup.
+  rows = ctx.drop(rows, (r) => r.season_type === "REG" || r.season_type === "POST", "games",
+    `not a REG/POST game (preseason / unrecognized game_type; known: ${Object.keys(SEASON_TYPE).sort().join(", ")})`,
     (r) => r.game_id);
   const teams = await ctx.known("teams", "team_id");
   rows = ctx.drop(rows, (r) => teams.has(r.home_team) && teams.has(r.away_team),
@@ -106,7 +109,11 @@ export async function loadGames(ctx: Ctx, years: number[]): Promise<number> {
 async function gameIdLookup(years: number[]): Promise<Map<string, string>> {
   const lookup = new Map<string, string>();
   for (const r of await schedules(years)) {
-    const key = (t: string) => `${Number(r.season)}|${Number(r.week)}|${team(t)}`;
+    // season_type is part of the key: preseason and regular-season share week
+    // numbers (both start at week 1), so without it a PRE game would overwrite
+    // the REG game for the same (season, week, team) and mis-attribute stats.
+    const st = SEASON_TYPE[r.game_type ?? ""] ?? "";
+    const key = (t: string) => `${Number(r.season)}|${Number(r.week)}|${team(t)}|${st}`;
     lookup.set(key(r.home_team ?? ""), r.game_id ?? "");
     lookup.set(key(r.away_team ?? ""), r.game_id ?? "");
   }
@@ -122,14 +129,18 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
     (int(a) ?? 0) + (int(b) ?? 0) + (int(c) ?? 0);
 
   let rows = raw
-    .filter((r) =>
-      ctx.seasonType ? SEASON_TYPE[r.season_type ?? ""] === ctx.seasonType : true,
-    )
+    .filter((r) => {
+      // REG/POST only (drop preseason even when no --season-type is given, or
+      // it leaks into player_game_stats and inflates totals against games).
+      const st = SEASON_TYPE[r.season_type ?? ""] ?? "";
+      return ctx.seasonType ? st === ctx.seasonType : st === "REG" || st === "POST";
+    })
     .map((r) => {
       const tid = team(r.team ?? "");
+      const st = SEASON_TYPE[r.season_type ?? ""] ?? "";
       return {
         player_id: r.player_id ?? "",
-        game_id: lookup.get(`${Number(r.season)}|${Number(r.week)}|${tid}`) ?? "",
+        game_id: lookup.get(`${Number(r.season)}|${Number(r.week)}|${tid}|${st}`) ?? "",
         team_id: tid,
         completions: int(r.completions),
         attempts: int(r.attempts),
@@ -163,6 +174,9 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
   const players = await ctx.known("players", "player_id");
   rows = ctx.drop(rows, (r) => players.has(r.player_id), "player_game_stats",
     "player not in players dimension", (r) => r.player_id);
+  const teams = await ctx.known("teams", "team_id");
+  rows = ctx.drop(rows, (r) => teams.has(r.team_id), "player_game_stats",
+    "unknown team id", (r) => r.player_id);
   const games = await ctx.known("games", "game_id");
   rows = ctx.drop(rows, (r) => games.has(r.game_id), "player_game_stats",
     "game not ingested (run games first)", (r) => r.game_id);

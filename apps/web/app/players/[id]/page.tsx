@@ -355,8 +355,12 @@ function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[
                   <th className="num">Rec TD</th>
                 </>
               )}
-              <th className="num">Rush yds</th>
-              <th className="num">Rush TD</th>
+              {isQB && (
+                <>
+                  <th className="num">Rush yds</th>
+                  <th className="num">Rush TD</th>
+                </>
+              )}
               <th className="num">PPG</th>
             </tr>
           </thead>
@@ -393,8 +397,12 @@ function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[
                     <td className="num">{r.receiving_tds}</td>
                   </>
                 )}
-                <td className="num">{r.rushing_yards.toLocaleString()}</td>
-                <td className="num">{r.rushing_tds}</td>
+                {isQB && (
+                  <>
+                    <td className="num">{r.rushing_yards.toLocaleString()}</td>
+                    <td className="num">{r.rushing_tds}</td>
+                  </>
+                )}
                 <td className="num" style={{ fontWeight: 700 }}>
                   {per(r.fantasy_points_ppr, r.gp)}
                 </td>

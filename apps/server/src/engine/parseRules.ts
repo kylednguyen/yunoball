@@ -771,9 +771,13 @@ export function parseRules(
   }
 
   if (isSingleGame) {
+    // Scope to the named player when the question named one ("Derrick Henry
+    // most rushing yards in a game"); otherwise a league-wide single-game board.
     return {
       intent: "single_game", stat, seasonType, limit: limit ?? 5,
-      scope: "season", season: null,
+      scope: "season", season: effSeason,
+      player: player?.name ?? null,
+      playerId: player?.playerId ?? null,
     };
   }
 
