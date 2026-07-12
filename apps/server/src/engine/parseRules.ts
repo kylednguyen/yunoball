@@ -289,11 +289,52 @@ function threshold(qText: string): { op: ">" | ">=" | "<"; value: number } | nul
   if (m) return { op: "<", value: Number(m[1]) };
   m = qText.match(/\bgames? with (\d+)\b/);
   if (m) return { op: ">=", value: Number(m[1]) };
-  // "300 yard games", "throw for 300 yards", "100-yard rushing games": a bare
-  // count sitting immediately before a yardage unit is a per-game threshold.
-  // (Two-plus digits so a "5 yard" incidental never trips it.)
-  m = qText.match(/\b(\d{2,4})[-\s]?(?:yards?|yds?)\b/);
+  // "300 yard games", "throw for 300 yards", "1000 rushing yards": a count
+  // before a yardage unit (optionally through a rushing/passing/receiving
+  // adjective) is a threshold. Two-plus digits so a "5 yard" never trips it.
+  m = qText.match(/\b(\d{2,4})[-\s]?(?:(?:rushing|passing|receiving)\s+)?(?:yards?|yds?)\b/);
   if (m) return { op: ">=", value: Number(m[1]) };
+  return null;
+}
+
+/** Which bio fact a question about a named player asks for. */
+function bioFieldOf(qText: string): "team" | "age" | "height" | "weight" | "college" | "full" | null {
+  if (/\bhow old\b|\bwhat age\b|\bage\b|\bhow young\b|\bbirth\s?date\b|\bbirthday\b/.test(qText)) return "age";
+  if (/\bhow tall\b|\bheight\b|\btall is\b/.test(qText)) return "height";
+  if (/\bhow heavy\b|\bweigh(?:s|t|ing)?\b/.test(qText)) return "weight";
+  if (/\b(?:college|university|what school|go to school|play(?:ed)? college)\b/.test(qText)) return "college";
+  if (/\bwhat team\b|\bwhich team\b|\bteam (?:does|is|do)\b|\bplays? for\b|\bwho does\b.*\bplay\b|\bcurrent team\b/.test(qText)) return "team";
+  if (/\b(?:bio|biography|profile|info(?:rmation)? (?:on|about)|tell me about|who is)\b/.test(qText)) return "full";
+  return null;
+}
+
+/** Bio superlative ("tallest player", "oldest quarterback") -> metric + dir. */
+function bioSuperlative(qText: string): { field: "height" | "weight" | "age"; dir: "desc" | "asc" } | null {
+  if (/\btallest\b/.test(qText)) return { field: "height", dir: "desc" };
+  if (/\bshortest\b/.test(qText)) return { field: "height", dir: "asc" };
+  if (/\b(?:heaviest|biggest)\b/.test(qText)) return { field: "weight", dir: "desc" };
+  if (/\b(?:lightest|smallest)\b/.test(qText)) return { field: "weight", dir: "asc" };
+  if (/\boldest\b/.test(qText)) return { field: "age", dir: "desc" };
+  if (/\byoungest\b/.test(qText)) return { field: "age", dir: "asc" };
+  return null;
+}
+
+/** Inclusive multi-season range: "from 2021 to 2023", "between 2019 and 2022",
+ * "2020-2022", "last 3 seasons". */
+function seasonRange(qText: string, latestSeason: number | null): { min: number; max: number } | null {
+  let m =
+    qText.match(/\bfrom\s+((?:19|20)\d{2})\s+(?:to|through|thru|and)\s+((?:19|20)\d{2})\b/) ??
+    qText.match(/\bbetween\s+((?:19|20)\d{2})\s+and\s+((?:19|20)\d{2})\b/) ??
+    qText.match(/\b((?:19|20)\d{2})\s*[-–]\s*((?:19|20)\d{2})\b/);
+  if (m) {
+    const a = Number(m[1]), b = Number(m[2]);
+    return { min: Math.min(a, b), max: Math.max(a, b) };
+  }
+  m = qText.match(/\b(?:last|past)\s+(\d{1,2})\s+(?:seasons|years)\b/);
+  if (m && latestSeason != null) {
+    const n = Math.max(2, Number(m[1]));
+    return { min: latestSeason - n + 1, max: latestSeason };
+  }
   return null;
 }
 
@@ -422,33 +463,14 @@ const UNSUPPORTED: [RegExp, string][] = [
     "Streaks aren't tracked yet. I can total a stat over a season, a career, the playoffs, or a first/last-N game window.",
   ],
   [
-    /\b(fastest to|youngest|oldest|milestone|on pace)\b/,
+    // "fastest/youngest/oldest TO <milestone>" is a pace question (unsupported);
+    // "youngest/oldest player" is a bio superlative, handled before this loop.
+    /\b(?:fastest|youngest|oldest) (?:to|player to|ever to)\b|\bmilestone\b|\bon pace\b/,
     'Milestone-pace questions aren\'t supported yet. Try a straight total, like "Patrick Mahomes career passing yards".',
   ],
-  [
-    /\bwhere (?:do|does|did)\b.*\brank\b|\brank(?:s|ed|ing)?\b|\bwhat number\b/,
-    'League-rank lookups aren\'t supported yet. I can give the leaders ("most passing yards in 2023") or a player\'s own total.',
-  ],
-  [
-    /\bhow (?:old|tall|heavy)\b|\b(age|birthday|height|hometown)\b|\btallest\b|\bshortest\b|\bheaviest\b|\bwhat college\b/,
-    "Player bio details aren't searchable yet — open a player's page for team, position, height, weight and college.",
-  ],
-  [
-    /\bper[- ]game\b|\byards per\b|\bpoints per\b/,
-    "Per-game rates aren't computed in search yet — player and team pages show per-game splits. Try season or career totals here.",
-  ],
-  [
-    // Multi-season ranges collapse to one year if answered — refuse instead of
-    // silently reporting a single season. "career" (all seasons) IS supported.
-    /\bfrom\s+(?:19|20)\d{2}\s+to\s+(?:19|20)\d{2}\b|\bbetween\s+(?:19|20)\d{2}\s+and\s+(?:19|20)\d{2}\b|\b(?:last|past)\s+\d+\s+(?:seasons|years)\b/,
-    'Season ranges aren\'t supported yet. Ask about one season ("passing yards in 2023"), a career total, or the playoffs.',
-  ],
-  [
-    // League-wide counts ("how many players had 1000 yards") — distinct from
-    // "how many <stat> did <player> have", which is a normal player total.
-    /\bhow many (?:players|guys|quarterbacks|qbs|running backs|rbs|receivers|wrs|tes|tight ends|teams)\b/,
-    'League-wide counts aren\'t supported yet. I can show the leaders ("most rushing yards in 2023") or a single player\'s total.',
-  ],
+  // Note: player bio, per-game rates, season ranges, league-wide counts and
+  // rank lookups ARE answered now — see the player_bio / qualifying_count /
+  // player_rank branches and the perGame / seasonMin-Max modifiers below.
 ];
 
 export interface ParseOpts {
@@ -575,6 +597,18 @@ export function parseRules(
         limit: overallPick != null ? 1 : 40,
       };
     }
+  }
+
+  // ---- Player bio / roster ("what team does X play for", "how old is X") —
+  // answered straight from the players dimension. Runs before the team-unit
+  // refusal so "what team does <player> play for" resolves to the player. ----
+  const bioField = bioFieldOf(qText);
+  if (player && bioField) {
+    return {
+      intent: "player_bio", stat: "total_tds", bioField,
+      player: player.name, playerId: player.playerId,
+      seasonType: "REG", scope: "career", limit: 1,
+    };
   }
 
   // ---- Game results and game logs (teams and Super Bowls) ----
@@ -743,6 +777,17 @@ export function parseRules(
     }
   }
 
+  // Bio superlative ("tallest player", "oldest quarterback") — no stat, so it
+  // must resolve before the stat-required shapes below.
+  const bioSup = bioSuperlative(qText);
+  if (!player && bioSup) {
+    return {
+      intent: "player_bio", stat: "total_tds", bioField: bioSup.field,
+      dir: bioSup.dir, position, seasonType: "REG", scope: "career",
+      limit: topN(qText) ?? 5,
+    };
+  }
+
   // Stat: specific vocabulary first, then generic cues resolved by context,
   // then the player's (or position's) primary stat.
   let stat = detectStat(qText);
@@ -800,6 +845,32 @@ export function parseRules(
   const isSingleGame =
     qText.includes("game") &&
     (qText.includes("single") || qText.includes("in a game") || qText.includes("one game"));
+  const perGame = /\bper[- ]game\b/.test(qText);
+  const range = seasonRange(qText, opts.latestSeason ?? null);
+
+  // League rank of one player ("where does Mahomes rank in career passing yards").
+  const rankCue =
+    /\bwhere (?:do|does|did)\b[^?]*\brank\b|\brank(?:s|ed|ing)?\b|\bwhat (?:number|place)\b/.test(qText);
+  if (player && rankCue) {
+    return {
+      intent: "player_rank", stat, player: player.name, playerId: player.playerId,
+      season: range ? null : effSeason, seasonMin: range?.min ?? null, seasonMax: range?.max ?? null,
+      seasonType, position,
+      scope: isCareer || (effSeason == null && !range) ? "career" : "season",
+      limit: 1,
+    };
+  }
+
+  // League-wide qualifying count ("how many players had 1000 rushing yards in 2023").
+  const leagueCountCue =
+    /\bhow many (?:players|guys|quarterbacks|qbs|running backs|rbs|receivers|wrs|tes|tight ends)\b/.test(qText);
+  if (!player && leagueCountCue && th) {
+    return {
+      intent: "qualifying_count", stat, threshold: th,
+      season: effSeason, seasonType, position,
+      scope: isCareer || effSeason == null ? "career" : "season", limit: 1,
+    };
+  }
 
   // Qualifying-game counts: "Lamar games over 300 passing yards",
   // "Derrick Henry 100+ rushing yard games".
@@ -838,7 +909,10 @@ export function parseRules(
       stat,
       player: player.name,
       playerId: player.playerId,
-      season: effSeason,
+      season: range ? null : effSeason,
+      seasonMin: range?.min ?? null,
+      seasonMax: range?.max ?? null,
+      perGame,
       round: playerRound,
       seasonType,
       sbOnly,
@@ -849,7 +923,11 @@ export function parseRules(
       weekMax: filters.weekMax ?? null,
       rookie: filters.rookie,
       scope:
-        filters.rookie || (!isCareer && effSeason !== null) ? "season" : "career",
+        range || isCareer || effSeason === null
+          ? "career"
+          : filters.rookie || effSeason !== null
+            ? "season"
+            : "career",
       limit: 10,
     };
   }
@@ -861,18 +939,24 @@ export function parseRules(
     weekMin: filters.weekMin ?? null,
     weekMax: filters.weekMax ?? null,
     sbOnly,
+    perGame,
+    seasonMin: range?.min ?? null,
+    seasonMax: range?.max ?? null,
     // "most career passing yards" ranks all-time totals; a bare position
     // question ("best qb") means the newest season, not all of history.
     round: playerRound,
-    season: isCareer
+    season: range
       ? null
-      : (effSeason ?? (position && !CAREER_RE.test(qText) ? (opts.latestSeason ?? null) : null)),
+      : isCareer
+        ? null
+        : (effSeason ?? (position && !CAREER_RE.test(qText) ? (opts.latestSeason ?? null) : null)),
     seasonType,
     limit: limit ?? 10,
     position,
     dir: ASC_RE.test(qText) ? "asc" : "desc",
     rookie: /\brookies?\b/.test(qText),
-    scope: isCareer ? "career" : "season",
+    // A range aggregates across its seasons like a career total does.
+    scope: range || isCareer ? "career" : "season",
   };
 }
 
