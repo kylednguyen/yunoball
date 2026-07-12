@@ -10,7 +10,7 @@
 
 export type Intent =
   | "leaders" | "player_total" | "player_seasons" | "single_game" | "compare"
-  | "scoring" | "game_count"
+  | "scoring" | "game_count" | "qualifying_count" | "player_rank" | "player_bio"
   | "game_log" | "team_game_log" | "game_result" | "draft_pick";
 
 export interface StatDef {
@@ -202,6 +202,16 @@ export interface QuerySpec {
   /** DRAFT_PICK: overall selection number and/or round. */
   draftPick?: number | null;
   draftRound?: number | null;
+  /** PLAYER_BIO: which bio fact the question asks for ("team"/"age"/"height"/
+   * "weight"/"college"/"full"), or the metric a bio superlative ranks by
+   * ("tallest" -> height, "oldest" -> age). */
+  bioField?: "team" | "age" | "height" | "weight" | "college" | "full" | null;
+  /** Report the per-game rate instead of the raw total (value / games). */
+  perGame?: boolean;
+  /** Inclusive season range ("passing yards from 2021 to 2023"). Overrides the
+   * single `season` when set. */
+  seasonMin?: number | null;
+  seasonMax?: number | null;
 }
 
 export function specExpr(spec: QuerySpec): string {
@@ -222,5 +232,6 @@ export function specCacheKey(s: QuerySpec): string {
     s.threshold && `${s.threshold.op}${s.threshold.value}`, s.rookie, s.sbOnly,
     s.round, s.teamId, s.team2Id, s.opponentId, s.gameDate, s.conf,
     s.marginMax, s.draftPick, s.draftRound,
+    s.bioField, s.perGame, s.seasonMin, s.seasonMax,
   ].map(String).join("|");
 }

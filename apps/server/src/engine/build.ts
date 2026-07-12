@@ -306,8 +306,100 @@ function draftSql(spec: QuerySpec, p: Params): string {
   );
 }
 
+/** Player bio / roster: one player's card, or a bio-superlative board. */
+function bioSql(spec: QuerySpec, p: Params): string {
+  const bioCols =
+    "p.player_id, p.full_name, p.position, p.birth_date, p.height_inches, " +
+    "p.weight_lbs, p.college, EXTRACT(YEAR FROM age(p.birth_date))::int AS age";
+  if (spec.playerId) {
+    return (
+      `SELECT ${bioCols}, latest.team_id AS team, t.name AS team_name ` +
+      "FROM players p " +
+      "LEFT JOIN LATERAL (SELECT team_id FROM player_season_stats s " +
+      "WHERE s.player_id = p.player_id AND s.team_id IS NOT NULL " +
+      "ORDER BY s.season DESC LIMIT 1) latest ON true " +
+      "LEFT JOIN teams t ON t.team_id = latest.team_id " +
+      `WHERE p.player_id = ${p.add(spec.playerId)}`
+    );
+  }
+  // Superlative board. Age ranks by birth_date (oldest = earliest), so the
+  // requested direction inverts relative to the raw column.
+  const col =
+    spec.bioField === "weight" ? "p.weight_lbs"
+      : spec.bioField === "age" ? "p.birth_date"
+        : "p.height_inches";
+  const dir =
+    spec.bioField === "age"
+      ? spec.dir === "desc" ? "ASC" : "DESC"
+      : spec.dir === "asc" ? "ASC" : "DESC";
+  const preds = [
+    `${col} IS NOT NULL`,
+    "EXISTS (SELECT 1 FROM player_season_stats s WHERE s.player_id = p.player_id)",
+  ];
+  // Physical-plausibility bounds so a corrupt roster row (e.g. a 6'11", 173 lb
+  // DB whose height is mis-entered) can't win a superlative board.
+  if (spec.bioField === "height") preds.push("p.height_inches BETWEEN 63 AND 82");
+  else if (spec.bioField === "weight") preds.push("p.weight_lbs BETWEEN 150 AND 400");
+  else if (spec.bioField === "age") preds.push("p.birth_date >= DATE '1970-01-01'");
+  if (spec.position) preds.push(`p.position = ${p.add(spec.position)}`);
+  return (
+    `SELECT ${bioCols} FROM players p WHERE ${preds.join(" AND ")} ` +
+    `ORDER BY ${col} ${dir}, p.full_name LIMIT ${p.add(spec.limit)}`
+  );
+}
+
+/** How many players cleared a season (or career) stat threshold. */
+function qualifyingCountSql(spec: QuerySpec, p: Params): string {
+  const def = statDef(spec);
+  const op = { ">": ">", ">=": ">=", "<": "<" }[spec.threshold!.op];
+  const join = spec.position ? "JOIN players p ON p.player_id = s.player_id " : "";
+  const posPred = spec.position ? ` AND p.position = ${p.add(spec.position)}` : "";
+  if (spec.scope === "career") {
+    return (
+      "SELECT COUNT(*) AS qualifying_players FROM (" +
+      "SELECT s.player_id FROM player_season_stats s " + join +
+      `WHERE s.season_type = ${p.add(spec.seasonType)}${posPred} ` +
+      `GROUP BY s.player_id HAVING SUM(${def.expr}) ${op} ${p.add(spec.threshold!.value)}) x`
+    );
+  }
+  const preds = [`s.season_type = ${p.add(spec.seasonType)}`];
+  if (spec.season != null) preds.push(`s.season = ${p.add(spec.season)}`);
+  return (
+    "SELECT COUNT(*) AS qualifying_players FROM player_season_stats s " + join +
+    `WHERE ${preds.join(" AND ")}${posPred} AND ${def.expr} ${op} ${p.add(spec.threshold!.value)}`
+  );
+}
+
+/** One player's league rank on a stat over a scope (career / season / range). */
+function rankSql(spec: QuerySpec, p: Params): string {
+  const def = statDef(spec);
+  const preds = [`s.season_type = ${p.add(spec.seasonType)}`];
+  if (spec.seasonMin != null && spec.seasonMax != null) {
+    preds.push(`s.season BETWEEN ${p.add(spec.seasonMin)} AND ${p.add(spec.seasonMax)}`);
+  } else if (spec.scope !== "career" && spec.season != null) {
+    preds.push(`s.season = ${p.add(spec.season)}`);
+  }
+  const posPred = spec.position ? ` AND p.position = ${p.add(spec.position)}` : "";
+  return (
+    "WITH ranked AS (" +
+    `SELECT p.player_id, p.full_name, SUM(${def.expr}) AS value, ` +
+    `RANK() OVER (ORDER BY SUM(${def.expr}) DESC) AS rk, ` +
+    "COUNT(*) OVER () AS total_players " +
+    "FROM player_season_stats s JOIN players p ON p.player_id = s.player_id " +
+    `WHERE ${preds.join(" AND ")}${posPred} ` +
+    "GROUP BY p.player_id, p.full_name) " +
+    `SELECT * FROM ranked WHERE player_id = ${p.add(spec.playerId)}`
+  );
+}
+
 export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
   const p = new Params();
+
+  if (spec.intent === "player_bio") return { sql: bioSql(spec, p), params: p.values };
+  if (spec.intent === "qualifying_count") {
+    return { sql: qualifyingCountSql(spec, p), params: p.values };
+  }
+  if (spec.intent === "player_rank") return { sql: rankSql(spec, p), params: p.values };
 
   if (spec.intent === "game_log" && spec.playerId) {
     const pred = `s.player_id = ${p.add(spec.playerId)}`;
@@ -432,11 +524,16 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
     }
     if (spec.scope === "career") {
       const stype = p.add(spec.seasonType);
+      // A season range ("receiving yards from 2021 to 2023") bounds the sum.
+      const rangePred =
+        spec.seasonMin != null && spec.seasonMax != null
+          ? ` AND s.season BETWEEN ${p.add(spec.seasonMin)} AND ${p.add(spec.seasonMax)}`
+          : "";
       const sql =
         `SELECT p.player_id, p.full_name, COUNT(*) AS seasons, SUM(${def.expr}) AS value ` +
         "FROM player_season_stats s " +
         "JOIN players p ON p.player_id = s.player_id " +
-        `WHERE s.season_type = ${stype}` +
+        `WHERE s.season_type = ${stype}${rangePred}` +
         (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
         " GROUP BY p.player_id, p.full_name " +
         `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, p.full_name ` +
@@ -481,18 +578,29 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
       return { sql, params: p.values };
     }
     if (spec.scope === "career") {
+      // A season range ("from 2021 to 2023") bounds the career sum.
+      const rangePred =
+        spec.seasonMin != null && spec.seasonMax != null
+          ? ` AND s.season BETWEEN ${p.add(spec.seasonMin)} AND ${p.add(spec.seasonMax)}`
+          : "";
+      const totalExpr = spec.perGame
+        ? `ROUND(SUM(${def.expr})::numeric / NULLIF(SUM(COALESCE(s.games_played, 0)), 0), 1)`
+        : `SUM(${def.expr})`;
       const sql =
-        `SELECT p.player_id, p.full_name, SUM(${def.expr}) AS total ` +
+        `SELECT p.player_id, p.full_name, ${totalExpr} AS total ` +
         "FROM player_season_stats s " +
         "JOIN players p ON p.player_id = s.player_id " +
-        `WHERE ${playerPred} AND s.season_type = ${stype} ` +
+        `WHERE ${playerPred} AND s.season_type = ${stype}${rangePred} ` +
         "GROUP BY p.player_id, p.full_name";
       return { sql, params: p.values };
     }
     const where = [playerPred, `s.season_type = ${stype}`];
     if (spec.season != null) where.push(`s.season = ${p.add(spec.season)}`);
+    const valueExpr = spec.perGame
+      ? `ROUND(${def.expr}::numeric / NULLIF(COALESCE(s.games_played, 0), 0), 1) AS value`
+      : `${def.expr} AS value`;
     const sql =
-      `SELECT p.player_id, p.full_name, s.season, ${def.expr} AS value ` +
+      `SELECT p.player_id, p.full_name, s.season, ${valueExpr} ` +
       "FROM player_season_stats s " +
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE ${where.join(" AND ")} ` +
@@ -600,6 +708,63 @@ function roundPhrase(round: string | null | undefined, season: unknown, conf?: s
   return "";
 }
 
+/** 1 -> "1st", 2 -> "2nd", 11 -> "11th". */
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+/** 75 -> `6'3"`; null/0 -> null. */
+function fmtHeight(inches: unknown): string | null {
+  const n = Number(inches);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `${Math.floor(n / 12)}'${n % 12}"`;
+}
+
+/** Bio narration: a player's card, or a bio-superlative headline. */
+function narrateBio(spec: QuerySpec, top: Row, name: string): string {
+  // Superlative board (no playerId): the top row is the answer.
+  if (!spec.playerId) {
+    const posText = spec.position ? ` ${spec.position}` : " player";
+    if (spec.bioField === "height") {
+      const which = spec.dir === "asc" ? "shortest" : "tallest";
+      return `${top.full_name} is the ${which}${posText} at ${fmtHeight(top.height_inches)}${top.weight_lbs ? ` (${top.weight_lbs} lbs)` : ""}.`;
+    }
+    if (spec.bioField === "weight") {
+      const which = spec.dir === "asc" ? "lightest" : "heaviest";
+      return `${top.full_name} is the ${which}${posText} at ${top.weight_lbs} lbs${fmtHeight(top.height_inches) ? ` (${fmtHeight(top.height_inches)})` : ""}.`;
+    }
+    const which = spec.dir === "asc" ? "youngest" : "oldest";
+    return `${top.full_name} is the ${which}${posText} at ${top.age} years old.`;
+  }
+  // Named player.
+  const team = top.team_name ?? top.team;
+  const h = fmtHeight(top.height_inches);
+  switch (spec.bioField) {
+    case "team":
+      return team ? `${name} most recently played for the ${team}.` : `${name}'s team isn't in the warehouse.`;
+    case "age": {
+      const d = fmtDate(top.birth_date);
+      return top.age != null ? `${name} is ${top.age} years old${d ? ` (born ${d})` : ""}.` : `${name}'s birth date isn't on file.`;
+    }
+    case "height":
+      return h ? `${name} is ${h}${top.weight_lbs ? `, ${top.weight_lbs} lbs` : ""}.` : `${name}'s height isn't on file.`;
+    case "weight":
+      return top.weight_lbs ? `${name} weighs ${top.weight_lbs} lbs${h ? ` (${h})` : ""}.` : `${name}'s weight isn't on file.`;
+    case "college":
+      return top.college ? `${name} played college football at ${top.college}.` : `${name}'s college isn't on file.`;
+    default: {
+      const bits: string[] = [];
+      if (top.position) bits.push(String(top.position));
+      if (h) bits.push(`${h}${top.weight_lbs ? `, ${top.weight_lbs} lbs` : ""}`);
+      if (top.college) bits.push(String(top.college));
+      if (top.age != null) bits.push(`${top.age} yrs`);
+      return `${name}${team ? `, ${team}` : ""}${bits.length ? ` — ${bits.join(", ")}` : ""}.`;
+    }
+  }
+}
+
 /** W-L(-T) line over game rows that carry a `result` column. */
 function recordOf(rows: Row[]): string {
   const w = rows.filter((r) => r.result === "W").length;
@@ -621,6 +786,32 @@ export function narrate(spec: QuerySpec, rows: Row[]): string {
   const label = specLabel(spec);
   const unit = statDef(spec).unit ?? "";
   const name = String(top.full_name ?? spec.player ?? "");
+
+  if (spec.intent === "player_bio") return narrateBio(spec, top, name);
+
+  if (spec.intent === "qualifying_count") {
+    const n = Number(top.qualifying_players ?? 0);
+    const opText = { ">": "over", ">=": "at least", "<": "under" }[spec.threshold!.op];
+    const posText = spec.position ? ` ${spec.position}s` : " players";
+    const when =
+      spec.scope === "career" ? "in their career"
+        : spec.season != null ? `in ${spec.season}` : "in a season";
+    return `${fmt(n)}${posText} had ${opText} ${fmt(spec.threshold!.value)} ${label} ${when}.`;
+  }
+
+  if (spec.intent === "player_rank") {
+    const rk = Number(top.rk);
+    const tot = Number(top.total_players);
+    const post = spec.seasonType === "POST" ? " postseason" : "";
+    const scope =
+      spec.seasonMin != null ? `from ${spec.seasonMin} to ${spec.seasonMax}`
+        : spec.scope === "career" ? "all-time"
+          : `in ${spec.season}`;
+    return (
+      `${name} ranks ${ordinal(rk)} ${scope}${post} in ${label} with ` +
+      `${fmt(top.value)}${unit}${Number.isFinite(tot) && tot ? ` (of ${fmt(tot)} players)` : ""}.`
+    );
+  }
 
   if (spec.intent === "draft_pick") {
     const who = String(top.player_name);
@@ -781,6 +972,17 @@ export function narrate(spec: QuerySpec, rows: Row[]): string {
     );
   }
 
+  if (spec.intent === "player_total" && spec.perGame) {
+    const v = top.total !== undefined ? top.total : top.value;
+    const scope =
+      spec.seasonMin != null ? `from ${spec.seasonMin} to ${spec.seasonMax}`
+        : spec.scope === "career" ? "over his career"
+          : `in ${top.season ?? spec.season}`;
+    return `${name} averaged ${fmt(v)}${unit} ${label} per game ${scope}${post}${quals}.`;
+  }
+  if (spec.intent === "player_total" && spec.seasonMin != null) {
+    return `${name} had ${fmt(top.total)}${unit}${post} ${label} from ${spec.seasonMin} to ${spec.seasonMax}${quals}.`;
+  }
   if (spec.intent === "player_total" && (spec.firstN || spec.lastN)) {
     const window = spec.firstN ? `first ${spec.firstN}` : `last ${spec.lastN}`;
     return `${name} totaled ${fmt(top.total)}${unit} ${label} over his ${window}${post} games${quals}.`;
@@ -806,6 +1008,9 @@ export function narrate(spec: QuerySpec, rows: Row[]): string {
   // leaders
   const posText = spec.position ? ` among ${spec.position}s` : "";
   const verb = spec.dir === "asc" ? "has the fewest" : "leads";
+  if (spec.scope === "career" && spec.seasonMin != null) {
+    return `${name} ${verb === "leads" ? "leads" : "has the fewest"} with ${fmt(top.value)}${unit}${post} ${label}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
+  }
   if (spec.scope === "career") {
     return `${name} ${verb === "leads" ? "leads all time" : "has the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${posText}.`;
   }

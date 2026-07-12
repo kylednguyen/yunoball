@@ -272,6 +272,24 @@ const CASES: [string, Expect][] = [
   ["Brady 2025 stats", answer({ intent: "player_total", season: 2025 })],
   ["Bills score tomorrow", refusal("scores")],
   ["Chiefs 2030 record", answer({ intent: "team_game_log", teamId: "KC", season: 2030 })], // auditor turns this into no-data
+  // ---- player bio / roster (answered from the players dimension) ----
+  ["what team does Justin Jefferson play for", answer({ intent: "player_bio", bioField: "team", playerId: "P_JJ" })],
+  ["how old is Patrick Mahomes", answer({ intent: "player_bio", bioField: "age", playerId: "P_MAHOMES" })],
+  ["how tall is Josh Allen", answer({ intent: "player_bio", bioField: "height", playerId: "P_JALLEN" })],
+  ["what college did Travis Kelce go to", answer({ intent: "player_bio", bioField: "college", playerId: "P_KELCE" })],
+  ["tallest player", answer({ intent: "player_bio", bioField: "height", dir: "desc" })],
+  ["oldest quarterback", answer({ intent: "player_bio", bioField: "age", dir: "desc", position: "QB" })],
+  // ---- per-game rate, season range, league count, rank ----
+  ["Justin Jefferson yards per game in 2023", answer({ intent: "player_total", perGame: true, playerId: "P_JJ", season: 2023 })],
+  ["passing yards from 2021 to 2023", answer({ intent: "leaders", seasonMin: 2021, seasonMax: 2023 })],
+  ["Derrick Henry rushing yards over the last 3 seasons", answer({ intent: "player_total", perGame: false, seasonMin: 2023, seasonMax: 2025, playerId: "P_HENRY" })],
+  ["how many players had 1000 rushing yards in 2023", answer({ intent: "qualifying_count", stat: "rushing_yards", season: 2023 })],
+  ["how many QBs threw for 4000 yards in 2023", answer({ intent: "qualifying_count", position: "QB", stat: "passing_yards", season: 2023 })],
+  ["where does Patrick Mahomes rank in career passing yards", answer({ intent: "player_rank", stat: "passing_yards", playerId: "P_MAHOMES", scope: "career" })],
+  // ---- still genuinely unanswerable ----
+  ["Josh Allen QBR in 2023", refusal("efficiency")],
+  ["longest touchdown of 2023", refusal("play distances")],
+  ["fastest to 10000 passing yards", refusal("milestone")],
 ];
 
 describe("the 100-question battery + parser edge cases", () => {

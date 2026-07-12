@@ -25,17 +25,43 @@ Every question must land in an honest bucket — never a wrong number:
 
 ## Result
 
-| | Before hardening | After hardening |
-|---|---|---|
-| ANSWERED | 91 | **85** |
-| REFUSAL | 6 | **16** |
-| FALLBACK | 4 | **3** |
-| EMPTY | 2 | **0** |
-| AUDIT_BLOCK | 1 | **0** |
-| **Silent wrong answers** | **8+** | **0** |
+| | Original | After hardening | After answering the possible |
+|---|---|---|---|
+| ANSWERED | 91 | 85 | **93** |
+| REFUSAL | 6 | 16 | **8** |
+| FALLBACK | 4 | 3 | **3** |
+| EMPTY | 2 | 0 | **0** |
+| AUDIT_BLOCK | 1 | 0 | **0** |
+| **Silent wrong answers** | **8+** | **0** | **0** |
 
-The answer count *dropped* on purpose: eight questions that used to return a
-confident wrong number now either compute correctly or refuse honestly.
+Two passes:
+1. **Hardening** — eight questions that returned a confident wrong number now
+   compute correctly or refuse honestly (answer count *dropped* on purpose).
+2. **Answering the possible** — questions that were refused but are in fact
+   computable from the warehouse now return real answers (refusals dropped
+   16 → 8; every remaining refusal is genuinely not in the data).
+
+## Newly answerable (refusals → answers)
+
+Everything here was a refusal until the data proved it computable:
+
+| Capability | Example | Answer | Where |
+|---|---|---|---|
+| **Player bio / roster** | "what team does Justin Jefferson play for" | *…the Minnesota Vikings.* | `player_bio` intent |
+| | "how old is Patrick Mahomes" | *30 years old (born Sep 17, 1995).* | |
+| | "how tall is Josh Allen", "what college did Kelce go to" | height / college | |
+| **Bio superlatives** | "tallest player" | *Alejandro Villanueva, 6'9" (320 lbs).* | `player_bio` (+ plausibility bounds so a corrupt roster row can't win) |
+| | "heaviest player", "oldest quarterback", "youngest player" | | |
+| **Per-game rates** | "Justin Jefferson yards per game in 2023" | *averaged 107.4 receiving yards per game.* | `perGame` modifier |
+| **Season ranges** | "passing yards from 2021 to 2023" | *Mahomes, 14,272.* | `seasonMin`/`seasonMax` modifier |
+| | "receiving yards over the last 3 seasons" | *Tyreek Hill, 4,468 (2022–2024).* | |
+| **League-wide counts** | "how many players had 1000 rushing yards in 2023" | *12 players.* | `qualifying_count` intent |
+| **Rank lookups** | "where does Mahomes rank in career passing yards" | *1st all-time (of 3,666 players).* | `player_rank` intent |
+
+Still refused — genuinely not in the data (box-score totals + a TD log, no
+play-by-play, field position, awards, or proprietary metrics): QBR, passer
+rating / EPA / DVOA, red-zone and down splits, longest-play distance, streaks,
+milestone pace, and team-unit stats (routed to the team pages).
 
 ## Findings fixed
 
