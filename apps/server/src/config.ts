@@ -29,6 +29,10 @@ export const config = {
     ...(process.env.CORS_ORIGINS ?? "http://localhost:3000").split(","),
     /^https?:\/\/localhost:\d+$/,
   ],
+  // Trusted proxy hops in front of the API (Render/Fly terminate at one LB).
+  // Drives Express's req.ip so the rate limiter can't be fooled by a spoofed
+  // X-Forwarded-For. 0 = trust none (direct connections / local dev).
+  trustProxy: int(process.env.TRUST_PROXY_HOPS, 1),
   answerCacheTtlSeconds: int(process.env.ANSWER_CACHE_TTL_SECONDS, 60 * 60 * 24),
   // Requests per client IP per minute on POST /api/search and /api/agent
   // (0 disables).

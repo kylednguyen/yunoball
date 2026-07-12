@@ -208,3 +208,12 @@ ALTER TABLE player_season_stats
     ADD COLUMN IF NOT EXISTS def_interceptions smallint,
     ADD COLUMN IF NOT EXISTS forced_fumbles smallint,
     ADD COLUMN IF NOT EXISTS passes_defended smallint;
+
+-- Query-shape indexes. Leaderboards filter (season, season_type); "players on
+-- team X in year Y" filters team_id; REG/POST game scans filter season_type.
+CREATE INDEX IF NOT EXISTS pss_season_type_idx
+    ON player_season_stats (season, season_type);
+CREATE INDEX IF NOT EXISTS pss_team_season_idx
+    ON player_season_stats (team_id, season);
+CREATE INDEX IF NOT EXISTS games_season_type_idx
+    ON games (season, season_type);
