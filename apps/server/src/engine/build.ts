@@ -179,30 +179,38 @@ function playerGameRowsSql(spec: QuerySpec, p: Params, playerPred: string): stri
   const def = statDef(spec);
   const n = spec.firstN ?? spec.lastN;
   const dir = spec.lastN ? "DESC" : "ASC";
-  const statCols =
-    spec.intent === "game_log"
-      ? gameLogStatCols(spec.position).join(", ")
-      : def.ratio
-        ? `ROUND(COALESCE(s.${def.ratio.num}, 0)::numeric / NULLIF(COALESCE(s.${def.ratio.den}, 0), 0) * 100, 1) AS value`
-        : `${def.expr} AS value`;
-  const totalExpr =
-    def.ratio
-      ? `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0)) OVER ()::numeric / NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)) OVER (), 0) * 100, 1)`
-      : `SUM(${def.expr}) OVER ()`;
+  const isGameLog = spec.intent === "game_log";
+  const statCols = isGameLog
+    ? gameLogStatCols(spec.position).join(", ")
+    : def.ratio
+      ? `ROUND(COALESCE(s.${def.ratio.num}, 0)::numeric / NULLIF(COALESCE(s.${def.ratio.den}, 0), 0) * 100, 1) AS value`
+      : `${def.expr} AS value`;
+  // Ratio totals need the raw numerator/denominator per row so the window can
+  // re-derive the percentage; _num/_den are stripped from the response.
+  const ratioHelpers =
+    !isGameLog && def.ratio
+      ? `, COALESCE(s.${def.ratio.num}, 0) AS _num, COALESCE(s.${def.ratio.den}, 0) AS _den`
+      : "";
   const innerWhere = [playerPred, ...gamePreds(spec, p)];
-  let inner =
-    `SELECT ${GAME_CTX_COLS}, ${statCols}, ` +
-    `${ROUND_NAME_SQL} AS round, ` +
-    `${totalExpr} AS total, COUNT(*) OVER () AS games ` +
+  let scoped =
+    `SELECT ${GAME_CTX_COLS}, ${statCols}${ratioHelpers}, ${ROUND_NAME_SQL} AS round ` +
     "FROM player_game_stats s " +
     "JOIN games g ON g.game_id = s.game_id " +
     `WHERE ${innerWhere.join(" AND ")} ` +
     `ORDER BY g.season ${dir}, g.week ${dir}`;
-  if (n) inner += ` LIMIT ${p.add(n)}`;
+  // LIMIT must apply BEFORE the window totals: a first/last-N window reports
+  // the window's own total, not the whole career. So aggregate in an outer
+  // layer over the already-limited rows.
+  if (n) scoped += ` LIMIT ${p.add(n)}`;
+  const totalExpr = isGameLog
+    ? "NULL"
+    : def.ratio
+      ? "ROUND(SUM(ts._num) OVER ()::numeric / NULLIF(SUM(ts._den) OVER (), 0) * 100, 1)"
+      : "SUM(ts.value) OVER ()";
   // Display order is always most recent first, whatever the window direction.
   return (
-    `SELECT ts.*, ${RESULT_COL} FROM (${inner}) ts ` +
-    "ORDER BY ts.season DESC, ts.week DESC"
+    `SELECT ts.*, ${totalExpr} AS total, COUNT(*) OVER () AS games, ${RESULT_COL} ` +
+    `FROM (${scoped}) ts ORDER BY ts.season DESC, ts.week DESC`
   );
 }
 
