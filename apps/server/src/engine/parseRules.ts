@@ -216,12 +216,19 @@ function teamHits(qText: string, teams: Map<string, IndexedTeam>, cap = 2): Inde
 /** A four-digit year, or relative phrasings resolved against the newest
  * loaded season ("this season", "last year", "current season"). */
 function detectSeason(qText: string, latestSeason: number | null): number | null {
-  const m = qText.match(/\b(19|20)\d{2}\b/);
+  // "since 1999" / "since 2000" expresses all-time coverage, not a single
+  // season — strip it so it isn't misread as a one-year filter.
+  const cleaned = qText.replace(/\bsince\s+(?:19|20)\d{2}\b/g, " ");
+  // A four-digit run immediately followed by a stat unit is a threshold value
+  // ("2000 yard rushers", "1500 receiving yards"), never a season year.
+  const m = cleaned.match(
+    /\b(19|20)\d{2}\b(?!\s*[-]?\s*(?:\+|yards?|yds?|receptions?|catches|tds?|touchdowns?|tackles?|sacks?|points?|pts?))/,
+  );
   if (m) return Number(m[0]);
   if (latestSeason == null) return null;
   if (/\b(this|current) (season|year)\b/.test(qText)) return latestSeason;
+  // "last season" / "last year" both mean the prior season.
   if (/\blast (season|year)\b/.test(qText)) return latestSeason - 1;
-  if (/\b(this year|last year)\b/.test(qText)) return latestSeason;
   return null;
 }
 
@@ -281,6 +288,11 @@ function threshold(qText: string): { op: ">" | ">=" | "<"; value: number } | nul
   m = qText.match(/\b(?:under|fewer than|less than)\s+(\d+)/);
   if (m) return { op: "<", value: Number(m[1]) };
   m = qText.match(/\bgames? with (\d+)\b/);
+  if (m) return { op: ">=", value: Number(m[1]) };
+  // "300 yard games", "throw for 300 yards", "100-yard rushing games": a bare
+  // count sitting immediately before a yardage unit is a per-game threshold.
+  // (Two-plus digits so a "5 yard" incidental never trips it.)
+  m = qText.match(/\b(\d{2,4})[-\s]?(?:yards?|yds?)\b/);
   if (m) return { op: ">=", value: Number(m[1]) };
   return null;
 }
@@ -397,6 +409,45 @@ const UNSUPPORTED: [RegExp, string][] = [
   [
     /\b(primetime|prime time|monday night|sunday night|thursday night|snf|mnf|tnf|thanksgiving|against winning teams|after (the )?bye|overtime|comeback|record when)\b/,
     "That game-situation split isn't tracked yet. I can filter by season, playoffs, home/away, week ranges and stat thresholds.",
+  ],
+  [
+    // Play-level distance — not stored; the warehouse is box-score totals plus
+    // a touchdown log, not full play-by-play. Scoped to a play noun so it
+    // doesn't swallow "longest career" (a different, generic-fallback case).
+    /\blongest\s+(?:touchdown|td|play|run|rush|reception|catch|pass|completion|field goal|fg|drive|scoring)\b/,
+    "Play distances like the longest touchdown or play aren't tracked yet — I work from box-score totals, not full play-by-play.",
+  ],
+  [
+    /\b(streaks?|in a row|consecutive)\b/,
+    "Streaks aren't tracked yet. I can total a stat over a season, a career, the playoffs, or a first/last-N game window.",
+  ],
+  [
+    /\b(fastest to|youngest|oldest|milestone|on pace)\b/,
+    'Milestone-pace questions aren\'t supported yet. Try a straight total, like "Patrick Mahomes career passing yards".',
+  ],
+  [
+    /\bwhere (?:do|does|did)\b.*\brank\b|\brank(?:s|ed|ing)?\b|\bwhat number\b/,
+    'League-rank lookups aren\'t supported yet. I can give the leaders ("most passing yards in 2023") or a player\'s own total.',
+  ],
+  [
+    /\bhow (?:old|tall|heavy)\b|\b(age|birthday|height|hometown)\b|\btallest\b|\bshortest\b|\bheaviest\b|\bwhat college\b/,
+    "Player bio details aren't searchable yet — open a player's page for team, position, height, weight and college.",
+  ],
+  [
+    /\bper[- ]game\b|\byards per\b|\bpoints per\b/,
+    "Per-game rates aren't computed in search yet — player and team pages show per-game splits. Try season or career totals here.",
+  ],
+  [
+    // Multi-season ranges collapse to one year if answered — refuse instead of
+    // silently reporting a single season. "career" (all seasons) IS supported.
+    /\bfrom\s+(?:19|20)\d{2}\s+to\s+(?:19|20)\d{2}\b|\bbetween\s+(?:19|20)\d{2}\s+and\s+(?:19|20)\d{2}\b|\b(?:last|past)\s+\d+\s+(?:seasons|years)\b/,
+    'Season ranges aren\'t supported yet. Ask about one season ("passing yards in 2023"), a career total, or the playoffs.',
+  ],
+  [
+    // League-wide counts ("how many players had 1000 yards") — distinct from
+    // "how many <stat> did <player> have", which is a normal player total.
+    /\bhow many (?:players|guys|quarterbacks|qbs|running backs|rbs|receivers|wrs|tes|tight ends|teams)\b/,
+    'League-wide counts aren\'t supported yet. I can show the leaders ("most rushing yards in 2023") or a single player\'s total.',
   ],
 ];
 

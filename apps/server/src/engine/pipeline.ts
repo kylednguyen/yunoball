@@ -187,6 +187,9 @@ export async function runQueryPipeline(
     // per-game toggle divides by it.
     for (const row of rows) {
       delete (row as Record<string, unknown>).total;
+      // Ratio-window helper columns (see playerGameRowsSql) are internal.
+      delete (row as Record<string, unknown>)._num;
+      delete (row as Record<string, unknown>)._den;
       if (spec.intent !== "compare") delete (row as Record<string, unknown>).games;
     }
     const columns = rows.length > 0 ? Object.keys(rows[0]!) : [];

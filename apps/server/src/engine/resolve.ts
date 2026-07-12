@@ -19,6 +19,12 @@ const STOP = new Set([
   "top", "led", "leader", "leaders", "threw", "throw", "passing", "rushing",
   "receiving", "yards", "yard", "touchdowns", "touchdown", "tds", "td",
   "interceptions", "receptions", "catches", "points", "how", "many",
+  // Position / role nouns: "running back" must resolve to a position filter,
+  // never fuzzy-match a surname ("back" -> "Black", "wide" -> "Wade").
+  "running", "back", "backs", "wide", "receiver", "receivers",
+  "quarterback", "quarterbacks", "cornerback", "linebacker",
+  "defense", "offense", "defensive", "offensive",
+  "player", "players", "rookie", "rookies",
 ]);
 // The parser's reserved question vocabulary is also off-limits here, so
 // "in week 22" can never fuzzy-match a player named Weeks.
