@@ -67,9 +67,35 @@ function commonQuestions(): string[] {
   return questionsCache;
 }
 
-/** A random sample from the question corpus — powers the example chips. */
-export function examples(n: number): string[] {
-  const qs = [...commonQuestions()];
+// Cached once per process, like the question corpus itself: the loaded
+// season window only changes on ingest, which comes with a restart.
+let seasonRange: { min: number; max: number } | null | undefined;
+
+async function loadedSeasonRange(): Promise<{ min: number; max: number } | null> {
+  if (seasonRange === undefined) {
+    const rows = await q<{ min: number | null; max: number | null }>(
+      "SELECT MIN(season) AS min, MAX(season) AS max FROM seasons",
+    );
+    seasonRange =
+      rows[0]?.min != null && rows[0]?.max != null
+        ? { min: Number(rows[0].min), max: Number(rows[0].max) }
+        : null;
+  }
+  return seasonRange;
+}
+
+/** A random sample from the question corpus — powers the example chips.
+ * Only questions the warehouse can actually answer are offered: any year a
+ * question names must fall inside the loaded season window (year-less
+ * questions — careers, single-game records — are always fair game). */
+export async function examples(n: number): Promise<string[]> {
+  const range = await loadedSeasonRange();
+  const qs = commonQuestions().filter((question) => {
+    const years = question.match(/\b(?:19|20)\d{2}\b/g);
+    if (!years) return true;
+    if (!range) return false;
+    return years.every((y) => Number(y) >= range.min && Number(y) <= range.max);
+  });
   const out: string[] = [];
   while (out.length < Math.min(n, qs.length)) {
     out.push(...qs.splice(Math.floor(Math.random() * qs.length), 1));

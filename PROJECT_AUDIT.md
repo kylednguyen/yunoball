@@ -55,6 +55,7 @@ Remainder of Batch 3 — **H8 (memory + backfill):** per-season batching for `lo
 | 2026-07-13 | Batch 2 (C4) | ✅ web | ✅ 3/3 | ✅ 3/3 | ✅ **289/289** (+ sweep: 185 combos EXPLAIN'd) | ✅ **13/13** | Capability gate verified live; every routable intent×stat plans cleanly |
 | 2026-07-13 | PR #16 CI | — | — | — | — | ❌→ fix | First real CI run (PR) caught a C1 regression: the ingest CLI rejected `--years 2023 2024` (node parseArgs needs repeated flags). Fixed the CLI to accept space-separated / positional years and re-verified with the *exact* CI command. |
 | 2026-07-13 | Batch 3 (C5, H8) | — | ✅ 3/3 | ✅ 3/3 | ✅ **290/290** (+ drift + CLI tests) | — | Real ingest re-run confirms `checkColumns` doesn't false-fire on live nflverse data |
+| 2026-07-13 | Merge `main` (PR #15) | — | ✅ 3/3 | ✅ 3/3 | ✅ **290/290** | ✅ **13/13** (2022+2023+2024) | main independently fixed the CI e2e; took its canonical e2e/ci, verified my backend (C3) is compatible with its Drake-Maye compare test |
 
 ---
 
