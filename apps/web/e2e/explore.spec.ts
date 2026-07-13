@@ -20,7 +20,8 @@ test.describe("explore", () => {
     await page.goto("/teams/SF?season=2023");
     await expect(page.locator(".yb-page-sub")).toContainText("12-5");
 
-    await page.getByRole("combobox", { name: "Select season" }).selectOption("2024");
+    await page.getByRole("button", { name: "Select season" }).click();
+    await page.getByRole("option", { name: "2024 season" }).click();
     await expect(page).toHaveURL(/season=2024/);
     // Real 2024: the 49ers fell to 6-11.
     await expect(page.locator(".yb-page-sub")).toContainText("6-11");
@@ -91,7 +92,8 @@ test.describe("explore", () => {
     expect(count).toBeGreaterThan(0);
     expect(count).toBeLessThan(30); // one season, not the whole career
 
-    await page.getByRole("combobox", { name: "Filter game log by season" }).selectOption("all");
+    await page.getByRole("button", { name: "Filter game log by season" }).click();
+    await page.getByRole("option", { name: "All seasons" }).click();
     expect(await logRows.count()).toBeGreaterThan(count);
   });
 });

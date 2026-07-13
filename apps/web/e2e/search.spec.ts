@@ -30,7 +30,7 @@ test.describe("search", () => {
   test("inner-page sidebar keeps search focused on the primary Search page", async ({ page }) => {
     await page.goto("/standings");
 
-    await expect(page.getByRole("combobox", { name: "Search NFL teams, players, and stats" })).toHaveCount(0);
+    await expect(heroSearch(page)).toHaveCount(0);
     await page.getByRole("link", { name: "Search" }).click();
     await expect(heroSearch(page)).toBeVisible();
   });
