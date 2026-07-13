@@ -1,8 +1,8 @@
 # Domain Coverage Matrix
 
 Status of every domain area against the search engine, verified by the
-130-question audit corpus (`apps/server/src/cli/searchAudit.ts`) against a
-live 2020–2024 warehouse: **114 answered · 14 tailored refusals · 2 generic
+138-question audit corpus (`apps/server/src/cli/searchAudit.ts`) against a
+live 2020–2024 warehouse: **122 answered · 14 tailored refusals · 2 generic
 fallbacks · 0 wrong · 0 errors**.
 
 Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
@@ -19,7 +19,7 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Position / Current team | ✅ | "what team does Aaron Rodgers play for" → *NY Jets* |
 | Previous teams | ✅ | "what teams has Derrick Henry played for" → *Titans (2020–2023), Ravens (2024)* |
 | Experience | ✅ | "how many seasons has Mahomes played" → *5 in the warehouse, 2020–2024* |
-| Jersey number | 📥 | in nflverse rosters; needs an ingest column |
+| Jersey number | ✅ | "what number does Mahomes wear" → *No. 15* |
 | Awards | 🚫 | not in nflverse — tailored refusal |
 
 ## Stats
@@ -29,14 +29,16 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Season / Career / Single-game / Game logs | ✅ | core engine |
 | Splits: home/away, playoffs, opponent, **month** | ✅ | "Henry rushing yards in December 2023" → *275* |
 | Splits: division/conference opponent | 🟡 | opponent-by-team works; grouped div/conf splits live on player pages |
-| Splits: weather / primetime | 📥 | temp/wind/gametime are in nflverse schedules; needs ingest |
+| Splits: primetime | ✅ | "Mahomes passing yards in primetime in 2023" → *1,357* |
+| Splits: weather (cold) | ✅ | "Josh Allen passing yards in freezing weather" → *1,362 (≤32°F)* |
 
 ## Team
 
 | Item | Status | Example |
 |---|---|---|
 | Division / Conference / Stadium | ✅ | "what division are the chiefs in" → *AFC West* |
-| Coach / Founded / Colors | 📥 / 🚫 | coach + colors are in nflverse (ingest); founded is not |
+| Coach / Colors | ✅ | "who coaches the chiefs" → *Andy Reid*; colors from nflverse |
+| Founded | 🚫 | not in nflverse — refusal |
 | Team stats (points, yards) | ✅ | "how many points did the chiefs score in 2023" → *371* |
 | Points allowed / per game | ✅ | "bills points allowed in 2023" → *311*; "chiefs points per game" → *21.8* |
 | Team leaders | ✅ | "who led the chiefs in receiving yards in 2023" → *Kelce, 984* |
@@ -87,7 +89,7 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Item | Status |
 |---|---|
 | EPA / DVOA / CPOE / success rate / win probability / expected points / pressure rate | 🚫 tailored refusal — proprietary or needs full play-by-play |
-| Air yards | 📥 in nflverse weekly stats; needs ingest columns |
+| Air yards | ✅ — "Tyreek Hill air yards in 2023" → *1,847*; passing/receiving boards |
 
 ## NL edge cases
 
@@ -99,9 +101,9 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Relative dates | ✅ | "this season", "last year", "last game" |
 | Impossible queries | ✅ | tailored refusals; gibberish → honest fallback |
 
-## Next ingest wave (📥 items)
+## Ingested in wave 2
 
-One schema + pipeline pass over data already in nflverse files would flip:
-jersey numbers (rosters), head coach (schedules `home_coach`/`away_coach`),
-team colors (`teams_colors_logos`), primetime/weekday splits (`gametime`,
-`weekday`), weather splits (`temp`, `wind`), and air yards (weekly stats).
+Jersey numbers (rosters), head coach (schedules `home_coach`/`away_coach`),
+team colors (`teams_colors_logos`), kickoff weekday/time for primetime
+splits, kickoff temperature/wind for weather splits, and passing/receiving
+air yards (weekly stats) are now warehouse columns — see the ✅ rows above.

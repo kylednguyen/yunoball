@@ -94,6 +94,22 @@ export const STATS: Record<string, StatDef> = {
     ratio: { num: "receptions", den: "targets", pct: true, floorSeason: 50, floorCareer: 300 },
     unit: "%",
   },
+  // Air yards live only in the game log; a bare "air yards" resolves by the
+  // player's/position's side of the ball in the parser.
+  passing_air_yards: {
+    expr: "s.passing_air_yards",
+    label: "passing air yards",
+    phrases: ["passing air yards", "air yards thrown"],
+    words: [],
+    source: "game",
+  },
+  receiving_air_yards: {
+    expr: "s.receiving_air_yards",
+    label: "receiving air yards",
+    phrases: ["receiving air yards", "air yards caught"],
+    words: [],
+    source: "game",
+  },
   interceptions: {
     expr: "s.interceptions",
     label: "interceptions",
@@ -236,6 +252,10 @@ export interface GameWindow {
   seasonMax?: number | null;
   /** Calendar-month split ("in December"), 1-12. */
   month?: number | null;
+  /** Primetime games only (Mon/Thu, or Sat/Sun night kickoffs). */
+  primetime?: boolean;
+  /** Kickoff temperature ceiling, °F ("in freezing weather" -> 32). */
+  tempMax?: number | null;
 }
 
 /** Team-anchored game lookups (team_game_log / game_result) share these. */
@@ -338,7 +358,7 @@ export interface PlayerRankSpec extends SpecBase {
 export interface PlayerBioSpec extends SpecBase {
   intent: "player_bio";
   /** Which bio fact ("team"/"age"/…), or the metric a superlative ranks by. */
-  bioField: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "full";
+  bioField: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "jersey" | "full";
   playerId?: string | null;
   player?: string | null;
   dir?: "desc" | "asc";
@@ -384,7 +404,7 @@ export interface TeamBioSpec extends SpecBase {
   teamId: string;
   teamName?: string | null;
   /** Which team fact the question asks for. */
-  teamField: "division" | "conference" | "stadium" | "full";
+  teamField: "division" | "conference" | "stadium" | "coach" | "colors" | "full";
 }
 
 export interface TeamStatSpec extends SpecBase, GameWindow {
@@ -430,11 +450,11 @@ export interface SpecFields extends GameWindow, TeamGameFields {
   dir?: "desc" | "asc";
   edge?: "first" | "last" | null;
   threshold?: { op: ">" | ">=" | "<"; value: number } | null;
-  bioField?: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "full" | null;
+  bioField?: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "jersey" | "full" | null;
   teamId?: string | null;
   draftPick?: number | null;
   draftRound?: number | null;
-  teamField?: "division" | "conference" | "stadium" | "full" | null;
+  teamField?: "division" | "conference" | "stadium" | "coach" | "colors" | "full" | null;
   metric?: "points_for" | "points_against" | null;
 }
 
@@ -465,6 +485,6 @@ export function specCacheKey(spec: QuerySpec): string {
     s.round, s.teamId, s.team2Id, s.opponentId, s.gameDate, s.conf,
     s.marginMax, s.draftPick, s.draftRound,
     s.bioField, s.perGame, s.seasonMin, s.seasonMax,
-    s.month, s.teamField, s.metric,
+    s.month, s.teamField, s.metric, s.primetime, s.tempMax,
   ].map(String).join("|");
 }

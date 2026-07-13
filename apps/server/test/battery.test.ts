@@ -137,7 +137,7 @@ const CASES: [string, Expect][] = [
   ["Bills Week 5 stats", refusal("team")],
   ["Chiefs after Week 10", refusal("team")],
   ["Ravens before Week 8", refusal("team")],
-  ["Eagles in primetime", refusal("split")],
+  ["Eagles in primetime", refusal("team question")], // primetime STAT splits answer; a bare team+primetime record isn't wired yet
   ["Dolphins vs AFC East", refusal()],
   ["Lions against winning teams", refusal("split")],
   ["Cowboys after bye week", refusal("split")],
@@ -203,8 +203,9 @@ const CASES: [string, Expect][] = [
   ["Eagles last game", answer({ intent: "game_result", teamId: "PHI", limit: 1 })],
   ["Ravens score yesterday", answer({ intent: "game_result", teamId: "BAL", limit: 1 })],
   ["Week 7 schedule", refusal("scores")],
-  ["Monday Night Football", refusal("split")],
-  ["Sunday Night Football", refusal("split")],
+  // Bare broadcast names carry no askable stat — honest generic fallback.
+  ["Monday Night Football", generic],
+  ["Sunday Night Football", generic],
   ["Thanksgiving games", refusal("split")],
   ["Super Bowl winners", answer({ intent: "game_result", round: "SB", season: null })],
   ["AFC Championship results", answer({ intent: "game_result", round: "CON", conf: "AFC" })],
@@ -310,6 +311,16 @@ const CASES: [string, Expect][] = [
   ["who led the chiefs in receiving yards in 2023", answer({ intent: "leaders", teamId: "KC", stat: "receiving_yards", season: 2023 })],
   ["chiefs roster 2023", answer({ intent: "team_roster", teamId: "KC", season: 2023 })],
   ["who played for the bills in 2022", answer({ intent: "team_roster", teamId: "BUF", season: 2022 })],
+  // ---- wave 2: jersey / coach / colors / primetime / weather / air yards ----
+  ["what number does Patrick Mahomes wear", answer({ intent: "player_bio", bioField: "jersey", playerId: "P_MAHOMES" })],
+  ["who coaches the chiefs", answer({ intent: "team_bio", teamField: "coach", teamId: "KC" })],
+  ["what are the packers colors", answer({ intent: "team_bio", teamField: "colors", teamId: "GB" })],
+  ["Josh Allen passing yards in primetime in 2023", answer({ intent: "player_total", primetime: true, season: 2023 })],
+  ["most rushing yards in primetime 2023", answer({ intent: "leaders", primetime: true, stat: "rushing_yards" })],
+  ["Josh Allen passing yards in freezing weather", answer({ intent: "player_total", tempMax: 32 })],
+  ["Ja'Marr Chase air yards in 2023", answer({ intent: "player_total", stat: "receiving_air_yards", playerId: "P_CHASE" })],
+  ["Patrick Mahomes air yards in 2023", answer({ intent: "player_total", stat: "passing_air_yards" })],
+  ["most receiving air yards in 2023", answer({ intent: "leaders", stat: "receiving_air_yards" })],
   // ---- routing guards: game lookups must not be hijacked by team-info ----
   ["what was the score of the eagles game", answer({ intent: "game_result", teamId: "PHI" })],
   ["chiefs record in 2023", answer({ intent: "team_game_log", teamId: "KC", season: 2023 })],

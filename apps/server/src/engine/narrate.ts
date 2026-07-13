@@ -53,6 +53,8 @@ function qualifiers(spec: FieldedSpec): string {
   if (spec.month != null && MONTHS_FULL[spec.month - 1]) {
     parts.push(`in ${MONTHS_FULL[spec.month - 1]}`);
   }
+  if (spec.primetime) parts.push("in primetime");
+  if (spec.tempMax != null) parts.push(`in ${spec.tempMax}°F or colder`);
   return parts.length ? ` ${parts.join(", ")}` : "";
 }
 
@@ -151,6 +153,10 @@ function narrateBio(spec: FieldedSpec, top: Row, name: string, rows: Row[] = [to
       return top.weight_lbs ? `${name} weighs ${top.weight_lbs} lbs${h ? ` (${h})` : ""}.` : `${name}'s weight isn't on file.`;
     case "college":
       return top.college ? `${name} played college football at ${top.college}.` : `${name}'s college isn't on file.`;
+    case "jersey":
+      return top.jersey_number != null
+        ? `${name} wears No. ${top.jersey_number}.`
+        : `${name}'s jersey number isn't on file.`;
     default: {
       const bits: string[] = [];
       if (top.position) bits.push(String(top.position));
@@ -204,6 +210,17 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
       return top.stadium
         ? `The ${tn} play their home games at ${top.stadium}.`
         : `The ${tn}'s stadium isn't on file.`;
+    }
+    if (spec.teamField === "coach") {
+      // From the most recent home game — the warehouse's freshest signal.
+      return top.coach
+        ? `${top.coach} coached the ${tn} in their most recent home game on file.`
+        : `The ${tn}'s coach isn't on file.`;
+    }
+    if (spec.teamField === "colors") {
+      return top.color
+        ? `The ${tn}'s colors are ${top.color}${top.color2 ? ` and ${top.color2}` : ""}.`
+        : `The ${tn}'s colors aren't on file.`;
     }
     const bits: string[] = [];
     if (top.conference && top.division) bits.push(`${top.conference} ${top.division}`);

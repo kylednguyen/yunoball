@@ -25,6 +25,8 @@ export async function loadTeams(ctx: Ctx): Promise<number> {
     nickname: str(r.team_nick),
     conference: str(r.team_conf),
     division: str(r.team_division),
+    color: str(r.team_color),
+    color2: str(r.team_color2),
   }));
   rows = ctx.drop(
     rows,
@@ -54,6 +56,7 @@ export async function loadPlayers(ctx: Ctx, years: number[]): Promise<number> {
     height_inches: int(r.height),
     weight_lbs: int(r.weight),
     college: str(r.college),
+    jersey_number: int(r.jersey_number),
     _season: int(r.season) ?? 0,
   }));
   rows = ctx.drop(rows, (r) => r.player_id !== "", "players",
@@ -87,6 +90,12 @@ export async function loadGames(ctx: Ctx, years: number[]): Promise<number> {
     stadium: str(r.stadium),
     roof: str(r.roof),
     surface: str(r.surface),
+    weekday: str(r.weekday),
+    gametime: str(r.gametime),
+    temp: int(r.temp),
+    wind: int(r.wind),
+    home_coach: str(r.home_coach),
+    away_coach: str(r.away_coach),
   }));
   // The warehouse only models REG and POST; preseason ("PRE") and unrecognized
   // game types are excluded. Dropping PRE here also stops it from colliding
@@ -164,6 +173,8 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
         def_interceptions: int(r.def_interceptions),
         forced_fumbles: int(r.def_fumbles_forced),
         passes_defended: int(r.def_pass_defended),
+        passing_air_yards: int(r.passing_air_yards),
+        receiving_air_yards: int(r.receiving_air_yards),
       };
     });
 

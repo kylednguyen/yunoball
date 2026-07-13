@@ -164,6 +164,15 @@ const QUESTIONS: string[] = [
   "who led the chiefs in receiving yards in 2023",
   "chiefs roster 2023",
   "who played for the bills in 2022",
+  // --- domain wave 2: jersey / coach / colors / primetime / weather / air yards ---
+  "what number does Patrick Mahomes wear",
+  "who coaches the chiefs",
+  "what are the packers colors",
+  "Patrick Mahomes passing yards in primetime in 2023",
+  "most rushing yards in primetime 2023",
+  "Josh Allen passing yards in freezing weather",
+  "Tyreek Hill air yards in 2023",
+  "most receiving air yards in 2023",
   // --- domain wave: honest refusals for absent data ---
   "patrick mahomes EPA in 2023",
   "was Justin Jefferson traded",

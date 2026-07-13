@@ -92,6 +92,8 @@ export function needsGameLog(spec: PlayerTotalSpec): boolean {
       spec.weekMin != null ||
       spec.weekMax != null ||
       spec.month != null ||
+      spec.primetime ||
+      spec.tempMax != null ||
       spec.firstN ||
       spec.lastN ||
       spec.sbOnly,
@@ -136,6 +138,13 @@ export function gamePreds(spec: GameScoped, p: Params): string[] {
   if (spec.month != null) {
     preds.push(`EXTRACT(MONTH FROM g.game_date) = ${p.add(spec.month)}`);
   }
+  if (spec.primetime) {
+    preds.push(
+      "(g.weekday IN ('Monday', 'Thursday') OR " +
+      "(g.weekday IN ('Sunday', 'Saturday') AND g.gametime >= '20:00'))",
+    );
+  }
+  if (spec.tempMax != null) preds.push(`g.temp <= ${p.add(spec.tempMax)}`);
   if (spec.sbOnly || spec.round) preds.push(roundPred(spec.round ?? "SB"));
   if (spec.opponentId) {
     const opp = p.add(spec.opponentId);

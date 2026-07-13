@@ -209,6 +209,25 @@ ALTER TABLE player_season_stats
     ADD COLUMN IF NOT EXISTS forced_fumbles smallint,
     ADD COLUMN IF NOT EXISTS passes_defended smallint;
 
+-- Metadata columns for bio/split questions (nflverse carries them all):
+-- jersey numbers, coaches, team colors, kickoff time/weekday and weather
+-- for primetime/weather splits, and air yards.
+ALTER TABLE players
+    ADD COLUMN IF NOT EXISTS jersey_number smallint;
+ALTER TABLE teams
+    ADD COLUMN IF NOT EXISTS color varchar,
+    ADD COLUMN IF NOT EXISTS color2 varchar;
+ALTER TABLE games
+    ADD COLUMN IF NOT EXISTS weekday varchar,
+    ADD COLUMN IF NOT EXISTS gametime varchar,
+    ADD COLUMN IF NOT EXISTS temp smallint,
+    ADD COLUMN IF NOT EXISTS wind smallint,
+    ADD COLUMN IF NOT EXISTS home_coach varchar,
+    ADD COLUMN IF NOT EXISTS away_coach varchar;
+ALTER TABLE player_game_stats
+    ADD COLUMN IF NOT EXISTS passing_air_yards integer,
+    ADD COLUMN IF NOT EXISTS receiving_air_yards integer;
+
 -- Query-shape indexes. Leaderboards filter (season, season_type); "players on
 -- team X in year Y" filters team_id; REG/POST game scans filter season_type.
 CREATE INDEX IF NOT EXISTS pss_season_type_idx
