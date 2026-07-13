@@ -7,11 +7,12 @@
  */
 
 import type { MilestoneSpec, PlayerStreakSpec, TeamStreakSpec } from "../spec.js";
-import { gamePreds, Params, RESULT_COL, ROUND_NAME_SQL, statDef } from "./shared.js";
+import { gamePreds, Params, ratioRowExpr, RESULT_COL, ROUND_NAME_SQL, statDef } from "./shared.js";
 
 export function playerStreakSql(spec: PlayerStreakSpec, p: Params): string {
   const def = statDef(spec);
-  const valueExpr = def.ratio ? `COALESCE(s.${def.ratio.num}, 0)` : def.expr;
+  // Ratio streaks qualify on the per-game ratio, not the raw numerator.
+  const valueExpr = def.ratio ? ratioRowExpr(def) : def.expr;
   const op = spec.threshold ? { ">": ">", ">=": ">=", "<": "<" }[spec.threshold.op] : ">";
   const bar = p.add(spec.threshold?.value ?? 0);
   const where = [`s.player_id = ${p.add(spec.playerId)}`, ...gamePreds(spec, p)];

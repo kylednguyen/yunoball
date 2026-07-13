@@ -12,7 +12,7 @@
  *     or a game-sourced stat (completion percentage)
  */
 
-import { STATS, specExpr } from "../spec.js";
+import { STATS } from "../spec.js";
 import type { GameLogSpec, GameWindow, PlayerTotalSpec, StatDef } from "../spec.js";
 
 // Every stat column, for COMPARE's full-line output (allowlisted names only).
@@ -22,6 +22,12 @@ export const ALL_STAT_COLS = [
   "receiving_tds", "tackles", "def_sacks", "def_interceptions",
   "forced_fumbles", "passes_defended", "sacks", "fantasy_points_ppr",
 ] as const;
+
+// Columns COMPARE aggregates per side. Superset of the display line: carries
+// and targets are summed too so ratio stats (yards per carry, catch rate) can
+// be computed head-to-head, even though they aren't shown as their own row.
+export const COMPARE_SUM_COLS = [...ALL_STAT_COLS, "carries", "targets"] as const;
+const COMPARE_COL_SET = new Set<string>(COMPARE_SUM_COLS);
 
 export class Params {
   values: unknown[] = [];
@@ -289,8 +295,38 @@ export function playerGameRowsSql(
   );
 }
 
-/** The stat column COMPARE ranks and narrates on. */
-export function compareOrderCol(spec: { stat: string }): string {
-  const expr = specExpr(spec);
-  return /^s\.\w+$/.test(expr) ? expr.slice(2) : "fantasy_points_ppr";
+/** NFL passer rating over already-summed columns on `alias` (COMPARE's agg
+ * subquery), rather than SUM(s.col) as passerRatingExpr does. */
+function passerRatingAggExpr(alias: string): string {
+  const att = `NULLIF(${alias}.attempts, 0)`;
+  const a = prTerm(`(${alias}.completions::numeric / ${att} - 0.3) * 5`);
+  const b = prTerm(`(${alias}.passing_yards::numeric / ${att} - 3) * 0.25`);
+  const c = prTerm(`${alias}.passing_tds::numeric / ${att} * 20`);
+  const d = prTerm(`2.375 - ${alias}.interceptions::numeric / ${att} * 25`);
+  return `ROUND((${a} + ${b} + ${c} + ${d}) / 6 * 100, 1)`;
+}
+
+/** The value COMPARE ranks and narrates on, computed from the aggregated
+ * columns of the `agg` subquery — the actual requested stat (ratio, formula, or
+ * sum), never a silent fantasy-points substitution. Returns null when the stat
+ * can't be computed from COMPARE's aggregate (advanced pbp stats that live in
+ * player_game_advanced), so the parser can refuse instead of emitting bad SQL. */
+export function compareValueExpr(spec: { stat: string }): string | null {
+  const def = statDef(spec);
+  if (def.formula === "passer_rating") return passerRatingAggExpr("agg");
+  if (def.ratio) {
+    const { num, den, pct } = def.ratio;
+    if (!COMPARE_COL_SET.has(num) || !COMPARE_COL_SET.has(den)) return null;
+    return `ROUND(agg.${num}::numeric / NULLIF(agg.${den}, 0)${pct ? " * 100" : ""}, 1)`;
+  }
+  // Simple ("s.passing_yards") or computed ("COALESCE(s.passing_tds,0)+...").
+  // Comparable only if every column it references is in the aggregate.
+  const cols = [...def.expr.matchAll(/\bs\.(\w+)/g)].map((m) => m[1]!);
+  if (cols.length === 0 || !cols.every((c) => COMPARE_COL_SET.has(c))) return null;
+  return def.expr.replace(/\bs\./g, "agg.");
+}
+
+/** Whether two players can be compared head-to-head on this stat. */
+export function isComparableStat(stat: string): boolean {
+  return compareValueExpr({ stat }) !== null;
 }
