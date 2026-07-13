@@ -7,6 +7,9 @@ import { cdnResize } from "./Headshot";
  *  original) — largest render is 64px, so 128 covers 2x displays. */
 export function TeamLogo({ team, size = 18 }: { team: string; size?: number }) {
   return (
+    // Deliberate CDN-resized <img> (see doc comment); next/image gains nothing
+    // over ESPN's combiner here and would add a loader hop.
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       className="yb-team-logo"
       src={cdnResize(`https://a.espncdn.com/i/teamlogos/nfl/500/${team.toLowerCase()}.png`, 128)}

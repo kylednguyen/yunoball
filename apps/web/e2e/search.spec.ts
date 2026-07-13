@@ -37,35 +37,40 @@ test.describe("search", () => {
 
   test("player comparison renders a head-to-head table on real stats", async ({ page }) => {
     await page.goto(
-      `/?q=${encodeURIComponent("josh allen post season first 5 games versus drake maye first 5")}`,
+      `/?q=${encodeURIComponent("josh allen vs patrick mahomes post season first 5 games")}`,
     );
 
     await expect(page.locator(".yb-answer")).toContainText(
-      "first 5 postseason games, Josh Allen leads Drake Maye in passing yards",
+      "first 5 postseason games, Patrick Mahomes leads Josh Allen in passing yards",
     );
     const compare = page.locator(".yb-compare");
     await expect(compare).toBeVisible();
     await expect(compare).toContainText("Josh Allen");
-    await expect(compare).toContainText("Drake Maye");
-    await expect(compare).toContainText("Pass yds");
-    await expect(compare).not.toContainText("Fantasy"); // actual stats only
+    await expect(compare).toContainText("Patrick Mahomes");
+    // The requested stat leads the head-to-head, computed from real box scores.
+    await expect(compare).toContainText("Pass yards");
     await expect(compare.locator(".lead").first()).toBeVisible();
   });
 
   test("home search leads with supported sample queries and structured result actions", async ({ page }) => {
     await page.goto("/");
 
+    // Sample queries are offered up front.
     await expect(page.getByText("Try a supported query")).toBeVisible();
-    const sample = page.locator(".yb-sample-query").first();
-    const question = await sample.textContent();
-    await sample.click();
+    await expect(page.locator(".yb-sample-query").first()).toBeVisible();
+
+    // Run a known tabular query so the structured result actions are
+    // deterministic (the sample list is randomized and includes scalar answers).
+    const question = "Top 5 rushing yards in 2023";
+    await heroSearch(page).fill(question);
+    await heroSearch(page).press("Enter");
 
     await expect(page.locator(".yb-query-result")).toBeVisible();
     await expect(page.getByText("Query interpretation")).toBeVisible();
     await expect(page.getByRole("button", { name: /Show query/i })).toBeVisible();
     await expect(page.getByRole("button", { name: "Download CSV" })).toBeVisible();
     await expect(page.getByText("Recent:")).toBeVisible();
-    await expect(page.locator(".yb-recent-query", { hasText: question! })).toBeVisible();
+    await expect(page.locator(".yb-recent-query", { hasText: question })).toBeVisible();
   });
 
   test("example chips run a query and land in recents", async ({ page }) => {

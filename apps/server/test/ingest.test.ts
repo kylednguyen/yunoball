@@ -7,7 +7,7 @@
  * postponed games (null scores), stats for players missing from the dimension,
  * season-type filtering, dry runs, idempotent re-runs, schema drift.
  *
- * Requires the dev Postgres from docker-compose (localhost:5433); tests
+ * Requires the dev Postgres from docker-compose (localhost:5432); tests
  * create and drop their own scratch database.
  */
 
@@ -18,7 +18,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { teamRow } from "../src/ingest/normalize.js";
 
 const ADMIN_URL =
-  process.env.TEST_ADMIN_DATABASE_URL ?? "postgresql://yunoball:yunoball@localhost:5433/yunoball";
+  process.env.TEST_ADMIN_DATABASE_URL ?? "postgresql://yunoball:yunoball@localhost:5432/yunoball";
 const SCRATCH_DB = "yunoball_ts_test";
 
 // ---- fixture rows, shaped like the release CSVs (all values strings) ---- //

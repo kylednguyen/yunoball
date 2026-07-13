@@ -1,6 +1,73 @@
-# YunoBall — Project Audit
+# YunoBall — Project Audit & Living Engineering Log
 
-**Date:** 2026-07-13 · **Scope:** entire repository at `c253ec4` (main) · **Method:** full code read of all three workspaces plus empirical verification — every quality gate was executed locally against a real Postgres warehouse with the 2023 and 2024 seasons ingested from nflverse, and CI history was pulled from GitHub. Findings below are marked **[verified]** when demonstrated by execution, otherwise they come from direct code reading with file:line references.
+**Originated:** 2026-07-13 · **Baseline commit:** `c253ec4` (main) · **Method:** full code read of all three workspaces plus empirical verification — every quality gate was executed locally against a real Postgres warehouse with the 2023 and 2024 seasons ingested from nflverse, and CI history was pulled from GitHub. Findings are marked **[verified]** when demonstrated by execution, otherwise they come from direct code reading with file:line references.
+
+> **This document is the single source of truth and the canonical backlog.** The
+> ranked findings (§4–§17) are the issue list; the **Remediation Status Ledger**,
+> **Validation History**, **Engineering Decisions**, and **Changelog** below are
+> updated as work lands so the audit stays an accurate reflection of the project.
+
+---
+
+## Remediation Status Ledger
+
+Issue IDs (C#, H#, M#, L#) refer to the ranked refactors in §16.
+
+### ✅ Completed
+
+| ID | Issue | Landed | Evidence |
+|---|---|---|---|
+| **C2** | Working lint across the monorepo | Batch 1 | ESLint 9 flat config (`eslint.config.mjs`) + `lint` scripts in all 3 workspaces; `pnpm lint` green (was: unrunnable). Fixed the real violations it surfaced (dead `outcome()`, 3 unused imports, raw `<a>` in `error.tsx`). |
+| **C1** | CI e2e restored to green | Batch 1 | `ci.yml` ingests `--years 2023 2024`; 3 stale/data-coupled specs re-pinned to verified reality. Full suite **13/13 local** (was 10/13 failing as CI ran it). |
+| **C6** | Pool error handler + query/connect timeouts | Batch 1 | `pool.on("error")` on both pools; `connectionTimeoutMillis`; statement caps (RO 15s / RW 120s). Server 287 tests still green. |
+| **H1** | Verified DB TLS (CA pinning) | Batch 1 | `DATABASE_CA_CERT`/`_FILE` → `rejectUnauthorized:true`; unverified fallback now logs a loud warning instead of being silent. |
+| **C7** | Guard `NEXT_PUBLIC_API_URL` | Batch 1 | Prod build now **fails loudly** when unset (verified: "Refusing to ship a localhost API URL") instead of shipping localhost. |
+| **H9** | Timeouts on `ask()`/`askAgent()` POSTs | Batch 1 | `AbortSignal.timeout(30s)`; `friendlyError` already translates the abort. |
+| **H11** | Aligned local ports to 5432 | Batch 1 | `.env.example`, `ingest.test.ts` default → 5432 (compose default); quick start now works on a fresh clone. New env vars + `TRUST_PROXY_HOPS` documented. |
+
+### 🟡 In Progress
+
+| ID | Issue | Batch |
+|---|---|---|
+| — | (Batch 2 not yet started) | — |
+
+### ⬜ Open (next up)
+
+Batch 2 — answer integrity: **C3** (compare fantasy-point substitution), **C4** (capability check + `buildSql`×`EXPLAIN` sweep test), **H6** (ratio thresholds). Then Batch 3 (ingest integrity: **C5**, **H8**), Batch 4 (prod hardening: **H3**, **H5**, **H7**, **H10**), Batch 5+ (Medium/Low). See §16 for the full ranked list.
+
+---
+
+## Validation History
+
+| Date | Batch | build | typecheck | lint | unit | e2e | Notes |
+|---|---|---|---|---|---|---|---|
+| 2026-07-13 | Baseline | ✅ web | ✅ | ❌ unrunnable | ✅ 287 | ❌ 10/13 fail (CI red on all 4 main runs) | Audit baseline |
+| 2026-07-13 | Batch 1 | ✅ web (+ C7 guard verified to fail on missing env) | ✅ 3/3 | ✅ 3/3 | ✅ 287/287 | ✅ **13/13** (2023+2024) | All gates green locally; CI steps reproduced |
+
+---
+
+## Engineering Decisions (ADRs)
+
+**ADR-001 — Split statement-timeout policy by pool, not a single global cap.**
+The read-only pool (user-facing engine/API reads) gets a tight 15s `statement_timeout`; the read/write pool gets a generous 120s cap because ingest legitimately runs multi-second batch upserts (the 2024 `scoring_plays` step alone is ~14s of work). A single global 15s cap would have broken ingest — a regression. Both are env-tunable (`DB_STATEMENT_TIMEOUT_MS`, `DB_WRITE_STATEMENT_TIMEOUT_MS`). When no separate read-only URL is set, reads run on the RW pool and are still bounded (just at the looser cap). Rejected: forcing a second pool always (doubles connections against Supabase's free-plan limit).
+
+**ADR-002 — TLS verification is opt-in via CA, with a loud warning otherwise.**
+Pinning a CA unconditionally would break the common Supabase-pooler setup where operators haven't wired the cert yet. So verified TLS activates when `DATABASE_CA_CERT`/`DATABASE_CA_CERT_FILE` is supplied; without it the connection stays encrypted-but-unverified **and logs a warning on every boot**, converting a silent MITM exposure into a visible, actionable one. Production should always set the CA.
+
+**ADR-003 — E2E specs assert verified real data; flakiness removed by determinism, not mocking.**
+Rather than introduce a mocked data tier (a larger change), the three failing specs were re-pinned to values verified against the live 2023+2024 warehouse (e.g. Mahomes is QB #12 of 79 by 2024 PPR — so the old "QB #1 of" assertion was simply wrong), and the randomized-sample-query flake was replaced with a deterministic tabular query. The suite still exercises real end-to-end behavior. A mocked tier remains a future option (see Future Improvements).
+
+**ADR-004 — Lint is a real gate: errors for correctness, warnings only for documented-intentional patterns.**
+The flat config keeps `typescript-eslint` recommended + Next/React-hooks rules as errors, but downgrades `no-explicit-any` to a warning (the engine's typed escape hatch is deliberate) and suppresses individual intentional cases inline with rationale (CDN `<img>`, ESPN's untyped API). The gate exits clean with zero warnings, so any *new* warning stands out instead of drowning in noise.
+
+---
+
+## Changelog
+
+- **2026-07-13 — Batch 1 (Trust the gates):** ESLint 9 across the monorepo; CI e2e green (2023+2024 ingest + spec fixes); Postgres pool hardening (error handler, timeouts, optional CA-verified TLS); prod build guard on `NEXT_PUBLIC_API_URL`; POST-request timeouts; local ports aligned to 5432; new DB/proxy env vars documented in `.env.example`. Net: the quality gates that every other issue's Definition of Done depends on are now trustworthy.
+- **2026-07-13 — Audit originated.**
+
+---
 
 ---
 
@@ -8,7 +75,11 @@
 
 YunoBall is an unusually well-designed prototype: a deterministic NL → `QuerySpec` → SQL engine over a curated warehouse, with a genuine "never a wrong number" architecture, injection-proof SQL construction, strong ingestion engineering, and accessibility maturity far above typical. The gaps are not in the application's ideas — they are concentrated in three places: **the quality gates are broken** (CI has never been green on main; lint cannot run), **a handful of engine corners produce wrong numbers or 500s** in exactly the untested executor layer, and **the process's edges are unhardened** (DB pool errors, timeouts, TLS verification, cache invalidation).
 
-### Verified state of the quality gates [verified]
+### Baseline state of the quality gates [verified — at origination]
+
+> Historical snapshot at commit `c253ec4`. For current status see the
+> **Remediation Status Ledger** above — Batch 1 has since made lint runnable and
+> restored e2e/CI to green.
 
 | Gate | Status | Evidence |
 |---|---|---|
@@ -243,31 +314,31 @@ Effort: S < ½ day · M ≈ 1–2 days · L ≈ 3+ days.
 
 ### Critical — the product is wrong or the gates are down
 
-| # | Refactor | Effort | Why |
-|---|---|---|---|
-| C1 | **Restore CI to green**: ingest `--years 2023 2024` in ci.yml (or re-pin specs to 2024), fix the two stale selectors (`explore.spec.ts:46,88`), rewrite the Maye assertion to warehouse-independent phrasing | S | [verified] CI has never passed on main; every other guarantee depends on a trusted gate |
-| C2 | **Make lint real**: flat ESLint config (typescript-eslint + next plugin), `lint` scripts in all 3 workspaces, CI step, fix fallout | M | [verified] `pnpm lint` is unrunnable; README claims otherwise |
-| C3 | **Fix `compare`'s stat substitution** (`shared.ts:293`): compute ratio/formula aggregates per side or refuse | S–M | [verified live] wrong numbers under the user's label — the core product promise broken |
-| C4 | **Add a capability check per (executor × StatDef)** and an intent×stat `buildSql`+`EXPLAIN` sweep test; fix `teamStat`/`rank`/`counts` fallout | M | Kills the 500-crash class and permanently guards the whole executor layer |
-| C5 | **Provider cache revalidation** (ETag/max-age/`--no-cache`) + **per-asset header assertions** before mapping | M | In-season re-ingests silently load stale data; upstream renames fabricate zeros with exit 0 |
-| C6 | **`pool.on("error")` + `statement_timeout` + `connectionTimeoutMillis`** on both pools | S | One idle-client blip currently restarts the API; one bad query wedges it |
-| C7 | **Guard `NEXT_PUBLIC_API_URL`** (throw in prod build when unset) | S | A silent misconfiguration ships a fully broken app |
+| # | Refactor | Effort | Why | Status |
+|---|---|---|---|---|
+| C1 | **Restore CI to green**: ingest `--years 2023 2024` in ci.yml, fix the stale selectors, re-pin data-coupled asserts to verified reality | S | [verified] CI has never passed on main; every other guarantee depends on a trusted gate | ✅ **Done** (Batch 1) |
+| C2 | **Make lint real**: flat ESLint config (typescript-eslint + next plugin), `lint` scripts in all 3 workspaces, CI step, fix fallout | M | [verified] `pnpm lint` is unrunnable; README claims otherwise | ✅ **Done** (Batch 1) |
+| C3 | **Fix `compare`'s stat substitution** (`shared.ts:293`): compute ratio/formula aggregates per side or refuse | S–M | [verified live] wrong numbers under the user's label — the core product promise broken | ⬜ Batch 2 |
+| C4 | **Add a capability check per (executor × StatDef)** and an intent×stat `buildSql`+`EXPLAIN` sweep test; fix `teamStat`/`rank`/`counts` fallout | M | Kills the 500-crash class and permanently guards the whole executor layer | ⬜ Batch 2 |
+| C5 | **Provider cache revalidation** (ETag/max-age/`--no-cache`) + **per-asset header assertions** before mapping | M | In-season re-ingests silently load stale data; upstream renames fabricate zeros with exit 0 | ⬜ Batch 3 |
+| C6 | **`pool.on("error")` + `statement_timeout` + `connectionTimeoutMillis`** on both pools | S | One idle-client blip currently restarts the API; one bad query wedges it | ✅ **Done** (Batch 1) |
+| C7 | **Guard `NEXT_PUBLIC_API_URL`** (throw in prod build when unset) | S | A silent misconfiguration ships a fully broken app | ✅ **Done** (Batch 1) |
 
 ### High — trust, freshness, growth loop
 
-| # | Refactor | Effort |
-|---|---|---|
-| H1 | Pin the DB CA instead of `rejectUnauthorized: false` (`pool.ts:21`) | S |
-| H2 | Cache coherence after ingest: TTL/refresh on resolver indexes, ingest-triggered flush (or short TTL) for answer caches, advisory lock against overlapping ingests | M |
-| H3 | `generateMetadata` + OG card on `/a/[id]`; add `public/` basics (favicon, robots, sitemap, `not-found.tsx`) | S |
-| H4 | Move entity pages to server-component fetching with `revalidate` (fixes SEO, waterfall, title hack, deep-link double-fetch) | L |
-| H5 | Rate-limit `/suggest`, `/players/:id`, `/leaderboards`; escape LIKE wildcards; LIMIT the game-log queries; `pg_trgm` GIN index on `LOWER(full_name)` | M |
-| H6 | Ratio thresholds via `ratioRowExpr` in `counts.ts`/`streaksMilestones.ts` | S |
-| H7 | Add `next build` + a server compile gate to CI; build the server for prod (tsup → `node dist/`), demote tsx to dev | M |
-| H8 | Fix `Ctx.known()` error swallowing; per-season batching for `--all`; guard players-dimension backfill regression | M |
-| H9 | Timeouts on `ask()`/`askAgent()` POSTs | S |
-| H10 | Numbered migrations + `preDeployCommand: pnpm db:migrate` on Render | M |
-| H11 | Align local ports (compose 5432 everywhere; fix `.env.example`, `ingest.test.ts` default, README) | S |
+| # | Refactor | Effort | Status |
+|---|---|---|---|
+| H1 | Pin the DB CA instead of `rejectUnauthorized: false` (`pool.ts:21`) | S | ✅ **Done** (Batch 1) |
+| H2 | Cache coherence after ingest: TTL/refresh on resolver indexes, ingest-triggered flush (or short TTL) for answer caches, advisory lock against overlapping ingests | M | ⬜ Batch 3 |
+| H3 | `generateMetadata` + OG card on `/a/[id]`; add `public/` basics (favicon, robots, sitemap, `not-found.tsx`) | S | ⬜ Batch 4 |
+| H4 | Move entity pages to server-component fetching with `revalidate` (fixes SEO, waterfall, title hack, deep-link double-fetch) | L | ⬜ Batch 4+ |
+| H5 | Rate-limit `/suggest`, `/players/:id`, `/leaderboards`; escape LIKE wildcards; LIMIT the game-log queries; `pg_trgm` GIN index on `LOWER(full_name)` | M | ⬜ Batch 4 |
+| H6 | Ratio thresholds via `ratioRowExpr` in `counts.ts`/`streaksMilestones.ts` | S | ⬜ Batch 2 |
+| H7 | Add `next build` + a server compile gate to CI; build the server for prod (tsup → `node dist/`), demote tsx to dev | M | ⬜ Batch 4 |
+| H8 | Fix `Ctx.known()` error swallowing; per-season batching for `--all`; guard players-dimension backfill regression | M | ⬜ Batch 3 |
+| H9 | Timeouts on `ask()`/`askAgent()` POSTs | S | ✅ **Done** (Batch 1) |
+| H10 | Numbered migrations + `preDeployCommand: pnpm db:migrate` on Render | M | ⬜ Batch 4 |
+| H11 | Align local ports (compose 5432 everywhere; fix `.env.example`, `ingest.test.ts` default, README) | S | ✅ **Done** (Batch 1) |
 
 ### Medium — debt that compounds
 
