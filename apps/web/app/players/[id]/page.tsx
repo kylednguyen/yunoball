@@ -14,6 +14,7 @@ import { TeamLogo } from "../../components/TeamLogo";
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
+import { teamTheme } from "../../lib/teamTheme";
 import type { PlayerProfile, PlayerSeasonLine, SplitRow } from "../../lib/api";
 
 type SeasonRow = PlayerProfile["seasons"][number];
@@ -355,8 +356,12 @@ function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[
                   <th className="num">Rec TD</th>
                 </>
               )}
-              <th className="num">Rush yds</th>
-              <th className="num">Rush TD</th>
+              {isQB && (
+                <>
+                  <th className="num">Rush yds</th>
+                  <th className="num">Rush TD</th>
+                </>
+              )}
               <th className="num">PPG</th>
             </tr>
           </thead>
@@ -393,8 +398,12 @@ function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[
                     <td className="num">{r.receiving_tds}</td>
                   </>
                 )}
-                <td className="num">{r.rushing_yards.toLocaleString()}</td>
-                <td className="num">{r.rushing_tds}</td>
+                {isQB && (
+                  <>
+                    <td className="num">{r.rushing_yards.toLocaleString()}</td>
+                    <td className="num">{r.rushing_tds}</td>
+                  </>
+                )}
                 <td className="num" style={{ fontWeight: 700 }}>
                   {per(r.fantasy_points_ppr, r.gp)}
                 </td>
@@ -431,7 +440,7 @@ export default function PlayerPage() {
 
   return (
     <>
-      <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
+      <main id="main" className="yb-page" style={{ maxWidth: 980, ...teamTheme(profile?.team) }}>
         {loading && (
           <>
             <div className="yb-skel" style={{ height: 60, width: 380, marginBottom: 20 }} />

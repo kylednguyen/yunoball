@@ -1,17 +1,24 @@
-/** The QuerySpec — a typed intermediate representation between natural
+/** The QuerySpec AST — a typed intermediate representation between natural
  * language and SQL — plus the stat configuration that drives both the parser
- * and the SQL builder.
+ * and the executors.
  *
- * The rule-based parser produces one of these small structured objects
- * instead of raw SQL. A deterministic builder turns it into safe,
- * parameterized SQL, so there is no injection surface. The spec also doubles
- * as a stable cache key.
+ * The rule-based parser compiles a question into one of these nodes instead
+ * of raw SQL. A deterministic executor (engine/executors/) turns each node
+ * into safe, parameterized SQL, so there is no injection surface. The node
+ * also doubles as a stable cache key.
+ *
+ * The spec is a DISCRIMINATED UNION on `intent`: each intent's node carries
+ * only the fields its executor legitimately consumes, so "the parser set a
+ * field the executor silently ignores" — the engine's worst historical bug
+ * class — is a compile error, not a wrong number.
  */
 
 export type Intent =
   | "leaders" | "player_total" | "player_seasons" | "single_game" | "compare"
-  | "scoring" | "game_count"
-  | "game_log" | "team_game_log" | "game_result" | "draft_pick";
+  | "scoring" | "game_count" | "qualifying_count" | "player_rank" | "player_bio"
+  | "game_log" | "team_game_log" | "game_result" | "draft_pick"
+  | "team_bio" | "team_stat" | "team_roster"
+  | "player_streak" | "team_streak" | "milestone" | "award";
 
 export interface StatDef {
   /** SQL expression over the stats-table alias `s`. Allowlisted here, never
@@ -29,11 +36,25 @@ export interface StatDef {
   /** "game": columns only exist in player_game_stats — totals and leaders
    * aggregate the game log instead of season rollups. */
   source?: "game";
-  /** Ratio stats (completion %): aggregate numerator/denominator separately,
-   * divide after summing. `den` also drives a small-sample qualifier. */
-  ratio?: { num: string; den: string };
+  /** Ratio stats (completion %, yards per carry): aggregate numerator and
+   * denominator separately, divide after summing. `den` also drives the
+   * small-sample qualifier via the floors; `pct` multiplies by 100. */
+  ratio?: {
+    num: string;
+    den: string;
+    /** Display as a percentage (× 100). */
+    pct?: boolean;
+    /** Min summed denominator to qualify for boards/ranks (season / career). */
+    floorSeason?: number;
+    floorCareer?: number;
+  };
   /** Display unit appended in narration (e.g. "%"). */
   unit?: string;
+  /** Named multi-column formula (NFL passer rating) — see executors/shared. */
+  formula?: "passer_rating";
+  /** Game-grain table override: pbp-derived aggregates live in
+   * player_game_advanced instead of player_game_stats. */
+  table?: "advanced";
 }
 
 const n = (col: string) => `COALESCE(s.${col}, 0)`;
@@ -43,6 +64,121 @@ const n = (col: string) => `COALESCE(s.${col}, 0)`;
  * computed stats at the bottom carry no vocabulary of their own — the parser
  * selects them for generic "touchdowns"/"yards" questions with no player. */
 export const STATS: Record<string, StatDef> = {
+  // ---- Rate stats first: their phrases embed generic stat words ("yards
+  // per reception" contains "reception"), so they must match before the
+  // volume stats they derive from. All are game-sourced ratios. ----
+  yards_per_carry: {
+    expr: "", // ratio stats aggregate num/den; no per-row expression
+    label: "yards per carry",
+    phrases: ["yards per carry", "yards per rush", "per carry", "rushing average"],
+    words: ["ypc"],
+    source: "game",
+    ratio: { num: "rushing_yards", den: "carries", floorSeason: 100, floorCareer: 750 },
+  },
+  yards_per_attempt: {
+    expr: "",
+    label: "yards per attempt",
+    phrases: ["yards per attempt", "yards per pass", "passing average"],
+    words: ["ypa"],
+    source: "game",
+    ratio: { num: "passing_yards", den: "attempts", floorSeason: 150, floorCareer: 1000 },
+  },
+  yards_per_reception: {
+    expr: "",
+    label: "yards per reception",
+    phrases: ["yards per reception", "yards per catch", "receiving average"],
+    words: ["ypr"],
+    source: "game",
+    ratio: { num: "receiving_yards", den: "receptions", floorSeason: 50, floorCareer: 300 },
+  },
+  catch_rate: {
+    expr: "",
+    label: "catch rate",
+    phrases: ["catch rate", "catch percentage", "catch pct"],
+    words: [],
+    source: "game",
+    ratio: { num: "receptions", den: "targets", pct: true, floorSeason: 50, floorCareer: 300 },
+    unit: "%",
+  },
+  // Air yards live only in the game log; a bare "air yards" resolves by the
+  // player's/position's side of the ball in the parser.
+  passing_air_yards: {
+    expr: "s.passing_air_yards",
+    label: "passing air yards",
+    phrases: ["passing air yards", "air yards thrown"],
+    words: [],
+    source: "game",
+  },
+  receiving_air_yards: {
+    expr: "s.receiving_air_yards",
+    label: "receiving air yards",
+    phrases: ["receiving air yards", "air yards caught"],
+    words: [],
+    source: "game",
+  },
+  passing_epa: {
+    expr: "s.pass_epa",
+    label: "passing EPA",
+    phrases: ["passing epa", "pass epa"],
+    words: [],
+    source: "game",
+    table: "advanced",
+  },
+  rushing_epa: {
+    expr: "s.rush_epa",
+    label: "rushing EPA",
+    phrases: ["rushing epa", "rush epa"],
+    words: [],
+    source: "game",
+    table: "advanced",
+  },
+  receiving_epa: {
+    expr: "s.recv_epa",
+    label: "receiving EPA",
+    phrases: ["receiving epa"],
+    words: [],
+    source: "game",
+    table: "advanced",
+  },
+  pass_success_rate: {
+    expr: "",
+    label: "passing success rate",
+    phrases: ["passing success rate"],
+    words: [],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "pass_success", den: "pass_plays", pct: true, floorSeason: 150, floorCareer: 1000 },
+    unit: "%",
+  },
+  rush_success_rate: {
+    expr: "",
+    label: "rushing success rate",
+    phrases: ["rushing success rate"],
+    words: [],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "rush_success", den: "rush_plays", pct: true, floorSeason: 100, floorCareer: 750 },
+    unit: "%",
+  },
+  recv_success_rate: {
+    expr: "",
+    label: "receiving success rate",
+    phrases: ["receiving success rate"],
+    words: [],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "recv_success", den: "recv_plays", pct: true, floorSeason: 50, floorCareer: 300 },
+    unit: "%",
+  },
+  cpoe: {
+    expr: "",
+    label: "CPOE",
+    phrases: ["completion percentage over expected"],
+    words: ["cpoe"],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "cpoe_sum", den: "cpoe_n", floorSeason: 150, floorCareer: 1000 },
+  },
   interceptions: {
     expr: "s.interceptions",
     label: "interceptions",
@@ -130,13 +266,21 @@ export const STATS: Record<string, StatDef> = {
     phrases: ["sacks taken", "sacked", "times sacked"],
     words: [],
   },
+  passer_rating: {
+    expr: "", // computed by the passer-rating formula over five columns
+    label: "passer rating",
+    phrases: ["passer rating", "quarterback rating", "qb rating"],
+    words: [],
+    source: "game",
+    formula: "passer_rating",
+  },
   completion_pct: {
     expr: "", // ratio stats aggregate num/den; no per-row expression
     label: "completion percentage",
     phrases: ["completion percentage", "completion pct", "completion rate", "comp pct", "comp %"],
     words: [],
     source: "game",
-    ratio: { num: "completions", den: "attempts" },
+    ratio: { num: "completions", den: "attempts", pct: true, floorSeason: 150, floorCareer: 1000 },
     unit: "%",
   },
   // ---- Computed stats (parser-selected for generic questions) ----
@@ -154,67 +298,304 @@ export const STATS: Record<string, StatDef> = {
   },
 };
 
-export interface QuerySpec {
-  intent: Intent;
+// --------------------------------------------------------------------------
+// The AST node types
+// --------------------------------------------------------------------------
+
+/** Fields every node carries. */
+export interface SpecBase {
   stat: keyof typeof STATS & string;
   season?: number | null;
   seasonType: string; // REG | POST
-  player?: string | null; // display name (narration / LIKE fallback)
-  playerId?: string | null; // canonical id from the resolver (preferred)
-  player2?: string | null; // second player (COMPARE)
-  player2Id?: string | null;
-  scope: "season" | "career"; // PLAYER_TOTAL and LEADERS
-  firstN?: number | null; // first N games scope (1..50)
-  lastN?: number | null; // last N games scope (1..50)
+  scope: "season" | "career";
   limit: number; // 1..100
-  /** SCORING: which end of the touchdown timeline ("first"/"last"), or null
-   * for a most-recent-first list. */
-  edge?: "first" | "last" | null;
-  /** LEADERS: restrict to a position (best QB, top 10 WRs). */
-  position?: string | null;
-  /** LEADERS: "fewest"/"lowest" flips to ascending (with a games qualifier). */
-  dir?: "desc" | "asc";
-  /** Game-level filters — presence routes totals through the game log. */
+}
+
+/** Game-grain filters consumed by the shared gamePreds() predicate builder —
+ * any node extending this can be scoped by venue, weeks, playoff round,
+ * opponent, or an inclusive season range. */
+export interface GameWindow {
   venue?: "home" | "away" | null;
   weekMin?: number | null;
   weekMax?: number | null;
-  /** GAME_COUNT: qualifying-games threshold ("games over 300 passing yards"). */
-  threshold?: { op: ">" | ">=" | "<"; value: number } | null;
-  /** Scope the answer to the player's rookie (first) season. */
-  rookie?: boolean;
   /** Restrict to Super Bowls (each postseason's final game). */
   sbOnly?: boolean;
   /** Playoff round (weeks ranked within each postseason: SB = final week). */
   round?: "WC" | "DIV" | "CON" | "SB" | null;
-  /** GAME intents: the team(s) a question is about (canonical team ids). */
-  teamId?: string | null;
+  /** Restrict to games against one opponent ("Jefferson vs Green Bay games"). */
+  opponentId?: string | null;
+  /** Inclusive season range ("from 2021 to 2023"); overrides `season`. */
+  seasonMin?: number | null;
+  seasonMax?: number | null;
+  /** Calendar-month split ("in December"), 1-12. */
+  month?: number | null;
+  /** Primetime games only (Mon/Thu, or Sat/Sun night kickoffs). */
+  primetime?: boolean;
+  /** Kickoff temperature ceiling, °F ("in freezing weather" -> 32). */
+  tempMax?: number | null;
+}
+
+/** Team-anchored game lookups (team_game_log / game_result) share these. */
+export interface TeamGameFields {
   teamName?: string | null;
   team2Id?: string | null;
   team2Name?: string | null;
-  /** Restrict to games against one opponent ("Jefferson vs Green Bay games"). */
-  opponentId?: string | null;
-  /** Exact game date (ISO), e.g. "Packers game on October 20, 2024". */
-  gameDate?: string | null;
+  round?: "WC" | "DIV" | "CON" | "SB" | null;
   /** Conference filter for round games ("AFC championship"). */
   conf?: "AFC" | "NFC" | null;
-  /** GAME_RESULT: margin ceiling ("Super Bowls decided by 3 or fewer"). */
+  weekMin?: number | null;
+  weekMax?: number | null;
+  /** Exact game date (ISO), e.g. "Packers game on October 20, 2024". */
+  gameDate?: string | null;
+  /** Margin ceiling ("Super Bowls decided by 3 or fewer"). */
   marginMax?: number | null;
-  /** DRAFT_PICK: overall selection number and/or round. */
+  venue?: "home" | "away" | null;
+}
+
+export interface LeadersSpec extends SpecBase, GameWindow {
+  intent: "leaders";
+  position?: string | null;
+  /** "fewest"/"lowest" flips to ascending (with a games qualifier). */
+  dir?: "desc" | "asc";
+  rookie?: boolean;
+  /** Rank the per-game rate instead of the raw total. */
+  perGame?: boolean;
+  /** Restrict the board to one team's players ("who led the Chiefs in..."). */
+  teamId?: string | null;
+  teamName?: string | null;
+}
+
+export interface PlayerTotalSpec extends SpecBase, GameWindow {
+  intent: "player_total";
+  player?: string | null; // display name (narration / LIKE fallback)
+  playerId?: string | null; // canonical id from the resolver (preferred)
+  firstN?: number | null; // first N games scope (1..50)
+  lastN?: number | null; // last N games scope (1..50)
+  rookie?: boolean;
+  /** Report the per-game rate instead of the raw total. */
+  perGame?: boolean;
+  /** Report the per-game MEDIAN instead of the total. */
+  median?: boolean;
+}
+
+export interface PlayerSeasonsSpec extends SpecBase {
+  intent: "player_seasons";
+  playerId: string;
+  player?: string | null;
+  position?: string | null;
+}
+
+export interface SingleGameSpec extends SpecBase {
+  intent: "single_game";
+  player?: string | null;
+  playerId?: string | null;
+}
+
+export interface CompareSpec extends SpecBase, GameWindow {
+  intent: "compare";
+  playerId: string;
+  player2Id: string;
+  player?: string | null;
+  player2?: string | null;
+  firstN?: number | null;
+}
+
+export interface ScoringSpec extends SpecBase {
+  intent: "scoring";
+  /** Absent for league-wide "longest touchdown" lookups. */
+  playerId?: string | null;
+  player?: string | null;
+  /** Rank by touchdown length instead of the timeline. */
+  longest?: boolean;
+  sbOnly?: boolean;
+  round?: "WC" | "DIV" | "CON" | "SB" | null;
+  /** Which end of the touchdown timeline ("first"/"last"), or null for a
+   * most-recent-first list. */
+  edge?: "first" | "last" | null;
+}
+
+export interface GameCountSpec extends SpecBase, GameWindow {
+  intent: "game_count";
+  playerId: string;
+  player?: string | null;
+  /** Qualifying-games threshold ("games over 300 passing yards"). */
+  threshold: { op: ">" | ">=" | "<"; value: number };
+}
+
+export interface QualifyingCountSpec extends SpecBase {
+  intent: "qualifying_count";
+  threshold: { op: ">" | ">=" | "<"; value: number };
+  position?: string | null;
+}
+
+export interface PlayerRankSpec extends SpecBase {
+  intent: "player_rank";
+  playerId: string;
+  player?: string | null;
+  position?: string | null;
+  seasonMin?: number | null;
+  seasonMax?: number | null;
+}
+
+export interface PlayerBioSpec extends SpecBase {
+  intent: "player_bio";
+  /** Which bio fact ("team"/"age"/…), or the metric a superlative ranks by. */
+  bioField: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "jersey" | "full";
+  playerId?: string | null;
+  player?: string | null;
+  dir?: "desc" | "asc";
+  position?: string | null;
+}
+
+export interface GameLogSpec extends SpecBase, GameWindow {
+  intent: "game_log";
+  playerId: string;
+  player?: string | null;
+  position?: string | null;
+  firstN?: number | null;
+  lastN?: number | null;
+  /** Opponent display name for narration when opponentId is set. */
+  team2Name?: string | null;
+}
+
+export interface TeamGameLogSpec extends SpecBase, TeamGameFields {
+  intent: "team_game_log";
+  teamId: string;
+  lastN?: number | null;
+}
+
+export interface GameResultSpec extends SpecBase, TeamGameFields {
+  intent: "game_result";
+  /** Absent for neutral lookups ("who won Super Bowl 50"). */
+  teamId?: string | null;
+}
+
+export interface DraftPickSpec extends SpecBase {
+  intent: "draft_pick";
+  playerId?: string | null;
+  player?: string | null;
+  teamId?: string | null;
+  teamName?: string | null;
+  /** Overall selection number and/or round. */
   draftPick?: number | null;
   draftRound?: number | null;
 }
 
-export function specExpr(spec: QuerySpec): string {
+export interface TeamBioSpec extends SpecBase {
+  intent: "team_bio";
+  teamId: string;
+  teamName?: string | null;
+  /** Which team fact the question asks for. */
+  teamField: "division" | "conference" | "stadium" | "coach" | "colors" | "founded" | "history" | "full";
+}
+
+export interface TeamStatSpec extends SpecBase, GameWindow {
+  intent: "team_stat";
+  teamId: string;
+  teamName?: string | null;
+  /** Points come from team_game_stats; player stats aggregate the game log. */
+  metric?: "points_for" | "points_against" | null;
+  perGame?: boolean;
+  /** Rate per offensive drive (points per drive). */
+  perDrive?: boolean;
+}
+
+export interface PlayerStreakSpec extends SpecBase, GameWindow {
+  intent: "player_streak";
+  playerId: string;
+  player?: string | null;
+  /** Per-game qualifying bar; default "the stat > 0" ("games with a TD"). */
+  threshold?: { op: ">" | ">=" | "<"; value: number } | null;
+}
+
+export interface TeamStreakSpec extends SpecBase {
+  intent: "team_streak";
+  teamId: string;
+  teamName?: string | null;
+  kind: "win" | "loss";
+}
+
+export interface MilestoneSpec extends SpecBase {
+  intent: "milestone";
+  /** Career total to race to ("fastest to 10000 passing yards"). */
+  target: number;
+}
+
+export interface AwardSpec extends SpecBase {
+  intent: "award";
+  award: "MVP" | "SBMVP";
+  playerId?: string | null;
+  player?: string | null;
+}
+
+export interface TeamRosterSpec extends SpecBase {
+  intent: "team_roster";
+  teamId: string;
+  teamName?: string | null;
+  position?: string | null;
+}
+
+export type QuerySpec =
+  | LeadersSpec | PlayerTotalSpec | PlayerSeasonsSpec | SingleGameSpec
+  | CompareSpec | ScoringSpec | GameCountSpec | QualifyingCountSpec
+  | PlayerRankSpec | PlayerBioSpec | GameLogSpec | TeamGameLogSpec
+  | GameResultSpec | DraftPickSpec | TeamBioSpec | TeamStatSpec | TeamRosterSpec
+  | PlayerStreakSpec | TeamStreakSpec | MilestoneSpec | AwardSpec;
+
+// --------------------------------------------------------------------------
+// The field-bag reader view
+// --------------------------------------------------------------------------
+
+/** Every field any node can carry, all optional. Cross-intent consumers that
+ * legitimately read across the union — the auditor, the narration templates,
+ * the cache key — use this view via fields(). Executors must NOT: they take
+ * their exact node type, which is where the type enforcement lives. */
+export interface SpecFields extends GameWindow, TeamGameFields {
+  player?: string | null;
+  playerId?: string | null;
+  player2?: string | null;
+  player2Id?: string | null;
+  firstN?: number | null;
+  lastN?: number | null;
+  rookie?: boolean;
+  perGame?: boolean;
+  position?: string | null;
+  dir?: "desc" | "asc";
+  edge?: "first" | "last" | null;
+  threshold?: { op: ">" | ">=" | "<"; value: number } | null;
+  bioField?: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "jersey" | "full" | null;
+  teamId?: string | null;
+  draftPick?: number | null;
+  draftRound?: number | null;
+  teamField?: "division" | "conference" | "stadium" | "coach" | "colors" | "founded" | "history" | "full" | null;
+  metric?: "points_for" | "points_against" | null;
+  median?: boolean;
+  longest?: boolean;
+  perDrive?: boolean;
+  kind?: "win" | "loss" | null;
+  target?: number | null;
+  award?: "MVP" | "SBMVP" | null;
+}
+
+export type FieldedSpec = SpecBase & { intent: Intent } & SpecFields;
+
+/** Reader view over any node — same object, loosened type. */
+export function fields(spec: QuerySpec): FieldedSpec {
+  return spec as unknown as FieldedSpec;
+}
+
+export function specExpr(spec: { stat: string }): string {
   return STATS[spec.stat]!.expr;
 }
 
-export function specLabel(spec: QuerySpec): string {
+export function specLabel(spec: { stat: string }): string {
   return STATS[spec.stat]!.label;
 }
 
-/** Must include every field buildSql() depends on — notably playerId, since
+/** Must include every field the executors depend on — notably playerId, since
  * two players can share a display name. */
-export function specCacheKey(s: QuerySpec): string {
+export function specCacheKey(spec: QuerySpec): string {
+  const s = fields(spec);
   return [
     s.intent, s.stat, s.season, s.seasonType, (s.player ?? "").toLowerCase(),
     s.playerId, s.scope, s.limit, s.player2Id, s.firstN, s.edge,
@@ -222,5 +603,8 @@ export function specCacheKey(s: QuerySpec): string {
     s.threshold && `${s.threshold.op}${s.threshold.value}`, s.rookie, s.sbOnly,
     s.round, s.teamId, s.team2Id, s.opponentId, s.gameDate, s.conf,
     s.marginMax, s.draftPick, s.draftRound,
+    s.bioField, s.perGame, s.seasonMin, s.seasonMax,
+    s.month, s.teamField, s.metric, s.primetime, s.tempMax,
+    s.median, s.kind, s.target, s.award, s.longest, s.perDrive,
   ].map(String).join("|");
 }

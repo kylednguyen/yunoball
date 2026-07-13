@@ -1,36 +1,42 @@
 /* ============================================================
-   YunoBall design system — shadcn-inspired dark theme, lime accent.
-   Zinc surfaces, content-over-chrome, dense-but-readable.
+   YunoBall design system — quiet dark theme, emerald accent.
+   Soft neutral surfaces, content-over-chrome; hierarchy comes
+   from spacing, background contrast and typography — not borders.
    Tokens here are the runtime source of truth for the app.
    ============================================================ */
 :root {
   color-scheme: dark;
 
-  /* Surfaces — zinc scale */
-  --bg: #09090b;
-  --bg-soft: #18181b;
-  --panel: #101013;
-  --border: #27272a;
-  --border-strong: #3f3f46;
+  /* Surfaces — soft neutral ramp. Depth = background contrast, not lines. */
+  --bg: #0c0d0f;
+  --panel: #121417; /* primary surface */
+  --elevated: #181b20; /* raised surface (popovers, hovers) */
+  --bg-soft: #1f2328; /* secondary surface (inset wells, chips) */
+  --bg-hover: #262b31; /* one step brighter — hover state for soft surfaces */
+  /* Borders are rare by design — a whisper for the few places that need one. */
+  --border: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.1);
 
   /* Ink */
-  --text: #fafafa;
+  --text: #f5f5f5;
   --muted: #a1a1aa;
   /* Tertiary ink — lightened from #6b6b74, which fell below 4.5:1 on every
      surface. 4.7:1 on --bg-soft, the worst case. */
   --faint: #82828c;
 
-  /* Brand — lime. UI accent is bright; text on accent is near-black. */
-  --accent: #a3e635;
-  --accent-hover: #bef264;
-  --accent-soft: rgba(163, 230, 53, 0.12);
-  --accent-contrast: #131603;
-  /* legacy alias — some rules used accent-ink as the hover/bg-strong color */
-  --accent-ink: #bef264;
+  /* Brand — emerald, used sparingly: search, selection, CTAs, links,
+     positive metrics. Neutral dominates everywhere else. */
+  --accent: #10b981;
+  --accent-hover: #22c55e;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --accent-contrast: #04150e;
+  /* Bright variant — accent-colored TEXT on dark surfaces needs the lighter
+     tone for contrast; solid accent FILLS use --accent itself. */
+  --accent-ink: #34d399;
 
   /* Data marks — validated for the dark surface (do not use raw accent). */
-  --chart: #65a30d;
-  --chart-strong: #4d7c0f;
+  --chart: #10b981;
+  --chart-strong: #059669;
 
   /* Semantic */
   --success: #4ade80;
@@ -41,8 +47,8 @@
   --danger-border: #7f1d1d;
 
   /* Derived surfaces */
-  --bg-scrim: rgba(9, 9, 11, 0.85); /* translucent bg for blurred bars */
-  --accent-border: rgba(163, 230, 53, 0.45);
+  --bg-scrim: rgba(12, 13, 15, 0.85); /* translucent bg for blurred bars */
+  --accent-border: rgba(16, 185, 129, 0.4);
   --shimmer: rgba(255, 255, 255, 0.07); /* skeleton sweep highlight */
 
   /* Radii */
@@ -216,7 +222,6 @@ body {
   flex-direction: column;
   gap: 16px;
   padding: 20px 14px 16px;
-  border-right: 1px solid var(--border);
   background: var(--panel);
   z-index: var(--z-nav);
   overflow-y: auto;
@@ -296,8 +301,7 @@ body {
 }
 .yb-nav-foot {
   margin: auto 0 0;
-  padding: 12px 10px 0;
-  border-top: 1px solid var(--border);
+  padding: 16px 10px 0;
   font-size: var(--fs-caption);
   line-height: 1.45;
   color: var(--faint);
@@ -306,11 +310,10 @@ body {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--accent);
+  color: var(--accent-ink);
   background: var(--accent-soft);
-  border: 1px solid var(--accent-border);
   border-radius: var(--r-sm);
-  padding: 0 5px;
+  padding: 1px 6px;
   margin-left: 6px;
   vertical-align: 2px;
 }
@@ -346,7 +349,6 @@ body {
     gap: 12px;
     padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
       10px max(14px, env(safe-area-inset-left));
-    border-bottom: 1px solid var(--border);
     background: var(--bg-scrim);
     backdrop-filter: saturate(180%) blur(8px);
     -webkit-backdrop-filter: saturate(180%) blur(8px);
@@ -391,7 +393,7 @@ body {
     padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom))
       max(18px, env(safe-area-inset-left));
     background: var(--panel);
-    border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-pop);
     overflow-y: auto;
     overscroll-behavior: contain;
     transform: translateX(-100%);
@@ -490,15 +492,13 @@ body {
   display: flex;
   align-items: stretch;
   background: var(--panel);
-  border-bottom: 1px solid var(--border);
 }
 .yb-tick-label {
   flex: none;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 8px 16px;
-  border-right: 1px solid var(--border);
+  padding: 8px 20px 8px 16px;
   font-family: var(--display);
   text-transform: uppercase;
   line-height: 1.05;
@@ -533,13 +533,13 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 1px;
-  padding: 8px 14px 6px;
-  border-right: 1px solid var(--border);
+  padding: 8px 16px 6px;
+  border-radius: var(--r-md);
   color: var(--muted);
   transition: background var(--dur) var(--ease);
 }
 .yb-tick-game:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
   text-decoration: none;
 }
 .yb-tick-row {
@@ -579,15 +579,14 @@ body {
   width: 104px;
   height: 100%;
   min-height: 62px;
-  border-radius: 0;
-  border-right: 1px solid var(--border);
+  border-radius: var(--r-md);
 }
 
 /* ---- Front-page hero ---- */
 .yb-hero {
   max-width: 820px;
   margin: 0 auto;
-  padding: 24px 20px 18px;
+  padding: 44px 20px 26px;
   text-align: center;
 }
 .yb-hero h1 {
@@ -606,8 +605,8 @@ body {
 }
 .yb-hero p {
   color: var(--muted);
-  font-size: var(--fs-body-lg);
-  margin: 0 auto 18px;
+  font-size: var(--fs-lead);
+  margin: 0 auto 26px;
   max-width: 520px;
 }
 .yb-search-shell {
@@ -620,36 +619,36 @@ body {
 }
 input.yb-search {
   width: 100%;
-  padding: 16px 46px 16px 18px;
+  padding: 18px 52px 18px 22px;
   font-size: 19px;
   font-family: inherit;
   color: var(--text);
-  background: var(--panel);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
+  background: var(--elevated);
+  border: none;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-card);
   outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 input.yb-search::placeholder {
   color: var(--faint);
 }
 input.yb-search:hover {
-  border-color: var(--border-strong);
+  background: var(--bg-soft);
 }
 input.yb-search:focus {
-  border-color: var(--accent);
+  background: var(--bg-soft);
+  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow-pop);
 }
 .yb-kbd-hint {
   position: absolute;
-  right: 12px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   font-size: var(--fs-caption);
   color: var(--faint);
-  border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 2px 8px;
+  padding: 3px 9px;
   background: var(--bg-soft);
   pointer-events: none;
 }
@@ -657,20 +656,18 @@ input.yb-search:focus {
 /* ---- Chips (example queries) ---- */
 .yb-chip {
   background: var(--bg-soft);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--muted);
   border-radius: var(--r-md);
-  padding: 7px 12px;
+  padding: 8px 13px;
   font-size: var(--fs-body);
   font-family: inherit;
   cursor: pointer;
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
-    background var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .yb-chip:hover,
 .yb-chip[aria-pressed="true"] {
-  color: var(--accent);
-  border-color: var(--accent-border);
+  color: var(--accent-ink);
   background: var(--accent-soft);
 }
 .yb-query-prompt,
@@ -713,16 +710,14 @@ input.yb-search:focus {
 /* ---- Answer card ---- */
 .yb-card {
   background: var(--panel);
-  border: 1px solid var(--border);
   border-radius: var(--r-xl);
-  padding: 22px 22px 18px;
+  padding: 24px 24px 20px;
   box-shadow: var(--shadow-card);
 }
 
-/* ---- Shared surface system ---- */
+/* ---- Shared surface system — depth from background, not borders ---- */
 .yb-surface {
   background: var(--panel);
-  border: 1px solid var(--border);
   color: var(--text);
   box-shadow: var(--shadow-card);
 }
@@ -733,7 +728,6 @@ input.yb-search:focus {
 .yb-surface-feature {
   border-radius: var(--r-xl);
   padding: 18px 20px;
-  border-color: var(--accent-border);
 }
 .yb-surface-dense {
   border-radius: var(--r-lg);
@@ -742,13 +736,12 @@ input.yb-search:focus {
 }
 .yb-surface.is-interactive {
   transition:
-    border-color var(--dur) var(--ease),
     background var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
     transform var(--dur) var(--ease);
 }
 .yb-surface.is-interactive:hover {
-  border-color: var(--border-strong);
-  background: var(--bg-soft);
+  background: var(--elevated);
   text-decoration: none;
 }
 
@@ -756,26 +749,24 @@ input.yb-search:focus {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 2px 7px;
+  padding: 3px 8px;
   font-size: var(--fs-caption);
   font-weight: 700;
   color: var(--muted);
+  background: var(--bg-soft);
   line-height: 1.35;
   white-space: nowrap;
 }
 .yb-badge.accent {
-  border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-ink);
   background: var(--accent-soft);
 }
 .yb-badge.success {
-  border-color: rgba(74, 222, 128, 0.35);
   color: var(--success);
+  background: rgba(74, 222, 128, 0.1);
 }
 .yb-badge.danger {
-  border-color: var(--danger-border);
   color: var(--danger-text);
   background: var(--danger-soft);
 }
@@ -821,10 +812,10 @@ p.yb-answer {
 .yb-query-interpretation {
   display: grid;
   gap: 8px;
-  padding: 12px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  margin: 2px 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+  margin: 2px 0 16px;
 }
 .yb-query-interpretation > span {
   color: var(--muted);
@@ -847,9 +838,7 @@ p.yb-answer {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+  margin-top: 22px;
   align-items: center;
 }
 .yb-source-note {
@@ -858,10 +847,9 @@ p.yb-answer {
   font-size: var(--fs-small);
 }
 
-/* ---- Table ---- */
+/* ---- Table — open layout: typography and hairline dividers, no frame ---- */
 .yb-table-scroll {
   overflow-x: auto;
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
 }
 table.yb-table {
@@ -873,11 +861,11 @@ table.yb-table {
 table.yb-table th {
   text-align: left;
   padding: 10px 14px;
-  background: var(--panel);
+  background: var(--bg);
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-strong);
   color: var(--muted);
   font-weight: 600;
   font-size: var(--fs-small);
@@ -886,7 +874,7 @@ table.yb-table th {
   white-space: nowrap;
 }
 table.yb-table td {
-  padding: 9px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
 }
 table.yb-table td.num,
@@ -895,7 +883,7 @@ table.yb-table th.num {
   font-variant-numeric: tabular-nums;
 }
 table.yb-table tbody tr:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
 }
 table.yb-table tbody tr:last-child td {
   border-bottom: none;
@@ -945,7 +933,6 @@ table.yb-table th.num .yb-th-sort {
 /* ---- SQL / misc ---- */
 pre.yb-sql {
   background: var(--bg-soft);
-  border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: 14px 16px;
   overflow-x: auto;
@@ -972,9 +959,9 @@ pre.yb-sql {
 .yb-chip-static {
   font-size: var(--fs-small);
   color: var(--muted);
-  border: 1px solid var(--border);
+  background: var(--bg-soft);
   border-radius: var(--r-pill);
-  padding: 2px 8px;
+  padding: 3px 9px;
 }
 
 /* ---- Buttons ---- */
@@ -1003,13 +990,13 @@ pre.yb-sql {
   cursor: not-allowed;
 }
 .yb-btn.ghost {
-  background: transparent;
+  background: var(--bg-soft);
   color: var(--text);
-  border-color: var(--border);
+  border-color: transparent;
 }
 .yb-btn.ghost:hover:not(:disabled) {
-  background: var(--bg-soft);
-  border-color: var(--border-strong);
+  background: var(--bg-hover);
+  border-color: transparent;
 }
 .yb-btn.sm {
   font-size: var(--fs-small);
@@ -1019,17 +1006,18 @@ pre.yb-sql {
 
 /* ---- Select ---- */
 .yb-select {
-  background: var(--panel);
+  background: var(--bg-soft);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--r-md);
-  padding: 8px 12px;
+  padding: 9px 13px;
   font-size: var(--fs-ui);
   font-family: inherit;
   cursor: pointer;
+  transition: background var(--dur) var(--ease);
 }
 .yb-select:hover {
-  border-color: var(--border-strong);
+  background: var(--bg-hover);
 }
 
 /* ---- Empty & error states ---- */
@@ -1040,9 +1028,8 @@ pre.yb-sql {
   text-align: center;
   gap: var(--s-2);
   padding: var(--s-10) var(--s-6);
-  border: 1px dashed var(--border);
   border-radius: var(--r-lg);
-  background: var(--bg-soft);
+  background: var(--panel);
   color: var(--muted);
   margin-top: 28px;
 }
@@ -1057,8 +1044,6 @@ pre.yb-sql {
 }
 .yb-state.error {
   background: var(--danger-soft);
-  border-color: var(--danger-border);
-  border-style: solid;
   color: var(--danger-text);
 }
 .yb-state.error h2 {
@@ -1118,7 +1103,7 @@ pre.yb-sql {
 
 /* Lineup complete: one celebratory pulse on the projected total. */
 .yb-card.complete {
-  border-color: var(--accent-border);
+  box-shadow: 0 0 0 1px var(--accent-border), var(--shadow-card);
 }
 .yb-card.complete .yb-total-hero {
   animation: yb-pop 500ms var(--ease) 1;
@@ -1162,7 +1147,7 @@ pre.yb-sql {
 .yb-leaders {
   max-width: 760px;
   margin: 0 auto;
-  padding: 8px 20px 48px;
+  padding: 8px 20px 64px;
 }
 .yb-leaders-head {
   display: flex;
@@ -1193,26 +1178,24 @@ pre.yb-sql {
   margin-bottom: 16px;
 }
 .yb-tab {
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   color: var(--muted);
   border-radius: var(--r-md);
-  padding: 7px 12px;
+  padding: 8px 13px;
   font-size: var(--fs-ui);
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
-    background var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .yb-tab:hover {
-  color: var(--accent);
-  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--bg-soft);
 }
 .yb-tab[aria-selected="true"] {
   color: var(--accent-contrast);
   background: var(--accent);
-  border-color: var(--accent);
 }
 
 .yb-lb {
@@ -1232,7 +1215,7 @@ pre.yb-sql {
   transition: background var(--dur) var(--ease);
 }
 .yb-lb-row:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
 }
 .yb-lb-rank {
   font-size: var(--fs-body);
@@ -1325,15 +1308,13 @@ pre.yb-sql {
 .yb-page {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 32px max(20px, env(safe-area-inset-right))
+  padding: 40px max(20px, env(safe-area-inset-right))
     max(120px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
 }
-/* Header sits over a hairline: gives every page one consistent baseline the
-   title, sub, controls and filters hang from — cohesion without decoration. */
+/* Header breathes on whitespace alone: the title's accent tick and the gap
+   below give every page one consistent baseline — no ruled line. */
 .yb-page-header {
-  margin-bottom: 24px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
 }
 .yb-page-head {
   display: flex;
@@ -1358,7 +1339,7 @@ pre.yb-sql {
   letter-spacing: 0.015em;
   margin: 0;
 }
-/* Brand cue: a short lime rule under the page title, tying every header to the
+/* Brand cue: a short accent rule under the page title, tying every header to the
    accent that defines the product without touching the glyphs themselves (so
    proper-noun titles like a player name stay clean). */
 .yb-page-title {
@@ -1423,9 +1404,8 @@ pre.yb-sql {
 }
 .yb-tile {
   background: var(--panel);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 14px 16px;
+  padding: 16px 18px;
 }
 .yb-tile-label {
   font-size: var(--fs-small);
@@ -1446,17 +1426,17 @@ pre.yb-sql {
   color: var(--faint);
 }
 
-/* ---- Scoreboard ---- */
+/* ---- Scoreboard — compact rows, ESPN-like density ---- */
 .yb-games-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 .yb-game-card {
-  padding: 12px 14px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .yb-game-card-head {
   display: flex;
@@ -1474,7 +1454,7 @@ pre.yb-sql {
   justify-content: space-between;
   gap: 10px;
   color: var(--muted);
-  font-size: var(--fs-body-lg);
+  font-size: var(--fs-ui);
 }
 .yb-game-row.winner {
   color: var(--text);
@@ -1502,7 +1482,7 @@ pre.yb-sql {
 .yb-game-score {
   font-variant-numeric: tabular-nums;
   font-family: var(--display);
-  font-size: 25px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1;
 }
@@ -1513,8 +1493,7 @@ pre.yb-sql {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
+  padding-top: 6px;
   margin-top: 2px;
   font-size: var(--fs-small);
   color: var(--faint);
@@ -1524,9 +1503,9 @@ pre.yb-sql {
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--muted);
-  border: 1px solid var(--border);
+  background: var(--bg-soft);
   border-radius: var(--r-pill);
-  padding: 1px 8px;
+  padding: 2px 9px;
 }
 .yb-week-tabs {
   display: flex;
@@ -1540,27 +1519,25 @@ pre.yb-sql {
 }
 .yb-week-tab {
   flex: none;
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   color: var(--muted);
   border-radius: var(--r-md);
-  padding: 6px 12px;
+  padding: 7px 12px;
   font-size: var(--fs-body);
   font-weight: 600;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: color var(--dur) var(--ease), background var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .yb-week-tab:hover {
   color: var(--text);
-  border-color: var(--border-strong);
+  background: var(--bg-soft);
 }
 .yb-week-tab[aria-selected="true"] {
   color: var(--accent-contrast);
   background: var(--accent);
-  border-color: var(--accent);
 }
 .yb-week-rail-wrap {
   display: flex;
@@ -1575,9 +1552,8 @@ pre.yb-sql {
   margin: -6px 0 18px;
 }
 .yb-score-context span {
-  border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 4px 8px;
+  padding: 4px 9px;
   color: var(--muted);
   background: var(--bg-soft);
   font-size: var(--fs-small);
@@ -1631,7 +1607,6 @@ tr.yb-div-leader td:first-child {
   justify-content: center;
   width: 24px;
   height: 22px;
-  border: 1px solid var(--border);
   border-radius: var(--r-sm);
   color: var(--text);
   background: var(--bg-soft);
@@ -1640,8 +1615,8 @@ tr.yb-div-leader td:first-child {
   font-variant-numeric: tabular-nums;
 }
 tr.yb-div-leader .yb-seed {
-  border-color: var(--accent-border);
-  color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 .yb-standing-team-name {
   white-space: nowrap;
@@ -1707,17 +1682,15 @@ tr.yb-div-leader .yb-seed {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--bg-soft);
   margin-bottom: 8px;
 }
 .yb-slot.filled {
-  background: var(--panel);
-  border-color: var(--border-strong);
+  background: var(--elevated);
 }
 .yb-slot.target {
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
 }
 .yb-slot-name {
   min-width: 0;
@@ -1772,27 +1745,26 @@ tr.yb-div-leader .yb-seed {
   min-width: 0;
 }
 .yb-format-lock {
-  border: 1px solid var(--accent-border);
   border-radius: var(--r-md);
   padding: 8px 12px;
-  color: var(--accent);
+  color: var(--accent-ink);
   background: var(--accent-soft);
   font-size: var(--fs-ui);
   font-weight: 700;
 }
 input.yb-input {
-  background: var(--panel);
+  background: var(--bg-soft);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--r-md);
-  padding: 8px 12px;
+  padding: 9px 13px;
   font-size: var(--fs-ui);
   font-family: inherit;
   outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  transition: box-shadow var(--dur) var(--ease);
 }
 input.yb-input:focus {
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
 }
 .yb-total-hero {
   font-family: var(--display);
@@ -1812,8 +1784,7 @@ input.yb-input:focus {
   text-align: center;
   gap: 14px;
   margin-top: 48px;
-  padding: 40px 28px;
-  border: 1px solid var(--border);
+  padding: 48px 28px;
   border-radius: var(--r-xl);
   background: var(--panel);
 }
@@ -1854,8 +1825,7 @@ input.yb-input:focus {
   list-style: none;
 }
 .yb-paywall-list li {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
+  padding: 6px 13px;
   border-radius: var(--r-pill);
   background: var(--bg-soft);
   font-size: var(--fs-small);
@@ -1891,7 +1861,6 @@ input.yb-input:focus {
 .yb-msg.assistant {
   align-self: flex-start;
   background: var(--bg-soft);
-  border: 1px solid var(--border);
   border-bottom-left-radius: var(--r-sm);
 }
 .yb-msg-tools {
@@ -1950,19 +1919,15 @@ input.yb-input:focus {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--panel);
-  border: 1px solid var(--accent-border);
+  background: var(--elevated);
   border-radius: var(--r-lg);
-  padding: 14px 16px;
+  padding: 16px 18px;
   color: var(--text);
-  transition: border-color var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease);
 }
 .yb-potw:hover {
   text-decoration: none;
-  border-color: var(--accent-hover);
-}
-.yb-potw .yb-avatar {
-  border-color: var(--accent);
+  background: var(--bg-hover);
 }
 .yb-potw-body {
   display: flex;
@@ -2034,17 +1999,14 @@ input.yb-input:focus {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
+  padding: 9px 12px;
   border-radius: var(--r-md);
-  background: var(--panel);
   color: var(--text);
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease);
 }
 .yb-performer:hover {
   text-decoration: none;
-  border-color: var(--border-strong);
-  background: var(--bg-soft);
+  background: var(--elevated);
 }
 .yb-performer .rk {
   width: 18px;
@@ -2092,7 +2054,6 @@ input.yb-input:focus {
   justify-content: center;
   flex: none;
   border-radius: 50%;
-  border: 1px solid var(--border);
   background: var(--bg-soft);
   object-fit: cover;
   vertical-align: middle;
@@ -2108,9 +2069,9 @@ input.yb-input:focus {
 .yb-dash {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 8px 20px 40px;
+  padding: 8px 20px 48px;
   display: grid;
-  gap: 28px;
+  gap: 36px;
 }
 /* Let overflow-x children (the scores strip) scroll instead of widening the
    grid: grid items default to min-width:auto, which is their content size. */
@@ -2229,18 +2190,17 @@ table.yb-table a:hover {
   align-items: center;
   gap: 12px;
   background: var(--panel);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   min-height: 86px;
   padding: 12px 14px;
   color: var(--text);
   transition:
-    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
     transform var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
 }
 .yb-team-card:hover {
-  border-color: var(--border-strong);
+  background: var(--elevated);
   transform: translateY(-1px);
   box-shadow: var(--shadow-card);
   text-decoration: none;
@@ -2300,17 +2260,17 @@ table.yb-table a:hover {
 }
 .yb-conf-nav a {
   flex: none;
-  border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 7px 12px;
+  padding: 8px 13px;
   color: var(--muted);
-  background: var(--panel);
+  background: var(--bg-soft);
   font-size: var(--fs-body);
   font-weight: 700;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 .yb-conf-nav a:hover {
-  color: var(--accent);
-  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--bg-hover);
   text-decoration: none;
 }
 .yb-conference-section {
@@ -2331,17 +2291,18 @@ table.yb-table a:hover {
   align-items: center;
   gap: 12px;
   background: var(--panel);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: 12px 14px;
   color: var(--text);
   transition:
-    border-color var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 .yb-leader-card:hover {
-  border-color: var(--border-strong);
+  background: var(--elevated);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
   text-decoration: none;
 }
 .yb-leader-card .body {
@@ -2427,8 +2388,7 @@ a.yb-game-team:hover {
   margin: 0;
   padding: 6px;
   list-style: none;
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
+  background: var(--elevated);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-pop);
   max-height: 380px;
@@ -2453,7 +2413,7 @@ a.yb-game-team:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border);
+  background: var(--bg-soft);
   border-radius: 50%;
   color: var(--muted);
   font-size: var(--fs-small);
@@ -2482,10 +2442,9 @@ a.yb-game-team:hover {
    the leader's bar and value in the accent color. */
 .yb-cmp {
   container-type: inline-size;
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--bg-soft);
-  padding: 14px 16px 16px;
+  padding: 16px 18px 18px;
 }
 /* One compact element: player A | toggle | player B. */
 .yb-cmp-head {
@@ -2641,16 +2600,14 @@ a.yb-game-team:hover {
   gap: 12px;
   margin: 2px 0 14px;
   padding: 10px 14px;
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: var(--bg-soft);
+  background: var(--elevated);
   color: var(--text);
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease);
 }
 .yb-player-mini:hover {
   text-decoration: none;
-  border-color: var(--border-strong);
-  background: var(--panel);
+  background: var(--bg-hover);
 }
 .yb-player-mini .who {
   display: flex;
@@ -2691,18 +2648,13 @@ a.yb-game-team:hover {
   flex-wrap: wrap;
   gap: 0;
   margin: 0 0 20px;
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--panel);
   overflow: hidden;
 }
 .yb-bio > div {
   flex: 1 1 110px;
-  padding: 10px 16px;
-  border-right: 1px solid var(--border);
-}
-.yb-bio > div:last-child {
-  border-right: none;
+  padding: 12px 18px;
 }
 .yb-bio dt {
   margin: 0;
@@ -2722,30 +2674,31 @@ a.yb-game-team:hover {
 @media (max-width: 640px) {
   .yb-bio > div {
     flex-basis: 33%;
-    border-bottom: 1px solid var(--border);
   }
 }
 
 /* ---- Segmented mode toggle (Totals / Per game) ---- */
 .yb-seg {
   display: inline-flex;
-  border: 1px solid var(--border);
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-soft);
   border-radius: var(--r-md);
-  overflow: hidden;
 }
 .yb-seg button {
-  background: var(--bg-soft);
+  background: transparent;
   border: none;
+  border-radius: var(--r-sm);
   color: var(--muted);
   font: inherit;
   font-size: var(--fs-body);
   font-weight: 600;
-  padding: 6px 14px;
+  padding: 5px 13px;
   cursor: pointer;
   transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-.yb-seg button + button {
-  border-left: 1px solid var(--border);
+.yb-seg button:hover:not([aria-pressed="true"]) {
+  color: var(--text);
 }
 .yb-seg button[aria-pressed="true"] {
   background: var(--accent);
@@ -2790,13 +2743,12 @@ a.yb-game-team:hover {
 }
 .yb-gloss-item {
   background: var(--panel);
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 12px 14px;
-  transition: border-color var(--dur) var(--ease);
+  padding: 14px 16px;
+  transition: background var(--dur) var(--ease);
 }
 .yb-gloss-item:hover {
-  border-color: var(--border-strong);
+  background: var(--elevated);
 }
 .yb-gloss-item dt {
   display: flex;
@@ -2811,9 +2763,9 @@ a.yb-game-team:hover {
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--faint);
-  border: 1px solid var(--border);
+  background: var(--bg-soft);
   border-radius: var(--r-pill);
-  padding: 1px 8px;
+  padding: 2px 9px;
 }
 .yb-gloss-item dd {
   margin: 0;
@@ -2837,18 +2789,18 @@ mark.yb-hit {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: var(--panel);
+  background: var(--bg-soft);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--r-md);
-  padding: 8px 12px;
+  padding: 9px 13px;
   font-size: var(--fs-ui);
   font-family: inherit;
   cursor: pointer;
-  transition: border-color var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease);
 }
 .yb-dd-btn:hover {
-  border-color: var(--border-strong);
+  background: var(--bg-hover);
 }
 .yb-dd-btn svg {
   color: var(--faint);
@@ -2864,8 +2816,7 @@ mark.yb-hit {
   margin: 0;
   padding: 4px;
   list-style: none;
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
+  background: var(--elevated);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-pop);
 }
@@ -2933,7 +2884,6 @@ mark.yb-hit {
 
 /* ---- Leaders page boards ---- */
 .yb-board {
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--panel);
   overflow: hidden;
@@ -2948,7 +2898,7 @@ mark.yb-hit {
   transition: background var(--dur) var(--ease);
 }
 .yb-board-top:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
   text-decoration: none;
 }
 .yb-board-top .who {
@@ -2991,16 +2941,15 @@ mark.yb-hit {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 9px 20px;
   color: var(--text);
   transition: background var(--dur) var(--ease);
 }
 .yb-board-row:last-child {
-  border-bottom: none;
+  padding-bottom: 12px;
 }
 .yb-board-row:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
   text-decoration: none;
 }
 .yb-board-row .rk {
@@ -3038,7 +2987,6 @@ mark.yb-hit {
 
 /* ---- Box score page ---- */
 .yb-boxhead {
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--panel);
   padding: 4px 20px 10px;

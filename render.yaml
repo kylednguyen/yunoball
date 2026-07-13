@@ -11,7 +11,7 @@ services:
     plan: free
     buildCommand: corepack enable && pnpm install --frozen-lockfile
     startCommand: pnpm --filter @yunoball/server start
-    healthCheckPath: /health
+    healthCheckPath: /ready   # readiness — verifies Postgres is reachable (see app.ts)
     envVars:
       - key: NODE_VERSION
         value: "22"          # repo requires node >=22

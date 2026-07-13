@@ -60,6 +60,13 @@ const PRIMARY_TD: Record<string, string> = {
   TE: "receiving_tds",
 };
 
+function detectPosition(qText: string): string | null {
+  for (const [re, pos] of POSITION_WORDS) {
+    if (re.test(qText)) return pos;
+  }
+  return null;
+}
+
 const POSITION_WORDS: [RegExp, string][] = [
   [/\b(qbs?|quarterbacks?)\b/, "QB"],
   [/\b(rbs?|running backs?)\b/, "RB"],
@@ -216,12 +223,19 @@ function teamHits(qText: string, teams: Map<string, IndexedTeam>, cap = 2): Inde
 /** A four-digit year, or relative phrasings resolved against the newest
  * loaded season ("this season", "last year", "current season"). */
 function detectSeason(qText: string, latestSeason: number | null): number | null {
-  const m = qText.match(/\b(19|20)\d{2}\b/);
+  // "since 1999" / "since 2000" expresses all-time coverage, not a single
+  // season — strip it so it isn't misread as a one-year filter.
+  const cleaned = qText.replace(/\bsince\s+(?:19|20)\d{2}\b/g, " ");
+  // A four-digit run immediately followed by a stat unit is a threshold value
+  // ("2000 yard rushers", "1500 receiving yards"), never a season year.
+  const m = cleaned.match(
+    /\b(19|20)\d{2}\b(?!\s*[-]?\s*(?:\+|yards?|yds?|receptions?|catches|tds?|touchdowns?|tackles?|sacks?|points?|pts?))/,
+  );
   if (m) return Number(m[0]);
   if (latestSeason == null) return null;
   if (/\b(this|current) (season|year)\b/.test(qText)) return latestSeason;
+  // "last season" / "last year" both mean the prior season.
   if (/\blast (season|year)\b/.test(qText)) return latestSeason - 1;
-  if (/\b(this year|last year)\b/.test(qText)) return latestSeason;
   return null;
 }
 
@@ -269,6 +283,16 @@ function venue(qText: string): "home" | "away" | null {
   return null;
 }
 
+/** Calendar-month split ("in December"). Only football months — "may" is a
+ * modal verb and March-August have no REG/POST games. */
+const MONTH_NUMS: Record<string, number> = {
+  september: 9, october: 10, november: 11, december: 12, january: 1, february: 2,
+};
+function detectMonth(qText: string): number | null {
+  const m = qText.match(/\b(september|october|november|december|january|february)\b/);
+  return m ? MONTH_NUMS[m[1]!]! : null;
+}
+
 /** Numeric qualifying-game thresholds: "over 300", "100+", "at least 3",
  * "more than 10", "under 50", "fewer than 2". */
 function threshold(qText: string): { op: ">" | ">=" | "<"; value: number } | null {
@@ -282,6 +306,71 @@ function threshold(qText: string): { op: ">" | ">=" | "<"; value: number } | nul
   if (m) return { op: "<", value: Number(m[1]) };
   m = qText.match(/\bgames? with (\d+)\b/);
   if (m) return { op: ">=", value: Number(m[1]) };
+  // "300 yard games", "throw for 300 yards", "1000 rushing yards": a count
+  // before a yardage unit (optionally through a rushing/passing/receiving
+  // adjective) is a threshold. Two-plus digits so a "5 yard" never trips it.
+  m = qText.match(/\b(\d{2,4})[-\s]?(?:(?:rushing|passing|receiving)\s+)?(?:yards?|yds?)\b/);
+  if (m) return { op: ">=", value: Number(m[1]) };
+  return null;
+}
+
+/** Which bio fact a question about a named player asks for. */
+function bioFieldOf(
+  qText: string,
+): "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "jersey" | "full" | null {
+  // Plural/history phrasings before the singular current-team check.
+  if (/\bjersey\b|\bwhat number (?:does|is|do)\b|\bnumber does\b/.test(qText)) return "jersey";
+  if (/\bwhat teams\b|\bwhich teams\b|\bprevious teams\b|\bteam history\b|\bevery team\b|\ball the teams\b/.test(qText)) return "teams";
+  if (/\bhow many (?:seasons|years)\b|\byears of experience\b|\bhow long has\b|\bseasons played\b|\bexperience\b/.test(qText)) return "experience";
+  if (/\bhow old\b|\bwhat age\b|\bage\b|\bhow young\b|\bbirth\s?date\b|\bbirthday\b/.test(qText)) return "age";
+  if (/\bhow tall\b|\bheight\b|\btall is\b/.test(qText)) return "height";
+  if (/\bhow heavy\b|\bweigh(?:s|t|ing)?\b/.test(qText)) return "weight";
+  if (/\b(?:college|university|what school|go to school|play(?:ed)? college)\b/.test(qText)) return "college";
+  if (/\bwhat team\b|\bwhich team\b|\bteam (?:does|is|do)\b|\bplays? for\b|\bwho does\b.*\bplay\b|\bcurrent team\b/.test(qText)) return "team";
+  if (/\b(?:bio|biography|profile|info(?:rmation)? (?:on|about)|tell me about|who is)\b/.test(qText)) return "full";
+  return null;
+}
+
+/** Bio superlative ("tallest player", "oldest quarterback") -> metric + dir. */
+function bioSuperlative(qText: string): { field: "height" | "weight" | "age"; dir: "desc" | "asc" } | null {
+  // Note: "biggest"/"smallest" are deliberately excluded — they collide with
+  // "biggest win", "biggest comeback", etc. Only unambiguous body words here.
+  if (/\btallest\b/.test(qText)) return { field: "height", dir: "desc" };
+  if (/\bshortest\b/.test(qText)) return { field: "height", dir: "asc" };
+  if (/\bheaviest\b/.test(qText)) return { field: "weight", dir: "desc" };
+  if (/\blightest\b/.test(qText)) return { field: "weight", dir: "asc" };
+  if (/\boldest\b/.test(qText)) return { field: "age", dir: "desc" };
+  if (/\byoungest\b/.test(qText)) return { field: "age", dir: "asc" };
+  return null;
+}
+
+/** A looser threshold used only for league-wide counts: any "N <stat unit>"
+ * (receptions, touchdowns, sacks, or a large career-yardage number). The
+ * game-grain threshold() deliberately ignores these to avoid mis-routing a
+ * plain player question into a game count. */
+function countThreshold(qText: string): { op: ">="; value: number } | null {
+  const m = qText.match(
+    /\b(\d{2,6})\+?\s*(?:or more\s+)?(?:career\s+)?(?:(?:rushing|passing|receiving)\s+)?(?:yards?|yds?|receptions?|catches|touchdowns?|tds?|sacks?|tackles?|interceptions?)\b/,
+  );
+  return m ? { op: ">=", value: Number(m[1]) } : null;
+}
+
+/** Inclusive multi-season range: "from 2021 to 2023", "between 2019 and 2022",
+ * "2020-2022", "last 3 seasons". */
+function seasonRange(qText: string, latestSeason: number | null): { min: number; max: number } | null {
+  let m =
+    qText.match(/\bfrom\s+((?:19|20)\d{2})\s+(?:to|through|thru|and)\s+((?:19|20)\d{2})\b/) ??
+    qText.match(/\bbetween\s+((?:19|20)\d{2})\s+and\s+((?:19|20)\d{2})\b/) ??
+    qText.match(/\b((?:19|20)\d{2})\s*[-–]\s*((?:19|20)\d{2})\b/);
+  if (m) {
+    const a = Number(m[1]), b = Number(m[2]);
+    return { min: Math.min(a, b), max: Math.max(a, b) };
+  }
+  m = qText.match(/\b(?:last|past)\s+(\d{1,2})\s+(?:seasons|years)\b/);
+  if (m && latestSeason != null) {
+    const n = Math.max(2, Number(m[1]));
+    return { min: latestSeason - n + 1, max: latestSeason };
+  }
   return null;
 }
 
@@ -383,21 +472,64 @@ const UNSUPPORTED: [RegExp, string][] = [
     "Pressure stats beyond sacks aren't tracked yet. Sacks, tackles, forced fumbles and passes defended are.",
   ],
   [
-    /\b(qbr|passer rating|third down|red ?zone|time of possession|epa|dvoa|turnovers? forced|averages?|avg|ypc|per carry)\b/,
-    "Rate and efficiency metrics beyond completion percentage aren't tracked yet. Try production stats: yards, touchdowns, receptions, interceptions thrown.",
+    // Advanced metrics needing play-by-play or proprietary models. Simple
+    // rates (yards per carry/attempt/reception, catch rate, per-game) and
+    // air yards ARE computed — see the ratio stats and perGame modifier.
+    /\b(qbr|third down|red ?zone|time of possession|dvoa|win probability|turnovers? forced)\b/,
+    "QBR, DVOA and win probability are proprietary models and aren't tracked. EPA, CPOE, success rate, passer rating and the standard rates ARE computed.",
   ],
   [
-    /\b(offense|offensive|defense|defensive|which team|what team|gives? up|allowed)\b/,
-    "Team-unit stats aren't queryable yet. Every team page ranks offense and defense against the whole league.",
+    /\b(offense|offensive|defense|defensive|which team)\b/,
+    "Team-unit rankings aren't queryable yet. Every team page ranks offense and defense against the whole league.",
+  ],
+  [
+    // MVP and Super Bowl MVP ARE answered (curated facts table); the rest
+    // would risk invented honors, which is worse than a refusal.
+    /\b(pro bowl|all[- ]pro|hall of fame|ring of honor|retired (?:number|jersey)|rookie of the year|player of the year|opoy|dpoy|roty)\b/,
+    "Only MVP and Super Bowl MVP awards are loaded so far — try \"who won MVP in 2023\". Other honors aren't in the warehouse.",
+  ],
+  [
+    /\b(traded?|trades?|free agen(?:cy|ts?)|waivers?|waived|signed with|re-?signed|transactions?)\b/,
+    "Transactions (trades, signings, waivers) aren't tracked. Drafts are: try \"where was Bryce Young drafted\".",
+  ],
+  [
+    /\b(injur(?:y|ies|ed)|questionable|doubtful|injured reserve|out for the season)\b/,
+    "Injury reports aren't tracked — the warehouse is historical stats and results.",
+  ],
+  [
+    /\b(depth charts?|starter at|starters at|backup)\b/,
+    "Depth charts aren't tracked. Team rosters are: try \"Chiefs roster 2023\".",
+  ],
+  [
+    /\b(play[- ]by[- ]play|drive summar|snap counts?|every play)\b/,
+    "Play-by-play detail isn't stored — box-score totals plus a touchdown log are. Scores, box scores and TD timelines are queryable.",
   ],
   [
     /\b(schedule|next game|tomorrow|tonight|upcoming)\b/,
     "I answer historical stats and results. For week-by-week scores, head to the Scores page.",
   ],
   [
-    /\b(primetime|prime time|monday night|sunday night|thursday night|snf|mnf|tnf|thanksgiving|against winning teams|after (the )?bye|overtime|comeback|record when)\b/,
-    "That game-situation split isn't tracked yet. I can filter by season, playoffs, home/away, week ranges and stat thresholds.",
+    // Primetime and cold-weather splits ARE computed now (weekday/gametime
+    // and kickoff temperature); these remaining situations aren't.
+    /\b(thanksgiving|against winning teams|after (the )?bye|overtime|comeback|record when)\b/,
+    "That game-situation split isn't tracked yet. I can filter by season, playoffs, home/away, weeks, months, primetime and cold weather.",
   ],
+  [
+    // Play-level distance — not stored; the warehouse is box-score totals plus
+    // a touchdown log, not full play-by-play. Scoped to a play noun so it
+    // doesn't swallow "longest career" (a different, generic-fallback case).
+    /\blongest\s+(?:play|run|rush|reception|catch|pass|completion|field goal|fg|drive)\b/,
+    "Only touchdown lengths are stored from play-by-play — try \"longest touchdown of 2023\". Other play distances aren't tracked.",
+  ],
+  [
+    // "youngest/oldest TO <milestone>" needs age-at-game; "fastest to X" IS
+    // answered (milestone intent). Bio superlatives are handled earlier.
+    /\b(?:youngest|oldest) (?:to|player to|ever to)\b|\bon pace\b/,
+    'Age-at-milestone questions aren\'t supported yet, but "fastest to" is: try "fastest to 10000 passing yards".',
+  ],
+  // Note: player bio, per-game rates, season ranges, league-wide counts and
+  // rank lookups ARE answered now — see the player_bio / qualifying_count /
+  // player_rank branches and the perGame / seasonMin-Max modifiers below.
 ];
 
 export interface ParseOpts {
@@ -419,6 +551,14 @@ export function parseRules(
     .replace(/\bthe big game\b/g, "the super bowl");
   const season = detectSeason(qText, opts.latestSeason ?? null);
   const isCareer = CAREER_RE.test(qText);
+  // "average"/"avg" reads as a per-game rate; ratio stats (yards per carry)
+  // are already rates, so the flag is cleared for them at spec construction.
+  const perGameCue = /\bper[- ]game\b|\baverages?\b|\bavg\b|\b(?:rolling|moving) average\b/.test(qText);
+  const median = /\bmedian\b/.test(qText);
+  const month = detectMonth(qText);
+  const primetime =
+    /\b(primetime|prime time|monday night|sunday night|thursday night|snf|mnf|tnf|night games?)\b/.test(qText);
+  const tempMax = /\b(freezing|below freezing|in the cold|cold[- ]weather)\b/.test(qText) ? 32 : null;
   const filters = {
     venue: venue(qText),
     ...weekRange(qText),
@@ -426,6 +566,11 @@ export function parseRules(
     lastN: lastN(qText),
     rookie: /\brookies?\b/.test(qText),
   };
+  // "5-game rolling average" is a per-game rate over the last N games.
+  const rollM = qText.match(/\b(\d{1,2})[- ]game (?:rolling|moving) average\b/);
+  if (rollM || /\b(?:rolling|moving) average\b/.test(qText)) {
+    filters.lastN = filters.lastN ?? (rollM ? Number(rollM[1]) : 5);
+  }
   // Weeks past 18 only exist in the playoffs — asking about them IS asking
   // about the postseason. "Super Bowl" narrows further to the final game;
   // named rounds (wild card, divisional, championships) narrow to one week.
@@ -526,6 +671,18 @@ export function parseRules(
     }
   }
 
+  // ---- Player bio / roster ("what team does X play for", "how old is X") —
+  // answered straight from the players dimension. Runs before the team-unit
+  // refusal so "what team does <player> play for" resolves to the player. ----
+  const bioField = bioFieldOf(qText);
+  if (player && bioField) {
+    return {
+      intent: "player_bio", stat: "total_tds", bioField,
+      player: player.name, playerId: player.playerId,
+      seasonType: "REG", scope: "career", limit: 1,
+    };
+  }
+
   // ---- Game results and game logs (teams and Super Bowls) ----
   const teams = opts.teams;
   const resultCue =
@@ -541,7 +698,7 @@ export function parseRules(
     return {
       intent: "game_log", stat: "total_tds",
       player: player.name, playerId: player.playerId, position: player.position,
-      season: effSeason, seasonType, sbOnly, round: playerRound,
+      season: effSeason, seasonType, sbOnly, round: playerRound, month, primetime, tempMax,
       opponentId: opp?.teamId ?? null, team2Name: opp?.name ?? null,
       venue: filters.venue, weekMin: filters.weekMin ?? null, weekMax: filters.weekMax ?? null,
       firstN: filters.firstN, lastN: filters.lastN,
@@ -554,7 +711,8 @@ export function parseRules(
   if (
     !player && roundInfo &&
     (resultCue || sb?.number != null || sbSeason != null) &&
-    detectStat(qText) === null && genericCue(qText) === null
+    detectStat(qText) === null && genericCue(qText) === null &&
+    !/\bmvps?\b/.test(qText) // "super bowl MVP" is an award, not a result
   ) {
     const marginM = qText.match(/\bdecided by (\d{1,2})(?: points)?(?: or (?:fewer|less))?\b/);
     const wantsAll =
@@ -574,6 +732,17 @@ export function parseRules(
     }
   }
 
+  // Awards: MVP / Super Bowl MVP from the curated facts table.
+  if (/\bmvps?\b/.test(qText)) {
+    const award = /\bsuper ?bowl mvp\b|\bsb mvp\b/.test(qText) ? ("SBMVP" as const) : ("MVP" as const);
+    return {
+      intent: "award", award, stat: "total_tds",
+      season: player ? null : effSeason,
+      player: player?.name ?? null, playerId: player?.playerId ?? null,
+      seasonType: "REG", scope: "career", limit: 30,
+    };
+  }
+
   // Vocabulary we recognize but genuinely can't answer — say so, usefully.
   for (const [re, message] of UNSUPPORTED) {
     if (re.test(qText)) return { refusal: message };
@@ -586,6 +755,14 @@ export function parseRules(
     const single =
       /\b(last|latest|most recent|who won|final score|score of|result)\b/.test(qText) &&
       !/\b(all|every|each)\b/.test(qText);
+    // Team-info phrasings ("where do the packers play", "who played for the
+    // bills", "how many points did the chiefs score") must reach the
+    // team_bio/team_roster/team_stat branches below, not a game lookup —
+    // even though they contain result/log vocabulary ("play", "score").
+    const infoCue =
+      /\bstadium\b|\bhome field\b|\bwhere do(?:es)?\b.*\bplay\b|\bplay (?:their )?home games\b|\broster\b|\bwho play(?:s|ed) for\b|\bplayers on\b|\bhow many points\b|\bpoints? (?:did|scored|allowed|for|against|per game)\b/.test(
+        qText,
+      );
 
     if (t1 && t2 && t2.teamId !== t1.teamId && (resultCue || logCue || sbOnly || roundInfo)) {
       return {
@@ -609,7 +786,7 @@ export function parseRules(
       }
       // "ravens last game", "packers game on october 20, 2024",
       // "what was the score of the eagles game".
-      if (/\blast game\b/.test(qText) || gameDate || (resultCue && !logCue)) {
+      if (/\blast game\b/.test(qText) || gameDate || (resultCue && !logCue && !infoCue)) {
         return {
           intent: "game_result", stat: "total_tds",
           teamId: t1.teamId, teamName: t1.name,
@@ -622,7 +799,7 @@ export function parseRules(
       // Team game log: "bills 2024 game log", "chiefs playoff results",
       // "lions last ten games", "chiefs games decided by 7 or less".
       const marginM = qText.match(/\bdecided by (\d{1,2})(?: points)?(?: or (?:fewer|less))?\b/);
-      if (logCue || filters.lastN || marginM) {
+      if ((logCue || filters.lastN || marginM) && !infoCue) {
         const post = seasonType === "POST";
         return {
           intent: "team_game_log", stat: "total_tds",
@@ -642,15 +819,93 @@ export function parseRules(
 
   }
 
-  // Team questions: the warehouse can't rank team units yet, but the team
-  // pages compute record, rankings and leaders — point there by name.
+  // Team questions answered from the warehouse: identity (division /
+  // conference / stadium), roster, team leaders, and team stat totals.
+  // Anything else team-shaped points to the team page by name.
   if (!player && opts.teams) {
     const team = teamHit(qText, opts.teams);
     if (team) {
+      const tStat = detectStat(qText);
+      const tRange = seasonRange(qText, opts.latestSeason ?? null);
+      // Identity: "what division are the chiefs in", "chiefs stadium".
+      // Round mentions ("AFC conference championship") are game questions.
+      const teamField =
+        !roundInfo && /\bdivisions?\b/.test(qText) ? ("division" as const)
+          : !roundInfo && /\bconference\b/.test(qText) ? ("conference" as const)
+            : /\bstadium\b|\bplay (?:their )?home games\b|\bhome field\b/.test(qText)
+              ? ("stadium" as const)
+              : /\bcoach(?:ed|es)?\b|\bhead coach\b/.test(qText) ? ("coach" as const)
+                : /\bcolors?\b/.test(qText) ? ("colors" as const)
+                  : /\bfounded\b|\bestablished\b/.test(qText) ? ("founded" as const)
+                    : /\brelocat|\brenamed?\b|\bname change\b|\bfranchise history\b|\bused to be\b/.test(qText)
+                      ? ("history" as const)
+                      : null;
+      if (teamField) {
+        return {
+          intent: "team_bio", stat: "total_tds", teamField,
+          teamId: team.teamId, teamName: team.name,
+          seasonType: "REG", scope: "career", limit: 1,
+        };
+      }
+      // Streaks: "chiefs winning streak", "how long is the jets losing streak".
+      if (/\bstreaks?\b/.test(qText)) {
+        return {
+          intent: "team_streak", stat: "total_tds",
+          teamId: team.teamId, teamName: team.name,
+          kind: /\blos(?:s|ing|t)\b/.test(qText) ? "loss" : "win",
+          seasonType: "REG", scope: "career", limit: 400,
+        };
+      }
+      // Roster: "chiefs roster 2023", "who played for the chiefs in 2023".
+      if (/\broster\b|\bwho play(?:s|ed) for\b|\bplayers on\b/.test(qText)) {
+        return {
+          intent: "team_roster", stat: "total_tds",
+          teamId: team.teamId, teamName: team.name,
+          season: effSeason ?? opts.latestSeason ?? null,
+          position: detectPosition(qText),
+          seasonType: "REG", scope: "season", limit: 60,
+        };
+      }
+      // Team leaders: "who led the chiefs in receiving yards in 2023".
+      if (tStat && /\b(led|leads|leader|leaders|most|top|best)\b/.test(qText)) {
+        return {
+          intent: "leaders", stat: tStat,
+          teamId: team.teamId, teamName: team.name,
+          season: tRange ? null : (effSeason ?? (isCareer ? null : (opts.latestSeason ?? null))),
+          seasonMin: tRange?.min ?? null, seasonMax: tRange?.max ?? null,
+          seasonType, sbOnly, month,
+          position: detectPosition(qText),
+          perGame: perGameCue && !STATS[tStat]?.ratio,
+          dir: ASC_RE.test(qText) ? "asc" : "desc",
+          scope: tRange || isCareer ? "career" : "season",
+          limit: topN(qText) ?? 5,
+        };
+      }
+      // Team totals: "how many points did the chiefs score in 2023",
+      // "chiefs passing yards in 2023", "chiefs points allowed per game".
+      const pointsCue = !tStat && /\bpoints?\b/.test(qText);
+      if (tStat || pointsCue) {
+        const metric = pointsCue
+          ? /\ballowed\b|\bgiven? up\b|\bgave up\b|\bconceded\b|\bagainst\b/.test(qText)
+            ? ("points_against" as const)
+            : ("points_for" as const)
+          : null;
+        return {
+          intent: "team_stat", stat: tStat ?? "total_tds", metric,
+          teamId: team.teamId, teamName: team.name,
+          season: tRange ? null : effSeason,
+          seasonMin: tRange?.min ?? null, seasonMax: tRange?.max ?? null,
+          seasonType, perGame: perGameCue,
+          perDrive: /\bper drive\b/.test(qText),
+          scope: tRange || isCareer || effSeason == null ? "career" : "season",
+          limit: 1,
+        };
+      }
       return {
         refusal:
-          `Team-level stat questions are coming. Meanwhile the ${team.name} ` +
-          `page has their record, offense/defense rankings and stat leaders.`,
+          `That team question isn't queryable yet. The ${team.name} page has ` +
+          `their record, rankings and leaders; I can answer their points, ` +
+          `yards, roster, division and stadium here.`,
       };
     }
   }
@@ -692,9 +947,34 @@ export function parseRules(
     }
   }
 
+  // Bio superlative ("tallest player", "oldest quarterback") — no stat, so it
+  // must resolve before the stat-required shapes below.
+  const bioSup = bioSuperlative(qText);
+  if (!player && bioSup) {
+    return {
+      intent: "player_bio", stat: "total_tds", bioField: bioSup.field,
+      dir: bioSup.dir, position, seasonType: "REG", scope: "career",
+      limit: topN(qText) ?? 5,
+    };
+  }
+
   // Stat: specific vocabulary first, then generic cues resolved by context,
   // then the player's (or position's) primary stat.
   let stat = detectStat(qText);
+  // Bare "air yards" picks a side of the ball from the player/position —
+  // before the generic "yards" cue would swallow it as regular yardage.
+  if (stat === null && /\bair yards\b/.test(qText)) {
+    stat = (player?.position ?? position) === "QB" ? "passing_air_yards" : "receiving_air_yards";
+  }
+  // Same for the pbp-derived metrics: role picked by position.
+  if (stat === null && /\bepa\b|\bexpected points( added)?\b/.test(qText)) {
+    const pos = player?.position ?? position;
+    stat = pos === "QB" ? "passing_epa" : pos === "RB" ? "rushing_epa" : pos ? "receiving_epa" : "passing_epa";
+  }
+  if (stat === null && /\bsuccess rate\b/.test(qText)) {
+    const pos = player?.position ?? position;
+    stat = pos === "QB" ? "pass_success_rate" : pos === "RB" ? "rush_success_rate" : pos ? "recv_success_rate" : "pass_success_rate";
+  }
   if (stat === null) {
     const cue = genericCue(qText);
     const pos = player?.position ?? position ?? "";
@@ -746,13 +1026,87 @@ export function parseRules(
 
   const limit = topN(qText);
   const th = threshold(qText);
+  // pbp-derived stats live in a separate table; threshold/single-game/streak
+  // shapes stay off it (their SQL targets player_game_stats).
+  const advStat = STATS[stat]?.table === "advanced";
   const isSingleGame =
     qText.includes("game") &&
     (qText.includes("single") || qText.includes("in a game") || qText.includes("one game"));
+  const perGame = perGameCue && !STATS[stat]?.ratio;
+  const range = seasonRange(qText, opts.latestSeason ?? null);
+
+  // League rank of one player ("where does Mahomes rank in career passing yards").
+  const rankCue =
+    /\bwhere (?:do|does|did)\b[^?]*\brank\b|\brank(?:s|ed|ing)?\b|\bwhat (?:number|place)\b/.test(qText);
+  if (player && rankCue) {
+    return {
+      intent: "player_rank", stat, player: player.name, playerId: player.playerId,
+      season: range ? null : effSeason, seasonMin: range?.min ?? null, seasonMax: range?.max ?? null,
+      seasonType, position,
+      scope: isCareer || (effSeason == null && !range) ? "career" : "season",
+      limit: 1,
+    };
+  }
+
+  // League-wide qualifying count ("how many players had 1000 rushing yards in 2023").
+  const leagueCountCue =
+    /\bhow many (?:players|guys|quarterbacks|qbs|running backs|rbs|receivers|wrs|tes|tight ends)\b/.test(qText);
+  const lcThreshold = th ?? countThreshold(qText);
+  if (!player && leagueCountCue && lcThreshold && !advStat) {
+    return {
+      intent: "qualifying_count", stat, threshold: lcThreshold,
+      season: effSeason, seasonType, position,
+      scope: isCareer || effSeason == null ? "career" : "season", limit: 1,
+    };
+  }
+
+  // Longest touchdowns by play length ("longest touchdown of 2023").
+  if (/\blongest\b.*\b(?:touchdowns?|tds?)\b|\b(?:touchdowns?|tds?)\b.*\blongest\b/.test(qText)) {
+    return {
+      intent: "scoring", stat: "total_tds", longest: true,
+      player: player?.name ?? null, playerId: player?.playerId ?? null,
+      season: effSeason, seasonType, scope: "season", limit: limit ?? 5,
+    };
+  }
+
+  // Streaks: "games in a row with a touchdown", "consecutive 100-yard games".
+  if (!advStat && /\bin a row\b|\bconsecutive\b|\bstreaks?\b/.test(qText)) {
+    if (player) {
+      return {
+        intent: "player_streak", stat,
+        player: player.name, playerId: player.playerId,
+        threshold: th, season: effSeason, seasonType,
+        scope: isCareer || effSeason === null ? "career" : "season", limit: 500,
+      };
+    }
+    return {
+      refusal:
+        'League-wide streak boards aren\'t supported yet. Ask one player\'s streak ' +
+        '("Henry games in a row with a rushing TD") or a team\'s winning streak.',
+    };
+  }
+
+  // Milestone races: "fastest to 10000 passing yards".
+  const fastM = qText.match(/\bfastest to ([\d,]+)\b/);
+  if (fastM && !player) {
+    return {
+      intent: "milestone", stat, target: Number(fastM[1]!.replace(/,/g, "")),
+      season: null, seasonType, scope: "career", limit: limit ?? 5,
+    };
+  }
+
+  // League-wide medians would need a population definition; player medians work.
+  if (median && !player) {
+    return {
+      refusal:
+        'League-wide medians aren\'t supported yet. Ask one player\'s median game, ' +
+        'like "Derrick Henry median rushing yards in 2023".',
+    };
+  }
 
   // Qualifying-game counts: "Lamar games over 300 passing yards",
   // "Derrick Henry 100+ rushing yard games".
-  if (player && th && !isSingleGame) {
+  if (player && th && !isSingleGame && !advStat) {
     return {
       intent: "game_count",
       stat,
@@ -761,6 +1115,9 @@ export function parseRules(
       season: effSeason,
       seasonType,
       sbOnly,
+      month,
+      primetime,
+      tempMax,
       threshold: th,
       venue: filters.venue,
       weekMin: filters.weekMin ?? null,
@@ -770,10 +1127,14 @@ export function parseRules(
     };
   }
 
-  if (isSingleGame) {
+  if (isSingleGame && !advStat) {
+    // Scope to the named player when the question named one ("Derrick Henry
+    // most rushing yards in a game"); otherwise a league-wide single-game board.
     return {
       intent: "single_game", stat, seasonType, limit: limit ?? 5,
-      scope: "season", season: null,
+      scope: "season", season: effSeason,
+      player: player?.name ?? null,
+      playerId: player?.playerId ?? null,
     };
   }
 
@@ -783,7 +1144,14 @@ export function parseRules(
       stat,
       player: player.name,
       playerId: player.playerId,
-      season: effSeason,
+      season: range ? null : effSeason,
+      seasonMin: range?.min ?? null,
+      seasonMax: range?.max ?? null,
+      perGame,
+      median,
+      month,
+      primetime,
+      tempMax,
       round: playerRound,
       seasonType,
       sbOnly,
@@ -794,7 +1162,11 @@ export function parseRules(
       weekMax: filters.weekMax ?? null,
       rookie: filters.rookie,
       scope:
-        filters.rookie || (!isCareer && effSeason !== null) ? "season" : "career",
+        range || isCareer || effSeason === null
+          ? "career"
+          : filters.rookie || effSeason !== null
+            ? "season"
+            : "career",
       limit: 10,
     };
   }
@@ -806,18 +1178,27 @@ export function parseRules(
     weekMin: filters.weekMin ?? null,
     weekMax: filters.weekMax ?? null,
     sbOnly,
+    perGame,
+    month,
+    primetime,
+    tempMax,
+    seasonMin: range?.min ?? null,
+    seasonMax: range?.max ?? null,
     // "most career passing yards" ranks all-time totals; a bare position
     // question ("best qb") means the newest season, not all of history.
     round: playerRound,
-    season: isCareer
+    season: range
       ? null
-      : (effSeason ?? (position && !CAREER_RE.test(qText) ? (opts.latestSeason ?? null) : null)),
+      : isCareer
+        ? null
+        : (effSeason ?? (position && !CAREER_RE.test(qText) ? (opts.latestSeason ?? null) : null)),
     seasonType,
     limit: limit ?? 10,
     position,
     dir: ASC_RE.test(qText) ? "asc" : "desc",
     rookie: /\brookies?\b/.test(qText),
-    scope: isCareer ? "career" : "season",
+    // A range aggregates across its seasons like a career total does.
+    scope: range || isCareer ? "career" : "season",
   };
 }
 
