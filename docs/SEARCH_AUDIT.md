@@ -25,8 +25,7 @@ Every question must land in an honest bucket — never a wrong number:
 
 > **Corpus growth note:** the table below records the original ~100-question
 > hardening runs. The corpus has since grown with the domain-coverage waves —
-> as of wave 4b it is 154 questions at **145 answered · 9 tailored refusals ·
-> 0 fallbacks · 0 wrong** (see `DOMAIN_COVERAGE.md` for the per-area matrix).
+> `DOMAIN_COVERAGE.md` owns the current tally and per-area matrix.
 
 ## Result (original hardening runs)
 

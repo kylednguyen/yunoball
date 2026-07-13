@@ -553,7 +553,7 @@
           <div class="swatch"><div class="chip" style="background:#181a1d"></div><div class="meta"><b>Border (rare)</b><code>--border rgba(255,255,255,0.05)</code> <em>(≈#181a1d over --bg)</em></div></div>
           <div class="swatch"><div class="chip" style="background:#f5f5f5"></div><div class="meta"><b>Text</b><code>--text #f5f5f5</code></div></div>
           <div class="swatch"><div class="chip" style="background:#a1a1aa"></div><div class="meta"><b>Muted</b><code>--muted #a1a1aa</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#82828c"></div><div class="meta"><b>Faint</b><code>--faint #82828c</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#95959f"></div><div class="meta"><b>Faint</b><code>--faint #95959f</code></div></div>
           <div class="swatch"><div class="chip" style="background:#10b981"></div><div class="meta"><b>Accent</b><code>--accent #10b981</code></div></div>
           <div class="swatch"><div class="chip" style="background:#22c55e"></div><div class="meta"><b>Accent hover</b><code>--accent-hover #22c55e</code></div></div>
           <div class="swatch"><div class="chip" style="background:#34d399"></div><div class="meta"><b>Accent ink</b><code>--accent-ink #34d399</code></div></div>
@@ -561,11 +561,10 @@
           <div class="swatch"><div class="chip" style="background:#f87171"></div><div class="meta"><b>Danger</b><code>--danger #f87171</code></div></div>
         </div>
         <div class="callout warn">
-          <strong>Contrast guardrails:</strong> muted text (<code>#a1a1aa</code>) clears 4.5:1 on
-          every surface in the ramp. Faint text (<code>#82828c</code>) clears it on resting surfaces
-          (4.7:1 worst case on <code>--bg-soft</code>) but drops to ≈3.8:1 on the hover tier
-          (<code>--bg-hover</code>) — keep faint labels off hover-brightened surfaces, or promote
-          them to muted there. Reserve faint for tertiary labels. Accent-colored <em>text</em> uses <code>--accent-ink #34d399</code>; solid
+          <strong>Contrast guardrails:</strong> muted text (<code>#a1a1aa</code>, ≥5.6:1) and faint
+          text (<code>#95959f</code>, ≥4.8:1) both clear WCAG AA on every surface in the ramp,
+          including the hover tier — the worst case for any text tone is faint on
+          <code>--bg-hover</code>. Reserve faint for tertiary labels. Accent-colored <em>text</em> uses <code>--accent-ink #34d399</code>; solid
           accent <em>fills</em> use <code>--accent</code> with <code>--accent-contrast</code> ink on top.
         </div>
         <h4>Dynamic team theming</h4>
@@ -1130,7 +1129,7 @@ GROUP BY player ORDER BY td DESC LIMIT 10;</pre>
         <h2>Accessibility requirements</h2>
         <p class="lead">Non-negotiable baseline: WCAG 2.1 AA. Accessibility ships with every component, not after.</p>
         <div class="deflist">
-          <dt>Contrast</dt><dd>Body/critical text ≥ 4.5:1; large text ≥ 3:1. Muted grey is for secondary/large text only; faint stays on resting surfaces (see the color-system guardrails). Accent-colored text always uses <code>--accent-ink</code>; solid accent fills pair with <code>--accent-contrast</code>.</dd>
+          <dt>Contrast</dt><dd>Body/critical text ≥ 4.5:1; large text ≥ 3:1. Muted is for secondary text, faint for tertiary labels; both clear 4.5:1 on every surface in the ramp (see the color-system guardrails). Accent-colored text always uses <code>--accent-ink</code>; solid accent fills pair with <code>--accent-contrast</code>.</dd>
           <dt>Focus</dt><dd>Every interactive element shows a visible <code>:focus-visible</code> ring (2px accent, 2px offset). Never remove outlines without a replacement. Logical DOM/tab order.</dd>
           <dt>Keyboard</dt><dd>Fully operable without a mouse: <kbd>/</kbd> ⁄ <kbd>⌘K</kbd> focus search, table sort/traverse, dropdown arrow-nav + type-ahead, modal focus-trap + <kbd>Esc</kbd>, tooltip on focus.</dd>
           <dt>Semantics</dt><dd>Real elements: <code>&lt;button&gt;</code>, <code>&lt;table&gt;/&lt;th scope&gt;</code>, <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, headings in order. ARIA only to fill gaps (<code>aria-sort</code>, <code>aria-live</code>, <code>aria-current</code>, <code>role="dialog"</code>).</dd>
