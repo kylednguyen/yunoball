@@ -23,7 +23,11 @@ Every question must land in an honest bucket — never a wrong number:
 | `AUDIT_BLOCK` | Second-layer auditor stopped it (e.g. resolved a non-entity) |
 | `ERROR` | Threw |
 
-## Result
+> **Corpus growth note:** the table below records the original ~100-question
+> hardening runs. The corpus has since grown with the domain-coverage waves —
+> `DOMAIN_COVERAGE.md` owns the current tally and per-area matrix.
+
+## Result (original hardening runs)
 
 | | Original | After hardening | After answering the possible |
 |---|---|---|---|
@@ -66,7 +70,7 @@ milestone pace, and team-unit stats (routed to the team pages).
 ## Findings fixed
 
 Each of these produced a wrong number or wrong-shaped answer **before** the
-audit. All are covered by the 227-test server suite plus this harness.
+audit. All are covered by the 287-test server suite plus this harness.
 
 | # | Question class | Before (wrong) | After | Fix |
 |---|---|---|---|---|

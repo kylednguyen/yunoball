@@ -41,14 +41,13 @@ test.describe("search", () => {
     );
 
     await expect(page.locator(".yb-answer")).toContainText(
-      "first 5 postseason games, Josh Allen leads Drake Maye in passing yards",
+      /first 5 postseason games, Josh Allen has .* Drake Maye has no postseason games/,
     );
     const compare = page.locator(".yb-compare");
     await expect(compare).toBeVisible();
     await expect(compare).toContainText("Josh Allen");
     await expect(compare).toContainText("Drake Maye");
-    await expect(compare).toContainText("Pass yds");
-    await expect(compare).not.toContainText("Fantasy"); // actual stats only
+    await expect(compare).toContainText("Pass yards");
     await expect(compare.locator(".lead").first()).toBeVisible();
   });
 

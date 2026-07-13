@@ -20,9 +20,10 @@
   /* Ink */
   --text: #f5f5f5;
   --muted: #a1a1aa;
-  /* Tertiary ink — lightened from #6b6b74, which fell below 4.5:1 on every
-     surface. 4.7:1 on --bg-soft, the worst case. */
-  --faint: #82828c;
+  /* Tertiary ink — must clear 4.5:1 on every surface INCLUDING the hover
+     tier, the brightest thing text sits on: 4.8:1 on --bg-hover, 5.3:1 on
+     --bg-soft. (The old #82828c was 4.15:1 on the new soft surface.) */
+  --faint: #95959f;
 
   /* Brand — emerald, used sparingly: search, selection, CTAs, links,
      positive metrics. Neutral dominates everywhere else. */
@@ -443,32 +444,6 @@ body {
   overflow-x: auto;
 }
 
-
-/* ---- Mobile touch targets: 44px minimum (WCAG 2.5.8 / Apple HIG) ---- */
-@media (max-width: 860px) {
-  .yb-nav-links a,
-  .yb-btn,
-  .yb-tab,
-  .yb-week-tab,
-  .yb-chip,
-  .yb-dd-btn,
-  .yb-lb-name,
-  .yb-input,
-  .yb-x,
-  .yb-suggest-item {
-    min-height: 44px;
-  }
-  .yb-x {
-    min-width: 44px;
-  }
-  /* Inline text links: grow the hit area, not the glyphs. */
-  .yb-link,
-  .yb-leaders-more,
-  .yb-dash-head a {
-    padding-block: 12px;
-    margin-block: -12px;
-  }
-}
 
 /* Offline notice in the nav — calm, not alarming. */
 .yb-offline {
@@ -3073,4 +3048,67 @@ mark.yb-hit {
 .yb-box-teams table.yb-table th,
 .yb-box-teams table.yb-table td {
   padding: 7px 12px;
+}
+
+/* ============================================================
+   Shared mobile overrides (≤860px). This block MUST stay at the
+   end of the file: media queries add no specificity, so these
+   equal-specificity overrides only win over the base component
+   rules by source order. (Component-local mobile blocks that only
+   ADD properties may stay beside their components.)
+   ============================================================ */
+@media (max-width: 860px) {
+  /* Touch targets: 44px minimum (WCAG 2.5.8 / Apple HIG). */
+  .yb-nav-links a,
+  .yb-btn,
+  .yb-tab,
+  .yb-week-tab,
+  .yb-chip,
+  .yb-dd-btn,
+  .yb-lb-name,
+  .yb-input,
+  .yb-x,
+  .yb-seg button,
+  .yb-suggest-item {
+    min-height: 44px;
+  }
+  .yb-x {
+    min-width: 44px;
+  }
+  /* Inline text links: grow the hit area, not the glyphs. */
+  .yb-link,
+  .yb-leaders-more,
+  .yb-dash-head a {
+    padding-block: 12px;
+    margin-block: -12px;
+  }
+
+  /* Tighter vertical rhythm on small screens. */
+  .yb-page {
+    padding-top: 24px;
+  }
+  .yb-page-header {
+    margin-bottom: 24px;
+  }
+  .yb-hero {
+    padding: 28px 16px 20px;
+  }
+  .yb-dash {
+    gap: 28px;
+  }
+
+  /* The "/" shortcut hint is keyboard-only chrome — meaningless on touch,
+     and it crowds the placeholder on narrow screens. */
+  .yb-kbd-hint {
+    display: none;
+  }
+  input.yb-search {
+    padding-right: 22px;
+  }
+  /* iOS Safari zooms the page when a focused input's font is under 16px.
+     Hold every text input at 16px on small screens. (input.yb-search is
+     19px at rest and needs no pin.) */
+  input.yb-input {
+    font-size: 16px;
+  }
 }
