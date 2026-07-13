@@ -11,6 +11,7 @@
 import type { ResolvedEntity } from "@yunoball/types";
 import { pool, q } from "../db/pool.js";
 import { sbName } from "./build.js";
+import { fields } from "./spec.js";
 import type { QuerySpec } from "./spec.js";
 
 export type AuditStatus =
@@ -143,7 +144,10 @@ function outcome(
   return { status, spec, warnings: [], confidence, ...extra };
 }
 
-export async function audit(spec: QuerySpec, ctx: AuditCtx): Promise<AuditOutcome> {
+export async function audit(spec0: QuerySpec, ctx: AuditCtx): Promise<AuditOutcome> {
+  // The auditor legitimately validates fields across every intent, so it uses
+  // the fields() reader view (same object; executors keep the narrow types).
+  const spec = fields(spec0);
   const warnings: string[] = [];
   const confidence: AuditConfidence = {
     overall: 1,
@@ -156,7 +160,7 @@ export async function audit(spec: QuerySpec, ctx: AuditCtx): Promise<AuditOutcom
     confidence.overall = Math.min(
       confidence.entity, confidence.season, confidence.gameType, confidence.metric,
     );
-    return { status, spec, warnings, confidence, ...extra };
+    return { status, spec: spec0, warnings, confidence, ...extra };
   };
 
   // ---- Contradictions: reject before any SQL exists ----

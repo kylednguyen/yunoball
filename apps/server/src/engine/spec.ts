@@ -1,11 +1,16 @@
-/** The QuerySpec — a typed intermediate representation between natural
+/** The QuerySpec AST — a typed intermediate representation between natural
  * language and SQL — plus the stat configuration that drives both the parser
- * and the SQL builder.
+ * and the executors.
  *
- * The rule-based parser produces one of these small structured objects
- * instead of raw SQL. A deterministic builder turns it into safe,
- * parameterized SQL, so there is no injection surface. The spec also doubles
- * as a stable cache key.
+ * The rule-based parser compiles a question into one of these nodes instead
+ * of raw SQL. A deterministic executor (engine/executors/) turns each node
+ * into safe, parameterized SQL, so there is no injection surface. The node
+ * also doubles as a stable cache key.
+ *
+ * The spec is a DISCRIMINATED UNION on `intent`: each intent's node carries
+ * only the fields its executor legitimately consumes, so "the parser set a
+ * field the executor silently ignores" — the engine's worst historical bug
+ * class — is a compile error, not a wrong number.
  */
 
 export type Intent =
@@ -154,77 +159,227 @@ export const STATS: Record<string, StatDef> = {
   },
 };
 
-export interface QuerySpec {
-  intent: Intent;
+// --------------------------------------------------------------------------
+// The AST node types
+// --------------------------------------------------------------------------
+
+/** Fields every node carries. */
+export interface SpecBase {
   stat: keyof typeof STATS & string;
   season?: number | null;
   seasonType: string; // REG | POST
-  player?: string | null; // display name (narration / LIKE fallback)
-  playerId?: string | null; // canonical id from the resolver (preferred)
-  player2?: string | null; // second player (COMPARE)
-  player2Id?: string | null;
-  scope: "season" | "career"; // PLAYER_TOTAL and LEADERS
-  firstN?: number | null; // first N games scope (1..50)
-  lastN?: number | null; // last N games scope (1..50)
+  scope: "season" | "career";
   limit: number; // 1..100
-  /** SCORING: which end of the touchdown timeline ("first"/"last"), or null
-   * for a most-recent-first list. */
-  edge?: "first" | "last" | null;
-  /** LEADERS: restrict to a position (best QB, top 10 WRs). */
-  position?: string | null;
-  /** LEADERS: "fewest"/"lowest" flips to ascending (with a games qualifier). */
-  dir?: "desc" | "asc";
-  /** Game-level filters — presence routes totals through the game log. */
+}
+
+/** Game-grain filters consumed by the shared gamePreds() predicate builder —
+ * any node extending this can be scoped by venue, weeks, playoff round,
+ * opponent, or an inclusive season range. */
+export interface GameWindow {
   venue?: "home" | "away" | null;
   weekMin?: number | null;
   weekMax?: number | null;
-  /** GAME_COUNT: qualifying-games threshold ("games over 300 passing yards"). */
-  threshold?: { op: ">" | ">=" | "<"; value: number } | null;
-  /** Scope the answer to the player's rookie (first) season. */
-  rookie?: boolean;
   /** Restrict to Super Bowls (each postseason's final game). */
   sbOnly?: boolean;
   /** Playoff round (weeks ranked within each postseason: SB = final week). */
   round?: "WC" | "DIV" | "CON" | "SB" | null;
-  /** GAME intents: the team(s) a question is about (canonical team ids). */
-  teamId?: string | null;
-  teamName?: string | null;
-  team2Id?: string | null;
-  team2Name?: string | null;
   /** Restrict to games against one opponent ("Jefferson vs Green Bay games"). */
   opponentId?: string | null;
-  /** Exact game date (ISO), e.g. "Packers game on October 20, 2024". */
-  gameDate?: string | null;
-  /** Conference filter for round games ("AFC championship"). */
-  conf?: "AFC" | "NFC" | null;
-  /** GAME_RESULT: margin ceiling ("Super Bowls decided by 3 or fewer"). */
-  marginMax?: number | null;
-  /** DRAFT_PICK: overall selection number and/or round. */
-  draftPick?: number | null;
-  draftRound?: number | null;
-  /** PLAYER_BIO: which bio fact the question asks for ("team"/"age"/"height"/
-   * "weight"/"college"/"full"), or the metric a bio superlative ranks by
-   * ("tallest" -> height, "oldest" -> age). */
-  bioField?: "team" | "age" | "height" | "weight" | "college" | "full" | null;
-  /** Report the per-game rate instead of the raw total (value / games). */
-  perGame?: boolean;
-  /** Inclusive season range ("passing yards from 2021 to 2023"). Overrides the
-   * single `season` when set. */
+  /** Inclusive season range ("from 2021 to 2023"); overrides `season`. */
   seasonMin?: number | null;
   seasonMax?: number | null;
 }
 
-export function specExpr(spec: QuerySpec): string {
+/** Team-anchored game lookups (team_game_log / game_result) share these. */
+export interface TeamGameFields {
+  teamName?: string | null;
+  team2Id?: string | null;
+  team2Name?: string | null;
+  round?: "WC" | "DIV" | "CON" | "SB" | null;
+  /** Conference filter for round games ("AFC championship"). */
+  conf?: "AFC" | "NFC" | null;
+  weekMin?: number | null;
+  weekMax?: number | null;
+  /** Exact game date (ISO), e.g. "Packers game on October 20, 2024". */
+  gameDate?: string | null;
+  /** Margin ceiling ("Super Bowls decided by 3 or fewer"). */
+  marginMax?: number | null;
+  venue?: "home" | "away" | null;
+}
+
+export interface LeadersSpec extends SpecBase, GameWindow {
+  intent: "leaders";
+  position?: string | null;
+  /** "fewest"/"lowest" flips to ascending (with a games qualifier). */
+  dir?: "desc" | "asc";
+  rookie?: boolean;
+  /** Rank the per-game rate instead of the raw total. */
+  perGame?: boolean;
+}
+
+export interface PlayerTotalSpec extends SpecBase, GameWindow {
+  intent: "player_total";
+  player?: string | null; // display name (narration / LIKE fallback)
+  playerId?: string | null; // canonical id from the resolver (preferred)
+  firstN?: number | null; // first N games scope (1..50)
+  lastN?: number | null; // last N games scope (1..50)
+  rookie?: boolean;
+  /** Report the per-game rate instead of the raw total. */
+  perGame?: boolean;
+}
+
+export interface PlayerSeasonsSpec extends SpecBase {
+  intent: "player_seasons";
+  playerId: string;
+  player?: string | null;
+  position?: string | null;
+}
+
+export interface SingleGameSpec extends SpecBase {
+  intent: "single_game";
+  player?: string | null;
+  playerId?: string | null;
+}
+
+export interface CompareSpec extends SpecBase, GameWindow {
+  intent: "compare";
+  playerId: string;
+  player2Id: string;
+  player?: string | null;
+  player2?: string | null;
+  firstN?: number | null;
+}
+
+export interface ScoringSpec extends SpecBase {
+  intent: "scoring";
+  playerId: string;
+  player?: string | null;
+  sbOnly?: boolean;
+  round?: "WC" | "DIV" | "CON" | "SB" | null;
+  /** Which end of the touchdown timeline ("first"/"last"), or null for a
+   * most-recent-first list. */
+  edge?: "first" | "last" | null;
+}
+
+export interface GameCountSpec extends SpecBase, GameWindow {
+  intent: "game_count";
+  playerId: string;
+  player?: string | null;
+  /** Qualifying-games threshold ("games over 300 passing yards"). */
+  threshold: { op: ">" | ">=" | "<"; value: number };
+}
+
+export interface QualifyingCountSpec extends SpecBase {
+  intent: "qualifying_count";
+  threshold: { op: ">" | ">=" | "<"; value: number };
+  position?: string | null;
+}
+
+export interface PlayerRankSpec extends SpecBase {
+  intent: "player_rank";
+  playerId: string;
+  player?: string | null;
+  position?: string | null;
+  seasonMin?: number | null;
+  seasonMax?: number | null;
+}
+
+export interface PlayerBioSpec extends SpecBase {
+  intent: "player_bio";
+  /** Which bio fact ("team"/"age"/…), or the metric a superlative ranks by. */
+  bioField: "team" | "age" | "height" | "weight" | "college" | "full";
+  playerId?: string | null;
+  player?: string | null;
+  dir?: "desc" | "asc";
+  position?: string | null;
+}
+
+export interface GameLogSpec extends SpecBase, GameWindow {
+  intent: "game_log";
+  playerId: string;
+  player?: string | null;
+  position?: string | null;
+  firstN?: number | null;
+  lastN?: number | null;
+  /** Opponent display name for narration when opponentId is set. */
+  team2Name?: string | null;
+}
+
+export interface TeamGameLogSpec extends SpecBase, TeamGameFields {
+  intent: "team_game_log";
+  teamId: string;
+  lastN?: number | null;
+}
+
+export interface GameResultSpec extends SpecBase, TeamGameFields {
+  intent: "game_result";
+  /** Absent for neutral lookups ("who won Super Bowl 50"). */
+  teamId?: string | null;
+}
+
+export interface DraftPickSpec extends SpecBase {
+  intent: "draft_pick";
+  playerId?: string | null;
+  player?: string | null;
+  teamId?: string | null;
+  teamName?: string | null;
+  /** Overall selection number and/or round. */
+  draftPick?: number | null;
+  draftRound?: number | null;
+}
+
+export type QuerySpec =
+  | LeadersSpec | PlayerTotalSpec | PlayerSeasonsSpec | SingleGameSpec
+  | CompareSpec | ScoringSpec | GameCountSpec | QualifyingCountSpec
+  | PlayerRankSpec | PlayerBioSpec | GameLogSpec | TeamGameLogSpec
+  | GameResultSpec | DraftPickSpec;
+
+// --------------------------------------------------------------------------
+// The field-bag reader view
+// --------------------------------------------------------------------------
+
+/** Every field any node can carry, all optional. Cross-intent consumers that
+ * legitimately read across the union — the auditor, the narration templates,
+ * the cache key — use this view via fields(). Executors must NOT: they take
+ * their exact node type, which is where the type enforcement lives. */
+export interface SpecFields extends GameWindow, TeamGameFields {
+  player?: string | null;
+  playerId?: string | null;
+  player2?: string | null;
+  player2Id?: string | null;
+  firstN?: number | null;
+  lastN?: number | null;
+  rookie?: boolean;
+  perGame?: boolean;
+  position?: string | null;
+  dir?: "desc" | "asc";
+  edge?: "first" | "last" | null;
+  threshold?: { op: ">" | ">=" | "<"; value: number } | null;
+  bioField?: "team" | "age" | "height" | "weight" | "college" | "full" | null;
+  teamId?: string | null;
+  draftPick?: number | null;
+  draftRound?: number | null;
+}
+
+export type FieldedSpec = SpecBase & { intent: Intent } & SpecFields;
+
+/** Reader view over any node — same object, loosened type. */
+export function fields(spec: QuerySpec): FieldedSpec {
+  return spec as unknown as FieldedSpec;
+}
+
+export function specExpr(spec: { stat: string }): string {
   return STATS[spec.stat]!.expr;
 }
 
-export function specLabel(spec: QuerySpec): string {
+export function specLabel(spec: { stat: string }): string {
   return STATS[spec.stat]!.label;
 }
 
-/** Must include every field buildSql() depends on — notably playerId, since
+/** Must include every field the executors depend on — notably playerId, since
  * two players can share a display name. */
-export function specCacheKey(s: QuerySpec): string {
+export function specCacheKey(spec: QuerySpec): string {
+  const s = fields(spec);
   return [
     s.intent, s.stat, s.season, s.seasonType, (s.player ?? "").toLowerCase(),
     s.playerId, s.scope, s.limit, s.player2Id, s.firstN, s.edge,

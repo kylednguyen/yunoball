@@ -1,0 +1,94 @@
+/** LEADERS executor: season boards, career/all-time boards, positional and
+ * rookie filters, per-game rates, and game-log aggregation whenever the board
+ * needs game-level filters or a game-sourced stat. */
+
+import type { LeadersSpec } from "../spec.js";
+import {
+  aggExpr, gamePreds, Params, ROOKIE_PRED, statDef,
+} from "./shared.js";
+
+export function leadersSql(spec: LeadersSpec, p: Params): string {
+  const def = statDef(spec);
+  // Week/venue-filtered leaders can't use season rollups — aggregate the
+  // game log instead ("most touchdowns in week 22", "at home").
+  if (
+    def.source !== "game" &&
+    (spec.venue || spec.weekMin != null || spec.weekMax != null || spec.sbOnly)
+  ) {
+    const where = gamePreds(spec, p);
+    return (
+      `SELECT p.player_id, p.full_name, COUNT(*) AS games, SUM(${def.expr}) AS value ` +
+      "FROM player_game_stats s " +
+      "JOIN games g ON g.game_id = s.game_id " +
+      "JOIN players p ON p.player_id = s.player_id " +
+      `WHERE ${where.join(" AND ")}` +
+      (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
+      " GROUP BY p.player_id, p.full_name " +
+      `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, p.full_name ` +
+      `LIMIT ${p.add(spec.limit)}`
+    );
+  }
+  if (def.source === "game") {
+    // Game-sourced leaders (completion %): aggregate the game log, with a
+    // volume qualifier so tiny samples can't top the board.
+    const where = gamePreds(spec, p);
+    const minDen = spec.scope === "career" ? 1000 : 150;
+    return (
+      `SELECT p.player_id, p.full_name, ${aggExpr(spec)} AS value ` +
+      "FROM player_game_stats s " +
+      "JOIN games g ON g.game_id = s.game_id " +
+      "JOIN players p ON p.player_id = s.player_id " +
+      `WHERE ${where.join(" AND ")}` +
+      (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
+      " GROUP BY p.player_id, p.full_name " +
+      `HAVING SUM(COALESCE(s.${def.ratio?.den ?? "attempts"}, 0)) >= ${p.add(minDen)} ` +
+      `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"} NULLS LAST, p.full_name ` +
+      `LIMIT ${p.add(spec.limit)}`
+    );
+  }
+  if (spec.scope === "career") {
+    const stype = p.add(spec.seasonType);
+    // A season range ("receiving yards from 2021 to 2023") bounds the sum.
+    const rangePred =
+      spec.seasonMin != null && spec.seasonMax != null
+        ? ` AND s.season BETWEEN ${p.add(spec.seasonMin)} AND ${p.add(spec.seasonMax)}`
+        : "";
+    // Per-game career board divides career total by career games, with a
+    // volume floor so a one-game cameo can't top the list.
+    const valueSel = spec.perGame
+      ? `ROUND(SUM(${def.expr})::numeric / NULLIF(SUM(COALESCE(s.games_played, 0)), 0), 1)`
+      : `SUM(${def.expr})`;
+    const perGameFloor = spec.perGame
+      ? `HAVING SUM(COALESCE(s.games_played, 0)) >= ${p.add(16)} `
+      : "";
+    return (
+      `SELECT p.player_id, p.full_name, COUNT(*) AS seasons, ${valueSel} AS value ` +
+      "FROM player_season_stats s " +
+      "JOIN players p ON p.player_id = s.player_id " +
+      `WHERE s.season_type = ${stype}${rangePred}` +
+      (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
+      " GROUP BY p.player_id, p.full_name " + perGameFloor +
+      `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, p.full_name ` +
+      `LIMIT ${p.add(spec.limit)}`
+    );
+  }
+  const where = [`s.season_type = ${p.add(spec.seasonType)}`];
+  if (spec.season != null) where.push(`s.season = ${p.add(spec.season)}`);
+  if (spec.position) where.push(`p.position = ${p.add(spec.position)}`);
+  if (spec.rookie) where.push(ROOKIE_PRED);
+  // Ascending boards need a floor, or benchwarmers sweep "fewest X".
+  if (spec.dir === "asc") where.push("COALESCE(s.games_played, 0) >= 8");
+  // A per-game board is a rate, with the same games floor.
+  if (spec.perGame) where.push("COALESCE(s.games_played, 0) >= 8");
+  const valueSel = spec.perGame
+    ? `ROUND(${def.expr}::numeric / NULLIF(COALESCE(s.games_played, 0), 0), 1)`
+    : `${def.expr}`;
+  return (
+    `SELECT p.player_id, p.full_name, s.season, ${valueSel} AS value ` +
+    "FROM player_season_stats s " +
+    "JOIN players p ON p.player_id = s.player_id " +
+    `WHERE ${where.join(" AND ")} ` +
+    `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, s.season DESC, p.full_name ` +
+    `LIMIT ${p.add(spec.limit)}`
+  );
+}
