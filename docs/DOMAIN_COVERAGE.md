@@ -57,7 +57,7 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Game results / Head-to-head | ✅ | "did the Chiefs beat the 49ers in the Super Bowl" → *25-22* |
 | Box scores | ✅ (page + API) | `/games/:id/boxscore` |
 | Scoring summaries (TDs) | ✅ | scoring_plays: "Chase first touchdown" → *Sep 12, 2021 vs MIN*; longest TDs by play length (wave 4b) |
-| Play-by-play / Drive summaries | 🚫 | only TD events are distilled — tailored refusal |
+| Play-by-play / Drive summaries | 🚫 | only distilled aggregates are ingested (scoring plays, per-game EPA/success/CPOE, drive counts) — play-level queries get a tailored refusal |
 
 ## Analysis
 
@@ -124,7 +124,7 @@ These areas are intentionally not built yet — they are deferred, not missed:
 | Transactions (trades, free agency, waivers, signings, releases) | Deferred with wave 4c. |
 | Fantasy tools, predictions, news | Out of scope for the deterministic answer engine; planned as part of a separate "live fantasy football feedback" product surface. |
 | DVOA, QBR | 🚫 permanent refusal — proprietary third-party models; computing them would fabricate numbers. |
-| Pressure rate, win probability | 🚫 permanent refusal — require play-level data the warehouse deliberately does not carry. |
+| Pressure rate, win probability | 🚫 permanent refusal — need per-play rows; the warehouse deliberately stores only pbp-derived aggregates (EPA sums, success counts, drive counts), never play-level data. |
 
 The engine's guarantee is *numbers from facts, never hallucinated* — a
 tailored refusal is the correct answer wherever the warehouse cannot
