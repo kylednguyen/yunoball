@@ -330,3 +330,75 @@ export function compareValueExpr(spec: { stat: string }): string | null {
 export function isComparableStat(stat: string): boolean {
   return compareValueExpr({ stat }) !== null;
 }
+
+// ---- Capability: which stats each grain of storage can compute ----
+//
+// A stat is only answerable by an executor whose table holds every column it
+// references. player_season_stats is the rollup (no per-game-only columns);
+// player_game_stats adds carries/targets/air yards; pbp aggregates
+// (EPA, success rate, CPOE) live in player_game_advanced. Executors that route
+// by grain (leaders, player_total, game_log, and player_rank's advanced branch)
+// handle all of them; the ones below aggregate a single fixed table and must
+// refuse what that table can't compute — see statComputableFor.
+
+const SEASON_COLS = new Set([
+  "passing_yards", "passing_tds", "interceptions", "rushing_yards", "rushing_tds",
+  "receptions", "receiving_yards", "receiving_tds", "fantasy_points_ppr",
+  "completions", "attempts", "sacks", "sack_yards", "fumbles", "fumbles_lost",
+  "tackles", "def_sacks", "def_interceptions", "forced_fumbles", "passes_defended",
+]);
+const GAME_COLS = new Set([
+  ...SEASON_COLS, "carries", "targets", "passing_air_yards", "receiving_air_yards",
+]);
+const ADVANCED_COLS = new Set([
+  "pass_plays", "pass_epa", "pass_success", "cpoe_sum", "cpoe_n",
+  "rush_plays", "rush_epa", "rush_success", "recv_plays", "recv_epa", "recv_success",
+]);
+
+/** Every stat column a StatDef references (ratio num/den, passer-rating inputs,
+ * or the `s.<col>` columns in its expr). */
+function statColumns(def: StatDef): string[] {
+  if (def.formula === "passer_rating") {
+    return ["completions", "attempts", "passing_yards", "passing_tds", "interceptions"];
+  }
+  const cols: string[] = [];
+  if (def.ratio) cols.push(def.ratio.num, def.ratio.den);
+  for (const m of def.expr.matchAll(/\bs\.(\w+)/g)) cols.push(m[1]!);
+  return cols;
+}
+
+function isAdvancedStat(def: StatDef): boolean {
+  return def.table === "advanced" || statColumns(def).some((c) => ADVANCED_COLS.has(c));
+}
+
+/** Whether the executor for `intent` can compute `stat` from its storage grain.
+ * The gate that keeps a mis-routed stat an honest refusal instead of invalid
+ * SQL (SUM() over an empty ratio expr, or a column the table doesn't have). */
+export function statComputableFor(intent: string, stat: string): boolean {
+  const def = STATS[stat];
+  if (!def) return false;
+  const cols = statColumns(def);
+  const inSeason = cols.every((c) => SEASON_COLS.has(c));
+  const inGame = cols.every((c) => GAME_COLS.has(c));
+  const advanced = isAdvancedStat(def);
+  switch (intent) {
+    case "qualifying_count":
+      return inSeason;
+    case "player_rank":
+      // Season rollup, or the dedicated advanced-table branch for pbp stats.
+      return inSeason || advanced;
+    case "team_stat":
+    case "game_count":
+    case "single_game":
+      return inGame && !advanced;
+    case "player_streak":
+      return inGame && !advanced;
+    case "milestone":
+      // Cumulative running total — additive stats only (a running ratio is
+      // meaningless).
+      return inGame && !advanced && !def.ratio && !def.formula;
+    default:
+      // leaders, player_total, game_log, compare route/guard themselves.
+      return true;
+  }
+}

@@ -26,16 +26,19 @@ Issue IDs (C#, H#, M#, L#) refer to the ranked refactors in §16.
 | **H11** | Aligned local ports to 5432 | Batch 1 | `.env.example`, `ingest.test.ts` default → 5432 (compose default); quick start now works on a fresh clone. New env vars + `TRUST_PROXY_HOPS` documented. |
 | **C3** | Compare no longer substitutes fantasy points | Batch 2 | `compareValueExpr` computes the requested stat (ratio/formula/computed) from each side's box-score totals and orders/narrates on it; non-comparable advanced stats are refused, not mis-answered. Verified live: completion % 67.3% vs 65.2% (leader correctly flips to Mahomes), passer rating, yards/carry, total TDs all correct; passing-EPA refused. +2 regression tests. |
 | **H6** | Ratio thresholds compare the ratio, not the numerator | Batch 2 | `gameCountSql` and `playerStreakSql` use `ratioRowExpr` for ratio stats ("games over 5 yards per carry" now means YPC > 5, not rushing yards > 5). |
+| **C4** | Capability gate + `buildSql`×`EXPLAIN` sweep test | Batch 2 | New `statComputableFor(intent, stat)` (column-availability per storage grain) drives a single pipeline gate that refuses a mis-routed stat honestly instead of emitting SQL that fails to plan. `teamStat` now computes ratio/formula stats (aggExpr); `qualifyingCount`/`playerStreak` handle passer rating. New `test/sweep.test.ts` EXPLAINs every routable intent×stat against a scratch schema (185 combos) — a permanent guard for the whole executor layer. Verified live: "chiefs completion %" → 66.3%; "rank in yards per carry" → honest refusal; "passer rating over 100" → 6 players. |
 
 ### 🟡 In Progress
 
 | ID | Issue | Batch |
 |---|---|---|
-| **C4** | Capability check + `buildSql`×`EXPLAIN` sweep test; fix `teamStat`/`rank`/`counts` crashes on game-only/ratio stats | Batch 2 |
+| — | (Batch 2 complete — next: Batch 3) | — |
 
 ### ⬜ Open (next up)
 
-Remainder of Batch 2 — **C4**. Then Batch 3 (ingest integrity: **C5**, **H8**), Batch 4 (prod hardening: **H3**, **H5**, **H7**, **H10**), Batch 5+ (Medium/Low). See §16 for the full ranked list.
+Batch 3 (ingest integrity: **C5**, **H8**), Batch 4 (prod hardening: **H3**, **H5**, **H7**, **H10**), Batch 5+ (Medium/Low). See §16 for the full ranked list.
+
+> **Follow-up noted (enhancement, not a defect):** `player_rank`/`qualifying_count` currently *refuse* game-only-ratio stats (yards per carry, catch rate) at season/career scope, because those denominators (carries, targets) live only in the game log. A future upgrade could route those two executors through the game log — as `leaders` already does — to answer them instead of refusing. Tracked as **M11**.
 
 ---
 
@@ -46,6 +49,7 @@ Remainder of Batch 2 — **C4**. Then Batch 3 (ingest integrity: **C5**, **H8**)
 | 2026-07-13 | Baseline | ✅ web | ✅ | ❌ unrunnable | ✅ 287 | ❌ 10/13 fail (CI red on all 4 main runs) | Audit baseline |
 | 2026-07-13 | Batch 1 | ✅ web (+ C7 guard verified to fail on missing env) | ✅ 3/3 | ✅ 3/3 | ✅ 287/287 | ✅ **13/13** (2023+2024) | All gates green locally; CI steps reproduced |
 | 2026-07-13 | Batch 2 (C3, H6) | ✅ web | ✅ 3/3 | ✅ 3/3 | ✅ **288/288** (+2 compare regressions) | ✅ **13/13** | Compare fix verified live across ratio/formula/computed/refusal cases |
+| 2026-07-13 | Batch 2 (C4) | ✅ web | ✅ 3/3 | ✅ 3/3 | ✅ **289/289** (+ sweep: 185 combos EXPLAIN'd) | ✅ **13/13** | Capability gate verified live; every routable intent×stat plans cleanly |
 
 ---
 
@@ -60,6 +64,9 @@ Pinning a CA unconditionally would break the common Supabase-pooler setup where 
 **ADR-003 — E2E specs assert verified real data; flakiness removed by determinism, not mocking.**
 Rather than introduce a mocked data tier (a larger change), the three failing specs were re-pinned to values verified against the live 2023+2024 warehouse (e.g. Mahomes is QB #12 of 79 by 2024 PPR — so the old "QB #1 of" assertion was simply wrong), and the randomized-sample-query flake was replaced with a deterministic tabular query. The suite still exercises real end-to-end behavior. A mocked tier remains a future option (see Future Improvements).
 
+**ADR-006 — One capability gate over storage grain, not per-executor table routing.**
+The stat-bearing executors aggregate different tables (`player_season_stats`, `player_game_stats`, `player_game_advanced`), and a stat is only answerable where its columns live. Rather than teach every executor to route every stat to the right table (a large, error-prone change), a single `statComputableFor(intent, stat)` predicate — derived from each stat's referenced columns vs. each grain's column set — gates the pipeline once, right after parse: a stat an intent can't compute becomes an honest refusal, never invalid SQL. `test/sweep.test.ts` pins the invariant by EXPLAIN-planning every routable pair. The two executors that already route by grain (`leaders`, `player_total`) and `player_rank`'s advanced branch are exempted. Accepted trade: `player_rank`/`qualifying_count` refuse game-only ratios (yards per carry) instead of routing to the game log — tracked as M11.
+
 **ADR-005 — COMPARE computes the requested stat from box-score totals; advanced pbp stats are refused, not approximated.**
 COMPARE aggregates each player's box-score line (now including `carries`/`targets`) and derives the requested stat — a ratio (`num/den`), the passer-rating formula, a computed sum, or a plain column — as `cmp_value`, which drives both the leader ordering and the narration. This replaces the old `fantasy_points_ppr` fallback that silently answered ratio/formula questions with fantasy points under the requested label. Stats whose inputs don't live in the box-score aggregate (EPA, air yards, success rate, CPOE — they live in `player_game_advanced`) are **refused at parse time** rather than approximated or crashed on, keeping the "never a wrong number" contract. `isComparableStat` derives comparability from the same column-availability check, so the parser and executor can't disagree.
 
@@ -70,6 +77,7 @@ The flat config keeps `typescript-eslint` recommended + Next/React-hooks rules a
 
 ## Changelog
 
+- **2026-07-13 — Batch 2 complete (C4):** Added a capability gate (`statComputableFor`) that refuses a stat an executor can't compute from its storage grain, turning a class of latent 500s (SUM() over an empty ratio expr; game-only columns referenced against the season rollup) into honest refusals. `teamStat` now computes ratio/formula stats; `qualifyingCount`/`playerStreak` handle passer rating. New `test/sweep.test.ts` EXPLAINs every routable intent×stat pair against a scratch schema as a permanent regression guard. 289 unit + 13 e2e green.
 - **2026-07-13 — Batch 2 partial (C3, H6):** COMPARE now computes and ranks on the actual requested stat (ratio/formula/computed) from each side's box-score totals — the fantasy-points substitution that produced wrong numbers under the right label is gone; advanced pbp stats are refused rather than mis-answered. Ratio thresholds (game-count, streaks) qualify on the per-game ratio, not the raw numerator. +2 regression tests; 288 unit + 13 e2e green.
 - **2026-07-13 — Batch 1 (Trust the gates):** ESLint 9 across the monorepo; CI e2e green (2023+2024 ingest + spec fixes); Postgres pool hardening (error handler, timeouts, optional CA-verified TLS); prod build guard on `NEXT_PUBLIC_API_URL`; POST-request timeouts; local ports aligned to 5432; new DB/proxy env vars documented in `.env.example`. Net: the quality gates that every other issue's Definition of Done depends on are now trustworthy.
 - **2026-07-13 — Audit originated.**
@@ -326,7 +334,7 @@ Effort: S < ½ day · M ≈ 1–2 days · L ≈ 3+ days.
 | C1 | **Restore CI to green**: ingest `--years 2023 2024` in ci.yml, fix the stale selectors, re-pin data-coupled asserts to verified reality | S | [verified] CI has never passed on main; every other guarantee depends on a trusted gate | ✅ **Done** (Batch 1) |
 | C2 | **Make lint real**: flat ESLint config (typescript-eslint + next plugin), `lint` scripts in all 3 workspaces, CI step, fix fallout | M | [verified] `pnpm lint` is unrunnable; README claims otherwise | ✅ **Done** (Batch 1) |
 | C3 | **Fix `compare`'s stat substitution** (`shared.ts:293`): compute ratio/formula aggregates per side or refuse | S–M | [verified live] wrong numbers under the user's label — the core product promise broken | ✅ **Done** (Batch 2) |
-| C4 | **Add a capability check per (executor × StatDef)** and an intent×stat `buildSql`+`EXPLAIN` sweep test; fix `teamStat`/`rank`/`counts` fallout | M | Kills the 500-crash class and permanently guards the whole executor layer | 🟡 In progress (Batch 2) |
+| C4 | **Add a capability check per (executor × StatDef)** and an intent×stat `buildSql`+`EXPLAIN` sweep test; fix `teamStat`/`rank`/`counts` fallout | M | Kills the 500-crash class and permanently guards the whole executor layer | ✅ **Done** (Batch 2) |
 | C5 | **Provider cache revalidation** (ETag/max-age/`--no-cache`) + **per-asset header assertions** before mapping | M | In-season re-ingests silently load stale data; upstream renames fabricate zeros with exit 0 | ⬜ Batch 3 |
 | C6 | **`pool.on("error")` + `statement_timeout` + `connectionTimeoutMillis`** on both pools | S | One idle-client blip currently restarts the API; one bad query wedges it | ✅ **Done** (Batch 1) |
 | C7 | **Guard `NEXT_PUBLIC_API_URL`** (throw in prod build when unset) | S | A silent misconfiguration ships a fully broken app | ✅ **Done** (Batch 1) |
@@ -359,6 +367,7 @@ Effort: S < ½ day · M ≈ 1–2 days · L ≈ 3+ days.
 - M8: `aria-activedescendant` in `Dropdown.tsx`; fix `aria-selected` misuse; complete tabpanel wiring; request duration + id in server logs.
 - M9: Split `players/[id]/page.tsx` into `components/player/*`; consolidate duplicated frontend helpers; adopt `useApi` (or SWR) in the 5 hand-rolled fetch effects.
 - M10: Root `test`/`build`/`dev` scripts wired through turbo; Prettier + `.editorconfig` + lint-staged; missing FKs and CHECK constraints; document `TRUST_PROXY_HOPS`; add `NEXT_PUBLIC_ASSISTANT_ENABLED` to turbo `globalEnv`.
+- M11 *(new, from C4)*: Route `player_rank`/`qualifying_count` through the game log for game-only-ratio stats (yards per carry, catch rate) so they answer instead of refusing — mirrors what `leaders` already does. Enhancement; the capability gate makes today's behavior an honest refusal, not a crash.
 
 ### Low — polish
 

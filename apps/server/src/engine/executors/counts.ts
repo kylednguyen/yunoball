@@ -58,10 +58,14 @@ export function qualifyingCountSql(spec: QualifyingCountSpec, p: Params): string
   }
   const preds = [`s.season_type = ${p.add(spec.seasonType)}`];
   if (spec.season != null) preds.push(`s.season = ${p.add(spec.season)}`);
-  const valuePred = def.ratio
-    ? `${ratioRowExpr(def)} ${op} ${p.add(spec.threshold.value)} ` +
-      `AND COALESCE(s.${def.ratio.den}, 0) >= ${p.add(ratioFloor(def, "season"))}`
-    : `${def.expr} ${op} ${p.add(spec.threshold.value)}`;
+  const valuePred =
+    def.formula === "passer_rating"
+      ? `${passerRatingExpr(false)} ${op} ${p.add(spec.threshold.value)} ` +
+        `AND COALESCE(s.attempts, 0) >= ${p.add(ratioFloor(def, "season"))}`
+      : def.ratio
+        ? `${ratioRowExpr(def)} ${op} ${p.add(spec.threshold.value)} ` +
+          `AND COALESCE(s.${def.ratio.den}, 0) >= ${p.add(ratioFloor(def, "season"))}`
+        : `${def.expr} ${op} ${p.add(spec.threshold.value)}`;
   return (
     "SELECT COUNT(*) AS qualifying_players FROM player_season_stats s " + join +
     `WHERE ${preds.join(" AND ")}${posPred} AND ${valuePred}`
