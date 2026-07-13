@@ -3,7 +3,7 @@
 
 import type { PlayerTotalSpec } from "../spec.js";
 import {
-  needsGameLog, Params, playerGameRowsSql, ROOKIE_PRED, statDef,
+  gamePreds, needsGameLog, Params, playerGameRowsSql, ratioRowExpr, ROOKIE_PRED, statDef,
 } from "./shared.js";
 
 export function playerTotalSql(spec: PlayerTotalSpec, p: Params): string {
@@ -11,6 +11,19 @@ export function playerTotalSql(spec: PlayerTotalSpec, p: Params): string {
   const playerPred = spec.playerId
     ? `s.player_id = ${p.add(spec.playerId)}`
     : `lower(p.full_name) LIKE ${p.add(`%${(spec.player ?? "").toLowerCase()}%`)}`;
+
+  if (spec.median && spec.playerId) {
+    // Median of the per-game values over the scoped game log.
+    const valueExpr = def.ratio ? ratioRowExpr(def) : def.expr;
+    const where = [playerPred, ...gamePreds(spec, p)];
+    return (
+      `SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${valueExpr}) AS total, ` +
+      "COUNT(*) AS games " +
+      "FROM player_game_stats s " +
+      "JOIN games g ON g.game_id = s.game_id " +
+      `WHERE ${where.join(" AND ")}`
+    );
+  }
 
   if (needsGameLog(spec) && spec.playerId) {
     // Per-game rows plus a window total: the answer narrates the total and

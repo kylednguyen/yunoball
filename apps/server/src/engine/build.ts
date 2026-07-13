@@ -23,6 +23,10 @@ import { singleGameSql } from "./executors/singleGame.js";
 import { teamBioSql } from "./executors/teamBio.js";
 import { teamRosterSql } from "./executors/teamRoster.js";
 import { teamStatSql } from "./executors/teamStat.js";
+import { awardSql } from "./executors/award.js";
+import {
+  milestoneSql, playerStreakSql, teamStreakSql,
+} from "./executors/streaksMilestones.js";
 
 export { narrate, roman, sbName } from "./narrate.js";
 
@@ -48,6 +52,10 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
     case "team_bio": return done(teamBioSql(spec, p));
     case "team_stat": return done(teamStatSql(spec, p));
     case "team_roster": return done(teamRosterSql(spec, p));
+    case "player_streak": return done(playerStreakSql(spec, p));
+    case "team_streak": return done(teamStreakSql(spec, p));
+    case "milestone": return done(milestoneSql(spec, p));
+    case "award": return done(awardSql(spec, p));
     default: {
       // Exhaustiveness guard: a new Intent without an executor won't compile.
       const _never: never = spec;

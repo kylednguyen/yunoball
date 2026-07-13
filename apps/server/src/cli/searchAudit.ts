@@ -173,12 +173,24 @@ const QUESTIONS: string[] = [
   "Josh Allen passing yards in freezing weather",
   "Tyreek Hill air yards in 2023",
   "most receiving air yards in 2023",
+  // --- domain wave 3: awards / streaks / milestones / medians / franchise ---
+  "who won mvp in 2023",
+  "who won the super bowl mvp in 2022",
+  "how many mvps does Aaron Rodgers have",
+  "Derrick Henry median rushing yards in 2023",
+  "Justin Jefferson 5-game rolling average receiving yards",
+  "chiefs winning streak",
+  "Derrick Henry games in a row with a rushing touchdown",
+  "fastest to 10000 passing yards",
+  "when were the packers founded",
+  "did the raiders relocate",
   // --- domain wave: honest refusals for absent data ---
   "patrick mahomes EPA in 2023",
   "was Justin Jefferson traded",
   "chiefs depth chart",
   "jets injury report",
   "who made the pro bowl in 2023",
+  "is Patrick Mahomes in the hall of fame",
 ];
 
 type Bucket = "ANSWERED" | "EMPTY" | "REFUSAL" | "FALLBACK" | "AUDIT_BLOCK" | "ERROR";

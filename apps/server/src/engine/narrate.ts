@@ -5,6 +5,7 @@
  * reader view rather than a narrowed node. All templates are runtime-guarded
  * by intent checks, byte-for-byte the behavior of the pre-split engine. */
 
+import { TEAM_FOUNDED, TEAM_HISTORY } from "./facts.js";
 import { fields, specLabel } from "./spec.js";
 import type { FieldedSpec, QuerySpec } from "./spec.js";
 import { compareOrderCol, statDef } from "./executors/shared.js";
@@ -211,6 +212,14 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
         ? `The ${tn} play their home games at ${top.stadium}.`
         : `The ${tn}'s stadium isn't on file.`;
     }
+    if (spec.teamField === "founded") {
+      const y = TEAM_FOUNDED[String(top.team_id)];
+      return y ? `The ${tn} were founded in ${y}.` : `The ${tn}'s founding year isn't on file.`;
+    }
+    if (spec.teamField === "history") {
+      return TEAM_HISTORY[String(top.team_id)] ??
+        `The ${tn} have no relocations or renames on file in the modern era.`;
+    }
     if (spec.teamField === "coach") {
       // From the most recent home game — the warehouse's freshest signal.
       return top.coach
@@ -244,6 +253,69 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
     }
     const verb = spec.metric === "points_against" ? "allowed" : "totaled";
     return `The ${tn} ${verb} ${fmt(top.value)}${unit}${post} ${spec.metric === "points_against" ? "points" : what}${when} (${games} games).`;
+  }
+
+  if (spec.intent === "award") {
+    const awardName = spec.award === "SBMVP" ? "Super Bowl MVP" : "NFL MVP";
+    if (spec.player) {
+      const n = Number(top.wins ?? rows.length);
+      const seasons = rows.map((r) => r.season).join(", ");
+      return `${top.player} has won ${awardName} ${n} time${n === 1 ? "" : "s"} (${seasons}).`;
+    }
+    if (spec.season != null) {
+      return spec.award === "SBMVP"
+        ? `${top.player} was ${awardName} of ${sbName(Number(top.season))} (the ${top.season} season).`
+        : `${top.player} won ${awardName} for the ${top.season} season.`;
+    }
+    return `${top.player} is the most recent ${awardName} (${top.season} season). Showing all ${rows.length} on file.`;
+  }
+
+  if (spec.intent === "milestone") {
+    const tail = rows.length > 1 ? ` Showing the ${rows.length} fastest.` : "";
+    return (
+      `${name} was fastest to ${fmt(spec.target)} ${label}, reaching it in ` +
+      `${top.games_to} games (among careers starting in the warehouse era).${tail}`
+    );
+  }
+
+  if (spec.intent === "team_streak") {
+    // Rows are newest-first; the current streak is the run at the top, the
+    // longest streak is the longest run anywhere.
+    const want = spec.kind === "loss" ? "L" : "W";
+    let current = 0;
+    for (const r of rows) {
+      if (r.result === want) current++;
+      else break;
+    }
+    let longest = 0, run = 0;
+    for (const r of rows) {
+      run = r.result === want ? run + 1 : 0;
+      if (run > longest) longest = run;
+    }
+    const word = spec.kind === "loss" ? "losing" : "winning";
+    const tn = spec.teamName ?? "They";
+    const poss = tn.endsWith("s") ? `${tn}'` : `${tn}'s`;
+    return (
+      `The ${poss} current ${word} streak is ${current} game${current === 1 ? "" : "s"}; ` +
+      `their longest ${word} streak on file is ${longest} (last ${rows.length} games).`
+    );
+  }
+
+  if (spec.intent === "player_streak") {
+    // Rows are oldest-first with a qualifying flag per game.
+    let longest = 0, run = 0, current = 0;
+    for (const r of rows) {
+      run = r.qualifies ? run + 1 : 0;
+      if (run > longest) longest = run;
+    }
+    current = run;
+    const bar = spec.threshold
+      ? `${spec.threshold.value}+ ${label}`
+      : `a ${label.replace(/s$/, "")}`;
+    return (
+      `${name}'s longest streak of games with ${bar} is ${longest}` +
+      `${current > 0 ? ` (active streak: ${current})` : ""}, over ${rows.length} games.`
+    );
   }
 
   if (spec.intent === "team_roster") {
@@ -438,12 +510,18 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
     );
   }
 
+  if (spec.intent === "player_total" && spec.median) {
+    const scope = spec.season != null ? `in ${spec.season}` : "over his career";
+    return `${name}'s median game ${scope} is ${fmt(top.total)}${unit} ${label} (${top.games} games)${quals}.`;
+  }
   if (spec.intent === "player_total" && spec.perGame) {
     const v = top.total !== undefined ? top.total : top.value;
     const scope =
-      spec.seasonMin != null ? `from ${spec.seasonMin} to ${spec.seasonMax}`
-        : spec.scope === "career" ? "over his career"
-          : `in ${top.season ?? spec.season}`;
+      spec.lastN ? `over his last ${spec.lastN} games`
+        : spec.firstN ? `over his first ${spec.firstN} games`
+          : spec.seasonMin != null ? `from ${spec.seasonMin} to ${spec.seasonMax}`
+            : spec.scope === "career" ? "over his career"
+              : `in ${top.season ?? spec.season}`;
     return `${name} averaged ${fmt(v)}${unit} ${label} per game ${scope}${post}${quals}.`;
   }
   if (spec.intent === "player_total" && spec.seasonMin != null) {
