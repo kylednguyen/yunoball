@@ -24,6 +24,7 @@
 import type { ResolvedEntity } from "@yunoball/types";
 import { STATS } from "./spec.js";
 import type { QuerySpec } from "./spec.js";
+import { isComparableStat } from "./executors/shared.js";
 import type { IndexedPlayer, IndexedTeam } from "./resolve.js";
 
 export interface Refusal {
@@ -593,9 +594,20 @@ export function parseRules(
     const p1 = playerHit(halves[0]!, index, opts.teams);
     const p2 = playerHit(halves[1]!, index, opts.teams);
     if (p1 && p2 && p1.playerId !== p2.playerId) {
+      const stat = detectStat(qText) ?? primaryFor(PRIMARY_STAT, p1, p2);
+      // Advanced pbp stats (EPA, air yards, success rate, CPOE) can't be summed
+      // from the box-score aggregate COMPARE uses — refuse honestly rather than
+      // silently answer with the wrong stat.
+      if (!isComparableStat(stat)) {
+        return {
+          refusal:
+            `I can't compare ${STATS[stat]?.label ?? stat} head-to-head yet — try a ` +
+            `box-score stat like yards, touchdowns, completion percentage, or passer rating.`,
+        };
+      }
       return {
         intent: "compare",
-        stat: detectStat(qText) ?? primaryFor(PRIMARY_STAT, p1, p2),
+        stat,
         player: p1.name,
         playerId: p1.playerId,
         player2: p2.name,

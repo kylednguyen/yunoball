@@ -12,10 +12,13 @@ import {
 export function gameCountSql(spec: GameCountSpec, p: Params): string {
   // Qualifying games: list them and window-count the full set.
   const def = statDef(spec);
+  // Ratio thresholds must compare the per-game ratio (yards per carry), not the
+  // raw numerator (rushing yards) — otherwise "games over 5 yards per carry"
+  // counts every game with >5 rushing yards.
   const valueExpr =
     def.formula === "passer_rating"
       ? passerRatingExpr(false)
-      : def.ratio ? `COALESCE(s.${def.ratio.num}, 0)` : def.expr;
+      : def.ratio ? ratioRowExpr(def) : def.expr;
   const opSql = { ">": ">", ">=": ">=", "<": "<" }[spec.threshold.op];
   const where = [
     `s.player_id = ${p.add(spec.playerId)}`,
