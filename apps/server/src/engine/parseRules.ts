@@ -310,13 +310,26 @@ function bioFieldOf(qText: string): "team" | "age" | "height" | "weight" | "coll
 
 /** Bio superlative ("tallest player", "oldest quarterback") -> metric + dir. */
 function bioSuperlative(qText: string): { field: "height" | "weight" | "age"; dir: "desc" | "asc" } | null {
+  // Note: "biggest"/"smallest" are deliberately excluded — they collide with
+  // "biggest win", "biggest comeback", etc. Only unambiguous body words here.
   if (/\btallest\b/.test(qText)) return { field: "height", dir: "desc" };
   if (/\bshortest\b/.test(qText)) return { field: "height", dir: "asc" };
-  if (/\b(?:heaviest|biggest)\b/.test(qText)) return { field: "weight", dir: "desc" };
-  if (/\b(?:lightest|smallest)\b/.test(qText)) return { field: "weight", dir: "asc" };
+  if (/\bheaviest\b/.test(qText)) return { field: "weight", dir: "desc" };
+  if (/\blightest\b/.test(qText)) return { field: "weight", dir: "asc" };
   if (/\boldest\b/.test(qText)) return { field: "age", dir: "desc" };
   if (/\byoungest\b/.test(qText)) return { field: "age", dir: "asc" };
   return null;
+}
+
+/** A looser threshold used only for league-wide counts: any "N <stat unit>"
+ * (receptions, touchdowns, sacks, or a large career-yardage number). The
+ * game-grain threshold() deliberately ignores these to avoid mis-routing a
+ * plain player question into a game count. */
+function countThreshold(qText: string): { op: ">="; value: number } | null {
+  const m = qText.match(
+    /\b(\d{2,6})\+?\s*(?:or more\s+)?(?:career\s+)?(?:(?:rushing|passing|receiving)\s+)?(?:yards?|yds?|receptions?|catches|touchdowns?|tds?|sacks?|tackles?|interceptions?)\b/,
+  );
+  return m ? { op: ">=", value: Number(m[1]) } : null;
 }
 
 /** Inclusive multi-season range: "from 2021 to 2023", "between 2019 and 2022",
@@ -864,9 +877,10 @@ export function parseRules(
   // League-wide qualifying count ("how many players had 1000 rushing yards in 2023").
   const leagueCountCue =
     /\bhow many (?:players|guys|quarterbacks|qbs|running backs|rbs|receivers|wrs|tes|tight ends)\b/.test(qText);
-  if (!player && leagueCountCue && th) {
+  const lcThreshold = th ?? countThreshold(qText);
+  if (!player && leagueCountCue && lcThreshold) {
     return {
-      intent: "qualifying_count", stat, threshold: th,
+      intent: "qualifying_count", stat, threshold: lcThreshold,
       season: effSeason, seasonType, position,
       scope: isCareer || effSeason == null ? "career" : "season", limit: 1,
     };

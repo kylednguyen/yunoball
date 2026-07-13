@@ -286,6 +286,10 @@ const CASES: [string, Expect][] = [
   ["how many players had 1000 rushing yards in 2023", answer({ intent: "qualifying_count", stat: "rushing_yards", season: 2023 })],
   ["how many QBs threw for 4000 yards in 2023", answer({ intent: "qualifying_count", position: "QB", stat: "passing_yards", season: 2023 })],
   ["where does Patrick Mahomes rank in career passing yards", answer({ intent: "player_rank", stat: "passing_yards", playerId: "P_MAHOMES", scope: "career" })],
+  ["where does Patrick Mahomes rank in completion percentage", answer({ intent: "player_rank", stat: "completion_pct", playerId: "P_MAHOMES" })],
+  ["how many players had 100 receptions in 2023", answer({ intent: "qualifying_count", stat: "receptions", season: 2023 })],
+  ["highest rushing yards per game in 2023", answer({ intent: "leaders", perGame: true, stat: "rushing_yards", season: 2023 })],
+  ["Josh Allen passing yards at home per game in 2023", answer({ intent: "player_total", perGame: true, venue: "home", playerId: "P_JALLEN" })],
   // ---- still genuinely unanswerable ----
   ["Josh Allen QBR in 2023", refusal("efficiency")],
   ["longest touchdown of 2023", refusal("play distances")],
