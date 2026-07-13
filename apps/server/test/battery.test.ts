@@ -110,7 +110,7 @@ const CASES: [string, Expect][] = [
   ["Micah Parsons tackles", answer({ intent: "player_total", stat: "tackles" })],
   // ---- 2. Team stats ----
   ["Chiefs offensive ranking", refusal("team")],
-  ["Bills points per game", refusal()],
+  ["Bills points per game", answer({ intent: "team_stat", teamId: "BUF", metric: "points_for", perGame: true })], // upgraded: was a refusal
   ["Ravens defensive stats", refusal()],
   ["Eagles rushing offense", refusal()],
   ["Lions passing offense", refusal()],
@@ -150,7 +150,7 @@ const CASES: [string, Expect][] = [
   ["Most career receiving yards", answer({ intent: "leaders", scope: "career", stat: "receiving_yards" })],
   ["Longest career", generic],
   ["Career passer rating", refusal()],
-  ["Career rushing average", refusal("rate")],
+  ["Career rushing average", answer({ intent: "leaders", stat: "yards_per_carry", scope: "career" })], // upgraded: was a refusal
   ["Career records", generic],
   // ---- 6. Leaders ----
   ["Passing leader", answer({ intent: "leaders", stat: "passing_yards" })],
@@ -290,10 +290,37 @@ const CASES: [string, Expect][] = [
   ["how many players had 100 receptions in 2023", answer({ intent: "qualifying_count", stat: "receptions", season: 2023 })],
   ["highest rushing yards per game in 2023", answer({ intent: "leaders", perGame: true, stat: "rushing_yards", season: 2023 })],
   ["Josh Allen passing yards at home per game in 2023", answer({ intent: "player_total", perGame: true, venue: "home", playerId: "P_JALLEN" })],
+  // ---- rate stats (ratio machinery) ----
+  ["Derrick Henry yards per carry in 2023", answer({ intent: "player_total", stat: "yards_per_carry", playerId: "P_HENRY", season: 2023 })],
+  ["highest ypc in 2023", answer({ intent: "leaders", stat: "yards_per_carry", season: 2023 })],
+  ["Josh Allen yards per attempt", answer({ intent: "player_total", stat: "yards_per_attempt", playerId: "P_JALLEN" })],
+  ["Travis Kelce catch rate in 2023", answer({ intent: "player_total", stat: "catch_rate", playerId: "P_KELCE" })],
+  // ---- month splits ----
+  ["Derrick Henry rushing yards in December 2023", answer({ intent: "player_total", month: 12, season: 2023 })],
+  ["most passing touchdowns in january", answer({ intent: "leaders", stat: "passing_tds", month: 1 })],
+  // ---- player metadata: teams / experience ----
+  ["what teams has Derrick Henry played for", answer({ intent: "player_bio", bioField: "teams", playerId: "P_HENRY" })],
+  ["how many seasons has Patrick Mahomes played", answer({ intent: "player_bio", bioField: "experience", playerId: "P_MAHOMES" })],
+  // ---- team metadata / stats / roster / leaders ----
+  ["what division are the chiefs in", answer({ intent: "team_bio", teamField: "division", teamId: "KC" })],
+  ["where do the packers play their home games", answer({ intent: "team_bio", teamField: "stadium", teamId: "GB" })],
+  ["how many points did the chiefs score in 2023", answer({ intent: "team_stat", metric: "points_for", teamId: "KC", season: 2023 })],
+  ["bills points allowed per game in 2024", answer({ intent: "team_stat", metric: "points_against", perGame: true, teamId: "BUF" })],
+  ["eagles rushing yards in 2022", answer({ intent: "team_stat", stat: "rushing_yards", teamId: "PHI", metric: null })],
+  ["who led the chiefs in receiving yards in 2023", answer({ intent: "leaders", teamId: "KC", stat: "receiving_yards", season: 2023 })],
+  ["chiefs roster 2023", answer({ intent: "team_roster", teamId: "KC", season: 2023 })],
+  ["who played for the bills in 2022", answer({ intent: "team_roster", teamId: "BUF", season: 2022 })],
+  // ---- routing guards: game lookups must not be hijacked by team-info ----
+  ["what was the score of the eagles game", answer({ intent: "game_result", teamId: "PHI" })],
+  ["chiefs record in 2023", answer({ intent: "team_game_log", teamId: "KC", season: 2023 })],
   // ---- still genuinely unanswerable ----
-  ["Josh Allen QBR in 2023", refusal("efficiency")],
+  ["Josh Allen QBR in 2023", refusal("passer rating")],
   ["longest touchdown of 2023", refusal("play distances")],
   ["fastest to 10000 passing yards", refusal("milestone")],
+  ["was Justin Jefferson traded", refusal("transactions")],
+  ["chiefs depth chart", refusal("depth charts")],
+  ["patriots injury report", refusal("injury")],
+  ["who made the pro bowl in 2023", refusal("awards")],
 ];
 
 describe("the 100-question battery + parser edge cases", () => {

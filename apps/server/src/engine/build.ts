@@ -20,6 +20,9 @@ import { rankSql } from "./executors/rank.js";
 import { scoringSql } from "./executors/scoring.js";
 import { Params } from "./executors/shared.js";
 import { singleGameSql } from "./executors/singleGame.js";
+import { teamBioSql } from "./executors/teamBio.js";
+import { teamRosterSql } from "./executors/teamRoster.js";
+import { teamStatSql } from "./executors/teamStat.js";
 
 export { narrate, roman, sbName } from "./narrate.js";
 
@@ -42,6 +45,9 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
     case "leaders": return done(leadersSql(spec, p));
     case "player_total": return done(playerTotalSql(spec, p));
     case "single_game": return done(singleGameSql(spec, p));
+    case "team_bio": return done(teamBioSql(spec, p));
+    case "team_stat": return done(teamStatSql(spec, p));
+    case "team_roster": return done(teamRosterSql(spec, p));
     default: {
       // Exhaustiveness guard: a new Intent without an executor won't compile.
       const _never: never = spec;
