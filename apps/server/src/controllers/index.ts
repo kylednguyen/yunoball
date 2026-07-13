@@ -150,7 +150,7 @@ export async function teamProfile(req: Request, res: Response): Promise<void> {
 
 const agentBody = z.object({
   messages: z
-    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() }))
+    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(2000) }))
     .min(1)
     .max(20),
 });

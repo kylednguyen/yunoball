@@ -110,7 +110,7 @@ const CASES: [string, Expect][] = [
   ["Micah Parsons tackles", answer({ intent: "player_total", stat: "tackles" })],
   // ---- 2. Team stats ----
   ["Chiefs offensive ranking", refusal("team")],
-  ["Bills points per game", refusal()],
+  ["Bills points per game", answer({ intent: "team_stat", teamId: "BUF", metric: "points_for", perGame: true })], // upgraded: was a refusal
   ["Ravens defensive stats", refusal()],
   ["Eagles rushing offense", refusal()],
   ["Lions passing offense", refusal()],
@@ -137,7 +137,7 @@ const CASES: [string, Expect][] = [
   ["Bills Week 5 stats", refusal("team")],
   ["Chiefs after Week 10", refusal("team")],
   ["Ravens before Week 8", refusal("team")],
-  ["Eagles in primetime", refusal("split")],
+  ["Eagles in primetime", refusal("team question")], // primetime STAT splits answer; a bare team+primetime record isn't wired yet
   ["Dolphins vs AFC East", refusal()],
   ["Lions against winning teams", refusal("split")],
   ["Cowboys after bye week", refusal("split")],
@@ -149,8 +149,8 @@ const CASES: [string, Expect][] = [
   ["Most career sacks", answer({ intent: "leaders", scope: "career", stat: "def_sacks" })],
   ["Most career receiving yards", answer({ intent: "leaders", scope: "career", stat: "receiving_yards" })],
   ["Longest career", generic],
-  ["Career passer rating", refusal()],
-  ["Career rushing average", refusal("rate")],
+  ["Career passer rating", answer({ intent: "leaders", stat: "passer_rating", scope: "career" })], // upgraded: was a refusal
+  ["Career rushing average", answer({ intent: "leaders", stat: "yards_per_carry", scope: "career" })], // upgraded: was a refusal
   ["Career records", generic],
   // ---- 6. Leaders ----
   ["Passing leader", answer({ intent: "leaders", stat: "passing_yards" })],
@@ -203,8 +203,9 @@ const CASES: [string, Expect][] = [
   ["Eagles last game", answer({ intent: "game_result", teamId: "PHI", limit: 1 })],
   ["Ravens score yesterday", answer({ intent: "game_result", teamId: "BAL", limit: 1 })],
   ["Week 7 schedule", refusal("scores")],
-  ["Monday Night Football", refusal("split")],
-  ["Sunday Night Football", refusal("split")],
+  // Bare broadcast names carry no askable stat — honest generic fallback.
+  ["Monday Night Football", generic],
+  ["Sunday Night Football", generic],
   ["Thanksgiving games", refusal("split")],
   ["Super Bowl winners", answer({ intent: "game_result", round: "SB", season: null })],
   ["AFC Championship results", answer({ intent: "game_result", round: "CON", conf: "AFC" })],
@@ -272,6 +273,76 @@ const CASES: [string, Expect][] = [
   ["Brady 2025 stats", answer({ intent: "player_total", season: 2025 })],
   ["Bills score tomorrow", refusal("scores")],
   ["Chiefs 2030 record", answer({ intent: "team_game_log", teamId: "KC", season: 2030 })], // auditor turns this into no-data
+  // ---- player bio / roster (answered from the players dimension) ----
+  ["what team does Justin Jefferson play for", answer({ intent: "player_bio", bioField: "team", playerId: "P_JJ" })],
+  ["how old is Patrick Mahomes", answer({ intent: "player_bio", bioField: "age", playerId: "P_MAHOMES" })],
+  ["how tall is Josh Allen", answer({ intent: "player_bio", bioField: "height", playerId: "P_JALLEN" })],
+  ["what college did Travis Kelce go to", answer({ intent: "player_bio", bioField: "college", playerId: "P_KELCE" })],
+  ["tallest player", answer({ intent: "player_bio", bioField: "height", dir: "desc" })],
+  ["oldest quarterback", answer({ intent: "player_bio", bioField: "age", dir: "desc", position: "QB" })],
+  // ---- per-game rate, season range, league count, rank ----
+  ["Justin Jefferson yards per game in 2023", answer({ intent: "player_total", perGame: true, playerId: "P_JJ", season: 2023 })],
+  ["passing yards from 2021 to 2023", answer({ intent: "leaders", seasonMin: 2021, seasonMax: 2023 })],
+  ["Derrick Henry rushing yards over the last 3 seasons", answer({ intent: "player_total", perGame: false, seasonMin: 2023, seasonMax: 2025, playerId: "P_HENRY" })],
+  ["how many players had 1000 rushing yards in 2023", answer({ intent: "qualifying_count", stat: "rushing_yards", season: 2023 })],
+  ["how many QBs threw for 4000 yards in 2023", answer({ intent: "qualifying_count", position: "QB", stat: "passing_yards", season: 2023 })],
+  ["where does Patrick Mahomes rank in career passing yards", answer({ intent: "player_rank", stat: "passing_yards", playerId: "P_MAHOMES", scope: "career" })],
+  ["where does Patrick Mahomes rank in completion percentage", answer({ intent: "player_rank", stat: "completion_pct", playerId: "P_MAHOMES" })],
+  ["how many players had 100 receptions in 2023", answer({ intent: "qualifying_count", stat: "receptions", season: 2023 })],
+  ["highest rushing yards per game in 2023", answer({ intent: "leaders", perGame: true, stat: "rushing_yards", season: 2023 })],
+  ["Josh Allen passing yards at home per game in 2023", answer({ intent: "player_total", perGame: true, venue: "home", playerId: "P_JALLEN" })],
+  // ---- rate stats (ratio machinery) ----
+  ["Derrick Henry yards per carry in 2023", answer({ intent: "player_total", stat: "yards_per_carry", playerId: "P_HENRY", season: 2023 })],
+  ["highest ypc in 2023", answer({ intent: "leaders", stat: "yards_per_carry", season: 2023 })],
+  ["Josh Allen yards per attempt", answer({ intent: "player_total", stat: "yards_per_attempt", playerId: "P_JALLEN" })],
+  ["Travis Kelce catch rate in 2023", answer({ intent: "player_total", stat: "catch_rate", playerId: "P_KELCE" })],
+  // ---- month splits ----
+  ["Derrick Henry rushing yards in December 2023", answer({ intent: "player_total", month: 12, season: 2023 })],
+  ["most passing touchdowns in january", answer({ intent: "leaders", stat: "passing_tds", month: 1 })],
+  // ---- player metadata: teams / experience ----
+  ["what teams has Derrick Henry played for", answer({ intent: "player_bio", bioField: "teams", playerId: "P_HENRY" })],
+  ["how many seasons has Patrick Mahomes played", answer({ intent: "player_bio", bioField: "experience", playerId: "P_MAHOMES" })],
+  // ---- team metadata / stats / roster / leaders ----
+  ["what division are the chiefs in", answer({ intent: "team_bio", teamField: "division", teamId: "KC" })],
+  ["where do the packers play their home games", answer({ intent: "team_bio", teamField: "stadium", teamId: "GB" })],
+  ["how many points did the chiefs score in 2023", answer({ intent: "team_stat", metric: "points_for", teamId: "KC", season: 2023 })],
+  ["bills points allowed per game in 2024", answer({ intent: "team_stat", metric: "points_against", perGame: true, teamId: "BUF" })],
+  ["eagles rushing yards in 2022", answer({ intent: "team_stat", stat: "rushing_yards", teamId: "PHI", metric: null })],
+  ["who led the chiefs in receiving yards in 2023", answer({ intent: "leaders", teamId: "KC", stat: "receiving_yards", season: 2023 })],
+  ["chiefs roster 2023", answer({ intent: "team_roster", teamId: "KC", season: 2023 })],
+  ["who played for the bills in 2022", answer({ intent: "team_roster", teamId: "BUF", season: 2022 })],
+  // ---- wave 2: jersey / coach / colors / primetime / weather / air yards ----
+  ["what number does Patrick Mahomes wear", answer({ intent: "player_bio", bioField: "jersey", playerId: "P_MAHOMES" })],
+  ["who coaches the chiefs", answer({ intent: "team_bio", teamField: "coach", teamId: "KC" })],
+  ["what are the packers colors", answer({ intent: "team_bio", teamField: "colors", teamId: "GB" })],
+  ["Josh Allen passing yards in primetime in 2023", answer({ intent: "player_total", primetime: true, season: 2023 })],
+  ["most rushing yards in primetime 2023", answer({ intent: "leaders", primetime: true, stat: "rushing_yards" })],
+  ["Josh Allen passing yards in freezing weather", answer({ intent: "player_total", tempMax: 32 })],
+  ["Ja'Marr Chase air yards in 2023", answer({ intent: "player_total", stat: "receiving_air_yards", playerId: "P_CHASE" })],
+  ["Patrick Mahomes air yards in 2023", answer({ intent: "player_total", stat: "passing_air_yards" })],
+  ["most receiving air yards in 2023", answer({ intent: "leaders", stat: "receiving_air_yards" })],
+  // ---- wave 3: awards / streaks / milestones / medians / franchise ----
+  ["who won mvp in 2023", answer({ intent: "award", award: "MVP", season: 2023 })],
+  ["who won the super bowl mvp in 2022", answer({ intent: "award", award: "SBMVP" })],
+  ["how many mvps does Tom Brady have", answer({ intent: "award", award: "MVP", playerId: "P_BRADY" })],
+  ["Derrick Henry median rushing yards in 2023", answer({ intent: "player_total", median: true, playerId: "P_HENRY" })],
+  ["Justin Jefferson 5-game rolling average receiving yards", answer({ intent: "player_total", perGame: true, lastN: 5 })],
+  ["chiefs winning streak", answer({ intent: "team_streak", teamId: "KC", kind: "win" })],
+  ["Dolphins losing streak", answer({ intent: "team_streak", teamId: "MIA", kind: "loss" })],
+  ["Derrick Henry games in a row with a rushing touchdown", answer({ intent: "player_streak", playerId: "P_HENRY", stat: "rushing_tds" })],
+  ["when were the packers founded", answer({ intent: "team_bio", teamField: "founded", teamId: "GB" })],
+  ["did the raiders relocate", generic], // LV not in the battery team fixture; live resolver answers
+  // ---- routing guards: game lookups must not be hijacked by team-info ----
+  ["what was the score of the eagles game", answer({ intent: "game_result", teamId: "PHI" })],
+  ["chiefs record in 2023", answer({ intent: "team_game_log", teamId: "KC", season: 2023 })],
+  // ---- still genuinely unanswerable ----
+  ["Josh Allen QBR in 2023", refusal("passer rating")],
+  ["longest touchdown of 2023", answer({ intent: "scoring", longest: true, season: 2023 })], // upgraded: was a refusal
+  ["fastest to 10000 passing yards", answer({ intent: "milestone", stat: "passing_yards", target: 10000 })], // upgraded: was a refusal
+  ["was Justin Jefferson traded", refusal("transactions")],
+  ["chiefs depth chart", refusal("depth charts")],
+  ["patriots injury report", refusal("injury")],
+  ["who made the pro bowl in 2023", refusal("awards")],
 ];
 
 describe("the 100-question battery + parser edge cases", () => {

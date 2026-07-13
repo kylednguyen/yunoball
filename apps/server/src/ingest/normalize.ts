@@ -69,6 +69,8 @@ export const teamRow = z.strictObject({
   nickname: z.string().nullable(),
   conference: z.string().nullable(),
   division: z.string().nullable(),
+  color: z.string().nullable(),
+  color2: z.string().nullable(),
 });
 
 export const seasonRow = z.strictObject({ season: z.number().int() });
@@ -83,6 +85,7 @@ export const playerRow = z.strictObject({
   height_inches: z.number().nullable(),
   weight_lbs: z.number().nullable(),
   college: z.string().nullable(),
+  jersey_number: z.number().nullable(),
 });
 
 export const gameRow = z.strictObject({
@@ -98,6 +101,12 @@ export const gameRow = z.strictObject({
   stadium: z.string().nullable(),
   roof: z.string().nullable(),
   surface: z.string().nullable(),
+  weekday: z.string().nullable(),
+  gametime: z.string().nullable(),
+  temp: z.number().nullable(),
+  wind: z.number().nullable(),
+  home_coach: z.string().nullable(),
+  away_coach: z.string().nullable(),
 });
 
 export const playerGameStatsRow = z.strictObject({
@@ -126,6 +135,8 @@ export const playerGameStatsRow = z.strictObject({
   def_interceptions: z.number().nullable(),
   forced_fumbles: z.number().nullable(),
   passes_defended: z.number().nullable(),
+  passing_air_yards: z.number().nullable(),
+  receiving_air_yards: z.number().nullable(),
 });
 
 export const playerSeasonStatsRow = z.strictObject({
@@ -184,4 +195,22 @@ export const scoringPlayRow = z.strictObject({
   qtr: z.number().nullable(),
   play_type: z.string().nullable(),
   description: z.string().nullable(),
+  yards: z.number().nullable(),
+});
+
+export const playerGameAdvancedRow = z.strictObject({
+  player_id: id,
+  game_id: id,
+  team_id: z.string().nullable(),
+  pass_plays: z.number().nullable(),
+  pass_epa: z.number().nullable(),
+  pass_success: z.number().nullable(),
+  cpoe_sum: z.number().nullable(),
+  cpoe_n: z.number().nullable(),
+  rush_plays: z.number().nullable(),
+  rush_epa: z.number().nullable(),
+  rush_success: z.number().nullable(),
+  recv_plays: z.number().nullable(),
+  recv_epa: z.number().nullable(),
+  recv_success: z.number().nullable(),
 });

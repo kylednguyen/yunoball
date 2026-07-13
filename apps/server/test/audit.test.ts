@@ -66,7 +66,10 @@ describe("second-layer auditor", () => {
 
   it("keeps season and played-year straight for Super Bowl questions", async () => {
     const out = await audit(
-      { ...base, intent: "game_result", season: 2023, round: "SB", playerId: null },
+      {
+        intent: "game_result", stat: "passing_yards", seasonType: "REG",
+        scope: "season", limit: 10, season: 2023, round: "SB",
+      },
       ctx("who won the 2024 super bowl"),
     );
     expect(out.status).toBe("validated_with_warnings");
@@ -77,7 +80,10 @@ describe("second-layer auditor", () => {
 
   it("validates a clean spec with full confidence", async () => {
     const out = await audit(
-      { ...base, intent: "leaders", season: 2024 },
+      {
+        intent: "leaders", stat: "passing_yards", seasonType: "REG",
+        scope: "season", limit: 10, season: 2024,
+      },
       ctx("most passing yards 2024"),
     );
     expect(out.status).toBe("validated");

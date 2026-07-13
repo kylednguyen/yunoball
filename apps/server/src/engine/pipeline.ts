@@ -24,7 +24,7 @@ import { audit, logAudit } from "./audit.js";
 import { narrate, buildSql } from "./build.js";
 import { isRefusal, parseRules } from "./parseRules.js";
 import { loadIndex, loadTeamIndex, resolveEntities } from "./resolve.js";
-import { specCacheKey } from "./spec.js";
+import { fields, specCacheKey } from "./spec.js";
 
 async function finalize(response: AnswerResult, sKey: string | null): Promise<AnswerResult> {
   cacheSet(textKey(response.question), response);
@@ -187,6 +187,9 @@ export async function runQueryPipeline(
     // per-game toggle divides by it.
     for (const row of rows) {
       delete (row as Record<string, unknown>).total;
+      // Ratio-window helper columns (see playerGameRowsSql) are internal.
+      delete (row as Record<string, unknown>)._num;
+      delete (row as Record<string, unknown>)._den;
       if (spec.intent !== "compare") delete (row as Record<string, unknown>).games;
     }
     const columns = rows.length > 0 ? Object.keys(rows[0]!) : [];
@@ -201,7 +204,7 @@ export async function runQueryPipeline(
       share_id: shareId(question),
       intent: spec.intent,
       player_card: await playerCard(
-        spec.playerId ?? (rows[0]?.player_id as string | undefined),
+        fields(spec).playerId ?? (rows[0]?.player_id as string | undefined),
       ),
       player_card2: spec.intent === "compare" ? await playerCard(spec.player2Id) : null,
       audit: {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import type { AnswerResult } from "../lib/api";
+import { teamTheme } from "../lib/teamTheme";
 import { Headshot } from "./Headshot";
 import { SortTable } from "./SortTable";
 import { TeamLogo } from "./TeamLogo";
@@ -230,8 +231,19 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
     result.audit?.status ? `audit: ${result.audit.status}` : null,
   ].filter(Boolean) as string[];
 
+  // Team context: when exactly one team is in play (a player's team or a
+  // team entity), the card's accent re-tints to that team's branding.
+  // Ambiguous contexts (head-to-heads, multi-team answers) stay neutral.
+  const contextTeams = new Set<string>();
+  for (const c of cards) if (c.team) contextTeams.add(c.team);
+  for (const e of result.entities ?? []) {
+    if (e.entity_type === "team") contextTeams.add(e.canonical_id);
+  }
+  const theme =
+    contextTeams.size === 1 ? teamTheme([...contextTeams][0]) : undefined;
+
   return (
-    <Surface as="section" variant="standard" className="yb-query-result yb-enter">
+    <Surface as="section" variant="standard" className="yb-query-result yb-enter" style={theme}>
       <div className="yb-query-result-head">
         <div>
           <span className="yb-result-kicker">Result</span>

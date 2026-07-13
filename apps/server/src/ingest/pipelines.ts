@@ -9,7 +9,7 @@
 import {
   float, int, str, team, SEASON_TYPE, TEAM_MAP,
   draftPickRow, gameRow, playerGameStatsRow, playerRow, playerSeasonStatsRow,
-  scoringPlayRow, seasonRow, teamGameStatsRow, teamRow,
+  playerGameAdvancedRow, scoringPlayRow, seasonRow, teamGameStatsRow, teamRow,
 } from "./normalize.js";
 import { logger } from "../lib/logger.js";
 import type { Ctx } from "./context.js";
@@ -25,6 +25,8 @@ export async function loadTeams(ctx: Ctx): Promise<number> {
     nickname: str(r.team_nick),
     conference: str(r.team_conf),
     division: str(r.team_division),
+    color: str(r.team_color),
+    color2: str(r.team_color2),
   }));
   rows = ctx.drop(
     rows,
@@ -54,6 +56,7 @@ export async function loadPlayers(ctx: Ctx, years: number[]): Promise<number> {
     height_inches: int(r.height),
     weight_lbs: int(r.weight),
     college: str(r.college),
+    jersey_number: int(r.jersey_number),
     _season: int(r.season) ?? 0,
   }));
   rows = ctx.drop(rows, (r) => r.player_id !== "", "players",
@@ -87,9 +90,18 @@ export async function loadGames(ctx: Ctx, years: number[]): Promise<number> {
     stadium: str(r.stadium),
     roof: str(r.roof),
     surface: str(r.surface),
+    weekday: str(r.weekday),
+    gametime: str(r.gametime),
+    temp: int(r.temp),
+    wind: int(r.wind),
+    home_coach: str(r.home_coach),
+    away_coach: str(r.away_coach),
   }));
-  rows = ctx.drop(rows, (r) => r.season_type !== "", "games",
-    `unrecognized game_type (known: ${Object.keys(SEASON_TYPE).sort().join(", ")})`,
+  // The warehouse only models REG and POST; preseason ("PRE") and unrecognized
+  // game types are excluded. Dropping PRE here also stops it from colliding
+  // with regular-season week numbers in gameIdLookup.
+  rows = ctx.drop(rows, (r) => r.season_type === "REG" || r.season_type === "POST", "games",
+    `not a REG/POST game (preseason / unrecognized game_type; known: ${Object.keys(SEASON_TYPE).sort().join(", ")})`,
     (r) => r.game_id);
   const teams = await ctx.known("teams", "team_id");
   rows = ctx.drop(rows, (r) => teams.has(r.home_team) && teams.has(r.away_team),
@@ -106,7 +118,11 @@ export async function loadGames(ctx: Ctx, years: number[]): Promise<number> {
 async function gameIdLookup(years: number[]): Promise<Map<string, string>> {
   const lookup = new Map<string, string>();
   for (const r of await schedules(years)) {
-    const key = (t: string) => `${Number(r.season)}|${Number(r.week)}|${team(t)}`;
+    // season_type is part of the key: preseason and regular-season share week
+    // numbers (both start at week 1), so without it a PRE game would overwrite
+    // the REG game for the same (season, week, team) and mis-attribute stats.
+    const st = SEASON_TYPE[r.game_type ?? ""] ?? "";
+    const key = (t: string) => `${Number(r.season)}|${Number(r.week)}|${team(t)}|${st}`;
     lookup.set(key(r.home_team ?? ""), r.game_id ?? "");
     lookup.set(key(r.away_team ?? ""), r.game_id ?? "");
   }
@@ -122,14 +138,18 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
     (int(a) ?? 0) + (int(b) ?? 0) + (int(c) ?? 0);
 
   let rows = raw
-    .filter((r) =>
-      ctx.seasonType ? SEASON_TYPE[r.season_type ?? ""] === ctx.seasonType : true,
-    )
+    .filter((r) => {
+      // REG/POST only (drop preseason even when no --season-type is given, or
+      // it leaks into player_game_stats and inflates totals against games).
+      const st = SEASON_TYPE[r.season_type ?? ""] ?? "";
+      return ctx.seasonType ? st === ctx.seasonType : st === "REG" || st === "POST";
+    })
     .map((r) => {
       const tid = team(r.team ?? "");
+      const st = SEASON_TYPE[r.season_type ?? ""] ?? "";
       return {
         player_id: r.player_id ?? "",
-        game_id: lookup.get(`${Number(r.season)}|${Number(r.week)}|${tid}`) ?? "",
+        game_id: lookup.get(`${Number(r.season)}|${Number(r.week)}|${tid}|${st}`) ?? "",
         team_id: tid,
         completions: int(r.completions),
         attempts: int(r.attempts),
@@ -153,6 +173,8 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
         def_interceptions: int(r.def_interceptions),
         forced_fumbles: int(r.def_fumbles_forced),
         passes_defended: int(r.def_pass_defended),
+        passing_air_yards: int(r.passing_air_yards),
+        receiving_air_yards: int(r.receiving_air_yards),
       };
     });
 
@@ -163,6 +185,9 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
   const players = await ctx.known("players", "player_id");
   rows = ctx.drop(rows, (r) => players.has(r.player_id), "player_game_stats",
     "player not in players dimension", (r) => r.player_id);
+  const teams = await ctx.known("teams", "team_id");
+  rows = ctx.drop(rows, (r) => teams.has(r.team_id), "player_game_stats",
+    "unknown team id", (r) => r.player_id);
   const games = await ctx.known("games", "game_id");
   rows = ctx.drop(rows, (r) => games.has(r.game_id), "player_game_stats",
     "game not ingested (run games first)", (r) => r.game_id);
@@ -283,23 +308,103 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
       total += await upsert(ctx, "scoring_plays", rows, ["play_id"], scoringPlayRow);
     };
 
+    // Advanced aggregates accumulated over the same stream: per-player-game
+    // EPA / success / CPOE by role, and per-team-game drive counts.
+    type Adv = Record<string, number>;
+    const adv = new Map<string, Adv>();
+    const drives = new Map<string, Set<string>>();
+    const bump = (pid: string | undefined, gid: string, tid: string | null, role: "pass" | "rush" | "recv", r: CsvRow) => {
+      if (!pid || !players.has(pid)) return;
+      const epa = float(r.epa);
+      if (epa == null) return;
+      const key = `${pid}|${gid}`;
+      const a = adv.get(key) ?? { _t: 0 };
+      (a as Record<string, unknown>).player_id = pid;
+      (a as Record<string, unknown>).game_id = gid;
+      (a as Record<string, unknown>).team_id = tid;
+      a[`${role}_plays`] = (a[`${role}_plays`] ?? 0) + 1;
+      a[`${role}_epa`] = (a[`${role}_epa`] ?? 0) + epa;
+      a[`${role}_success`] = (a[`${role}_success`] ?? 0) + (r.success === "1" ? 1 : 0);
+      if (role === "pass") {
+        const cpoe = float(r.cpoe);
+        if (cpoe != null) {
+          a.cpoe_sum = (a.cpoe_sum ?? 0) + cpoe;
+          a.cpoe_n = (a.cpoe_n ?? 0) + 1;
+        }
+      }
+      adv.set(key, a);
+    };
+
     for await (const r of streamRows(assets.pbp(year))) {
-      if (r.touchdown !== "1" || !r.td_player_id) continue;
       if (ctx.seasonType && SEASON_TYPE[r.season_type ?? ""] !== ctx.seasonType) continue;
+      const gid = r.game_id ?? "";
+      if (games.has(gid)) {
+        const posteam = r.posteam ? team(r.posteam) : null;
+        const tid = posteam && teams.has(posteam) ? posteam : null;
+        bump(r.passer_player_id, gid, tid, "pass", r);
+        bump(r.rusher_player_id, gid, tid, "rush", r);
+        bump(r.receiver_player_id, gid, tid, "recv", r);
+        if (tid && r.drive) {
+          const dkey = `${tid}|${gid}`;
+          const set = drives.get(dkey) ?? new Set<string>();
+          set.add(r.drive);
+          drives.set(dkey, set);
+        }
+      }
+      if (r.touchdown !== "1" || !r.td_player_id) continue;
       const tdTeam = r.td_team ? team(r.td_team) : null;
       batch.push({
         play_id: `${r.game_id}_${int(r.play_id)}`,
-        game_id: r.game_id ?? "",
+        game_id: gid,
         player_id: r.td_player_id,
         team_id: tdTeam && teams.has(tdTeam) ? tdTeam : null,
         qtr: int(r.qtr),
         play_type: str(r.play_type),
         description: str(r.desc),
+        yards: int(r.yards_gained),
       });
       if (batch.length >= SCORING_BATCH) await flush();
     }
     await flush();
-    logger.info({ year }, "scoring_plays: season complete");
+
+    // Round EPA/CPOE sums and fill the full column set for the row schema.
+    const advRows = [...adv.values()].map((a) => {
+      const o = a as Record<string, unknown>;
+      const num = (k: string) => (a[k] != null ? Math.round((a[k] as number) * 1000) / 1000 : null);
+      return {
+        player_id: o.player_id, game_id: o.game_id, team_id: o.team_id ?? null,
+        pass_plays: a.pass_plays ?? null, pass_epa: num("pass_epa"),
+        pass_success: a.pass_success ?? null,
+        cpoe_sum: num("cpoe_sum"), cpoe_n: a.cpoe_n ?? null,
+        rush_plays: a.rush_plays ?? null, rush_epa: num("rush_epa"),
+        rush_success: a.rush_success ?? null,
+        recv_plays: a.recv_plays ?? null, recv_epa: num("recv_epa"),
+        recv_success: a.recv_success ?? null,
+      };
+    });
+    total += await upsert(
+      ctx, "player_game_advanced", advRows, ["player_id", "game_id"], playerGameAdvancedRow,
+    );
+
+    // Drive counts land as an UPDATE — the team_game_stats rows already exist.
+    if (!ctx.dryRun && drives.size > 0) {
+      const entries = [...drives.entries()];
+      const params: unknown[] = [];
+      const values = entries
+        .map(([k, set]) => {
+          const [tid, gid] = k.split("|");
+          params.push(tid, gid, set.size);
+          return `($${params.length - 2}, $${params.length - 1}, $${params.length}::int)`;
+        })
+        .join(", ");
+      await ctx.pool.query(
+        `UPDATE team_game_stats t SET drives = v.drives
+         FROM (VALUES ${values}) AS v(team_id, game_id, drives)
+         WHERE t.team_id = v.team_id AND t.game_id = v.game_id`,
+        params,
+      );
+    }
+    logger.info({ year, advanced: advRows.length }, "scoring_plays + advanced: season complete");
   }
   return total;
 }

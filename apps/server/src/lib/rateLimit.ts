@@ -9,12 +9,15 @@ const WINDOW_SECONDS = 60;
 const counts = new Map<string, number>();
 let currentWindow = 0;
 
+// Cap on distinct keys held in a single window — a spoofed/rotated source can
+// otherwise insert unbounded entries before the next-window clear().
+const MAX_KEYS = 100_000;
+
 export function clientIp(req: Request): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.length > 0) {
-    return forwarded.split(",")[0]!.trim();
-  }
-  return req.socket.remoteAddress ?? "unknown";
+  // req.ip honors the app's `trust proxy` setting (configured in app.ts), so a
+  // client can't mint a fresh bucket by forging X-Forwarded-For — only the
+  // configured number of proxy hops are trusted.
+  return req.ip ?? req.socket.remoteAddress ?? "unknown";
 }
 
 /** Returns null to allow, or seconds until the window resets when over limit. */
@@ -28,7 +31,9 @@ export function retryAfter(ip: string): number | null {
     currentWindow = window;
   }
   const n = (counts.get(ip) ?? 0) + 1;
-  counts.set(ip, n);
+  // Stop tracking new keys once the map is saturated within a window; existing
+  // keys keep counting so real clients are still limited.
+  if (counts.has(ip) || counts.size < MAX_KEYS) counts.set(ip, n);
   if (n > limit) return WINDOW_SECONDS - (now % WINDOW_SECONDS);
   return null;
 }

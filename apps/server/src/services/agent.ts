@@ -192,32 +192,36 @@ export async function runAgent(messages: ChatTurn[]): Promise<{ reply: string; s
   }
 
   if (FANTASY_RE.test(question)) {
-    // Start/sit: find every player named in the question and judge them
-    // schematically.
-    const pool = await getFantasyPlayers({ season, limit: 500 });
-    const lowered = question.toLowerCase();
-    const picks = pool.players.filter((p) => {
-      const last = p.name.toLowerCase().split(" ").at(-1)!;
-      return (
-        lowered.includes(p.name.toLowerCase()) ||
-        new RegExp(`\\b${last.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(lowered)
-      );
-    });
-    if (picks.length >= 2) {
-      const reply = await judgeStartSit(picks, pool.season);
-      return {
-        reply,
-        steps: [
-          {
-            tool: "fantasy_judge",
-            summary: "Weighed production, PPR floor, offense environment and TD reliance",
-          },
-        ],
-      };
+    try {
+      // Start/sit: find every player named in the question and judge them
+      // schematically.
+      const pool = await getFantasyPlayers({ season, limit: 500 });
+      const lowered = question.toLowerCase();
+      const picks = pool.players.filter((p) => {
+        const last = p.name.toLowerCase().split(" ").at(-1)!;
+        return (
+          lowered.includes(p.name.toLowerCase()) ||
+          new RegExp(`\\b${last.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(lowered)
+        );
+      });
+      if (picks.length >= 2) {
+        const reply = await judgeStartSit(picks, pool.season);
+        return {
+          reply,
+          steps: [
+            {
+              tool: "fantasy_judge",
+              summary: "Weighed production, PPR floor, offense environment and TD reliance",
+            },
+          ],
+        };
+      }
+      const posM = POSITION_RE.exec(question);
+      const text = await toolFantasy(posM ? posM[1]!.toUpperCase() : undefined, season);
+      return { reply: text, steps: [{ tool: "fantasy_pool", summary: "Top PPR scorers" }] };
+    } catch (err) {
+      if (!(err instanceof ApiError)) throw err; // e.g. season not loaded — fall through
     }
-    const posM = POSITION_RE.exec(question);
-    const text = await toolFantasy(posM ? posM[1]!.toUpperCase() : undefined, season);
-    return { reply: text, steps: [{ tool: "fantasy_pool", summary: "Top PPR scorers" }] };
   }
 
   if (STANDINGS_RE.test(question)) {
