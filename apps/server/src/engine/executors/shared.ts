@@ -35,25 +35,53 @@ export function statDef(spec: { stat: string }): StatDef {
   return STATS[spec.stat]!;
 }
 
+/** "× 100" for percentage ratios (completion %), nothing for plain rates
+ * (yards per carry). The spacing matters: it must reproduce the historical
+ * SQL byte-for-byte for percentage stats. */
+function pctFactor(def: StatDef): string {
+  return def.ratio?.pct ? " * 100" : "";
+}
+
+/** Volume floor (summed denominator) qualifying a ratio stat for boards and
+ * ranks, so tiny samples can't top a list. */
+export function ratioFloor(def: StatDef, scope: string): number {
+  return scope === "career"
+    ? def.ratio?.floorCareer ?? 1000
+    : def.ratio?.floorSeason ?? 150;
+}
+
+/** Per-row ratio expression over the game log (one game's rate). */
+export function ratioRowExpr(def: StatDef): string {
+  return (
+    `ROUND(COALESCE(s.${def.ratio!.num}, 0)::numeric / ` +
+    `NULLIF(COALESCE(s.${def.ratio!.den}, 0), 0)${pctFactor(def)}, 1)`
+  );
+}
+
 /** Aggregate SELECT expression for a stat over the game log: plain SUM, or
- * the summed ratio for ratio stats (completion %). */
+ * the summed ratio for ratio stats (completion %, yards per carry). */
 export function aggExpr(spec: { stat: string }): string {
   const def = statDef(spec);
   if (def.ratio) {
     return (
       `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0))::numeric / ` +
-      `NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)), 0) * 100, 1)`
+      `NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)), 0)${pctFactor(def)}, 1)`
     );
   }
   return `SUM(${def.expr})`;
 }
 
-/** Summed value of a stat, honoring ratio stats (completion %) which sum the
- * numerator/denominator separately rather than the empty `expr`. */
-export function sumValueExpr(def: { expr: string; ratio?: { num: string; den: string } }): string {
+/** Summed value of a stat, honoring ratio stats which sum the numerator and
+ * denominator separately rather than the empty `expr`. */
+export function sumValueExpr(def: StatDef): string {
   return def.ratio
-    ? `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0))::numeric / NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)), 0) * 100, 1)`
+    ? `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0))::numeric / NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)), 0)${pctFactor(def)}, 1)`
     : `SUM(${def.expr})`;
+}
+
+/** Window-aggregated ratio over already-scoped rows (see playerGameRowsSql). */
+export function ratioWindowExpr(def: StatDef): string {
+  return `ROUND(SUM(ts._num) OVER ()::numeric / NULLIF(SUM(ts._den) OVER (), 0)${pctFactor(def)}, 1)`;
 }
 
 /** True when the question needs the game log instead of season rollups. */
@@ -63,6 +91,7 @@ export function needsGameLog(spec: PlayerTotalSpec): boolean {
       spec.venue ||
       spec.weekMin != null ||
       spec.weekMax != null ||
+      spec.month != null ||
       spec.firstN ||
       spec.lastN ||
       spec.sbOnly,
@@ -104,6 +133,9 @@ export function gamePreds(spec: GameScoped, p: Params): string[] {
   if (spec.venue === "away") preds.push("s.team_id = g.away_team");
   if (spec.weekMin != null) preds.push(`g.week >= ${p.add(spec.weekMin)}`);
   if (spec.weekMax != null) preds.push(`g.week <= ${p.add(spec.weekMax)}`);
+  if (spec.month != null) {
+    preds.push(`EXTRACT(MONTH FROM g.game_date) = ${p.add(spec.month)}`);
+  }
   if (spec.sbOnly || spec.round) preds.push(roundPred(spec.round ?? "SB"));
   if (spec.opponentId) {
     const opp = p.add(spec.opponentId);
@@ -188,7 +220,7 @@ export function playerGameRowsSql(
     spec.intent === "game_log"
       ? gameLogStatCols(spec.position).join(", ")
       : def.ratio
-        ? `ROUND(COALESCE(s.${def.ratio.num}, 0)::numeric / NULLIF(COALESCE(s.${def.ratio.den}, 0), 0) * 100, 1) AS value`
+        ? `${ratioRowExpr(def)} AS value`
         : `${def.expr} AS value`;
   // Ratio totals need the raw numerator/denominator per row so the window can
   // re-derive the percentage; _num/_den are stripped from the response.
@@ -211,7 +243,7 @@ export function playerGameRowsSql(
     spec.intent === "game_log"
       ? "NULL"
       : def.ratio
-        ? "ROUND(SUM(ts._num) OVER ()::numeric / NULLIF(SUM(ts._den) OVER (), 0) * 100, 1)"
+        ? ratioWindowExpr(def)
         : spec.perGame
           ? "ROUND(SUM(ts.value) OVER ()::numeric / NULLIF(COUNT(*) OVER (), 0), 1)"
           : "SUM(ts.value) OVER ()";

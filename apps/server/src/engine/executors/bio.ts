@@ -8,6 +8,31 @@ export function bioSql(spec: PlayerBioSpec, p: Params): string {
   const bioCols =
     "p.player_id, p.full_name, p.position, p.birth_date, p.height_inches, " +
     "p.weight_lbs, p.college, EXTRACT(YEAR FROM age(p.birth_date))::int AS age";
+  if (spec.playerId && spec.bioField === "teams") {
+    // Every franchise the player has appeared for, in order of arrival.
+    return (
+      "SELECT s.team_id AS team, t.name AS team_name, " +
+      "MIN(s.season) AS first_season, MAX(s.season) AS last_season, " +
+      "COUNT(DISTINCT s.season) AS seasons " +
+      "FROM player_season_stats s " +
+      "LEFT JOIN teams t ON t.team_id = s.team_id " +
+      `WHERE s.player_id = ${p.add(spec.playerId)} ` +
+      "AND s.season_type = 'REG' AND s.team_id IS NOT NULL " +
+      "GROUP BY s.team_id, t.name " +
+      "ORDER BY MIN(s.season)"
+    );
+  }
+  if (spec.playerId && spec.bioField === "experience") {
+    return (
+      "SELECT p.player_id, p.full_name, " +
+      "COUNT(DISTINCT s.season) AS seasons, " +
+      "MIN(s.season) AS first_season, MAX(s.season) AS last_season " +
+      "FROM player_season_stats s " +
+      "JOIN players p ON p.player_id = s.player_id " +
+      `WHERE s.player_id = ${p.add(spec.playerId)} AND s.season_type = 'REG' ` +
+      "GROUP BY p.player_id, p.full_name"
+    );
+  }
   if (spec.playerId) {
     return (
       `SELECT ${bioCols}, latest.team_id AS team, t.name AS team_name ` +

@@ -4,18 +4,20 @@
 
 import type { LeadersSpec } from "../spec.js";
 import {
-  aggExpr, gamePreds, Params, ROOKIE_PRED, statDef,
+  aggExpr, gamePreds, Params, ratioFloor, ROOKIE_PRED, statDef,
 } from "./shared.js";
 
 export function leadersSql(spec: LeadersSpec, p: Params): string {
   const def = statDef(spec);
-  // Week/venue-filtered leaders can't use season rollups — aggregate the
-  // game log instead ("most touchdowns in week 22", "at home").
+  // Week/venue/month-filtered leaders can't use season rollups — aggregate
+  // the game log instead ("most touchdowns in week 22", "at home").
   if (
     def.source !== "game" &&
-    (spec.venue || spec.weekMin != null || spec.weekMax != null || spec.sbOnly)
+    (spec.venue || spec.weekMin != null || spec.weekMax != null ||
+      spec.month != null || spec.sbOnly)
   ) {
     const where = gamePreds(spec, p);
+    if (spec.teamId) where.push(`s.team_id = ${p.add(spec.teamId)}`);
     return (
       `SELECT p.player_id, p.full_name, COUNT(*) AS games, SUM(${def.expr}) AS value ` +
       "FROM player_game_stats s " +
@@ -29,10 +31,11 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
     );
   }
   if (def.source === "game") {
-    // Game-sourced leaders (completion %): aggregate the game log, with a
-    // volume qualifier so tiny samples can't top the board.
+    // Game-sourced leaders (completion %, yards per carry): aggregate the
+    // game log, with a volume qualifier so tiny samples can't top the board.
     const where = gamePreds(spec, p);
-    const minDen = spec.scope === "career" ? 1000 : 150;
+    if (spec.teamId) where.push(`s.team_id = ${p.add(spec.teamId)}`);
+    const minDen = ratioFloor(def, spec.scope);
     return (
       `SELECT p.player_id, p.full_name, ${aggExpr(spec)} AS value ` +
       "FROM player_game_stats s " +
@@ -66,6 +69,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
       "FROM player_season_stats s " +
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE s.season_type = ${stype}${rangePred}` +
+      (spec.teamId ? ` AND s.team_id = ${p.add(spec.teamId)}` : "") +
       (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
       " GROUP BY p.player_id, p.full_name " + perGameFloor +
       `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, p.full_name ` +
@@ -74,6 +78,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
   }
   const where = [`s.season_type = ${p.add(spec.seasonType)}`];
   if (spec.season != null) where.push(`s.season = ${p.add(spec.season)}`);
+  if (spec.teamId) where.push(`s.team_id = ${p.add(spec.teamId)}`);
   if (spec.position) where.push(`p.position = ${p.add(spec.position)}`);
   if (spec.rookie) where.push(ROOKIE_PRED);
   // Ascending boards need a floor, or benchwarmers sweep "fewest X".

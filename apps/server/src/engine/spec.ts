@@ -16,7 +16,8 @@
 export type Intent =
   | "leaders" | "player_total" | "player_seasons" | "single_game" | "compare"
   | "scoring" | "game_count" | "qualifying_count" | "player_rank" | "player_bio"
-  | "game_log" | "team_game_log" | "game_result" | "draft_pick";
+  | "game_log" | "team_game_log" | "game_result" | "draft_pick"
+  | "team_bio" | "team_stat" | "team_roster";
 
 export interface StatDef {
   /** SQL expression over the stats-table alias `s`. Allowlisted here, never
@@ -34,9 +35,18 @@ export interface StatDef {
   /** "game": columns only exist in player_game_stats — totals and leaders
    * aggregate the game log instead of season rollups. */
   source?: "game";
-  /** Ratio stats (completion %): aggregate numerator/denominator separately,
-   * divide after summing. `den` also drives a small-sample qualifier. */
-  ratio?: { num: string; den: string };
+  /** Ratio stats (completion %, yards per carry): aggregate numerator and
+   * denominator separately, divide after summing. `den` also drives the
+   * small-sample qualifier via the floors; `pct` multiplies by 100. */
+  ratio?: {
+    num: string;
+    den: string;
+    /** Display as a percentage (× 100). */
+    pct?: boolean;
+    /** Min summed denominator to qualify for boards/ranks (season / career). */
+    floorSeason?: number;
+    floorCareer?: number;
+  };
   /** Display unit appended in narration (e.g. "%"). */
   unit?: string;
 }
@@ -48,6 +58,42 @@ const n = (col: string) => `COALESCE(s.${col}, 0)`;
  * computed stats at the bottom carry no vocabulary of their own — the parser
  * selects them for generic "touchdowns"/"yards" questions with no player. */
 export const STATS: Record<string, StatDef> = {
+  // ---- Rate stats first: their phrases embed generic stat words ("yards
+  // per reception" contains "reception"), so they must match before the
+  // volume stats they derive from. All are game-sourced ratios. ----
+  yards_per_carry: {
+    expr: "", // ratio stats aggregate num/den; no per-row expression
+    label: "yards per carry",
+    phrases: ["yards per carry", "yards per rush", "per carry", "rushing average"],
+    words: ["ypc"],
+    source: "game",
+    ratio: { num: "rushing_yards", den: "carries", floorSeason: 100, floorCareer: 750 },
+  },
+  yards_per_attempt: {
+    expr: "",
+    label: "yards per attempt",
+    phrases: ["yards per attempt", "yards per pass", "passing average"],
+    words: ["ypa"],
+    source: "game",
+    ratio: { num: "passing_yards", den: "attempts", floorSeason: 150, floorCareer: 1000 },
+  },
+  yards_per_reception: {
+    expr: "",
+    label: "yards per reception",
+    phrases: ["yards per reception", "yards per catch", "receiving average"],
+    words: ["ypr"],
+    source: "game",
+    ratio: { num: "receiving_yards", den: "receptions", floorSeason: 50, floorCareer: 300 },
+  },
+  catch_rate: {
+    expr: "",
+    label: "catch rate",
+    phrases: ["catch rate", "catch percentage", "catch pct"],
+    words: [],
+    source: "game",
+    ratio: { num: "receptions", den: "targets", pct: true, floorSeason: 50, floorCareer: 300 },
+    unit: "%",
+  },
   interceptions: {
     expr: "s.interceptions",
     label: "interceptions",
@@ -141,7 +187,7 @@ export const STATS: Record<string, StatDef> = {
     phrases: ["completion percentage", "completion pct", "completion rate", "comp pct", "comp %"],
     words: [],
     source: "game",
-    ratio: { num: "completions", den: "attempts" },
+    ratio: { num: "completions", den: "attempts", pct: true, floorSeason: 150, floorCareer: 1000 },
     unit: "%",
   },
   // ---- Computed stats (parser-selected for generic questions) ----
@@ -188,6 +234,8 @@ export interface GameWindow {
   /** Inclusive season range ("from 2021 to 2023"); overrides `season`. */
   seasonMin?: number | null;
   seasonMax?: number | null;
+  /** Calendar-month split ("in December"), 1-12. */
+  month?: number | null;
 }
 
 /** Team-anchored game lookups (team_game_log / game_result) share these. */
@@ -215,6 +263,9 @@ export interface LeadersSpec extends SpecBase, GameWindow {
   rookie?: boolean;
   /** Rank the per-game rate instead of the raw total. */
   perGame?: boolean;
+  /** Restrict the board to one team's players ("who led the Chiefs in..."). */
+  teamId?: string | null;
+  teamName?: string | null;
 }
 
 export interface PlayerTotalSpec extends SpecBase, GameWindow {
@@ -287,7 +338,7 @@ export interface PlayerRankSpec extends SpecBase {
 export interface PlayerBioSpec extends SpecBase {
   intent: "player_bio";
   /** Which bio fact ("team"/"age"/…), or the metric a superlative ranks by. */
-  bioField: "team" | "age" | "height" | "weight" | "college" | "full";
+  bioField: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "full";
   playerId?: string | null;
   player?: string | null;
   dir?: "desc" | "asc";
@@ -328,11 +379,35 @@ export interface DraftPickSpec extends SpecBase {
   draftRound?: number | null;
 }
 
+export interface TeamBioSpec extends SpecBase {
+  intent: "team_bio";
+  teamId: string;
+  teamName?: string | null;
+  /** Which team fact the question asks for. */
+  teamField: "division" | "conference" | "stadium" | "full";
+}
+
+export interface TeamStatSpec extends SpecBase, GameWindow {
+  intent: "team_stat";
+  teamId: string;
+  teamName?: string | null;
+  /** Points come from team_game_stats; player stats aggregate the game log. */
+  metric?: "points_for" | "points_against" | null;
+  perGame?: boolean;
+}
+
+export interface TeamRosterSpec extends SpecBase {
+  intent: "team_roster";
+  teamId: string;
+  teamName?: string | null;
+  position?: string | null;
+}
+
 export type QuerySpec =
   | LeadersSpec | PlayerTotalSpec | PlayerSeasonsSpec | SingleGameSpec
   | CompareSpec | ScoringSpec | GameCountSpec | QualifyingCountSpec
   | PlayerRankSpec | PlayerBioSpec | GameLogSpec | TeamGameLogSpec
-  | GameResultSpec | DraftPickSpec;
+  | GameResultSpec | DraftPickSpec | TeamBioSpec | TeamStatSpec | TeamRosterSpec;
 
 // --------------------------------------------------------------------------
 // The field-bag reader view
@@ -355,10 +430,12 @@ export interface SpecFields extends GameWindow, TeamGameFields {
   dir?: "desc" | "asc";
   edge?: "first" | "last" | null;
   threshold?: { op: ">" | ">=" | "<"; value: number } | null;
-  bioField?: "team" | "age" | "height" | "weight" | "college" | "full" | null;
+  bioField?: "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "full" | null;
   teamId?: string | null;
   draftPick?: number | null;
   draftRound?: number | null;
+  teamField?: "division" | "conference" | "stadium" | "full" | null;
+  metric?: "points_for" | "points_against" | null;
 }
 
 export type FieldedSpec = SpecBase & { intent: Intent } & SpecFields;
@@ -388,5 +465,6 @@ export function specCacheKey(spec: QuerySpec): string {
     s.round, s.teamId, s.team2Id, s.opponentId, s.gameDate, s.conf,
     s.marginMax, s.draftPick, s.draftRound,
     s.bioField, s.perGame, s.seasonMin, s.seasonMax,
+    s.month, s.teamField, s.metric,
   ].map(String).join("|");
 }

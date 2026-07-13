@@ -2,7 +2,7 @@
  * (career / season / range). */
 
 import type { PlayerRankSpec } from "../spec.js";
-import { Params, statDef, sumValueExpr } from "./shared.js";
+import { Params, ratioFloor, statDef, sumValueExpr } from "./shared.js";
 
 export function rankSql(spec: PlayerRankSpec, p: Params): string {
   const def = statDef(spec);
@@ -17,7 +17,7 @@ export function rankSql(spec: PlayerRankSpec, p: Params): string {
   // Ratio ranks need a volume floor; counted denominators exclude non-producers
   // so "1st of N" reflects players who actually recorded the stat.
   const having = def.ratio
-    ? ` HAVING SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(spec.scope === "career" ? 1000 : 150)}`
+    ? ` HAVING SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(ratioFloor(def, spec.scope))}`
     : ` HAVING SUM(${def.expr}) > 0`;
   return (
     "WITH ranked AS (" +

@@ -5,7 +5,9 @@
  */
 
 import type { GameCountSpec, QualifyingCountSpec } from "../spec.js";
-import { gamePreds, Params, statDef, sumValueExpr } from "./shared.js";
+import {
+  gamePreds, Params, ratioFloor, ratioRowExpr, statDef, sumValueExpr,
+} from "./shared.js";
 
 export function gameCountSql(spec: GameCountSpec, p: Params): string {
   // Qualifying games: list them and window-count the full set.
@@ -39,7 +41,7 @@ export function qualifyingCountSql(spec: QualifyingCountSpec, p: Params): string
     // Ratio stats need a volume floor so tiny samples don't clear the bar.
     const having = def.ratio
       ? `HAVING ${sumValueExpr(def)} ${op} ${p.add(spec.threshold.value)} ` +
-        `AND SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(1000)}`
+        `AND SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(ratioFloor(def, "career"))}`
       : `HAVING SUM(${def.expr}) ${op} ${p.add(spec.threshold.value)}`;
     return (
       "SELECT COUNT(*) AS qualifying_players FROM (" +
@@ -51,8 +53,8 @@ export function qualifyingCountSql(spec: QualifyingCountSpec, p: Params): string
   const preds = [`s.season_type = ${p.add(spec.seasonType)}`];
   if (spec.season != null) preds.push(`s.season = ${p.add(spec.season)}`);
   const valuePred = def.ratio
-    ? `ROUND(COALESCE(s.${def.ratio.num}, 0)::numeric / NULLIF(COALESCE(s.${def.ratio.den}, 0), 0) * 100, 1) ${op} ${p.add(spec.threshold.value)} ` +
-      `AND COALESCE(s.${def.ratio.den}, 0) >= ${p.add(150)}`
+    ? `${ratioRowExpr(def)} ${op} ${p.add(spec.threshold.value)} ` +
+      `AND COALESCE(s.${def.ratio.den}, 0) >= ${p.add(ratioFloor(def, "season"))}`
     : `${def.expr} ${op} ${p.add(spec.threshold.value)}`;
   return (
     "SELECT COUNT(*) AS qualifying_players FROM player_season_stats s " + join +

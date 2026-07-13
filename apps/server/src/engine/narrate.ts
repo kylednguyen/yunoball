@@ -10,6 +10,10 @@ import type { FieldedSpec, QuerySpec } from "./spec.js";
 import { compareOrderCol, statDef } from "./executors/shared.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_FULL = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 /** '2016-09-24' -> 'Sep 24, 2016' — string math, no timezone surprises. */
 function fmtDate(v: unknown): string | null {
@@ -45,6 +49,9 @@ function qualifiers(spec: FieldedSpec): string {
   } else {
     if (spec.weekMin != null) parts.push(`from Week ${spec.weekMin} on`);
     if (spec.weekMax != null) parts.push(`through Week ${spec.weekMax}`);
+  }
+  if (spec.month != null && MONTHS_FULL[spec.month - 1]) {
+    parts.push(`in ${MONTHS_FULL[spec.month - 1]}`);
   }
   return parts.length ? ` ${parts.join(", ")}` : "";
 }
@@ -97,7 +104,23 @@ function fmtHeight(inches: unknown): string | null {
 }
 
 /** Bio narration: a player's card, or a bio-superlative headline. */
-function narrateBio(spec: FieldedSpec, top: Row, name: string): string {
+function narrateBio(spec: FieldedSpec, top: Row, name: string, rows: Row[] = [top]): string {
+  if (spec.playerId && spec.bioField === "teams") {
+    const span = (r: Row) =>
+      r.first_season === r.last_season
+        ? `${r.first_season}`
+        : `${r.first_season}–${r.last_season}`;
+    const list = rows
+      .map((r) => `${r.team_name ?? r.team} (${span(r)})`)
+      .join(", ");
+    return rows.length === 1
+      ? `${name} has played for one team in the warehouse: the ${list}.`
+      : `${name} has played for ${rows.length} teams: ${list}.`;
+  }
+  if (spec.playerId && spec.bioField === "experience") {
+    const n = Number(top.seasons ?? 0);
+    return `${name} has ${n} season${n === 1 ? "" : "s"} in the warehouse, ${top.first_season}–${top.last_season}.`;
+  }
   // Superlative board (no playerId): the top row is the answer.
   if (!spec.playerId) {
     const posText = spec.position ? ` ${spec.position}` : " player";
@@ -162,7 +185,58 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
   const unit = statDef(spec).unit ?? "";
   const name = String(top.full_name ?? spec.player ?? "");
 
-  if (spec.intent === "player_bio") return narrateBio(spec, top, name);
+  if (spec.intent === "player_bio") return narrateBio(spec, top, name, rows);
+
+  if (spec.intent === "team_bio") {
+    const tn = String(top.name ?? spec.teamName ?? "That team");
+    if (spec.teamField === "division") {
+      // division already carries the conference prefix ("AFC West").
+      return top.division
+        ? `The ${tn} play in the ${top.division}.`
+        : `The ${tn}'s division isn't on file.`;
+    }
+    if (spec.teamField === "conference") {
+      return top.conference
+        ? `The ${tn} play in the ${top.conference}.`
+        : `The ${tn}'s conference isn't on file.`;
+    }
+    if (spec.teamField === "stadium") {
+      return top.stadium
+        ? `The ${tn} play their home games at ${top.stadium}.`
+        : `The ${tn}'s stadium isn't on file.`;
+    }
+    const bits: string[] = [];
+    if (top.conference && top.division) bits.push(`${top.conference} ${top.division}`);
+    if (top.stadium) bits.push(`home: ${top.stadium}`);
+    return `The ${tn}${bits.length ? ` — ${bits.join(", ")}` : ""}.`;
+  }
+
+  if (spec.intent === "team_stat") {
+    const tn = spec.teamName ?? "They";
+    const what =
+      spec.metric === "points_for" ? "points"
+        : spec.metric === "points_against" ? "points allowed"
+          : label;
+    const post = spec.seasonType === "POST" ? " postseason" : "";
+    const when =
+      spec.seasonMin != null ? ` from ${spec.seasonMin} to ${spec.seasonMax}`
+        : spec.season != null ? ` in ${spec.season}` : " since 1999";
+    const games = Number(top.games ?? 0);
+    if (spec.perGame) {
+      return `The ${tn} averaged ${fmt(top.value)}${unit} ${what} per game${when}${post} (${games} games).`;
+    }
+    const verb = spec.metric === "points_against" ? "allowed" : "totaled";
+    return `The ${tn} ${verb} ${fmt(top.value)}${unit}${post} ${spec.metric === "points_against" ? "points" : what}${when} (${games} games).`;
+  }
+
+  if (spec.intent === "team_roster") {
+    const tn = spec.teamName ?? "That team";
+    const size = Number(top.roster_size ?? rows.length);
+    const posText = spec.position ? ` ${spec.position}s` : " players";
+    const when = spec.season != null ? `${spec.season} ` : "";
+    const names = rows.slice(0, 5).map((r) => r.full_name).join(", ");
+    return `${size}${posText} appeared for the ${when}${tn}, led by ${names}.`;
+  }
 
   if (spec.intent === "qualifying_count") {
     const n = Number(top.qualifying_players ?? 0);
@@ -381,19 +455,20 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
     );
   }
   // leaders
+  const forTeam = spec.teamName ? ` the ${spec.teamName}` : "";
   const posText = spec.position ? ` among ${spec.position}s` : "";
   const rate = spec.perGame ? " per game" : "";
   const verb = spec.dir === "asc" ? "has the fewest" : "leads";
   if (spec.scope === "career" && spec.seasonMin != null) {
-    return `${name} ${verb === "leads" ? "leads" : "has the fewest"} with ${fmt(top.value)}${unit}${post} ${label}${rate}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
+    return `${name} ${verb === "leads" ? "leads" : "has the fewest"}${forTeam} with ${fmt(top.value)}${unit}${post} ${label}${rate}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
   }
   if (spec.scope === "career") {
-    return `${name} ${verb === "leads" ? "leads all time" : "has the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${rate}${posText}.`;
+    return `${name} ${verb === "leads" ? `leads${forTeam} all time` : "has the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${rate}${posText}.`;
   }
   const season = top.season ?? spec.season;
   const where = season && post ? ` in the ${season} postseason` : season ? ` in ${season}` : "";
   if (spec.dir === "asc") {
-    return `${name} has the fewest ${label}${rate}${posText}${where}${quals} (min. 8 games) at ${fmt(top.value)}${unit}.`;
+    return `${name} has the fewest ${label}${rate}${posText}${forTeam ? ` for${forTeam}` : ""}${where}${quals} (min. 8 games) at ${fmt(top.value)}${unit}.`;
   }
-  return `${name} leads${posText} with ${fmt(top.value)}${unit} ${label}${rate}${where}${quals}${spec.rookie ? " among rookies" : ""}.`;
+  return `${name} leads${forTeam}${posText} with ${fmt(top.value)}${unit} ${label}${rate}${where}${quals}${spec.rookie ? " among rookies" : ""}.`;
 }

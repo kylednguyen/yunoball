@@ -139,6 +139,37 @@ const QUESTIONS: string[] = [
   "Chiefs",                                           // bare team
   "2000 yard rushers",                               // number-as-season trap
   "who threw for the most yards",                    // bare leaders, no year
+  // --- domain wave: rate stats ---
+  "Derrick Henry yards per carry in 2023",
+  "highest yards per carry in 2023",
+  "Patrick Mahomes yards per attempt career",
+  "Justin Jefferson yards per reception in 2022",
+  "Travis Kelce catch rate in 2023",
+  "Derrick Henry career rushing average",
+  "Justin Jefferson average receiving yards in 2023",
+  // --- domain wave: month splits ---
+  "Derrick Henry rushing yards in December 2023",
+  "most passing touchdowns in january",
+  // --- domain wave: player metadata ---
+  "what teams has Derrick Henry played for",
+  "how many seasons has Patrick Mahomes played",
+  // --- domain wave: team metadata / stats / roster / leaders ---
+  "what division are the chiefs in",
+  "what conference are the eagles in",
+  "where do the packers play their home games",
+  "how many points did the chiefs score in 2023",
+  "bills points allowed in 2023",
+  "chiefs points per game in 2023",
+  "eagles rushing yards in 2022",
+  "who led the chiefs in receiving yards in 2023",
+  "chiefs roster 2023",
+  "who played for the bills in 2022",
+  // --- domain wave: honest refusals for absent data ---
+  "patrick mahomes EPA in 2023",
+  "was Justin Jefferson traded",
+  "chiefs depth chart",
+  "jets injury report",
+  "who made the pro bowl in 2023",
 ];
 
 type Bucket = "ANSWERED" | "EMPTY" | "REFUSAL" | "FALLBACK" | "AUDIT_BLOCK" | "ERROR";
