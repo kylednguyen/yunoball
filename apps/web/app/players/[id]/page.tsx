@@ -14,6 +14,7 @@ import { TeamLogo } from "../../components/TeamLogo";
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
+import { teamTheme } from "../../lib/teamTheme";
 import type { PlayerProfile, PlayerSeasonLine, SplitRow } from "../../lib/api";
 
 type SeasonRow = PlayerProfile["seasons"][number];
@@ -439,7 +440,7 @@ export default function PlayerPage() {
 
   return (
     <>
-      <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
+      <main id="main" className="yb-page" style={{ maxWidth: 980, ...teamTheme(profile?.team) }}>
         {loading && (
           <>
             <div className="yb-skel" style={{ height: 60, width: 380, marginBottom: 20 }} />
