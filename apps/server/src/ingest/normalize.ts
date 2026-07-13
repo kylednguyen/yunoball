@@ -195,4 +195,22 @@ export const scoringPlayRow = z.strictObject({
   qtr: z.number().nullable(),
   play_type: z.string().nullable(),
   description: z.string().nullable(),
+  yards: z.number().nullable(),
+});
+
+export const playerGameAdvancedRow = z.strictObject({
+  player_id: id,
+  game_id: id,
+  team_id: z.string().nullable(),
+  pass_plays: z.number().nullable(),
+  pass_epa: z.number().nullable(),
+  pass_success: z.number().nullable(),
+  cpoe_sum: z.number().nullable(),
+  cpoe_n: z.number().nullable(),
+  rush_plays: z.number().nullable(),
+  rush_epa: z.number().nullable(),
+  rush_success: z.number().nullable(),
+  recv_plays: z.number().nullable(),
+  recv_epa: z.number().nullable(),
+  recv_success: z.number().nullable(),
 });

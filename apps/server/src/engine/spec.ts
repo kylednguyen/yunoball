@@ -52,6 +52,9 @@ export interface StatDef {
   unit?: string;
   /** Named multi-column formula (NFL passer rating) — see executors/shared. */
   formula?: "passer_rating";
+  /** Game-grain table override: pbp-derived aggregates live in
+   * player_game_advanced instead of player_game_stats. */
+  table?: "advanced";
 }
 
 const n = (col: string) => `COALESCE(s.${col}, 0)`;
@@ -112,6 +115,69 @@ export const STATS: Record<string, StatDef> = {
     phrases: ["receiving air yards", "air yards caught"],
     words: [],
     source: "game",
+  },
+  passing_epa: {
+    expr: "s.pass_epa",
+    label: "passing EPA",
+    phrases: ["passing epa", "pass epa"],
+    words: [],
+    source: "game",
+    table: "advanced",
+  },
+  rushing_epa: {
+    expr: "s.rush_epa",
+    label: "rushing EPA",
+    phrases: ["rushing epa", "rush epa"],
+    words: [],
+    source: "game",
+    table: "advanced",
+  },
+  receiving_epa: {
+    expr: "s.recv_epa",
+    label: "receiving EPA",
+    phrases: ["receiving epa"],
+    words: [],
+    source: "game",
+    table: "advanced",
+  },
+  pass_success_rate: {
+    expr: "",
+    label: "passing success rate",
+    phrases: ["passing success rate"],
+    words: [],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "pass_success", den: "pass_plays", pct: true, floorSeason: 150, floorCareer: 1000 },
+    unit: "%",
+  },
+  rush_success_rate: {
+    expr: "",
+    label: "rushing success rate",
+    phrases: ["rushing success rate"],
+    words: [],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "rush_success", den: "rush_plays", pct: true, floorSeason: 100, floorCareer: 750 },
+    unit: "%",
+  },
+  recv_success_rate: {
+    expr: "",
+    label: "receiving success rate",
+    phrases: ["receiving success rate"],
+    words: [],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "recv_success", den: "recv_plays", pct: true, floorSeason: 50, floorCareer: 300 },
+    unit: "%",
+  },
+  cpoe: {
+    expr: "",
+    label: "CPOE",
+    phrases: ["completion percentage over expected"],
+    words: ["cpoe"],
+    source: "game",
+    table: "advanced",
+    ratio: { num: "cpoe_sum", den: "cpoe_n", floorSeason: 150, floorCareer: 1000 },
   },
   interceptions: {
     expr: "s.interceptions",
@@ -336,8 +402,11 @@ export interface CompareSpec extends SpecBase, GameWindow {
 
 export interface ScoringSpec extends SpecBase {
   intent: "scoring";
-  playerId: string;
+  /** Absent for league-wide "longest touchdown" lookups. */
+  playerId?: string | null;
   player?: string | null;
+  /** Rank by touchdown length instead of the timeline. */
+  longest?: boolean;
   sbOnly?: boolean;
   round?: "WC" | "DIV" | "CON" | "SB" | null;
   /** Which end of the touchdown timeline ("first"/"last"), or null for a
@@ -427,6 +496,8 @@ export interface TeamStatSpec extends SpecBase, GameWindow {
   /** Points come from team_game_stats; player stats aggregate the game log. */
   metric?: "points_for" | "points_against" | null;
   perGame?: boolean;
+  /** Rate per offensive drive (points per drive). */
+  perDrive?: boolean;
 }
 
 export interface PlayerStreakSpec extends SpecBase, GameWindow {
@@ -499,6 +570,8 @@ export interface SpecFields extends GameWindow, TeamGameFields {
   teamField?: "division" | "conference" | "stadium" | "coach" | "colors" | "founded" | "history" | "full" | null;
   metric?: "points_for" | "points_against" | null;
   median?: boolean;
+  longest?: boolean;
+  perDrive?: boolean;
   kind?: "win" | "loss" | null;
   target?: number | null;
   award?: "MVP" | "SBMVP" | null;
@@ -532,6 +605,6 @@ export function specCacheKey(spec: QuerySpec): string {
     s.marginMax, s.draftPick, s.draftRound,
     s.bioField, s.perGame, s.seasonMin, s.seasonMax,
     s.month, s.teamField, s.metric, s.primetime, s.tempMax,
-    s.median, s.kind, s.target, s.award,
+    s.median, s.kind, s.target, s.award, s.longest, s.perDrive,
   ].map(String).join("|");
 }

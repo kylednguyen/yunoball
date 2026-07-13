@@ -13,6 +13,20 @@ export function playerTotalSql(spec: PlayerTotalSpec, p: Params): string {
     ? `s.player_id = ${p.add(spec.playerId)}`
     : `lower(p.full_name) LIKE ${p.add(`%${(spec.player ?? "").toLowerCase()}%`)}`;
 
+  if (def.table === "advanced" && spec.playerId) {
+    // pbp-derived aggregates: one row, total (or ratio) over the scoped games.
+    const valueExpr = def.ratio
+      ? `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0))::numeric / NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)), 0)${def.ratio.pct ? " * 100" : ""}, 1)`
+      : `ROUND(SUM(${def.expr})::numeric, 1)`;
+    const where = [playerPred, ...gamePreds(spec, p)];
+    return (
+      `SELECT ${valueExpr} AS total, COUNT(*) AS games ` +
+      "FROM player_game_advanced s " +
+      "JOIN games g ON g.game_id = s.game_id " +
+      `WHERE ${where.join(" AND ")}`
+    );
+  }
+
   if (def.formula === "passer_rating" && spec.playerId) {
     // One aggregate row: the formula over the scoped game log's sums.
     const where = [playerPred, ...gamePreds(spec, p)];

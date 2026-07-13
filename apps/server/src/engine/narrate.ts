@@ -248,6 +248,9 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
       spec.seasonMin != null ? ` from ${spec.seasonMin} to ${spec.seasonMax}`
         : spec.season != null ? ` in ${spec.season}` : " since 1999";
     const games = Number(top.games ?? 0);
+    if (spec.perDrive) {
+      return `The ${tn} averaged ${fmt(top.value)} ${what} per drive${when}${post} (${games} games).`;
+    }
     if (spec.perGame) {
       return `The ${tn} averaged ${fmt(top.value)}${unit} ${what} per game${when}${post} (${games} games).`;
     }
@@ -478,6 +481,17 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
     return (
       `Over ${scope}, ${name} leads ${other.full_name} in ${label}, ` +
       `${fmt(top[col])} to ${fmt(other[col])}.`
+    );
+  }
+
+  if (spec.intent === "scoring" && spec.longest) {
+    const when = fmtDate(top.game_date);
+    const at = when ? ` on ${when}` : ` in Week ${top.week}, ${top.season}`;
+    const scope = spec.season != null ? ` of ${spec.season}` : " on file";
+    const who = spec.player ?? top.full_name;
+    return (
+      `The longest touchdown${scope} is ${who}'s ${top.yards}-yarder ` +
+      `against ${top.opponent}${at}. Showing the top ${rows.length}.`
     );
   }
 

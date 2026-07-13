@@ -19,9 +19,11 @@ export function teamStatSql(spec: TeamStatSpec, p: Params): string {
     } else if (spec.season != null) {
       preds.push(`g.season = ${p.add(spec.season)}`);
     }
-    const valueExpr = spec.perGame
-      ? `ROUND(SUM(${col})::numeric / NULLIF(COUNT(*), 0), 1)`
-      : `SUM(${col})`;
+    const valueExpr = spec.perDrive
+      ? `ROUND(SUM(${col})::numeric / NULLIF(SUM(t.drives), 0), 2)`
+      : spec.perGame
+        ? `ROUND(SUM(${col})::numeric / NULLIF(COUNT(*), 0), 1)`
+        : `SUM(${col})`;
     return (
       `SELECT ${valueExpr} AS value, COUNT(*) AS games ` +
       "FROM team_game_stats t " +

@@ -228,6 +228,31 @@ ALTER TABLE player_game_stats
     ADD COLUMN IF NOT EXISTS passing_air_yards integer,
     ADD COLUMN IF NOT EXISTS receiving_air_yards integer;
 
+-- Advanced per-player-game aggregates distilled from play-by-play (EPA,
+-- success counts, CPOE) — one row per player-game, split by role.
+CREATE TABLE IF NOT EXISTS player_game_advanced (
+    player_id    varchar NOT NULL REFERENCES players (player_id),
+    game_id      varchar NOT NULL REFERENCES games (game_id),
+    team_id      varchar,
+    pass_plays   smallint,
+    pass_epa     real,
+    pass_success smallint,
+    cpoe_sum     real,
+    cpoe_n       smallint,
+    rush_plays   smallint,
+    rush_epa     real,
+    rush_success smallint,
+    recv_plays   smallint,
+    recv_epa     real,
+    recv_success smallint,
+    PRIMARY KEY (player_id, game_id)
+);
+CREATE INDEX IF NOT EXISTS pga_game_idx ON player_game_advanced (game_id);
+
+-- Touchdown length and per-game drive counts, also from play-by-play.
+ALTER TABLE scoring_plays ADD COLUMN IF NOT EXISTS yards smallint;
+ALTER TABLE team_game_stats ADD COLUMN IF NOT EXISTS drives smallint;
+
 -- Query-shape indexes. Leaderboards filter (season, season_type); "players on
 -- team X in year Y" filters team_id; REG/POST game scans filter season_type.
 CREATE INDEX IF NOT EXISTS pss_season_type_idx
