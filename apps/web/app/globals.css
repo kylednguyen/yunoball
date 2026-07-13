@@ -1,36 +1,41 @@
 /* ============================================================
-   YunoBall design system — shadcn-inspired dark theme, lime accent.
-   Zinc surfaces, content-over-chrome, dense-but-readable.
+   YunoBall design system — quiet dark theme, emerald accent.
+   Soft neutral surfaces, content-over-chrome; hierarchy comes
+   from spacing, background contrast and typography — not borders.
    Tokens here are the runtime source of truth for the app.
    ============================================================ */
 :root {
   color-scheme: dark;
 
-  /* Surfaces — zinc scale */
-  --bg: #09090b;
-  --bg-soft: #18181b;
-  --panel: #101013;
-  --border: #27272a;
-  --border-strong: #3f3f46;
+  /* Surfaces — soft neutral ramp. Depth = background contrast, not lines. */
+  --bg: #0c0d0f;
+  --panel: #121417; /* primary surface */
+  --elevated: #181b20; /* raised surface (popovers, hovers) */
+  --bg-soft: #1f2328; /* secondary surface (inset wells, chips) */
+  /* Borders are rare by design — a whisper for the few places that need one. */
+  --border: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.1);
 
   /* Ink */
-  --text: #fafafa;
+  --text: #f5f5f5;
   --muted: #a1a1aa;
   /* Tertiary ink — lightened from #6b6b74, which fell below 4.5:1 on every
      surface. 4.7:1 on --bg-soft, the worst case. */
   --faint: #82828c;
 
-  /* Brand — lime. UI accent is bright; text on accent is near-black. */
-  --accent: #a3e635;
-  --accent-hover: #bef264;
-  --accent-soft: rgba(163, 230, 53, 0.12);
-  --accent-contrast: #131603;
-  /* legacy alias — some rules used accent-ink as the hover/bg-strong color */
-  --accent-ink: #bef264;
+  /* Brand — emerald, used sparingly: search, selection, CTAs, links,
+     positive metrics. Neutral dominates everywhere else. */
+  --accent: #10b981;
+  --accent-hover: #22c55e;
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --accent-contrast: #04150e;
+  /* Bright variant — accent-colored TEXT on dark surfaces needs the lighter
+     tone for contrast; solid accent FILLS use --accent itself. */
+  --accent-ink: #34d399;
 
   /* Data marks — validated for the dark surface (do not use raw accent). */
-  --chart: #65a30d;
-  --chart-strong: #4d7c0f;
+  --chart: #10b981;
+  --chart-strong: #059669;
 
   /* Semantic */
   --success: #4ade80;
@@ -41,8 +46,8 @@
   --danger-border: #7f1d1d;
 
   /* Derived surfaces */
-  --bg-scrim: rgba(9, 9, 11, 0.85); /* translucent bg for blurred bars */
-  --accent-border: rgba(163, 230, 53, 0.45);
+  --bg-scrim: rgba(12, 13, 15, 0.85); /* translucent bg for blurred bars */
+  --accent-border: rgba(16, 185, 129, 0.4);
   --shimmer: rgba(255, 255, 255, 0.07); /* skeleton sweep highlight */
 
   /* Radii */
@@ -1358,7 +1363,7 @@ pre.yb-sql {
   letter-spacing: 0.015em;
   margin: 0;
 }
-/* Brand cue: a short lime rule under the page title, tying every header to the
+/* Brand cue: a short accent rule under the page title, tying every header to the
    accent that defines the product without touching the glyphs themselves (so
    proper-noun titles like a player name stay clean). */
 .yb-page-title {
