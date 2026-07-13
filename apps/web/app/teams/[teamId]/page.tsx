@@ -10,6 +10,7 @@ import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
 import { useSeasonParam, useTeam, useTitle } from "../../lib/hooks";
 import { friendlyError } from "../../lib/api";
+import { teamTheme } from "../../lib/teamTheme";
 import type { TeamGame, TeamKeyPlayer, TeamStat } from "../../lib/api";
 
 /** 1 -> "1st", 22 -> "22nd" — league rank chips. */
@@ -85,7 +86,7 @@ export default function TeamPage() {
         )}
 
         {team && (
-          <div style={{ opacity: loading ? 0.6 : 1 }}>
+          <div style={{ opacity: loading ? 0.6 : 1, ...teamTheme(team.team_id) }}>
             <Crumbs
               items={[
                 { label: "NFL", href: "/" },
