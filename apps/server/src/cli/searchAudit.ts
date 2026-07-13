@@ -125,7 +125,6 @@ const QUESTIONS: string[] = [
   "tallest player in the NFL",                      // bio superlative
   "Josh Allen QBR in 2023",                         // efficiency metric
   "Justin Jefferson yards per game in 2023",        // per-game rate
-  "longest touchdown of 2023",                      // pbp detail
   "Patrick Mahomes red zone touchdowns",            // situational split
   "who has the longest active touchdown streak",     // streaks
   "fastest to 10000 passing yards",                 // milestone/pace
@@ -187,8 +186,15 @@ const QUESTIONS: string[] = [
   "Patrick Mahomes passer rating in 2023",
   "highest passer rating in 2023",
   "best qb rating in a single game",
+  // --- domain wave 4b: EPA / success rate / CPOE / longest TD / per drive ---
+  "Patrick Mahomes EPA in 2023",
+  "highest passing EPA in 2023",
+  "Patrick Mahomes success rate in 2023",
+  "Patrick Mahomes CPOE in 2023",
+  "where does Josh Allen rank in passing EPA in 2024",
+  "longest touchdown of 2023",
+  "chiefs points per drive in 2023",
   // --- domain wave: honest refusals for absent data ---
-  "patrick mahomes EPA in 2023",
   "was Justin Jefferson traded",
   "chiefs depth chart",
   "jets injury report",

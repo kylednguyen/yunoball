@@ -35,6 +35,11 @@ export function statDef(spec: { stat: string }): StatDef {
   return STATS[spec.stat]!;
 }
 
+/** The game-grain table a stat lives in. */
+export function gameTable(def: StatDef): string {
+  return def.table === "advanced" ? "player_game_advanced" : "player_game_stats";
+}
+
 /** "× 100" for percentage ratios (completion %), nothing for plain rates
  * (yards per carry). The spacing matters: it must reproduce the historical
  * SQL byte-for-byte for percentage stats. */

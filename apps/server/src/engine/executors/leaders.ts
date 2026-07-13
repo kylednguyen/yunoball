@@ -4,7 +4,7 @@
 
 import type { LeadersSpec } from "../spec.js";
 import {
-  aggExpr, gamePreds, Params, ratioFloor, ROOKIE_PRED, statDef,
+  aggExpr, gamePreds, gameTable, Params, ratioFloor, ROOKIE_PRED, statDef,
 } from "./shared.js";
 
 export function leadersSql(spec: LeadersSpec, p: Params): string {
@@ -43,7 +43,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
         : "";
     return (
       `SELECT p.player_id, p.full_name, ${aggExpr(spec)} AS value ` +
-      "FROM player_game_stats s " +
+      `FROM ${gameTable(def)} s ` +
       "JOIN games g ON g.game_id = s.game_id " +
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE ${where.join(" AND ")}` +

@@ -9,7 +9,7 @@
 import {
   float, int, str, team, SEASON_TYPE, TEAM_MAP,
   draftPickRow, gameRow, playerGameStatsRow, playerRow, playerSeasonStatsRow,
-  scoringPlayRow, seasonRow, teamGameStatsRow, teamRow,
+  playerGameAdvancedRow, scoringPlayRow, seasonRow, teamGameStatsRow, teamRow,
 } from "./normalize.js";
 import { logger } from "../lib/logger.js";
 import type { Ctx } from "./context.js";
@@ -308,23 +308,103 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
       total += await upsert(ctx, "scoring_plays", rows, ["play_id"], scoringPlayRow);
     };
 
+    // Advanced aggregates accumulated over the same stream: per-player-game
+    // EPA / success / CPOE by role, and per-team-game drive counts.
+    type Adv = Record<string, number>;
+    const adv = new Map<string, Adv>();
+    const drives = new Map<string, Set<string>>();
+    const bump = (pid: string | undefined, gid: string, tid: string | null, role: "pass" | "rush" | "recv", r: CsvRow) => {
+      if (!pid || !players.has(pid)) return;
+      const epa = float(r.epa);
+      if (epa == null) return;
+      const key = `${pid}|${gid}`;
+      const a = adv.get(key) ?? { _t: 0 };
+      (a as Record<string, unknown>).player_id = pid;
+      (a as Record<string, unknown>).game_id = gid;
+      (a as Record<string, unknown>).team_id = tid;
+      a[`${role}_plays`] = (a[`${role}_plays`] ?? 0) + 1;
+      a[`${role}_epa`] = (a[`${role}_epa`] ?? 0) + epa;
+      a[`${role}_success`] = (a[`${role}_success`] ?? 0) + (r.success === "1" ? 1 : 0);
+      if (role === "pass") {
+        const cpoe = float(r.cpoe);
+        if (cpoe != null) {
+          a.cpoe_sum = (a.cpoe_sum ?? 0) + cpoe;
+          a.cpoe_n = (a.cpoe_n ?? 0) + 1;
+        }
+      }
+      adv.set(key, a);
+    };
+
     for await (const r of streamRows(assets.pbp(year))) {
-      if (r.touchdown !== "1" || !r.td_player_id) continue;
       if (ctx.seasonType && SEASON_TYPE[r.season_type ?? ""] !== ctx.seasonType) continue;
+      const gid = r.game_id ?? "";
+      if (games.has(gid)) {
+        const posteam = r.posteam ? team(r.posteam) : null;
+        const tid = posteam && teams.has(posteam) ? posteam : null;
+        bump(r.passer_player_id, gid, tid, "pass", r);
+        bump(r.rusher_player_id, gid, tid, "rush", r);
+        bump(r.receiver_player_id, gid, tid, "recv", r);
+        if (tid && r.drive) {
+          const dkey = `${tid}|${gid}`;
+          const set = drives.get(dkey) ?? new Set<string>();
+          set.add(r.drive);
+          drives.set(dkey, set);
+        }
+      }
+      if (r.touchdown !== "1" || !r.td_player_id) continue;
       const tdTeam = r.td_team ? team(r.td_team) : null;
       batch.push({
         play_id: `${r.game_id}_${int(r.play_id)}`,
-        game_id: r.game_id ?? "",
+        game_id: gid,
         player_id: r.td_player_id,
         team_id: tdTeam && teams.has(tdTeam) ? tdTeam : null,
         qtr: int(r.qtr),
         play_type: str(r.play_type),
         description: str(r.desc),
+        yards: int(r.yards_gained),
       });
       if (batch.length >= SCORING_BATCH) await flush();
     }
     await flush();
-    logger.info({ year }, "scoring_plays: season complete");
+
+    // Round EPA/CPOE sums and fill the full column set for the row schema.
+    const advRows = [...adv.values()].map((a) => {
+      const o = a as Record<string, unknown>;
+      const num = (k: string) => (a[k] != null ? Math.round((a[k] as number) * 1000) / 1000 : null);
+      return {
+        player_id: o.player_id, game_id: o.game_id, team_id: o.team_id ?? null,
+        pass_plays: a.pass_plays ?? null, pass_epa: num("pass_epa"),
+        pass_success: a.pass_success ?? null,
+        cpoe_sum: num("cpoe_sum"), cpoe_n: a.cpoe_n ?? null,
+        rush_plays: a.rush_plays ?? null, rush_epa: num("rush_epa"),
+        rush_success: a.rush_success ?? null,
+        recv_plays: a.recv_plays ?? null, recv_epa: num("recv_epa"),
+        recv_success: a.recv_success ?? null,
+      };
+    });
+    total += await upsert(
+      ctx, "player_game_advanced", advRows, ["player_id", "game_id"], playerGameAdvancedRow,
+    );
+
+    // Drive counts land as an UPDATE — the team_game_stats rows already exist.
+    if (!ctx.dryRun && drives.size > 0) {
+      const entries = [...drives.entries()];
+      const params: unknown[] = [];
+      const values = entries
+        .map(([k, set]) => {
+          const [tid, gid] = k.split("|");
+          params.push(tid, gid, set.size);
+          return `($${params.length - 2}, $${params.length - 1}, $${params.length}::int)`;
+        })
+        .join(", ");
+      await ctx.pool.query(
+        `UPDATE team_game_stats t SET drives = v.drives
+         FROM (VALUES ${values}) AS v(team_id, game_id, drives)
+         WHERE t.team_id = v.team_id AND t.game_id = v.game_id`,
+        params,
+      );
+    }
+    logger.info({ year, advanced: advRows.length }, "scoring_plays + advanced: season complete");
   }
   return total;
 }

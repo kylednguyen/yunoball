@@ -475,8 +475,8 @@ const UNSUPPORTED: [RegExp, string][] = [
     // Advanced metrics needing play-by-play or proprietary models. Simple
     // rates (yards per carry/attempt/reception, catch rate, per-game) and
     // air yards ARE computed — see the ratio stats and perGame modifier.
-    /\b(qbr|third down|red ?zone|time of possession|epa|dvoa|cpoe|success rate|win probability|expected points|turnovers? forced)\b/,
-    "EPA-family metrics and QBR/DVOA aren't tracked yet (proprietary or play-by-play models). Passer rating, yards per carry, completion percentage and per-game averages ARE computed.",
+    /\b(qbr|third down|red ?zone|time of possession|dvoa|win probability|turnovers? forced)\b/,
+    "QBR, DVOA and win probability are proprietary models and aren't tracked. EPA, CPOE, success rate, passer rating and the standard rates ARE computed.",
   ],
   [
     /\b(offense|offensive|defense|defensive|which team)\b/,
@@ -501,7 +501,7 @@ const UNSUPPORTED: [RegExp, string][] = [
     "Depth charts aren't tracked. Team rosters are: try \"Chiefs roster 2023\".",
   ],
   [
-    /\b(play[- ]by[- ]play|drive summar|drives?|snap counts?|every play)\b/,
+    /\b(play[- ]by[- ]play|drive summar|snap counts?|every play)\b/,
     "Play-by-play detail isn't stored — box-score totals plus a touchdown log are. Scores, box scores and TD timelines are queryable.",
   ],
   [
@@ -518,8 +518,8 @@ const UNSUPPORTED: [RegExp, string][] = [
     // Play-level distance — not stored; the warehouse is box-score totals plus
     // a touchdown log, not full play-by-play. Scoped to a play noun so it
     // doesn't swallow "longest career" (a different, generic-fallback case).
-    /\blongest\s+(?:touchdown|td|play|run|rush|reception|catch|pass|completion|field goal|fg|drive|scoring)\b/,
-    "Play distances like the longest touchdown or play aren't tracked yet — I work from box-score totals, not full play-by-play.",
+    /\blongest\s+(?:play|run|rush|reception|catch|pass|completion|field goal|fg|drive)\b/,
+    "Only touchdown lengths are stored from play-by-play — try \"longest touchdown of 2023\". Other play distances aren't tracked.",
   ],
   [
     // "youngest/oldest TO <milestone>" needs age-at-game; "fastest to X" IS
@@ -896,6 +896,7 @@ export function parseRules(
           season: tRange ? null : effSeason,
           seasonMin: tRange?.min ?? null, seasonMax: tRange?.max ?? null,
           seasonType, perGame: perGameCue,
+          perDrive: /\bper drive\b/.test(qText),
           scope: tRange || isCareer || effSeason == null ? "career" : "season",
           limit: 1,
         };
@@ -965,6 +966,15 @@ export function parseRules(
   if (stat === null && /\bair yards\b/.test(qText)) {
     stat = (player?.position ?? position) === "QB" ? "passing_air_yards" : "receiving_air_yards";
   }
+  // Same for the pbp-derived metrics: role picked by position.
+  if (stat === null && /\bepa\b|\bexpected points( added)?\b/.test(qText)) {
+    const pos = player?.position ?? position;
+    stat = pos === "QB" ? "passing_epa" : pos === "RB" ? "rushing_epa" : pos ? "receiving_epa" : "passing_epa";
+  }
+  if (stat === null && /\bsuccess rate\b/.test(qText)) {
+    const pos = player?.position ?? position;
+    stat = pos === "QB" ? "pass_success_rate" : pos === "RB" ? "rush_success_rate" : pos ? "recv_success_rate" : "pass_success_rate";
+  }
   if (stat === null) {
     const cue = genericCue(qText);
     const pos = player?.position ?? position ?? "";
@@ -1016,6 +1026,9 @@ export function parseRules(
 
   const limit = topN(qText);
   const th = threshold(qText);
+  // pbp-derived stats live in a separate table; threshold/single-game/streak
+  // shapes stay off it (their SQL targets player_game_stats).
+  const advStat = STATS[stat]?.table === "advanced";
   const isSingleGame =
     qText.includes("game") &&
     (qText.includes("single") || qText.includes("in a game") || qText.includes("one game"));
@@ -1039,7 +1052,7 @@ export function parseRules(
   const leagueCountCue =
     /\bhow many (?:players|guys|quarterbacks|qbs|running backs|rbs|receivers|wrs|tes|tight ends)\b/.test(qText);
   const lcThreshold = th ?? countThreshold(qText);
-  if (!player && leagueCountCue && lcThreshold) {
+  if (!player && leagueCountCue && lcThreshold && !advStat) {
     return {
       intent: "qualifying_count", stat, threshold: lcThreshold,
       season: effSeason, seasonType, position,
@@ -1047,8 +1060,17 @@ export function parseRules(
     };
   }
 
+  // Longest touchdowns by play length ("longest touchdown of 2023").
+  if (/\blongest\b.*\b(?:touchdowns?|tds?)\b|\b(?:touchdowns?|tds?)\b.*\blongest\b/.test(qText)) {
+    return {
+      intent: "scoring", stat: "total_tds", longest: true,
+      player: player?.name ?? null, playerId: player?.playerId ?? null,
+      season: effSeason, seasonType, scope: "season", limit: limit ?? 5,
+    };
+  }
+
   // Streaks: "games in a row with a touchdown", "consecutive 100-yard games".
-  if (/\bin a row\b|\bconsecutive\b|\bstreaks?\b/.test(qText)) {
+  if (!advStat && /\bin a row\b|\bconsecutive\b|\bstreaks?\b/.test(qText)) {
     if (player) {
       return {
         intent: "player_streak", stat,
@@ -1084,7 +1106,7 @@ export function parseRules(
 
   // Qualifying-game counts: "Lamar games over 300 passing yards",
   // "Derrick Henry 100+ rushing yard games".
-  if (player && th && !isSingleGame) {
+  if (player && th && !isSingleGame && !advStat) {
     return {
       intent: "game_count",
       stat,
@@ -1105,7 +1127,7 @@ export function parseRules(
     };
   }
 
-  if (isSingleGame) {
+  if (isSingleGame && !advStat) {
     // Scope to the named player when the question named one ("Derrick Henry
     // most rushing yards in a game"); otherwise a league-wide single-game board.
     return {

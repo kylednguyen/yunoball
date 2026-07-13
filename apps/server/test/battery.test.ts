@@ -337,7 +337,7 @@ const CASES: [string, Expect][] = [
   ["chiefs record in 2023", answer({ intent: "team_game_log", teamId: "KC", season: 2023 })],
   // ---- still genuinely unanswerable ----
   ["Josh Allen QBR in 2023", refusal("passer rating")],
-  ["longest touchdown of 2023", refusal("play distances")],
+  ["longest touchdown of 2023", answer({ intent: "scoring", longest: true, season: 2023 })], // upgraded: was a refusal
   ["fastest to 10000 passing yards", answer({ intent: "milestone", stat: "passing_yards", target: 10000 })], // upgraded: was a refusal
   ["was Justin Jefferson traded", refusal("transactions")],
   ["chiefs depth chart", refusal("depth charts")],
