@@ -123,7 +123,6 @@ const QUESTIONS: string[] = [
   "what team does Justin Jefferson play for",       // roster/bio
   "how old is Patrick Mahomes",                     // bio
   "tallest player in the NFL",                      // bio superlative
-  "Patrick Mahomes passer rating in 2023",          // efficiency metric
   "Josh Allen QBR in 2023",                         // efficiency metric
   "Justin Jefferson yards per game in 2023",        // per-game rate
   "longest touchdown of 2023",                      // pbp detail
@@ -184,6 +183,10 @@ const QUESTIONS: string[] = [
   "fastest to 10000 passing yards",
   "when were the packers founded",
   "did the raiders relocate",
+  // --- domain wave 4: passer rating (formula stat) ---
+  "Patrick Mahomes passer rating in 2023",
+  "highest passer rating in 2023",
+  "best qb rating in a single game",
   // --- domain wave: honest refusals for absent data ---
   "patrick mahomes EPA in 2023",
   "was Justin Jefferson traded",

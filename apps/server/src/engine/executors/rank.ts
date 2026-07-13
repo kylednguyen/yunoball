@@ -18,7 +18,9 @@ export function rankSql(spec: PlayerRankSpec, p: Params): string {
   // so "1st of N" reflects players who actually recorded the stat.
   const having = def.ratio
     ? ` HAVING SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(ratioFloor(def, spec.scope))}`
-    : ` HAVING SUM(${def.expr}) > 0`;
+    : def.formula === "passer_rating"
+      ? ` HAVING SUM(COALESCE(s.attempts, 0)) >= ${p.add(ratioFloor(def, spec.scope))}`
+      : ` HAVING SUM(${def.expr}) > 0`;
   return (
     "WITH ranked AS (" +
     `SELECT p.player_id, p.full_name, ${valueExpr} AS value, ` +

@@ -475,8 +475,8 @@ const UNSUPPORTED: [RegExp, string][] = [
     // Advanced metrics needing play-by-play or proprietary models. Simple
     // rates (yards per carry/attempt/reception, catch rate, per-game) and
     // air yards ARE computed — see the ratio stats and perGame modifier.
-    /\b(qbr|passer rating|third down|red ?zone|time of possession|epa|dvoa|cpoe|success rate|win probability|expected points|turnovers? forced)\b/,
-    "Advanced metrics like passer rating, EPA and win probability aren't tracked yet. Rates like yards per carry, completion percentage and per-game averages are.",
+    /\b(qbr|third down|red ?zone|time of possession|epa|dvoa|cpoe|success rate|win probability|expected points|turnovers? forced)\b/,
+    "EPA-family metrics and QBR/DVOA aren't tracked yet (proprietary or play-by-play models). Passer rating, yards per carry, completion percentage and per-game averages ARE computed.",
   ],
   [
     /\b(offense|offensive|defense|defensive|which team)\b/,

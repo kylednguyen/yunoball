@@ -6,13 +6,16 @@
 
 import type { GameCountSpec, QualifyingCountSpec } from "../spec.js";
 import {
-  gamePreds, Params, ratioFloor, ratioRowExpr, statDef, sumValueExpr,
+  gamePreds, Params, passerRatingExpr, ratioFloor, ratioRowExpr, statDef, sumValueExpr,
 } from "./shared.js";
 
 export function gameCountSql(spec: GameCountSpec, p: Params): string {
   // Qualifying games: list them and window-count the full set.
   const def = statDef(spec);
-  const valueExpr = def.ratio ? `COALESCE(s.${def.ratio.num}, 0)` : def.expr;
+  const valueExpr =
+    def.formula === "passer_rating"
+      ? passerRatingExpr(false)
+      : def.ratio ? `COALESCE(s.${def.ratio.num}, 0)` : def.expr;
   const opSql = { ">": ">", ">=": ">=", "<": "<" }[spec.threshold.op];
   const where = [
     `s.player_id = ${p.add(spec.playerId)}`,

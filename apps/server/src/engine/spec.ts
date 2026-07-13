@@ -50,6 +50,8 @@ export interface StatDef {
   };
   /** Display unit appended in narration (e.g. "%"). */
   unit?: string;
+  /** Named multi-column formula (NFL passer rating) — see executors/shared. */
+  formula?: "passer_rating";
 }
 
 const n = (col: string) => `COALESCE(s.${col}, 0)`;
@@ -197,6 +199,14 @@ export const STATS: Record<string, StatDef> = {
     label: "sacks taken",
     phrases: ["sacks taken", "sacked", "times sacked"],
     words: [],
+  },
+  passer_rating: {
+    expr: "", // computed by the passer-rating formula over five columns
+    label: "passer rating",
+    phrases: ["passer rating", "quarterback rating", "qb rating"],
+    words: [],
+    source: "game",
+    formula: "passer_rating",
   },
   completion_pct: {
     expr: "", // ratio stats aggregate num/den; no per-row expression
