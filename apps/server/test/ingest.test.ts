@@ -278,4 +278,17 @@ describe("run mechanics", () => {
       upsert(ctx, "teams", [{ team_id: "KC", name: "x", nickname: null, conference: null, division: null, bogus_column: 1 }], ["team_id"], teamRow),
     ).rejects.toThrow(/bogus_column|Unrecognized/i);
   });
+
+  it("fails loudly when an upstream identity column is renamed (schema drift)", () => {
+    const sample = { player_id: "P", season: "2023", week: "1", team: "KC", season_type: "REG" };
+    // A renamed/missing identity column corrupts every row → hard failure.
+    const { player_id: _pid, ...missingId } = sample;
+    expect(() =>
+      p.checkColumns(missingId, "stats_player_week", ["player_id", "season"], []),
+    ).toThrow(/schema drift|player_id/);
+    // A missing STAT column only warns (the value becomes null/zero) → no throw.
+    expect(() =>
+      p.checkColumns(sample, "stats_player_week", ["player_id"], ["passing_yards"]),
+    ).not.toThrow();
+  });
 });

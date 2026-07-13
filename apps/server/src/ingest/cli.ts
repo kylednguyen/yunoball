@@ -5,6 +5,7 @@
  *    pnpm ingest:nfl --all                       # every season since 1999
  *    pnpm ingest:nfl --season 2024 --dry-run     # validate + count, write nothing
  *    pnpm ingest:nfl --season 2024 --season-type REG
+ *    pnpm ingest:nfl --season 2024 --no-cache    # re-fetch (current-season data changes)
  *
  * Loads dimensions then facts, in dependency order. A failing dataset is
  * logged and the run continues with the datasets that don't depend on it.
@@ -17,6 +18,7 @@ import { pool, closePools } from "../db/pool.js";
 import { logger } from "../lib/logger.js";
 import { Ctx } from "./context.js";
 import * as p from "./pipelines.js";
+import { setCachePolicy } from "./providers/nflverse.js";
 
 // nflverse player-stat coverage starts in 1999.
 const FIRST_SEASON = 1999;
@@ -49,8 +51,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       skip: { type: "string", multiple: true, default: [] },
       "season-type": { type: "string" },
       "dry-run": { type: "boolean", default: false },
+      "no-cache": { type: "boolean", default: false },
     },
   });
+
+  setCachePolicy({ noCache: values["no-cache"] });
 
   const yearArgs = [
     ...(values.years ?? []),
