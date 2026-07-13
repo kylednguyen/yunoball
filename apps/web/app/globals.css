@@ -854,10 +854,9 @@ p.yb-answer {
   font-size: var(--fs-small);
 }
 
-/* ---- Table ---- */
+/* ---- Table — open layout: typography and hairline dividers, no frame ---- */
 .yb-table-scroll {
   overflow-x: auto;
-  border: 1px solid var(--border);
   border-radius: var(--r-lg);
 }
 table.yb-table {
@@ -869,11 +868,11 @@ table.yb-table {
 table.yb-table th {
   text-align: left;
   padding: 10px 14px;
-  background: var(--panel);
+  background: var(--bg);
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-strong);
   color: var(--muted);
   font-weight: 600;
   font-size: var(--fs-small);
@@ -882,7 +881,7 @@ table.yb-table th {
   white-space: nowrap;
 }
 table.yb-table td {
-  padding: 9px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
 }
 table.yb-table td.num,
@@ -891,7 +890,7 @@ table.yb-table th.num {
   font-variant-numeric: tabular-nums;
 }
 table.yb-table tbody tr:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
 }
 table.yb-table tbody tr:last-child td {
   border-bottom: none;
@@ -1223,7 +1222,7 @@ pre.yb-sql {
   transition: background var(--dur) var(--ease);
 }
 .yb-lb-row:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
 }
 .yb-lb-rank {
   font-size: var(--fs-body);
@@ -2909,7 +2908,7 @@ mark.yb-hit {
   transition: background var(--dur) var(--ease);
 }
 .yb-board-top:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
   text-decoration: none;
 }
 .yb-board-top .who {
@@ -2952,16 +2951,15 @@ mark.yb-hit {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 9px 20px;
   color: var(--text);
   transition: background var(--dur) var(--ease);
 }
 .yb-board-row:last-child {
-  border-bottom: none;
+  padding-bottom: 12px;
 }
 .yb-board-row:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
   text-decoration: none;
 }
 .yb-board-row .rk {
