@@ -84,7 +84,11 @@ const ROUND_NAME_SQL =
 /** Shared game-log predicates (bound params). */
 function gamePreds(spec: QuerySpec, p: Params): string[] {
   const preds = [`g.season_type = ${p.add(spec.seasonType)}`];
-  if (spec.season != null) preds.push(`g.season = ${p.add(spec.season)}`);
+  if (spec.seasonMin != null && spec.seasonMax != null) {
+    preds.push(`g.season BETWEEN ${p.add(spec.seasonMin)} AND ${p.add(spec.seasonMax)}`);
+  } else if (spec.season != null) {
+    preds.push(`g.season = ${p.add(spec.season)}`);
+  }
   if (spec.venue === "home") preds.push("s.team_id = g.home_team");
   if (spec.venue === "away") preds.push("s.team_id = g.away_team");
   if (spec.weekMin != null) preds.push(`g.week >= ${p.add(spec.weekMin)}`);
@@ -206,7 +210,9 @@ function playerGameRowsSql(spec: QuerySpec, p: Params, playerPred: string): stri
     ? "NULL"
     : def.ratio
       ? "ROUND(SUM(ts._num) OVER ()::numeric / NULLIF(SUM(ts._den) OVER (), 0) * 100, 1)"
-      : "SUM(ts.value) OVER ()";
+      : spec.perGame
+        ? "ROUND(SUM(ts.value) OVER ()::numeric / NULLIF(COUNT(*) OVER (), 0), 1)"
+        : "SUM(ts.value) OVER ()";
   // Display order is always most recent first, whatever the window direction.
   return (
     `SELECT ts.*, ${totalExpr} AS total, COUNT(*) OVER () AS games, ${RESULT_COL} ` +
@@ -348,6 +354,14 @@ function bioSql(spec: QuerySpec, p: Params): string {
   );
 }
 
+/** Summed value of a stat, honoring ratio stats (completion %) which sum the
+ * numerator/denominator separately rather than the empty `expr`. */
+function sumValueExpr(def: { expr: string; ratio?: { num: string; den: string } }): string {
+  return def.ratio
+    ? `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0))::numeric / NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)), 0) * 100, 1)`
+    : `SUM(${def.expr})`;
+}
+
 /** How many players cleared a season (or career) stat threshold. */
 function qualifyingCountSql(spec: QuerySpec, p: Params): string {
   const def = statDef(spec);
@@ -355,24 +369,34 @@ function qualifyingCountSql(spec: QuerySpec, p: Params): string {
   const join = spec.position ? "JOIN players p ON p.player_id = s.player_id " : "";
   const posPred = spec.position ? ` AND p.position = ${p.add(spec.position)}` : "";
   if (spec.scope === "career") {
+    // Ratio stats need a volume floor so tiny samples don't clear the bar.
+    const having = def.ratio
+      ? `HAVING ${sumValueExpr(def)} ${op} ${p.add(spec.threshold!.value)} ` +
+        `AND SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(1000)}`
+      : `HAVING SUM(${def.expr}) ${op} ${p.add(spec.threshold!.value)}`;
     return (
       "SELECT COUNT(*) AS qualifying_players FROM (" +
       "SELECT s.player_id FROM player_season_stats s " + join +
       `WHERE s.season_type = ${p.add(spec.seasonType)}${posPred} ` +
-      `GROUP BY s.player_id HAVING SUM(${def.expr}) ${op} ${p.add(spec.threshold!.value)}) x`
+      `GROUP BY s.player_id ${having}) x`
     );
   }
   const preds = [`s.season_type = ${p.add(spec.seasonType)}`];
   if (spec.season != null) preds.push(`s.season = ${p.add(spec.season)}`);
+  const valuePred = def.ratio
+    ? `ROUND(COALESCE(s.${def.ratio.num}, 0)::numeric / NULLIF(COALESCE(s.${def.ratio.den}, 0), 0) * 100, 1) ${op} ${p.add(spec.threshold!.value)} ` +
+      `AND COALESCE(s.${def.ratio.den}, 0) >= ${p.add(150)}`
+    : `${def.expr} ${op} ${p.add(spec.threshold!.value)}`;
   return (
     "SELECT COUNT(*) AS qualifying_players FROM player_season_stats s " + join +
-    `WHERE ${preds.join(" AND ")}${posPred} AND ${def.expr} ${op} ${p.add(spec.threshold!.value)}`
+    `WHERE ${preds.join(" AND ")}${posPred} AND ${valuePred}`
   );
 }
 
 /** One player's league rank on a stat over a scope (career / season / range). */
 function rankSql(spec: QuerySpec, p: Params): string {
   const def = statDef(spec);
+  const valueExpr = sumValueExpr(def);
   const preds = [`s.season_type = ${p.add(spec.seasonType)}`];
   if (spec.seasonMin != null && spec.seasonMax != null) {
     preds.push(`s.season BETWEEN ${p.add(spec.seasonMin)} AND ${p.add(spec.seasonMax)}`);
@@ -380,14 +404,19 @@ function rankSql(spec: QuerySpec, p: Params): string {
     preds.push(`s.season = ${p.add(spec.season)}`);
   }
   const posPred = spec.position ? ` AND p.position = ${p.add(spec.position)}` : "";
+  // Ratio ranks need a volume floor; counted denominators exclude non-producers
+  // so "1st of N" reflects players who actually recorded the stat.
+  const having = def.ratio
+    ? ` HAVING SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(spec.scope === "career" ? 1000 : 150)}`
+    : ` HAVING SUM(${def.expr}) > 0`;
   return (
     "WITH ranked AS (" +
-    `SELECT p.player_id, p.full_name, SUM(${def.expr}) AS value, ` +
-    `RANK() OVER (ORDER BY SUM(${def.expr}) DESC) AS rk, ` +
+    `SELECT p.player_id, p.full_name, ${valueExpr} AS value, ` +
+    `RANK() OVER (ORDER BY ${valueExpr} DESC) AS rk, ` +
     "COUNT(*) OVER () AS total_players " +
     "FROM player_season_stats s JOIN players p ON p.player_id = s.player_id " +
     `WHERE ${preds.join(" AND ")}${posPred} ` +
-    "GROUP BY p.player_id, p.full_name) " +
+    `GROUP BY p.player_id, p.full_name${having}) ` +
     `SELECT * FROM ranked WHERE player_id = ${p.add(spec.playerId)}`
   );
 }
@@ -529,13 +558,21 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
         spec.seasonMin != null && spec.seasonMax != null
           ? ` AND s.season BETWEEN ${p.add(spec.seasonMin)} AND ${p.add(spec.seasonMax)}`
           : "";
+      // Per-game career board divides career total by career games, with a
+      // volume floor so a one-game cameo can't top the list.
+      const valueSel = spec.perGame
+        ? `ROUND(SUM(${def.expr})::numeric / NULLIF(SUM(COALESCE(s.games_played, 0)), 0), 1)`
+        : `SUM(${def.expr})`;
+      const perGameFloor = spec.perGame
+        ? `HAVING SUM(COALESCE(s.games_played, 0)) >= ${p.add(16)} `
+        : "";
       const sql =
-        `SELECT p.player_id, p.full_name, COUNT(*) AS seasons, SUM(${def.expr}) AS value ` +
+        `SELECT p.player_id, p.full_name, COUNT(*) AS seasons, ${valueSel} AS value ` +
         "FROM player_season_stats s " +
         "JOIN players p ON p.player_id = s.player_id " +
         `WHERE s.season_type = ${stype}${rangePred}` +
         (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
-        " GROUP BY p.player_id, p.full_name " +
+        " GROUP BY p.player_id, p.full_name " + perGameFloor +
         `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, p.full_name ` +
         `LIMIT ${p.add(spec.limit)}`;
       return { sql, params: p.values };
@@ -546,8 +583,13 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
     if (spec.rookie) where.push(ROOKIE_PRED);
     // Ascending boards need a floor, or benchwarmers sweep "fewest X".
     if (spec.dir === "asc") where.push("COALESCE(s.games_played, 0) >= 8");
+    // A per-game board is a rate, with the same games floor.
+    if (spec.perGame) where.push("COALESCE(s.games_played, 0) >= 8");
+    const valueSel = spec.perGame
+      ? `ROUND(${def.expr}::numeric / NULLIF(COALESCE(s.games_played, 0), 0), 1)`
+      : `${def.expr}`;
     const sql =
-      `SELECT p.player_id, p.full_name, s.season, ${def.expr} AS value ` +
+      `SELECT p.player_id, p.full_name, s.season, ${valueSel} AS value ` +
       "FROM player_season_stats s " +
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE ${where.join(" AND ")} ` +
@@ -1007,17 +1049,18 @@ export function narrate(spec: QuerySpec, rows: Row[]): string {
   }
   // leaders
   const posText = spec.position ? ` among ${spec.position}s` : "";
+  const rate = spec.perGame ? " per game" : "";
   const verb = spec.dir === "asc" ? "has the fewest" : "leads";
   if (spec.scope === "career" && spec.seasonMin != null) {
-    return `${name} ${verb === "leads" ? "leads" : "has the fewest"} with ${fmt(top.value)}${unit}${post} ${label}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
+    return `${name} ${verb === "leads" ? "leads" : "has the fewest"} with ${fmt(top.value)}${unit}${post} ${label}${rate}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
   }
   if (spec.scope === "career") {
-    return `${name} ${verb === "leads" ? "leads all time" : "has the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${posText}.`;
+    return `${name} ${verb === "leads" ? "leads all time" : "has the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${rate}${posText}.`;
   }
   const season = top.season ?? spec.season;
   const where = season && post ? ` in the ${season} postseason` : season ? ` in ${season}` : "";
   if (spec.dir === "asc") {
-    return `${name} has the fewest ${label}${posText}${where}${quals} (min. 8 games) at ${fmt(top.value)}${unit}.`;
+    return `${name} has the fewest ${label}${rate}${posText}${where}${quals} (min. 8 games) at ${fmt(top.value)}${unit}.`;
   }
-  return `${name} leads${posText} with ${fmt(top.value)}${unit} ${label}${where}${quals}${spec.rookie ? " among rookies" : ""}.`;
+  return `${name} leads${posText} with ${fmt(top.value)}${unit} ${label}${rate}${where}${quals}${spec.rookie ? " among rookies" : ""}.`;
 }
