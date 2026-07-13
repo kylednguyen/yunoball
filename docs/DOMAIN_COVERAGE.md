@@ -1,8 +1,8 @@
 # Domain Coverage Matrix
 
 Status of every domain area against the search engine, verified by the
-138-question audit corpus (`apps/server/src/cli/searchAudit.ts`) against a
-live 2020–2024 warehouse: **122 answered · 14 tailored refusals · 2 generic
+149-question audit corpus (`apps/server/src/cli/searchAudit.ts`) against a
+live 2020–2024 warehouse: **134 answered · 13 tailored refusals · 2 generic
 fallbacks · 0 wrong · 0 errors**.
 
 Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
@@ -20,7 +20,8 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Previous teams | ✅ | "what teams has Derrick Henry played for" → *Titans (2020–2023), Ravens (2024)* |
 | Experience | ✅ | "how many seasons has Mahomes played" → *5 in the warehouse, 2020–2024* |
 | Jersey number | ✅ | "what number does Mahomes wear" → *No. 15* |
-| Awards | 🚫 | not in nflverse — tailored refusal |
+| Awards (MVP, SB MVP) | ✅ | "who won MVP in 2023" → *Lamar Jackson*; counts per player. Curated facts table (`engine/facts.ts`), 1999–2024 |
+| Awards (Pro Bowl, All-Pro, HOF) | 🚫 | full honor rosters would risk invented facts — refusal |
 
 ## Stats
 
@@ -38,7 +39,7 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 |---|---|---|
 | Division / Conference / Stadium | ✅ | "what division are the chiefs in" → *AFC West* |
 | Coach / Colors | ✅ | "who coaches the chiefs" → *Andy Reid*; colors from nflverse |
-| Founded | 🚫 | not in nflverse — refusal |
+| Founded | ✅ | "when were the packers founded" → *1921* (curated facts) |
 | Team stats (points, yards) | ✅ | "how many points did the chiefs score in 2023" → *371* |
 | Points allowed / per game | ✅ | "bills points allowed in 2023" → *311*; "chiefs points per game" → *21.8* |
 | Team leaders | ✅ | "who led the chiefs in receiving yards in 2023" → *Kelce, 984* |
@@ -64,11 +65,11 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Comparisons | ✅ | "Mahomes vs Allen career passing yards" |
 | Rankings | ✅ | "where does Mahomes rank in career passing yards" → *1st of 3,666* |
 | Records (season/single-game highs) | ✅ | "most rushing yards in a season" |
-| Milestones ("fastest to…") | 🚫 | needs cumulative timelines — refusal |
+| Milestones ("fastest to…") | ✅ | "fastest to 10000 passing yards" → *Mahomes, 34 games* (cumulative windows; warehouse-era careers) |
 | Playoffs (WC/DIV/CON/SB, history) | ✅ | round-aware filters + team playoff logs |
 | Championships | ✅ (1999+) | "Chiefs super bowl history" → their SB record |
-| Franchise relocations | 🟡 | folded forward at ingest (OAK→LV etc.); not narrated |
-| Retired numbers / HOF | 🚫 | not in data — refusal |
+| Franchise relocations / renames | ✅ | "did the raiders relocate" → *Oakland→Las Vegas, 2020* (curated facts) |
+| Retired numbers / Ring of Honor / HOF | 🚫 | large honor rosters, fabrication risk — refusal |
 
 ## Discovery, aggregation, trends
 
@@ -80,9 +81,11 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Per game | ✅ | "Jefferson average receiving yards in 2023" → *107.4/game* |
 | **Per attempt / carry / reception** | ✅ | "Henry yards per carry in 2023" → *4.2*; YPA, YPR |
 | Per drive | 🚫 | needs drive data — refusal |
-| Median / rolling averages | 🚫 | refusal |
+| Median | ✅ | "Henry median rushing yards in 2023" → *75/game* (PERCENTILE_CONT) |
+| Rolling averages | ✅ | "Jefferson 5-game rolling average" → *99/game* (last-N window rate) |
 | First/last N, since/before Week X | ✅ | windows + week ranges |
-| Hot/cold & win streaks | 🚫 | refusal (team streak shows on team pages) |
+| Win/loss streaks (team) | ✅ | "chiefs winning streak" → current + longest on file |
+| Stat streaks (player) | ✅ | "Henry games in a row with a rushing TD" → *7 (active: 2)* |
 
 ## Advanced analytics
 

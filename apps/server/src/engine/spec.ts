@@ -17,7 +17,8 @@ export type Intent =
   | "leaders" | "player_total" | "player_seasons" | "single_game" | "compare"
   | "scoring" | "game_count" | "qualifying_count" | "player_rank" | "player_bio"
   | "game_log" | "team_game_log" | "game_result" | "draft_pick"
-  | "team_bio" | "team_stat" | "team_roster";
+  | "team_bio" | "team_stat" | "team_roster"
+  | "player_streak" | "team_streak" | "milestone" | "award";
 
 export interface StatDef {
   /** SQL expression over the stats-table alias `s`. Allowlisted here, never
@@ -297,6 +298,8 @@ export interface PlayerTotalSpec extends SpecBase, GameWindow {
   rookie?: boolean;
   /** Report the per-game rate instead of the raw total. */
   perGame?: boolean;
+  /** Report the per-game MEDIAN instead of the total. */
+  median?: boolean;
 }
 
 export interface PlayerSeasonsSpec extends SpecBase {
@@ -404,7 +407,7 @@ export interface TeamBioSpec extends SpecBase {
   teamId: string;
   teamName?: string | null;
   /** Which team fact the question asks for. */
-  teamField: "division" | "conference" | "stadium" | "coach" | "colors" | "full";
+  teamField: "division" | "conference" | "stadium" | "coach" | "colors" | "founded" | "history" | "full";
 }
 
 export interface TeamStatSpec extends SpecBase, GameWindow {
@@ -414,6 +417,34 @@ export interface TeamStatSpec extends SpecBase, GameWindow {
   /** Points come from team_game_stats; player stats aggregate the game log. */
   metric?: "points_for" | "points_against" | null;
   perGame?: boolean;
+}
+
+export interface PlayerStreakSpec extends SpecBase, GameWindow {
+  intent: "player_streak";
+  playerId: string;
+  player?: string | null;
+  /** Per-game qualifying bar; default "the stat > 0" ("games with a TD"). */
+  threshold?: { op: ">" | ">=" | "<"; value: number } | null;
+}
+
+export interface TeamStreakSpec extends SpecBase {
+  intent: "team_streak";
+  teamId: string;
+  teamName?: string | null;
+  kind: "win" | "loss";
+}
+
+export interface MilestoneSpec extends SpecBase {
+  intent: "milestone";
+  /** Career total to race to ("fastest to 10000 passing yards"). */
+  target: number;
+}
+
+export interface AwardSpec extends SpecBase {
+  intent: "award";
+  award: "MVP" | "SBMVP";
+  playerId?: string | null;
+  player?: string | null;
 }
 
 export interface TeamRosterSpec extends SpecBase {
@@ -427,7 +458,8 @@ export type QuerySpec =
   | LeadersSpec | PlayerTotalSpec | PlayerSeasonsSpec | SingleGameSpec
   | CompareSpec | ScoringSpec | GameCountSpec | QualifyingCountSpec
   | PlayerRankSpec | PlayerBioSpec | GameLogSpec | TeamGameLogSpec
-  | GameResultSpec | DraftPickSpec | TeamBioSpec | TeamStatSpec | TeamRosterSpec;
+  | GameResultSpec | DraftPickSpec | TeamBioSpec | TeamStatSpec | TeamRosterSpec
+  | PlayerStreakSpec | TeamStreakSpec | MilestoneSpec | AwardSpec;
 
 // --------------------------------------------------------------------------
 // The field-bag reader view
@@ -454,8 +486,12 @@ export interface SpecFields extends GameWindow, TeamGameFields {
   teamId?: string | null;
   draftPick?: number | null;
   draftRound?: number | null;
-  teamField?: "division" | "conference" | "stadium" | "coach" | "colors" | "full" | null;
+  teamField?: "division" | "conference" | "stadium" | "coach" | "colors" | "founded" | "history" | "full" | null;
   metric?: "points_for" | "points_against" | null;
+  median?: boolean;
+  kind?: "win" | "loss" | null;
+  target?: number | null;
+  award?: "MVP" | "SBMVP" | null;
 }
 
 export type FieldedSpec = SpecBase & { intent: Intent } & SpecFields;
@@ -486,5 +522,6 @@ export function specCacheKey(spec: QuerySpec): string {
     s.marginMax, s.draftPick, s.draftRound,
     s.bioField, s.perGame, s.seasonMin, s.seasonMax,
     s.month, s.teamField, s.metric, s.primetime, s.tempMax,
+    s.median, s.kind, s.target, s.award,
   ].map(String).join("|");
 }

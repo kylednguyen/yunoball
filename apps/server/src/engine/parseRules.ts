@@ -483,8 +483,10 @@ const UNSUPPORTED: [RegExp, string][] = [
     "Team-unit rankings aren't queryable yet. Every team page ranks offense and defense against the whole league.",
   ],
   [
-    /\b(mvp|pro bowl|all[- ]pro|hall of fame|ring of honor|retired (?:number|jersey)|rookie of the year|player of the year|opoy|dpoy|roty)\b/,
-    "Awards and honors aren't in the warehouse — it holds computed stats, games and drafts. Try a production question instead.",
+    // MVP and Super Bowl MVP ARE answered (curated facts table); the rest
+    // would risk invented honors, which is worse than a refusal.
+    /\b(pro bowl|all[- ]pro|hall of fame|ring of honor|retired (?:number|jersey)|rookie of the year|player of the year|opoy|dpoy|roty)\b/,
+    "Only MVP and Super Bowl MVP awards are loaded so far — try \"who won MVP in 2023\". Other honors aren't in the warehouse.",
   ],
   [
     /\b(traded?|trades?|free agen(?:cy|ts?)|waivers?|waived|signed with|re-?signed|transactions?)\b/,
@@ -501,10 +503,6 @@ const UNSUPPORTED: [RegExp, string][] = [
   [
     /\b(play[- ]by[- ]play|drive summar|drives?|snap counts?|every play)\b/,
     "Play-by-play detail isn't stored — box-score totals plus a touchdown log are. Scores, box scores and TD timelines are queryable.",
-  ],
-  [
-    /\b(median|rolling average|moving average)\b/,
-    "Medians and rolling averages aren't computed yet. Totals, per-game rates, and first/last-N windows are.",
   ],
   [
     /\b(schedule|next game|tomorrow|tonight|upcoming)\b/,
@@ -524,14 +522,10 @@ const UNSUPPORTED: [RegExp, string][] = [
     "Play distances like the longest touchdown or play aren't tracked yet — I work from box-score totals, not full play-by-play.",
   ],
   [
-    /\b(streaks?|in a row|consecutive)\b/,
-    "Streaks aren't tracked yet. I can total a stat over a season, a career, the playoffs, or a first/last-N game window.",
-  ],
-  [
-    // "fastest/youngest/oldest TO <milestone>" is a pace question (unsupported);
-    // "youngest/oldest player" is a bio superlative, handled before this loop.
-    /\b(?:fastest|youngest|oldest) (?:to|player to|ever to)\b|\bmilestone\b|\bon pace\b/,
-    'Milestone-pace questions aren\'t supported yet. Try a straight total, like "Patrick Mahomes career passing yards".',
+    // "youngest/oldest TO <milestone>" needs age-at-game; "fastest to X" IS
+    // answered (milestone intent). Bio superlatives are handled earlier.
+    /\b(?:youngest|oldest) (?:to|player to|ever to)\b|\bon pace\b/,
+    'Age-at-milestone questions aren\'t supported yet, but "fastest to" is: try "fastest to 10000 passing yards".',
   ],
   // Note: player bio, per-game rates, season ranges, league-wide counts and
   // rank lookups ARE answered now — see the player_bio / qualifying_count /
@@ -559,7 +553,8 @@ export function parseRules(
   const isCareer = CAREER_RE.test(qText);
   // "average"/"avg" reads as a per-game rate; ratio stats (yards per carry)
   // are already rates, so the flag is cleared for them at spec construction.
-  const perGameCue = /\bper[- ]game\b|\baverages?\b|\bavg\b/.test(qText);
+  const perGameCue = /\bper[- ]game\b|\baverages?\b|\bavg\b|\b(?:rolling|moving) average\b/.test(qText);
+  const median = /\bmedian\b/.test(qText);
   const month = detectMonth(qText);
   const primetime =
     /\b(primetime|prime time|monday night|sunday night|thursday night|snf|mnf|tnf|night games?)\b/.test(qText);
@@ -571,6 +566,11 @@ export function parseRules(
     lastN: lastN(qText),
     rookie: /\brookies?\b/.test(qText),
   };
+  // "5-game rolling average" is a per-game rate over the last N games.
+  const rollM = qText.match(/\b(\d{1,2})[- ]game (?:rolling|moving) average\b/);
+  if (rollM || /\b(?:rolling|moving) average\b/.test(qText)) {
+    filters.lastN = filters.lastN ?? (rollM ? Number(rollM[1]) : 5);
+  }
   // Weeks past 18 only exist in the playoffs — asking about them IS asking
   // about the postseason. "Super Bowl" narrows further to the final game;
   // named rounds (wild card, divisional, championships) narrow to one week.
@@ -711,7 +711,8 @@ export function parseRules(
   if (
     !player && roundInfo &&
     (resultCue || sb?.number != null || sbSeason != null) &&
-    detectStat(qText) === null && genericCue(qText) === null
+    detectStat(qText) === null && genericCue(qText) === null &&
+    !/\bmvps?\b/.test(qText) // "super bowl MVP" is an award, not a result
   ) {
     const marginM = qText.match(/\bdecided by (\d{1,2})(?: points)?(?: or (?:fewer|less))?\b/);
     const wantsAll =
@@ -729,6 +730,17 @@ export function parseRules(
         scope: "season", limit: wantsAll ? 30 : 1,
       };
     }
+  }
+
+  // Awards: MVP / Super Bowl MVP from the curated facts table.
+  if (/\bmvps?\b/.test(qText)) {
+    const award = /\bsuper ?bowl mvp\b|\bsb mvp\b/.test(qText) ? ("SBMVP" as const) : ("MVP" as const);
+    return {
+      intent: "award", award, stat: "total_tds",
+      season: player ? null : effSeason,
+      player: player?.name ?? null, playerId: player?.playerId ?? null,
+      seasonType: "REG", scope: "career", limit: 30,
+    };
   }
 
   // Vocabulary we recognize but genuinely can't answer — say so, usefully.
@@ -824,12 +836,24 @@ export function parseRules(
               ? ("stadium" as const)
               : /\bcoach(?:ed|es)?\b|\bhead coach\b/.test(qText) ? ("coach" as const)
                 : /\bcolors?\b/.test(qText) ? ("colors" as const)
-                  : null;
+                  : /\bfounded\b|\bestablished\b/.test(qText) ? ("founded" as const)
+                    : /\brelocat|\brenamed?\b|\bname change\b|\bfranchise history\b|\bused to be\b/.test(qText)
+                      ? ("history" as const)
+                      : null;
       if (teamField) {
         return {
           intent: "team_bio", stat: "total_tds", teamField,
           teamId: team.teamId, teamName: team.name,
           seasonType: "REG", scope: "career", limit: 1,
+        };
+      }
+      // Streaks: "chiefs winning streak", "how long is the jets losing streak".
+      if (/\bstreaks?\b/.test(qText)) {
+        return {
+          intent: "team_streak", stat: "total_tds",
+          teamId: team.teamId, teamName: team.name,
+          kind: /\blos(?:s|ing|t)\b/.test(qText) ? "loss" : "win",
+          seasonType: "REG", scope: "career", limit: 400,
         };
       }
       // Roster: "chiefs roster 2023", "who played for the chiefs in 2023".
@@ -1023,6 +1047,41 @@ export function parseRules(
     };
   }
 
+  // Streaks: "games in a row with a touchdown", "consecutive 100-yard games".
+  if (/\bin a row\b|\bconsecutive\b|\bstreaks?\b/.test(qText)) {
+    if (player) {
+      return {
+        intent: "player_streak", stat,
+        player: player.name, playerId: player.playerId,
+        threshold: th, season: effSeason, seasonType,
+        scope: isCareer || effSeason === null ? "career" : "season", limit: 500,
+      };
+    }
+    return {
+      refusal:
+        'League-wide streak boards aren\'t supported yet. Ask one player\'s streak ' +
+        '("Henry games in a row with a rushing TD") or a team\'s winning streak.',
+    };
+  }
+
+  // Milestone races: "fastest to 10000 passing yards".
+  const fastM = qText.match(/\bfastest to ([\d,]+)\b/);
+  if (fastM && !player) {
+    return {
+      intent: "milestone", stat, target: Number(fastM[1]!.replace(/,/g, "")),
+      season: null, seasonType, scope: "career", limit: limit ?? 5,
+    };
+  }
+
+  // League-wide medians would need a population definition; player medians work.
+  if (median && !player) {
+    return {
+      refusal:
+        'League-wide medians aren\'t supported yet. Ask one player\'s median game, ' +
+        'like "Derrick Henry median rushing yards in 2023".',
+    };
+  }
+
   // Qualifying-game counts: "Lamar games over 300 passing yards",
   // "Derrick Henry 100+ rushing yard games".
   if (player && th && !isSingleGame) {
@@ -1067,6 +1126,7 @@ export function parseRules(
       seasonMin: range?.min ?? null,
       seasonMax: range?.max ?? null,
       perGame,
+      median,
       month,
       primetime,
       tempMax,

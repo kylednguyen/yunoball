@@ -321,13 +321,24 @@ const CASES: [string, Expect][] = [
   ["Ja'Marr Chase air yards in 2023", answer({ intent: "player_total", stat: "receiving_air_yards", playerId: "P_CHASE" })],
   ["Patrick Mahomes air yards in 2023", answer({ intent: "player_total", stat: "passing_air_yards" })],
   ["most receiving air yards in 2023", answer({ intent: "leaders", stat: "receiving_air_yards" })],
+  // ---- wave 3: awards / streaks / milestones / medians / franchise ----
+  ["who won mvp in 2023", answer({ intent: "award", award: "MVP", season: 2023 })],
+  ["who won the super bowl mvp in 2022", answer({ intent: "award", award: "SBMVP" })],
+  ["how many mvps does Tom Brady have", answer({ intent: "award", award: "MVP", playerId: "P_BRADY" })],
+  ["Derrick Henry median rushing yards in 2023", answer({ intent: "player_total", median: true, playerId: "P_HENRY" })],
+  ["Justin Jefferson 5-game rolling average receiving yards", answer({ intent: "player_total", perGame: true, lastN: 5 })],
+  ["chiefs winning streak", answer({ intent: "team_streak", teamId: "KC", kind: "win" })],
+  ["Dolphins losing streak", answer({ intent: "team_streak", teamId: "MIA", kind: "loss" })],
+  ["Derrick Henry games in a row with a rushing touchdown", answer({ intent: "player_streak", playerId: "P_HENRY", stat: "rushing_tds" })],
+  ["when were the packers founded", answer({ intent: "team_bio", teamField: "founded", teamId: "GB" })],
+  ["did the raiders relocate", generic], // LV not in the battery team fixture; live resolver answers
   // ---- routing guards: game lookups must not be hijacked by team-info ----
   ["what was the score of the eagles game", answer({ intent: "game_result", teamId: "PHI" })],
   ["chiefs record in 2023", answer({ intent: "team_game_log", teamId: "KC", season: 2023 })],
   // ---- still genuinely unanswerable ----
   ["Josh Allen QBR in 2023", refusal("passer rating")],
   ["longest touchdown of 2023", refusal("play distances")],
-  ["fastest to 10000 passing yards", refusal("milestone")],
+  ["fastest to 10000 passing yards", answer({ intent: "milestone", stat: "passing_yards", target: 10000 })], // upgraded: was a refusal
   ["was Justin Jefferson traded", refusal("transactions")],
   ["chiefs depth chart", refusal("depth charts")],
   ["patriots injury report", refusal("injury")],
