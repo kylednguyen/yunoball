@@ -1,9 +1,10 @@
 # Domain Coverage Matrix
 
 Status of every domain area against the search engine, verified by the
-149-question audit corpus (`apps/server/src/cli/searchAudit.ts`) against a
-live 2020–2024 warehouse: **134 answered · 13 tailored refusals · 2 generic
-fallbacks · 0 wrong · 0 errors**.
+154-question audit corpus (`apps/server/src/cli/searchAudit.ts`) against a
+live 2020–2024 warehouse: **145 answered · 9 tailored refusals · 0 generic
+fallbacks · 0 wrong · 0 errors** (as of wave 4b — EPA/success/CPOE/longest
+TDs/per-drive).
 
 Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 📥 needs a new ingest column (data exists in nflverse, not loaded yet) ·
@@ -55,7 +56,7 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 |---|---|---|
 | Game results / Head-to-head | ✅ | "did the Chiefs beat the 49ers in the Super Bowl" → *25-22* |
 | Box scores | ✅ (page + API) | `/games/:id/boxscore` |
-| Scoring summaries (TDs) | ✅ | scoring_plays: "Chase first touchdown" → *Sep 12, 2021 vs MIN* |
+| Scoring summaries (TDs) | ✅ | scoring_plays: "Chase first touchdown" → *Sep 12, 2021 vs MIN*; longest TDs by play length (wave 4b) |
 | Play-by-play / Drive summaries | 🚫 | only TD events are distilled — tailored refusal |
 
 ## Analysis
@@ -80,7 +81,7 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 | Percentage | ✅ | completion %, catch rate |
 | Per game | ✅ | "Jefferson average receiving yards in 2023" → *107.4/game* |
 | **Per attempt / carry / reception** | ✅ | "Henry yards per carry in 2023" → *4.2*; YPA, YPR |
-| Per drive | 🚫 | needs drive data — refusal |
+| Per drive | ✅ | "chiefs points per drive in 2023" (drive counts from pbp, wave 4b) |
 | Median | ✅ | "Henry median rushing yards in 2023" → *75/game* (PERCENTILE_CONT) |
 | Rolling averages | ✅ | "Jefferson 5-game rolling average" → *99/game* (last-N window rate) |
 | First/last N, since/before Week X | ✅ | windows + week ranges |
@@ -112,3 +113,19 @@ Jersey numbers (rosters), head coach (schedules `home_coach`/`away_coach`),
 team colors (`teams_colors_logos`), kickoff weekday/time for primetime
 splits, kickoff temperature/wind for weather splits, and passing/receiving
 air yards (weekly stats) are now warehouse columns — see the ✅ rows above.
+
+## Deferred scope (explicit product decisions)
+
+These areas are intentionally not built yet — they are deferred, not missed:
+
+| Area | Decision |
+|---|---|
+| Injuries, depth charts | Deferred to the future live-fantasy effort ("wave 4c"). nflverse carries the data; ingest + intents are sketched but unshipped. |
+| Transactions (trades, free agency, waivers, signings, releases) | Deferred with wave 4c. |
+| Fantasy tools, predictions, news | Out of scope for the deterministic answer engine; planned as part of a separate "live fantasy football feedback" product surface. |
+| DVOA, QBR | 🚫 permanent refusal — proprietary third-party models; computing them would fabricate numbers. |
+| Pressure rate, win probability | 🚫 permanent refusal — require play-level data the warehouse deliberately does not carry. |
+
+The engine's guarantee is *numbers from facts, never hallucinated* — a
+tailored refusal is the correct answer wherever the warehouse cannot
+support the computation.

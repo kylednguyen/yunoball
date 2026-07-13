@@ -66,7 +66,7 @@ milestone pace, and team-unit stats (routed to the team pages).
 ## Findings fixed
 
 Each of these produced a wrong number or wrong-shaped answer **before** the
-audit. All are covered by the 227-test server suite plus this harness.
+audit. All are covered by the 287-test server suite plus this harness.
 
 | # | Question class | Before (wrong) | After | Fix |
 |---|---|---|---|---|

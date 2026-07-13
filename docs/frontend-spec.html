@@ -481,10 +481,19 @@
         <p>
           The design language is a deliberate blend: the <em>search-first immediacy</em> of StatsMuse,
           the <em>restraint and speed</em> of Linear, the <em>typographic calm</em> of Vercel and Apple,
-          and the <em>information density</em> of Stripe Docs. We borrow these philosophies — we do not
-          copy any of their brands. YunoBall's identity is its own: indigo accent, Inter type, off-white
-          surfaces, hairline separators, and near-zero chrome.
+          and the <em>information density</em> of ESPN and The Athletic. We borrow these philosophies —
+          we do not copy any of their brands. YunoBall's identity is its own: a dark neutral canvas,
+          a single emerald accent used sparingly, depth from background contrast instead of borders,
+          and near-zero chrome. When the active context is one team, the accent re-tints to that
+          team's branding.
         </p>
+        <div class="callout">
+          <strong>Revision note (2026-07 UI refinement):</strong> the product moved from the original
+          light/indigo concept to a dark, borderless system with an emerald brand accent and dynamic
+          team theming. The palette, radii and elevation below reflect the shipped system; the runtime
+          source of truth for every token is <code>apps/web/app/globals.css</code>. Rendered examples in
+          this document still use the doc's own light chrome — trust the token tables, not the demos.
+        </div>
 
         <h3>What the product does</h3>
         <ul class="spec">
@@ -511,7 +520,7 @@
           <dt>Search-first</dt>
           <dd>The query box is the product's center of gravity. It is the largest interactive element on the home screen and stays reachable (sticky) everywhere else.</dd>
           <dt>Content over chrome</dt>
-          <dd>Data is the hero. Borders, shadows, and fills exist only to structure content, never to decorate it. One soft shadow, one accent color, one hairline border.</dd>
+          <dd>Data is the hero. Depth comes from the surface ramp (background contrast) and one soft shadow — borders are rare by design, reserved for hairline dividers inside dense data. If removing a border makes the interface cleaner, remove it.</dd>
           <dt>Dense but readable</dt>
           <dd>Pack information tightly — compact tables, tabular numerals, tight vertical rhythm — while protecting legibility with generous line-height in prose and clear hierarchy.</dd>
           <dt>Fast &amp; lightweight</dt>
@@ -525,33 +534,56 @@
         </div>
 
         <div class="grid2">
-          <div class="do"><b>Do</b>Let whitespace and a single hairline separate sections. Use the accent once per view to point at the primary action or datum.</div>
-          <div class="dont"><b>Don't</b>Stack oversized cards, gradients, drop shadows, or animated flourishes. No dashboard clutter, no decorative UI that doesn't improve usability.</div>
+          <div class="do"><b>Do</b>Let whitespace, typography and surface contrast separate sections. Use the accent once per view to point at the primary action or datum.</div>
+          <div class="dont"><b>Don't</b>Stack bordered cards inside bordered cards, gradients, neon colors, or animated flourishes. No dashboard clutter, no decorative UI that doesn't improve usability.</div>
         </div>
 
         <h3>Color system</h3>
-        <p>A tight, semantic palette. Neutrals do the structural work; indigo is the sole brand accent and appears sparingly.</p>
+        <p>A tight, semantic palette on a dark neutral canvas. The surface ramp does the structural
+           work — depth is background contrast, not lines. Emerald is the sole brand accent and
+           appears sparingly: search focus, selected states, primary actions, links, positive
+           metrics. Neutral dominates everywhere else.</p>
         <div class="swatches">
-          <div class="swatch"><div class="chip" style="background:#ffffff;border-bottom:1px solid var(--border)"></div><div class="meta"><b>Background</b><code>--bg #ffffff</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#f6f7f9"></div><div class="meta"><b>Surface soft</b><code>--bg-soft #f6f7f9</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#e5e7eb"></div><div class="meta"><b>Border</b><code>--border #e5e7eb</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#0b0d12"></div><div class="meta"><b>Text</b><code>--text #0b0d12</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#6b7280"></div><div class="meta"><b>Muted</b><code>--muted #6b7280</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#2b34e8"></div><div class="meta"><b>Accent</b><code>--accent #2b34e8</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#1b21a8"></div><div class="meta"><b>Accent ink</b><code>--accent-ink #1b21a8</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#eef0ff"></div><div class="meta"><b>Accent soft</b><code>--accent-soft #eef0ff</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#0f9d58"></div><div class="meta"><b>Success</b><code>--success #0f9d58</code></div></div>
-          <div class="swatch"><div class="chip" style="background:#dc2626"></div><div class="meta"><b>Danger</b><code>--danger #dc2626</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#0c0d0f"></div><div class="meta"><b>Background</b><code>--bg #0c0d0f</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#121417"></div><div class="meta"><b>Surface</b><code>--panel #121417</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#181b20"></div><div class="meta"><b>Elevated</b><code>--elevated #181b20</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#1f2328"></div><div class="meta"><b>Surface soft</b><code>--bg-soft #1f2328</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#262b31"></div><div class="meta"><b>Soft hover</b><code>--bg-hover #262b31</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#3a3d42"></div><div class="meta"><b>Border (rare)</b><code>--border rgba(255,255,255,0.05)</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#f5f5f5"></div><div class="meta"><b>Text</b><code>--text #f5f5f5</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#a1a1aa"></div><div class="meta"><b>Muted</b><code>--muted #a1a1aa</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#82828c"></div><div class="meta"><b>Faint</b><code>--faint #82828c</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#10b981"></div><div class="meta"><b>Accent</b><code>--accent #10b981</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#22c55e"></div><div class="meta"><b>Accent hover</b><code>--accent-hover #22c55e</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#34d399"></div><div class="meta"><b>Accent ink</b><code>--accent-ink #34d399</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#4ade80"></div><div class="meta"><b>Success</b><code>--success #4ade80</code></div></div>
+          <div class="swatch"><div class="chip" style="background:#f87171"></div><div class="meta"><b>Danger</b><code>--danger #f87171</code></div></div>
         </div>
         <div class="callout warn">
-          <strong>Contrast guardrails:</strong> body text (<code>#0b0d12</code> on white) ≈ 18:1; muted
-          text (<code>#6b7280</code>) ≈ 4.9:1 — reserve muted for secondary/large text, never for small
-          critical labels. Never place accent-on-white text below 16px without bumping to <code>--accent-ink</code>.
+          <strong>Contrast guardrails:</strong> muted text (<code>#a1a1aa</code>) and faint text
+          (<code>#82828c</code>) both clear 4.5:1 on every surface in the ramp — reserve faint for
+          tertiary labels. Accent-colored <em>text</em> uses <code>--accent-ink #34d399</code>; solid
+          accent <em>fills</em> use <code>--accent</code> with <code>--accent-contrast</code> ink on top.
         </div>
+        <h4>Dynamic team theming</h4>
+        <p>
+          When the active context is exactly one team — a team page, a player profile, or an answer
+          whose entities resolve to a single team — the accent token family (<code>--accent</code>,
+          <code>--accent-hover</code>, <code>--accent-ink</code>, <code>--accent-soft</code>,
+          <code>--accent-border</code>, <code>--accent-contrast</code>, <code>--chart</code>) is
+          overridden on that container with the team's brand hue via scoped CSS variables
+          (<code>apps/web/app/lib/teamTheme.ts</code>). Only accent-driven UI re-tints — buttons,
+          active tabs, links, chart marks, stat highlights. <strong>Backgrounds and neutrals never
+          recolor</strong>, and ambiguous contexts (head-to-heads, multi-team answers) stay emerald.
+          Hues are static brand-adjacent tones tuned for the dark surface, with fill ink chosen by
+          computed contrast.
+        </p>
 
         <h3>Typography</h3>
-        <p>Primary family <b>Inter</b> (fallbacks Geist, SF Pro). Tabular numerals for all metrics.
-           One scale, used everywhere:</p>
+        <p>Body family <b>Geist</b> (fallback SF Pro); display family <b>Barlow Condensed</b> for
+           headlines, scores and big numbers — uppercase, heavy, sports-page energy. Tabular
+           numerals for all metrics. Hierarchy comes from type (size, weight, tone), not from
+           boxes or rules. One scale, used everywhere:</p>
         <div class="preview ramp">
           <span class="preview-label">Type scale</span>
           <div><span class="k">Display / 40 · 800</span><span style="font-size:40px;font-weight:800;letter-spacing:-0.03em">Ask anything</span></div>
@@ -582,13 +614,16 @@
         <table class="tokens">
           <thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead>
           <tbody>
-            <tr><td><code>--r-sm / md / lg / xl</code></td><td>8 / 10 / 14 / 16px</td><td>chips &amp; skeletons / inputs-controls / inputs &amp; frames / cards</td></tr>
+            <tr><td><code>--r-sm / md / lg / xl</code></td><td>6 / 8 / 12 / 14px</td><td>badges &amp; skeletons / controls / list frames / cards &amp; search</td></tr>
             <tr><td><code>--r-pill</code></td><td>999px</td><td>chips, pills, badges</td></tr>
-            <tr><td><code>--shadow-card</code></td><td>0 1px 3px rgba(16,24,40,.06)</td><td>the only resting elevation — cards</td></tr>
-            <tr><td><code>--shadow-pop</code></td><td>0 8px 28px rgba(16,24,40,.12)</td><td>transient overlays: menus, tooltips, modals</td></tr>
-            <tr><td><code>--dur / --ease</code></td><td>160ms · cubic-bezier(.2,.8,.2,1)</td><td>default transition; 120ms fast, 240ms for entrances</td></tr>
+            <tr><td><code>--shadow-card</code></td><td>0 1px 3px rgba(0,0,0,.5)</td><td>resting elevation — cards, the search bar</td></tr>
+            <tr><td><code>--shadow-pop</code></td><td>0 2px 6px + 0 12px 32px rgba(0,0,0,.45–.55)</td><td>transient overlays: popovers, dropdowns, the mobile drawer — these float on shadow alone, no border</td></tr>
+            <tr><td><code>--dur / --ease</code></td><td>160ms · cubic-bezier(.2,.8,.2,1)</td><td>default transition; 120ms fast, 240ms entrances, 700ms data draw-ins</td></tr>
           </tbody>
         </table>
+        <p>Hover elevation is a <em>surface</em> change, not a border change: resting surfaces hover to
+           <code>--elevated</code>, soft surfaces to <code>--bg-hover</code>, optionally with a 1px rise
+           (<code>translateY(-1px)</code>) and <code>--shadow-card</code>.</p>
       </section>
 
       <!-- 3. PAGE LAYOUT -->
@@ -657,9 +692,9 @@
 
         <h3>Interaction states</h3>
         <div class="deflist">
-          <dt>Default</dt><dd>1.5px <code>--border</code>, subtle <code>--shadow-sm</code>, faint placeholder.</dd>
-          <dt>Hover</dt><dd>Border darkens to <code>--border-strong</code>; cursor text.</dd>
-          <dt>Focus</dt><dd>Border → <code>--accent</code> + 4px <code>--accent-soft</code> ring. No outline suppression without a replacement ring.</dd>
+          <dt>Default</dt><dd>Borderless Spotlight-style bar: <code>--elevated</code> surface, <code>--shadow-card</code>, faint placeholder. The largest interactive element on the page.</dd>
+          <dt>Hover</dt><dd>Surface brightens to <code>--bg-soft</code>; cursor text.</dd>
+          <dt>Focus</dt><dd>2px <code>--accent-border</code> ring + <code>--shadow-pop</code> lift. No outline suppression without a replacement ring.</dd>
           <dt>Loading</dt><dd>Input stays enabled; an <code>AnswerSkeleton</code> renders below. Optionally a right-aligned inline spinner glyph.</dd>
           <dt>Disabled</dt><dd>Only during hard failures; reduce opacity, keep text legible.</dd>
         </div>
@@ -1081,7 +1116,8 @@ GROUP BY player ORDER BY td DESC LIMIT 10;</pre>
           <dt>Charts</dt><dd>Bars go full-width; labels shorten/ellipsize; value labels stay at bar end.</dd>
           <dt>Grids</dt><dd>Leaderboards collapse 3→1 column; metric cards go 4→2 up.</dd>
           <dt>Targets</dt><dd>All interactive elements ≥44×44px; increased spacing between tappable chips/links.</dd>
-          <dt>Nav</dt><dd>Links stay inline (only two); if navigation grows, collapse to a 44px menu button opening a sheet.</dd>
+          <dt>Inputs</dt><dd>Every text input holds ≥16px font on small screens — iOS Safari zooms the page when a focused input is smaller. The keyboard-shortcut hint (<kbd>/</kbd>) is hidden on touch.</dd>
+          <dt>Nav</dt><dd>The desktop left rail collapses to a sticky top bar (brand + hamburger); the panel becomes a slide-in drawer floating on <code>--shadow-pop</code> over a scrim.</dd>
         </div>
       </section>
 
@@ -1115,7 +1151,7 @@ GROUP BY player ORDER BY td DESC LIMIT 10;</pre>
           <tbody>
             <tr><td>Framework</td><td><b>Next.js</b> (App Router, TS)</td><td>Server components for share pages (<code>/a/[id]</code>) &amp; leaderboards data; client components for the interactive search + card.</td></tr>
             <tr><td>UI runtime</td><td><b>React</b></td><td>Existing <code>Search</code>, <code>AnswerCard</code>, <code>BarChart</code>, <code>Skeleton</code>, <code>Nav</code> components are the seed kit.</td></tr>
-            <tr><td>Styling</td><td><b>Tailwind</b></td><td>Migrate today's inline styles / <code>globals.css</code> to Tailwind utilities. Encode the tokens above as <code>theme.extend</code> (colors, spacing, radius, fontFamily) so classes stay 1:1 with this spec.</td></tr>
+            <tr><td>Styling</td><td><b>Hand-rolled token CSS</b></td><td>The shipped system is <code>apps/web/app/globals.css</code>: CSS custom properties for every token plus <code>yb-</code> component classes. No utility framework — the token file is small, auditable, and the single runtime source of truth.</td></tr>
             <tr><td>Primitives</td><td><b>shadcn/ui</b></td><td>Dialog, DropdownMenu, Tooltip, Select, Skeleton — accessible, unstyled-ish bases restyled with our tokens. Do not adopt its default look wholesale; theme it to YunoBall.</td></tr>
             <tr><td>Motion</td><td><b>Framer Motion</b></td><td>Answer-card entrance (fade + 4px rise), bar grow-in, modal enter/exit. Wrap in a reduced-motion guard (<code>useReducedMotion</code>).</td></tr>
             <tr><td>Charts</td><td><b>Recharts</b></td><td>Replace/augment the hand-rolled SVG <code>BarChart</code> for tooltips, comparison lines, and zoom — keep the single-accent, minimal-axis styling. Table remains the accessible equivalent.</td></tr>
@@ -1123,25 +1159,27 @@ GROUP BY player ORDER BY td DESC LIMIT 10;</pre>
           </tbody>
         </table>
 
-        <h3>Token setup (Tailwind)</h3>
-        <pre class="code"><span class="c">// tailwind.config.ts — mirror the tokens in this spec</span>
-theme: { extend: {
-  <span class="t">colors</span>: { bg:<span class="s">'#ffffff'</span>, 'bg-soft':<span class="s">'#f6f7f9'</span>, border:<span class="s">'#e5e7eb'</span>,
-    text:<span class="s">'#0b0d12'</span>, muted:<span class="s">'#6b7280'</span>,
-    accent:{ DEFAULT:<span class="s">'#2b34e8'</span>, ink:<span class="s">'#1b21a8'</span>, soft:<span class="s">'#eef0ff'</span> } },
-  <span class="t">borderRadius</span>: { md:<span class="s">'10px'</span>, lg:<span class="s">'14px'</span>, xl:<span class="s">'16px'</span> },
-  <span class="t">fontFamily</span>: { sans:[<span class="s">'Inter'</span>,<span class="s">'Geist'</span>,<span class="s">'system-ui'</span>] },
-}}</pre>
+        <h3>Token setup (CSS custom properties)</h3>
+        <pre class="code"><span class="c">/* apps/web/app/globals.css — the runtime source of truth (excerpt) */</span>
+:root {
+  <span class="c">/* Surfaces — depth is background contrast, not borders */</span>
+  --bg: <span class="s">#0c0d0f</span>;  --panel: <span class="s">#121417</span>;  --elevated: <span class="s">#181b20</span>;
+  --bg-soft: <span class="s">#1f2328</span>;  --bg-hover: <span class="s">#262b31</span>;
+  --border: <span class="s">rgba(255,255,255,0.05)</span>;  <span class="c">/* rare by design */</span>
+  <span class="c">/* Ink */</span>
+  --text: <span class="s">#f5f5f5</span>;  --muted: <span class="s">#a1a1aa</span>;  --faint: <span class="s">#82828c</span>;
+  <span class="c">/* Brand — emerald, used sparingly; team theming overrides these per-context */</span>
+  --accent: <span class="s">#10b981</span>;  --accent-hover: <span class="s">#22c55e</span>;  --accent-ink: <span class="s">#34d399</span>;
+}</pre>
 
-        <h3>Component migration checklist</h3>
+        <h3>Component conventions (as shipped)</h3>
         <ul class="spec">
-          <li><b>Tokens first</b> — port <code>globals.css</code> variables into <code>tailwind.config</code>; keep the CSS custom properties as the runtime source so both stay in sync.</li>
-          <li><b>Search</b> — keep autofocus; add <kbd>/</kbd> ⁄ <kbd>⌘K</kbd> focus + sticky-on-scroll; wrap results in <code>aria-live</code>.</li>
-          <li><b>AnswerCard</b> — swap inline styles for utilities; add Framer entrance; wire "Show the query" and "Share" to shadcn primitives where helpful.</li>
-          <li><b>Table</b> — adopt TanStack Table for sort/filter/expand; keep sticky header, zebra, numeric alignment, and the scroll container.</li>
-          <li><b>BarChart</b> — offer a Recharts variant with hover tooltips + comparison; retain the dependency-free SVG as a lightweight fallback.</li>
-          <li><b>Skeleton</b> — reuse as-is; ensure every async region has a matching skeleton and <code>aria-busy</code>.</li>
-          <li><b>States</b> — add shared <code>EmptyState</code> / <code>ErrorState</code> components per §11–12; route-level <code>error.tsx</code> boundary.</li>
+          <li><b>Search</b> — autofocus; <kbd>/</kbd> ⁄ <kbd>⌘K</kbd> focus; borderless elevated bar with an accent focus ring; results in <code>aria-live</code>.</li>
+          <li><b>AnswerCard</b> — borderless <code>Surface</code>; interpretation strip as an inset well; accent family re-tints via <code>teamTheme()</code> when one team is in context.</li>
+          <li><b>Tables</b> — <code>SortTable</code> over <code>.yb-table</code>: no wrapper frame, sticky header on a stronger hairline, row hover on <code>--elevated</code>, numeric right-alignment with tabular figures.</li>
+          <li><b>Lists</b> — leaders, performers, boards are spacing + typography rows with surface hovers, not bordered cards.</li>
+          <li><b>Skeleton</b> — every async region has a matching skeleton with a 150ms anti-flash delay and <code>aria-busy</code>.</li>
+          <li><b>States</b> — shared empty/error state styles (<code>.yb-state</code>), route-level <code>error.tsx</code> boundary.</li>
         </ul>
 
         <div class="callout">
