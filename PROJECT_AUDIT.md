@@ -27,6 +27,9 @@ Issue IDs (C#, H#, M#, L#) refer to the ranked refactors in §16.
 | **C3** | Compare no longer substitutes fantasy points | Batch 2 | `compareValueExpr` computes the requested stat (ratio/formula/computed) from each side's box-score totals and orders/narrates on it; non-comparable advanced stats are refused, not mis-answered. Verified live: completion % 67.3% vs 65.2% (leader correctly flips to Mahomes), passer rating, yards/carry, total TDs all correct; passing-EPA refused. +2 regression tests. |
 | **H6** | Ratio thresholds compare the ratio, not the numerator | Batch 2 | `gameCountSql` and `playerStreakSql` use `ratioRowExpr` for ratio stats ("games over 5 yards per carry" now means YPC > 5, not rushing yards > 5). |
 | **C4** | Capability gate + `buildSql`×`EXPLAIN` sweep test | Batch 2 | New `statComputableFor(intent, stat)` (column-availability per storage grain) drives a single pipeline gate that refuses a mis-routed stat honestly instead of emitting SQL that fails to plan. `teamStat` now computes ratio/formula stats (aggExpr); `qualifyingCount`/`playerStreak` handle passer rating. New `test/sweep.test.ts` EXPLAINs every routable intent×stat against a scratch schema (185 combos) — a permanent guard for the whole executor layer. Verified live: "chiefs completion %" → 66.3%; "rank in yards per carry" → honest refusal; "passer rating over 100" → 6 players. |
+| **C5** (part) | Provider cache staleness + upstream-drift protection | Batch 3 | `--no-cache` flag forces a fresh fetch (current-season nflverse assets are republished weekly); `checkColumns` fails the run on a missing identity column and warns on missing stat columns, so an upstream rename can't silently fabricate zeros. +1 drift test. |
+| **H8** (part) | `Ctx.known()` no longer swallows all DB errors | Batch 3 | Only "relation does not exist" (42P01) is ignorable; any other error (connection reset, permissions) now fails the run instead of emptying the FK set and mass-dropping every row as an orphan with exit 0. |
+| **CI fix** | Ingest CLI accepts space-separated years | Batch 3 | `--years 2023 2024` (used by ci.yml) crashed node's `parseArgs`; `allowPositionals` + positional-merge makes the documented syntax work. Caught by the first real PR CI run. |
 
 ### 🟡 In Progress
 
@@ -36,7 +39,7 @@ Issue IDs (C#, H#, M#, L#) refer to the ranked refactors in §16.
 
 ### ⬜ Open (next up)
 
-Batch 3 (ingest integrity: **C5**, **H8**), Batch 4 (prod hardening: **H3**, **H5**, **H7**, **H10**), Batch 5+ (Medium/Low). See §16 for the full ranked list.
+Remainder of Batch 3 — **H8 (memory + backfill):** per-season batching for `loadPlayers`/`loadPlayerGameStats` so `--all` (25+ seasons) doesn't accumulate multi-GB before one giant transaction; and a players-dimension backfill guard so ingesting an *older* season after a newer one doesn't overwrite current bios (needs a stored roster-season to compare — tracked as **H8b**). **C5 (ETag revalidation):** the `--no-cache` flag is the operational mitigation now; automatic conditional-GET revalidation of current-season assets is the fuller fix (**C5b**). Then Batch 4 (prod hardening: **H3**, **H5**, **H7**, **H10**), Batch 5+ (Medium/Low). See §16.
 
 > **Follow-up noted (enhancement, not a defect):** `player_rank`/`qualifying_count` currently *refuse* game-only-ratio stats (yards per carry, catch rate) at season/career scope, because those denominators (carries, targets) live only in the game log. A future upgrade could route those two executors through the game log — as `leaders` already does — to answer them instead of refusing. Tracked as **M11**.
 
@@ -51,6 +54,7 @@ Batch 3 (ingest integrity: **C5**, **H8**), Batch 4 (prod hardening: **H3**, **H
 | 2026-07-13 | Batch 2 (C3, H6) | ✅ web | ✅ 3/3 | ✅ 3/3 | ✅ **288/288** (+2 compare regressions) | ✅ **13/13** | Compare fix verified live across ratio/formula/computed/refusal cases |
 | 2026-07-13 | Batch 2 (C4) | ✅ web | ✅ 3/3 | ✅ 3/3 | ✅ **289/289** (+ sweep: 185 combos EXPLAIN'd) | ✅ **13/13** | Capability gate verified live; every routable intent×stat plans cleanly |
 | 2026-07-13 | PR #16 CI | — | — | — | — | ❌→ fix | First real CI run (PR) caught a C1 regression: the ingest CLI rejected `--years 2023 2024` (node parseArgs needs repeated flags). Fixed the CLI to accept space-separated / positional years and re-verified with the *exact* CI command. |
+| 2026-07-13 | Batch 3 (C5, H8) | — | ✅ 3/3 | ✅ 3/3 | ✅ **290/290** (+ drift + CLI tests) | — | Real ingest re-run confirms `checkColumns` doesn't false-fire on live nflverse data |
 
 ---
 
@@ -78,6 +82,7 @@ The flat config keeps `typescript-eslint` recommended + Next/React-hooks rules a
 
 ## Changelog
 
+- **2026-07-13 — Batch 3 partial (C5, H8, CI fix):** Ingest CLI accepts space-separated years (fixes the first real PR CI failure). `Ctx.known()` fails loudly on non-"table-missing" DB errors instead of silently mass-dropping rows. `checkColumns` guards the weekly-stats and roster pipelines against upstream renames (fabricated-zeros bug); `--no-cache` forces fresh fetches of republished current-season assets. +2 tests (drift guard, CLI). 290 unit tests green; real ingest re-verified.
 - **2026-07-13 — Batch 2 complete (C4):** Added a capability gate (`statComputableFor`) that refuses a stat an executor can't compute from its storage grain, turning a class of latent 500s (SUM() over an empty ratio expr; game-only columns referenced against the season rollup) into honest refusals. `teamStat` now computes ratio/formula stats; `qualifyingCount`/`playerStreak` handle passer rating. New `test/sweep.test.ts` EXPLAINs every routable intent×stat pair against a scratch schema as a permanent regression guard. 289 unit + 13 e2e green.
 - **2026-07-13 — Batch 2 partial (C3, H6):** COMPARE now computes and ranks on the actual requested stat (ratio/formula/computed) from each side's box-score totals — the fantasy-points substitution that produced wrong numbers under the right label is gone; advanced pbp stats are refused rather than mis-answered. Ratio thresholds (game-count, streaks) qualify on the per-game ratio, not the raw numerator. +2 regression tests; 288 unit + 13 e2e green.
 - **2026-07-13 — Batch 1 (Trust the gates):** ESLint 9 across the monorepo; CI e2e green (2023+2024 ingest + spec fixes); Postgres pool hardening (error handler, timeouts, optional CA-verified TLS); prod build guard on `NEXT_PUBLIC_API_URL`; POST-request timeouts; local ports aligned to 5432; new DB/proxy env vars documented in `.env.example`. Net: the quality gates that every other issue's Definition of Done depends on are now trustworthy.
@@ -369,6 +374,8 @@ Effort: S < ½ day · M ≈ 1–2 days · L ≈ 3+ days.
 - M9: Split `players/[id]/page.tsx` into `components/player/*`; consolidate duplicated frontend helpers; adopt `useApi` (or SWR) in the 5 hand-rolled fetch effects.
 - M10: Root `test`/`build`/`dev` scripts wired through turbo; Prettier + `.editorconfig` + lint-staged; missing FKs and CHECK constraints; document `TRUST_PROXY_HOPS`; add `NEXT_PUBLIC_ASSISTANT_ENABLED` to turbo `globalEnv`.
 - M11 *(new, from C4)*: Route `player_rank`/`qualifying_count` through the game log for game-only-ratio stats (yards per carry, catch rate) so they answer instead of refusing — mirrors what `leaders` already does. Enhancement; the capability gate makes today's behavior an honest refusal, not a crash.
+- H8b *(remainder of H8)*: Per-season batching for `loadPlayers`/`loadPlayerGameStats` (so `--all` doesn't hold 25+ seasons in memory before one giant transaction), and a players-dimension backfill guard (ingesting an older season after a newer one must not overwrite current bios — needs a stored roster-season to compare).
+- C5b *(remainder of C5)*: Automatic conditional-GET (ETag / Last-Modified) revalidation of current-season assets in the provider, so freshness doesn't depend on remembering `--no-cache`.
 
 ### Low — polish
 

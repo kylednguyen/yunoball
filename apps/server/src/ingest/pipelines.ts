@@ -17,6 +17,38 @@ import { upsert } from "./upsert.js";
 import { allRows, assets, rows as streamRows } from "./providers/nflverse.js";
 import type { CsvRow } from "./providers/nflverse.js";
 
+/** Guard against upstream schema drift. A pipeline reads columns by name; if
+ * nflverse renames one, the coercers silently return null and summed stats
+ * fabricate zeros — corrupt data with exit code 0. So verify the columns are
+ * still there before mapping: missing IDENTITY columns fail the run (the rows
+ * would be structurally wrong); missing STAT columns warn loudly (the values
+ * would be null/zero), so drift is never silent. */
+export function checkColumns(
+  sample: CsvRow | undefined,
+  asset: string,
+  identity: string[],
+  stats: string[] = [],
+): void {
+  if (!sample) return; // empty asset is handled by the pipelines downstream
+  const have = new Set(Object.keys(sample));
+  const missingId = identity.filter((c) => !have.has(c));
+  if (missingId.length > 0) {
+    throw new Error(
+      `${asset}: upstream schema drift — missing required columns ` +
+        `[${missingId.join(", ")}]. Refusing to ingest (rows would be corrupt); ` +
+        `update the pipeline mapping in ingest/pipelines.ts.`,
+    );
+  }
+  const missingStats = stats.filter((c) => !have.has(c));
+  if (missingStats.length > 0) {
+    logger.warn(
+      { asset, missing: missingStats },
+      `${asset}: expected stat columns absent — those values will be null/zero. ` +
+        "Likely upstream rename; check the pipeline mapping.",
+    );
+  }
+}
+
 export async function loadTeams(ctx: Ctx): Promise<number> {
   const raw = await allRows(assets.teams());
   let rows = raw.map((r) => ({
@@ -45,6 +77,9 @@ export async function loadSeasons(ctx: Ctx, years: number[]): Promise<number> {
 export async function loadPlayers(ctx: Ctx, years: number[]): Promise<number> {
   const raw: CsvRow[] = [];
   for (const year of years) raw.push(...(await allRows(assets.rosters(year))));
+
+  checkColumns(raw[0], "rosters", ["gsis_id", "full_name", "season"],
+    ["position", "birth_date", "height", "weight"]);
 
   let rows = raw.map((r) => ({
     player_id: r.gsis_id ?? "",
@@ -133,6 +168,18 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
   const lookup = await gameIdLookup(years);
   const raw: CsvRow[] = [];
   for (const year of years) raw.push(...(await allRows(assets.weeklyStats(year))));
+
+  checkColumns(
+    raw[0],
+    "stats_player_week",
+    ["player_id", "season", "week", "team", "season_type"],
+    [
+      "completions", "attempts", "passing_yards", "passing_tds", "passing_interceptions",
+      "carries", "rushing_yards", "rushing_tds", "targets", "receptions",
+      "receiving_yards", "receiving_tds", "fantasy_points_ppr",
+      "def_tackles_solo", "def_sacks", "def_interceptions",
+    ],
+  );
 
   const sum3 = (a: string | undefined, b: string | undefined, c: string | undefined) =>
     (int(a) ?? 0) + (int(b) ?? 0) + (int(c) ?? 0);
