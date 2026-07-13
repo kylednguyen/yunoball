@@ -50,6 +50,25 @@ export function ratioFloor(def: StatDef, scope: string): number {
     : def.ratio?.floorSeason ?? 150;
 }
 
+/** One clamped term of the NFL passer-rating formula. */
+function prTerm(expr: string): string {
+  return `LEAST(GREATEST(${expr}, 0), 2.375)`;
+}
+
+/** NFL passer rating over aggregated sums (agg=true) or one game's columns.
+ * rating = (a + b + c + d) / 6 * 100 with each term clamped to [0, 2.375]:
+ *   a = (CMP/ATT - 0.3) * 5      b = (YDS/ATT - 3) * 0.25
+ *   c = TD/ATT * 20              d = 2.375 - INT/ATT * 25   */
+export function passerRatingExpr(agg: boolean): string {
+  const col = (c: string) => (agg ? `SUM(COALESCE(s.${c}, 0))` : `COALESCE(s.${c}, 0)`);
+  const att = `NULLIF(${col("attempts")}, 0)`;
+  const a = prTerm(`(${col("completions")}::numeric / ${att} - 0.3) * 5`);
+  const b = prTerm(`(${col("passing_yards")}::numeric / ${att} - 3) * 0.25`);
+  const c = prTerm(`${col("passing_tds")}::numeric / ${att} * 20`);
+  const d = prTerm(`2.375 - ${col("interceptions")}::numeric / ${att} * 25`);
+  return `ROUND((${a} + ${b} + ${c} + ${d}) / 6 * 100, 1)`;
+}
+
 /** Per-row ratio expression over the game log (one game's rate). */
 export function ratioRowExpr(def: StatDef): string {
   return (
@@ -62,6 +81,7 @@ export function ratioRowExpr(def: StatDef): string {
  * the summed ratio for ratio stats (completion %, yards per carry). */
 export function aggExpr(spec: { stat: string }): string {
   const def = statDef(spec);
+  if (def.formula === "passer_rating") return passerRatingExpr(true);
   if (def.ratio) {
     return (
       `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0))::numeric / ` +
@@ -74,6 +94,7 @@ export function aggExpr(spec: { stat: string }): string {
 /** Summed value of a stat, honoring ratio stats which sum the numerator and
  * denominator separately rather than the empty `expr`. */
 export function sumValueExpr(def: StatDef): string {
+  if (def.formula === "passer_rating") return passerRatingExpr(true);
   return def.ratio
     ? `ROUND(SUM(COALESCE(s.${def.ratio.num}, 0))::numeric / NULLIF(SUM(COALESCE(s.${def.ratio.den}, 0)), 0)${pctFactor(def)}, 1)`
     : `SUM(${def.expr})`;

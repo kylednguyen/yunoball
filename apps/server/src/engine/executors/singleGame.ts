@@ -2,11 +2,14 @@
  * a named player ("Derrick Henry most rushing yards in a game"). */
 
 import type { SingleGameSpec } from "../spec.js";
-import { Params, ratioRowExpr, statDef } from "./shared.js";
+import { Params, passerRatingExpr, ratioRowExpr, statDef } from "./shared.js";
 
 export function singleGameSql(spec: SingleGameSpec, p: Params): string {
   const def = statDef(spec);
-  const sgExpr = def.ratio ? ratioRowExpr(def) : def.expr;
+  const sgExpr =
+    def.formula === "passer_rating"
+      ? passerRatingExpr(false)
+      : def.ratio ? ratioRowExpr(def) : def.expr;
   const stype = p.add(spec.seasonType);
   const preds = [`${sgExpr} > 0`, `g.season_type = ${stype}`];
   if (spec.playerId) preds.push(`s.player_id = ${p.add(spec.playerId)}`);

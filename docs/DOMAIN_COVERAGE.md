@@ -91,7 +91,9 @@ Legend: ✅ answered from the warehouse · 🟡 partially (noted) ·
 
 | Item | Status |
 |---|---|
-| EPA / DVOA / CPOE / success rate / win probability / expected points / pressure rate | 🚫 tailored refusal — proprietary or needs full play-by-play |
+| Passer rating | ✅ NFL formula over warehouse sums — "Mahomes passer rating in 2023" → *92.6* (matches official) |
+| EPA / CPOE / success rate / expected points | 📥 columns exist in the pbp we already stream — next ingest pass |
+| QBR / DVOA / win probability / pressure rate | 🚫 proprietary models or data not in public pbp |
 | Air yards | ✅ — "Tyreek Hill air yards in 2023" → *1,847*; passing/receiving boards |
 
 ## NL edge cases

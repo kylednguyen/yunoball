@@ -38,7 +38,9 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
     if (spec.teamId) where.push(`s.team_id = ${p.add(spec.teamId)}`);
     const having = def.ratio
       ? `HAVING SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(ratioFloor(def, spec.scope))} `
-      : "";
+      : def.formula === "passer_rating"
+        ? `HAVING SUM(COALESCE(s.attempts, 0)) >= ${p.add(ratioFloor(def, spec.scope))} `
+        : "";
     return (
       `SELECT p.player_id, p.full_name, ${aggExpr(spec)} AS value ` +
       "FROM player_game_stats s " +

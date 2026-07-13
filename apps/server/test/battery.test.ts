@@ -149,7 +149,7 @@ const CASES: [string, Expect][] = [
   ["Most career sacks", answer({ intent: "leaders", scope: "career", stat: "def_sacks" })],
   ["Most career receiving yards", answer({ intent: "leaders", scope: "career", stat: "receiving_yards" })],
   ["Longest career", generic],
-  ["Career passer rating", refusal()],
+  ["Career passer rating", answer({ intent: "leaders", stat: "passer_rating", scope: "career" })], // upgraded: was a refusal
   ["Career rushing average", answer({ intent: "leaders", stat: "yards_per_carry", scope: "career" })], // upgraded: was a refusal
   ["Career records", generic],
   // ---- 6. Leaders ----

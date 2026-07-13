@@ -3,7 +3,8 @@
 
 import type { PlayerTotalSpec } from "../spec.js";
 import {
-  gamePreds, needsGameLog, Params, playerGameRowsSql, ratioRowExpr, ROOKIE_PRED, statDef,
+  gamePreds, needsGameLog, Params, passerRatingExpr, playerGameRowsSql,
+  ratioRowExpr, ROOKIE_PRED, statDef,
 } from "./shared.js";
 
 export function playerTotalSql(spec: PlayerTotalSpec, p: Params): string {
@@ -11,6 +12,17 @@ export function playerTotalSql(spec: PlayerTotalSpec, p: Params): string {
   const playerPred = spec.playerId
     ? `s.player_id = ${p.add(spec.playerId)}`
     : `lower(p.full_name) LIKE ${p.add(`%${(spec.player ?? "").toLowerCase()}%`)}`;
+
+  if (def.formula === "passer_rating" && spec.playerId) {
+    // One aggregate row: the formula over the scoped game log's sums.
+    const where = [playerPred, ...gamePreds(spec, p)];
+    return (
+      `SELECT ${passerRatingExpr(true)} AS total, COUNT(*) AS games ` +
+      "FROM player_game_stats s " +
+      "JOIN games g ON g.game_id = s.game_id " +
+      `WHERE ${where.join(" AND ")}`
+    );
+  }
 
   if (spec.median && spec.playerId) {
     // Median of the per-game values over the scoped game log.
