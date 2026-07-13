@@ -139,15 +139,6 @@ async function surnameCandidates(surname: string): Promise<SurnameCandidate[]> {
 
 const PLAYER_INTENTS = new Set(["player_total", "player_seasons", "game_log", "game_count", "scoring"]);
 
-function outcome(
-  status: AuditStatus,
-  spec: QuerySpec,
-  confidence: AuditConfidence,
-  extra: Partial<AuditOutcome> = {},
-): AuditOutcome {
-  return { status, spec, warnings: [], confidence, ...extra };
-}
-
 export async function audit(spec0: QuerySpec, ctx: AuditCtx): Promise<AuditOutcome> {
   // The auditor legitimately validates fields across every intent, so it uses
   // the fields() reader view (same object; executors keep the narrow types).

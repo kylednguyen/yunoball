@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { AnswerCard } from "./components/AnswerCard";
@@ -73,7 +72,6 @@ export function Search() {
       setQuestion(q);
       run(q);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Leaders section (and any other widget) can request a search via a custom

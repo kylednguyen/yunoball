@@ -43,7 +43,8 @@ test.describe("explore", () => {
     await page.getByRole("option", { name: "Rushing Yards" }).click();
     await page.getByRole("button", { name: "Filter by position" }).click();
     await page.getByRole("option", { name: "RB" }).click();
-    await expect(page.locator("tbody tr").first()).toContainText("Christian McCaffrey");
+    // Player boards render as ranked link cards; the #1 card is .yb-board-top.
+    await expect(page.locator(".yb-board-top")).toContainText("Christian McCaffrey");
 
     await page.getByRole("button", { name: "Select leaderboard category" }).click();
     await page.getByRole("option", { name: "Team rankings" }).click();
@@ -82,18 +83,25 @@ test.describe("explore", () => {
   });
 
   test("player page filters the game log by season", async ({ page }) => {
-    await page.goto("/players/00-0033873?season=2022"); // Mahomes
+    await page.goto("/players/00-0033873?season=2023"); // Mahomes
     await expect(page.getByRole("heading", { name: "Patrick Mahomes" })).toBeVisible();
-    // Position rank pulled from the URL season.
-    await expect(page.locator(".yb-page-sub")).toContainText("QB #1 of");
+    // Header carries the most-recent-season PPR position rank (QB #N of M).
+    await expect(page.locator(".yb-page-sub").first()).toContainText(/QB #\d+ of \d+/);
 
-    const logRows = page.locator("table").nth(1).locator("tbody tr");
-    const count = await logRows.count();
-    expect(count).toBeGreaterThan(0);
-    expect(count).toBeLessThan(30); // one season, not the whole career
+    // The season-filterable game log lives in its own tab.
+    await page.getByRole("tab", { name: "Game Log" }).click();
+    const logRows = page.locator(".yb-table tbody tr");
 
+    // One season → a bounded set of rows.
+    await page.getByRole("button", { name: "Filter game log by season" }).click();
+    await page.getByRole("option", { name: "2023 season" }).click();
+    await expect.poll(() => logRows.count()).toBeLessThan(30);
+    const oneSeason = await logRows.count();
+    expect(oneSeason).toBeGreaterThan(0);
+
+    // Widen to all seasons → strictly more rows.
     await page.getByRole("button", { name: "Filter game log by season" }).click();
     await page.getByRole("option", { name: "All seasons" }).click();
-    expect(await logRows.count()).toBeGreaterThan(count);
+    await expect.poll(() => logRows.count()).toBeGreaterThan(oneSeason);
   });
 });

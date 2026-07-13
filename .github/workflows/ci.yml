@@ -57,9 +57,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
-      # Real nflverse data, one season — a few MB pulled from GitHub release
-      # assets, cached across pipelines within the run.
-      - run: pnpm ingest:nfl --season 2024
+      # Real nflverse data. The e2e suite asserts against 2023 (leaders,
+      # standings, player ranks) and 2024 (season-switch), so both must be
+      # loaded — a 2023-only or 2024-only warehouse fails the suite.
+      - run: pnpm ingest:nfl --years 2023 2024
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
       # Playwright boots both servers itself (playwright.config.ts webServer):

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 
 /** Route-level error boundary: an unexpected render/runtime error shows a
@@ -25,9 +26,9 @@ export default function RouteError({
           <button className="yb-btn" onClick={reset}>
             Try again
           </button>
-          <a className="yb-btn ghost" href="/">
+          <Link className="yb-btn ghost" href="/">
             Go home
-          </a>
+          </Link>
         </div>
       </div>
     </main>

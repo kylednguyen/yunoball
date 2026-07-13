@@ -29,6 +29,10 @@ function norm(name: string): string {
     .join(" ");
 }
 
+// ESPN's public API is untyped and deeply nested; `any` is the honest shape
+// for a one-off id-backfill CLI. Fully modelling the response would be
+// disproportionate to the value.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getJson(url: string): Promise<any> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
@@ -36,6 +40,7 @@ async function getJson(url: string): Promise<any> {
 }
 
 async function main(): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const teams = (await getJson(TEAMS_URL)).sports[0].leagues[0].teams as any[];
   const espnByName = new Map<string, number>();
   for (const entry of teams) {
