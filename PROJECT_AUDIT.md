@@ -50,6 +50,7 @@ Batch 3 (ingest integrity: **C5**, **H8**), Batch 4 (prod hardening: **H3**, **H
 | 2026-07-13 | Batch 1 | ✅ web (+ C7 guard verified to fail on missing env) | ✅ 3/3 | ✅ 3/3 | ✅ 287/287 | ✅ **13/13** (2023+2024) | All gates green locally; CI steps reproduced |
 | 2026-07-13 | Batch 2 (C3, H6) | ✅ web | ✅ 3/3 | ✅ 3/3 | ✅ **288/288** (+2 compare regressions) | ✅ **13/13** | Compare fix verified live across ratio/formula/computed/refusal cases |
 | 2026-07-13 | Batch 2 (C4) | ✅ web | ✅ 3/3 | ✅ 3/3 | ✅ **289/289** (+ sweep: 185 combos EXPLAIN'd) | ✅ **13/13** | Capability gate verified live; every routable intent×stat plans cleanly |
+| 2026-07-13 | PR #16 CI | — | — | — | — | ❌→ fix | First real CI run (PR) caught a C1 regression: the ingest CLI rejected `--years 2023 2024` (node parseArgs needs repeated flags). Fixed the CLI to accept space-separated / positional years and re-verified with the *exact* CI command. |
 
 ---
 
