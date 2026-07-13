@@ -444,6 +444,36 @@ body {
 }
 
 
+/* ---- Mobile layout: tighter rhythm, no iOS focus zoom ---- */
+@media (max-width: 860px) {
+  .yb-page {
+    padding-top: 24px;
+  }
+  .yb-page-header {
+    margin-bottom: 24px;
+  }
+  .yb-hero {
+    padding: 28px 16px 20px;
+  }
+  .yb-dash {
+    gap: 28px;
+  }
+  /* The "/" shortcut hint is keyboard-only chrome — meaningless on touch,
+     and it crowds the placeholder on narrow screens. */
+  .yb-kbd-hint {
+    display: none;
+  }
+  input.yb-search {
+    padding-right: 22px;
+  }
+  /* iOS Safari zooms the page when a focused input's font is under 16px.
+     Keep every text input at 16px on small screens. */
+  input.yb-input,
+  .yb-nav-search input {
+    font-size: 16px;
+  }
+}
+
 /* ---- Mobile touch targets: 44px minimum (WCAG 2.5.8 / Apple HIG) ---- */
 @media (max-width: 860px) {
   .yb-nav-links a,
@@ -455,6 +485,7 @@ body {
   .yb-lb-name,
   .yb-input,
   .yb-x,
+  .yb-seg button,
   .yb-suggest-item {
     min-height: 44px;
   }
