@@ -65,7 +65,7 @@ export async function searchSuggest(req: Request, res: Response): Promise<void> 
 
 export async function searchExamples(req: Request, res: Response): Promise<void> {
   const n = parse(z.coerce.number().int().min(1).max(12).default(4), req.query.n);
-  res.json({ examples: examples(n) });
+  res.json({ examples: await examples(n) });
 }
 
 export async function sharedAnswer(req: Request, res: Response): Promise<void> {
