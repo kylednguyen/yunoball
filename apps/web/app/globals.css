@@ -586,7 +586,7 @@ body {
 .yb-hero {
   max-width: 820px;
   margin: 0 auto;
-  padding: 24px 20px 18px;
+  padding: 44px 20px 26px;
   text-align: center;
 }
 .yb-hero h1 {
@@ -605,8 +605,8 @@ body {
 }
 .yb-hero p {
   color: var(--muted);
-  font-size: var(--fs-body-lg);
-  margin: 0 auto 18px;
+  font-size: var(--fs-lead);
+  margin: 0 auto 26px;
   max-width: 520px;
 }
 .yb-search-shell {
@@ -619,25 +619,26 @@ body {
 }
 input.yb-search {
   width: 100%;
-  padding: 16px 46px 16px 18px;
+  padding: 18px 52px 18px 22px;
   font-size: 19px;
   font-family: inherit;
   color: var(--text);
-  background: var(--panel);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
+  background: var(--elevated);
+  border: none;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-card);
   outline: none;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 input.yb-search::placeholder {
   color: var(--faint);
 }
 input.yb-search:hover {
-  border-color: var(--border-strong);
+  background: var(--bg-soft);
 }
 input.yb-search:focus {
-  border-color: var(--accent);
+  background: var(--bg-soft);
+  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow-pop);
 }
 .yb-kbd-hint {
   position: absolute;
@@ -811,10 +812,10 @@ p.yb-answer {
 .yb-query-interpretation {
   display: grid;
   gap: 8px;
-  padding: 12px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  margin: 2px 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+  margin: 2px 0 16px;
 }
 .yb-query-interpretation > span {
   color: var(--muted);
@@ -837,9 +838,7 @@ p.yb-answer {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+  margin-top: 22px;
   align-items: center;
 }
 .yb-source-note {
@@ -1148,7 +1147,7 @@ pre.yb-sql {
 .yb-leaders {
   max-width: 760px;
   margin: 0 auto;
-  padding: 8px 20px 48px;
+  padding: 8px 20px 64px;
 }
 .yb-leaders-head {
   display: flex;
@@ -1309,15 +1308,13 @@ pre.yb-sql {
 .yb-page {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 32px max(20px, env(safe-area-inset-right))
+  padding: 40px max(20px, env(safe-area-inset-right))
     max(120px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
 }
-/* Header sits over a hairline: gives every page one consistent baseline the
-   title, sub, controls and filters hang from — cohesion without decoration. */
+/* Header breathes on whitespace alone: the title's accent tick and the gap
+   below give every page one consistent baseline — no ruled line. */
 .yb-page-header {
-  margin-bottom: 24px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
 }
 .yb-page-head {
   display: flex;
@@ -2073,9 +2070,9 @@ input.yb-input:focus {
 .yb-dash {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 8px 20px 40px;
+  padding: 8px 20px 48px;
   display: grid;
-  gap: 28px;
+  gap: 36px;
 }
 /* Let overflow-x children (the scores strip) scroll instead of widening the
    grid: grid items default to min-width:auto, which is their content size. */
