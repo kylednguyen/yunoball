@@ -35,8 +35,12 @@ function allSeasons(): number[] {
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
-  const { values } = parseArgs({
+  const { values, positionals } = parseArgs({
     args: argv,
+    // Allow bare year positionals so the documented `--years 2022 2023 2024`
+    // (and `ingest:nfl 2023 2024`) work — node's parseArgs otherwise treats
+    // every value after the first as an unexpected positional.
+    allowPositionals: true,
     options: {
       years: { type: "string", multiple: true },
       season: { type: "string", multiple: true },
@@ -48,7 +52,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     },
   });
 
-  const yearArgs = [...(values.years ?? []), ...(values.season ?? [])].map(Number);
+  const yearArgs = [
+    ...(values.years ?? []),
+    ...(values.season ?? []),
+    ...positionals,
+  ].map(Number);
   if (!values.all && yearArgs.length === 0) {
     logger.error("specify --season <year>, --years <y...>, or --all");
     return 2;
