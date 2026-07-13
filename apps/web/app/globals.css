@@ -1426,17 +1426,17 @@ pre.yb-sql {
   color: var(--faint);
 }
 
-/* ---- Scoreboard ---- */
+/* ---- Scoreboard — compact rows, ESPN-like density ---- */
 .yb-games-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 .yb-game-card {
-  padding: 12px 14px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .yb-game-card-head {
   display: flex;
@@ -1454,7 +1454,7 @@ pre.yb-sql {
   justify-content: space-between;
   gap: 10px;
   color: var(--muted);
-  font-size: var(--fs-body-lg);
+  font-size: var(--fs-ui);
 }
 .yb-game-row.winner {
   color: var(--text);
@@ -1482,7 +1482,7 @@ pre.yb-sql {
 .yb-game-score {
   font-variant-numeric: tabular-nums;
   font-family: var(--display);
-  font-size: 25px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1;
 }
@@ -1493,8 +1493,7 @@ pre.yb-sql {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
+  padding-top: 6px;
   margin-top: 2px;
   font-size: var(--fs-small);
   color: var(--faint);
