@@ -431,7 +431,9 @@ export default function PlayerPage() {
   );
   const notFound = !loading && !error && profile === null;
 
-  const latest = profile?.seasons[0];
+  // The header rank line follows the season in the URL; newest as fallback.
+  const latest =
+    profile?.seasons.find((s) => s.season === season) ?? profile?.seasons[0];
   const regLog = profile?.game_log.filter((g) => g.season_type === "REG") ?? [];
   const postLog = profile?.game_log.filter((g) => g.season_type === "POST") ?? [];
   const hasPlayoffs = (profile?.postseasons.length ?? 0) > 0 || postLog.length > 0;
@@ -594,7 +596,7 @@ export default function PlayerPage() {
                   </>
                 )}
                 {profile.scoring_plays.length > 0 && (
-                  <p className="yb-page-sub" style={{ marginTop: 14 }}>
+                  <p className="yb-muted" style={{ marginTop: 14, maxWidth: "62ch" }}>
                     {profile.scoring_plays.length} career touchdowns. First on{" "}
                     {fmtDate(profile.scoring_plays.at(-1)!.date)} against{" "}
                     {profile.scoring_plays.at(-1)!.opponent}, most recent on{" "}
