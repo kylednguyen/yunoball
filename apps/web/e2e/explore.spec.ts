@@ -43,7 +43,7 @@ test.describe("explore", () => {
     await page.getByRole("option", { name: "Rushing Yards" }).click();
     await page.getByRole("button", { name: "Filter by position" }).click();
     await page.getByRole("option", { name: "RB" }).click();
-    await expect(page.locator("tbody tr").first()).toContainText("Christian McCaffrey");
+    await expect(page.locator(".yb-board-top")).toContainText("Christian McCaffrey");
 
     await page.getByRole("button", { name: "Select leaderboard category" }).click();
     await page.getByRole("option", { name: "Team rankings" }).click();
@@ -87,9 +87,11 @@ test.describe("explore", () => {
     // Position rank pulled from the URL season.
     await expect(page.locator(".yb-page-sub")).toContainText("QB #1 of");
 
-    const logRows = page.locator("table").nth(1).locator("tbody tr");
+    // The filterable log lives on the Game Log tab.
+    await page.getByRole("tab", { name: "Game Log" }).click();
+    const logRows = page.locator("table").first().locator("tbody tr");
+    await expect(logRows.first()).toBeVisible();
     const count = await logRows.count();
-    expect(count).toBeGreaterThan(0);
     expect(count).toBeLessThan(30); // one season, not the whole career
 
     await page.getByRole("button", { name: "Filter game log by season" }).click();
