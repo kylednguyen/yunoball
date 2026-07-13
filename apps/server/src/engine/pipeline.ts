@@ -23,8 +23,9 @@ import { logger } from "../lib/logger.js";
 import { audit, logAudit } from "./audit.js";
 import { narrate, buildSql } from "./build.js";
 import { isRefusal, parseRules } from "./parseRules.js";
+import { statComputableFor } from "./executors/shared.js";
 import { loadIndex, loadTeamIndex, resolveEntities } from "./resolve.js";
-import { fields, specCacheKey } from "./spec.js";
+import { fields, specCacheKey, STATS } from "./spec.js";
 
 async function finalize(response: AnswerResult, sKey: string | null): Promise<AnswerResult> {
   cacheSet(textKey(response.question), response);
@@ -129,6 +130,24 @@ export async function runQueryPipeline(
     if (spec.intent === "player_total" && !spec.playerId && entities.length > 0) {
       spec.playerId = entities[0]!.canonical_id;
       spec.player = spec.player ?? entities[0]!.display_name;
+    }
+
+    // --- Capability gate: refuse a stat the intent's executor can't compute
+    // from its storage grain, rather than emit SQL that fails to plan. ---
+    if ("stat" in spec && !statComputableFor(spec.intent, spec.stat)) {
+      const label = STATS[spec.stat]?.label ?? spec.stat;
+      logAudit({
+        question, spec, status: "unsupported", warnings: [],
+        confidence: null, rowCount: 0, durationMs: Date.now() - startedAt,
+      });
+      return {
+        question,
+        narration:
+          `I can't compute ${label} for that kind of question yet — try it as a ` +
+          `season leaderboard or a player total.`,
+        sql: "", rows: [], columns: [], entities, cached: false,
+        share_id: shareId(question),
+      };
     }
 
     // --- Second-layer audit: validate against warehouse reality before SQL ---

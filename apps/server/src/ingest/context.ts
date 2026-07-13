@@ -22,7 +22,15 @@ export class Ctx {
       const res = await this.pool.query(`SELECT ${pk} FROM ${table}`);
       for (const row of res.rows) seen.add(String(row[pk]));
     } catch (err) {
-      logger.debug({ table, err: String(err) }, "known() skipped (table may not exist yet)");
+      // Only "relation does not exist" (42P01 — table not migrated yet) is an
+      // expected, ignorable miss. Anything else (connection reset, permission
+      // error) must fail the run: an empty FK set here would silently drop
+      // every row as an orphan and still exit 0.
+      if ((err as { code?: string }).code === "42P01") {
+        logger.debug({ table }, "known(): table does not exist yet");
+        return seen;
+      }
+      throw err;
     }
     return seen;
   }

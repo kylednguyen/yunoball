@@ -7,7 +7,7 @@
  * postponed games (null scores), stats for players missing from the dimension,
  * season-type filtering, dry runs, idempotent re-runs, schema drift.
  *
- * Requires the dev Postgres from docker-compose (localhost:5433); tests
+ * Requires the dev Postgres from docker-compose (localhost:5432); tests
  * create and drop their own scratch database.
  */
 
@@ -18,7 +18,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { teamRow } from "../src/ingest/normalize.js";
 
 const ADMIN_URL =
-  process.env.TEST_ADMIN_DATABASE_URL ?? "postgresql://yunoball:yunoball@localhost:5433/yunoball";
+  process.env.TEST_ADMIN_DATABASE_URL ?? "postgresql://yunoball:yunoball@localhost:5432/yunoball";
 const SCRATCH_DB = "yunoball_ts_test";
 
 // ---- fixture rows, shaped like the release CSVs (all values strings) ---- //
@@ -277,5 +277,18 @@ describe("run mechanics", () => {
     await expect(
       upsert(ctx, "teams", [{ team_id: "KC", name: "x", nickname: null, conference: null, division: null, bogus_column: 1 }], ["team_id"], teamRow),
     ).rejects.toThrow(/bogus_column|Unrecognized/i);
+  });
+
+  it("fails loudly when an upstream identity column is renamed (schema drift)", () => {
+    const sample = { player_id: "P", season: "2023", week: "1", team: "KC", season_type: "REG" };
+    // A renamed/missing identity column corrupts every row → hard failure.
+    const { player_id: _pid, ...missingId } = sample;
+    expect(() =>
+      p.checkColumns(missingId, "stats_player_week", ["player_id", "season"], []),
+    ).toThrow(/schema drift|player_id/);
+    // A missing STAT column only warns (the value becomes null/zero) → no throw.
+    expect(() =>
+      p.checkColumns(sample, "stats_player_week", ["player_id"], ["passing_yards"]),
+    ).not.toThrow();
   });
 });

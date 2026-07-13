@@ -22,6 +22,18 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL ?? "",
   // Least-privilege role for engine-executed SQL; falls back to the app URL.
   readonlyDatabaseUrl: process.env.READONLY_DATABASE_URL || process.env.DATABASE_URL || "",
+  // Provider CA for verified TLS to a hosted database. Supply the PEM inline
+  // (DATABASE_CA_CERT) or as a file path (DATABASE_CA_CERT_FILE). When neither
+  // is set, hosted connections stay encrypted but unverified (logged warning).
+  databaseCaCert: process.env.DATABASE_CA_CERT ?? "",
+  databaseCaCertFile: process.env.DATABASE_CA_CERT_FILE ?? "",
+  // Connection-pool sizing and query safety limits (milliseconds).
+  dbPoolMax: int(process.env.DB_POOL_MAX, 10),
+  dbConnectionTimeoutMs: int(process.env.DB_CONNECTION_TIMEOUT_MS, 10_000),
+  // Read-only (user-facing) query cap; and a generous write cap that ingest
+  // batches stay well under.
+  dbStatementTimeoutMs: int(process.env.DB_STATEMENT_TIMEOUT_MS, 15_000),
+  dbWriteStatementTimeoutMs: int(process.env.DB_WRITE_STATEMENT_TIMEOUT_MS, 120_000),
   // ponytail: always allow any localhost port so dynamically-assigned dev
   // ports work. Harmless — cors() sends no credentials. Tighten if a prod
   // deploy ever needs to reject localhost.

@@ -32,11 +32,20 @@ const CACHE_DIR =
 const RETRIES = 3;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// nflverse republishes current-season assets throughout the season (new weeks,
+// stat corrections), so the disk cache can serve stale data on an in-season
+// re-ingest. `--no-cache` forces a fresh fetch; historical seasons are
+// immutable, so the default cache-reuse stays correct for them.
+let forceRefresh = false;
+export function setCachePolicy(opts: { noCache?: boolean }): void {
+  forceRefresh = Boolean(opts.noCache);
+}
+
 /** Download to the on-disk cache (reused across runs) with retry + backoff. */
 async function download(url: string): Promise<string> {
   mkdirSync(CACHE_DIR, { recursive: true });
   const dest = path.join(CACHE_DIR, path.basename(url));
-  if (existsSync(dest) && statSync(dest).size > 0) return dest;
+  if (!forceRefresh && existsSync(dest) && statSync(dest).size > 0) return dest;
 
   let lastErr: unknown;
   for (let attempt = 1; attempt <= RETRIES; attempt++) {

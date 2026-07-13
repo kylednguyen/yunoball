@@ -8,7 +8,7 @@
 import { TEAM_FOUNDED, TEAM_HISTORY } from "./facts.js";
 import { fields, specLabel } from "./spec.js";
 import type { FieldedSpec, QuerySpec } from "./spec.js";
-import { compareOrderCol, statDef } from "./executors/shared.js";
+import { statDef } from "./executors/shared.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTHS_FULL = [
@@ -461,7 +461,10 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
   const quals = qualifiers(spec);
 
   if (spec.intent === "compare") {
-    const col = compareOrderCol(spec);
+    // cmp_value is the requested stat computed from each side's totals (see
+    // executors/compare) — never a fantasy-points stand-in.
+    const u = statDef(spec).unit ?? "";
+    const val = (r: Row) => `${fmt(r.cmp_value)}${u}`;
     const scope = spec.firstN
       ? `their first ${spec.firstN}${post} games`
       : spec.season
@@ -471,16 +474,16 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
     if (!other || !other.games) {
       const missing = other ? other.full_name : spec.player2;
       return (
-        `Over ${scope}, ${name} has ${fmt(top[col])} ${label} ` +
+        `Over ${scope}, ${name} has ${val(top)} ${label} ` +
         `(${top.games} games); ${missing} has no${post} games in the warehouse.`
       );
     }
-    if (Number(top[col] ?? 0) === Number(other[col] ?? 0)) {
-      return `Dead even over ${scope}: both at ${fmt(top[col])} ${label}.`;
+    if (Number(top.cmp_value ?? 0) === Number(other.cmp_value ?? 0)) {
+      return `Dead even over ${scope}: both at ${val(top)} ${label}.`;
     }
     return (
       `Over ${scope}, ${name} leads ${other.full_name} in ${label}, ` +
-      `${fmt(top[col])} to ${fmt(other[col])}.`
+      `${val(top)} to ${val(other)}.`
     );
   }
 

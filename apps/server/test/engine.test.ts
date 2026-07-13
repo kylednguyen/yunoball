@@ -294,12 +294,27 @@ describe("narrate", () => {
 
   it("compare narration names the winner", () => {
     const sp = spec("allen vs mahomes");
+    // cmp_value is the requested stat computed per side by the executor; for a
+    // plain column stat it equals the summed column.
     const text = narrate(sp, [
-      { full_name: "Josh Allen", games: 100, passing_yards: 30000 },
-      { full_name: "Patrick Mahomes", games: 98, passing_yards: 28000 },
+      { full_name: "Josh Allen", games: 100, passing_yards: 30000, cmp_value: 30000 },
+      { full_name: "Patrick Mahomes", games: 98, passing_yards: 28000, cmp_value: 28000 },
     ]);
     expect(text).toBe(
       "Over their careers, Josh Allen leads Patrick Mahomes in passing yards, 30,000 to 28,000.",
+    );
+  });
+
+  it("compare narration reports the real ratio value, not fantasy points", () => {
+    // Regression guard for the fantasy-points substitution bug: a ratio stat
+    // must narrate its own computed value (cmp_value), with its unit.
+    const sp = spec("allen vs mahomes completion percentage");
+    const text = narrate(sp, [
+      { full_name: "Patrick Mahomes", games: 98, cmp_value: 67.3 },
+      { full_name: "Josh Allen", games: 100, cmp_value: 65.2 },
+    ]);
+    expect(text).toBe(
+      "Over their careers, Patrick Mahomes leads Josh Allen in completion percentage, 67.3% to 65.2%.",
     );
   });
 });

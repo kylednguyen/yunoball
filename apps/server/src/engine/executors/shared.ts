@@ -12,7 +12,7 @@
  *     or a game-sourced stat (completion percentage)
  */
 
-import { STATS, specExpr } from "../spec.js";
+import { STATS } from "../spec.js";
 import type { GameLogSpec, GameWindow, PlayerTotalSpec, StatDef } from "../spec.js";
 
 // Every stat column, for COMPARE's full-line output (allowlisted names only).
@@ -22,6 +22,12 @@ export const ALL_STAT_COLS = [
   "receiving_tds", "tackles", "def_sacks", "def_interceptions",
   "forced_fumbles", "passes_defended", "sacks", "fantasy_points_ppr",
 ] as const;
+
+// Columns COMPARE aggregates per side. Superset of the display line: carries
+// and targets are summed too so ratio stats (yards per carry, catch rate) can
+// be computed head-to-head, even though they aren't shown as their own row.
+export const COMPARE_SUM_COLS = [...ALL_STAT_COLS, "carries", "targets"] as const;
+const COMPARE_COL_SET = new Set<string>(COMPARE_SUM_COLS);
 
 export class Params {
   values: unknown[] = [];
@@ -289,8 +295,110 @@ export function playerGameRowsSql(
   );
 }
 
-/** The stat column COMPARE ranks and narrates on. */
-export function compareOrderCol(spec: { stat: string }): string {
-  const expr = specExpr(spec);
-  return /^s\.\w+$/.test(expr) ? expr.slice(2) : "fantasy_points_ppr";
+/** NFL passer rating over already-summed columns on `alias` (COMPARE's agg
+ * subquery), rather than SUM(s.col) as passerRatingExpr does. */
+function passerRatingAggExpr(alias: string): string {
+  const att = `NULLIF(${alias}.attempts, 0)`;
+  const a = prTerm(`(${alias}.completions::numeric / ${att} - 0.3) * 5`);
+  const b = prTerm(`(${alias}.passing_yards::numeric / ${att} - 3) * 0.25`);
+  const c = prTerm(`${alias}.passing_tds::numeric / ${att} * 20`);
+  const d = prTerm(`2.375 - ${alias}.interceptions::numeric / ${att} * 25`);
+  return `ROUND((${a} + ${b} + ${c} + ${d}) / 6 * 100, 1)`;
+}
+
+/** The value COMPARE ranks and narrates on, computed from the aggregated
+ * columns of the `agg` subquery — the actual requested stat (ratio, formula, or
+ * sum), never a silent fantasy-points substitution. Returns null when the stat
+ * can't be computed from COMPARE's aggregate (advanced pbp stats that live in
+ * player_game_advanced), so the parser can refuse instead of emitting bad SQL. */
+export function compareValueExpr(spec: { stat: string }): string | null {
+  const def = statDef(spec);
+  if (def.formula === "passer_rating") return passerRatingAggExpr("agg");
+  if (def.ratio) {
+    const { num, den, pct } = def.ratio;
+    if (!COMPARE_COL_SET.has(num) || !COMPARE_COL_SET.has(den)) return null;
+    return `ROUND(agg.${num}::numeric / NULLIF(agg.${den}, 0)${pct ? " * 100" : ""}, 1)`;
+  }
+  // Simple ("s.passing_yards") or computed ("COALESCE(s.passing_tds,0)+...").
+  // Comparable only if every column it references is in the aggregate.
+  const cols = [...def.expr.matchAll(/\bs\.(\w+)/g)].map((m) => m[1]!);
+  if (cols.length === 0 || !cols.every((c) => COMPARE_COL_SET.has(c))) return null;
+  return def.expr.replace(/\bs\./g, "agg.");
+}
+
+/** Whether two players can be compared head-to-head on this stat. */
+export function isComparableStat(stat: string): boolean {
+  return compareValueExpr({ stat }) !== null;
+}
+
+// ---- Capability: which stats each grain of storage can compute ----
+//
+// A stat is only answerable by an executor whose table holds every column it
+// references. player_season_stats is the rollup (no per-game-only columns);
+// player_game_stats adds carries/targets/air yards; pbp aggregates
+// (EPA, success rate, CPOE) live in player_game_advanced. Executors that route
+// by grain (leaders, player_total, game_log, and player_rank's advanced branch)
+// handle all of them; the ones below aggregate a single fixed table and must
+// refuse what that table can't compute — see statComputableFor.
+
+const SEASON_COLS = new Set([
+  "passing_yards", "passing_tds", "interceptions", "rushing_yards", "rushing_tds",
+  "receptions", "receiving_yards", "receiving_tds", "fantasy_points_ppr",
+  "completions", "attempts", "sacks", "sack_yards", "fumbles", "fumbles_lost",
+  "tackles", "def_sacks", "def_interceptions", "forced_fumbles", "passes_defended",
+]);
+const GAME_COLS = new Set([
+  ...SEASON_COLS, "carries", "targets", "passing_air_yards", "receiving_air_yards",
+]);
+const ADVANCED_COLS = new Set([
+  "pass_plays", "pass_epa", "pass_success", "cpoe_sum", "cpoe_n",
+  "rush_plays", "rush_epa", "rush_success", "recv_plays", "recv_epa", "recv_success",
+]);
+
+/** Every stat column a StatDef references (ratio num/den, passer-rating inputs,
+ * or the `s.<col>` columns in its expr). */
+function statColumns(def: StatDef): string[] {
+  if (def.formula === "passer_rating") {
+    return ["completions", "attempts", "passing_yards", "passing_tds", "interceptions"];
+  }
+  const cols: string[] = [];
+  if (def.ratio) cols.push(def.ratio.num, def.ratio.den);
+  for (const m of def.expr.matchAll(/\bs\.(\w+)/g)) cols.push(m[1]!);
+  return cols;
+}
+
+function isAdvancedStat(def: StatDef): boolean {
+  return def.table === "advanced" || statColumns(def).some((c) => ADVANCED_COLS.has(c));
+}
+
+/** Whether the executor for `intent` can compute `stat` from its storage grain.
+ * The gate that keeps a mis-routed stat an honest refusal instead of invalid
+ * SQL (SUM() over an empty ratio expr, or a column the table doesn't have). */
+export function statComputableFor(intent: string, stat: string): boolean {
+  const def = STATS[stat];
+  if (!def) return false;
+  const cols = statColumns(def);
+  const inSeason = cols.every((c) => SEASON_COLS.has(c));
+  const inGame = cols.every((c) => GAME_COLS.has(c));
+  const advanced = isAdvancedStat(def);
+  switch (intent) {
+    case "qualifying_count":
+      return inSeason;
+    case "player_rank":
+      // Season rollup, or the dedicated advanced-table branch for pbp stats.
+      return inSeason || advanced;
+    case "team_stat":
+    case "game_count":
+    case "single_game":
+      return inGame && !advanced;
+    case "player_streak":
+      return inGame && !advanced;
+    case "milestone":
+      // Cumulative running total — additive stats only (a running ratio is
+      // meaningless).
+      return inGame && !advanced && !def.ratio && !def.formula;
+    default:
+      // leaders, player_total, game_log, compare route/guard themselves.
+      return true;
+  }
 }

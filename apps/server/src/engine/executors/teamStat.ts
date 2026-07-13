@@ -4,7 +4,7 @@
  * the team's players. */
 
 import type { TeamStatSpec } from "../spec.js";
-import { gamePreds, Params, statDef } from "./shared.js";
+import { aggExpr, gamePreds, Params, statDef } from "./shared.js";
 
 export function teamStatSql(spec: TeamStatSpec, p: Params): string {
   if (spec.metric) {
@@ -34,9 +34,15 @@ export function teamStatSql(spec: TeamStatSpec, p: Params): string {
   // Player-produced team stat: sum the team's player game rows.
   const def = statDef(spec);
   const where = [`s.team_id = ${p.add(spec.teamId)}`, ...gamePreds(spec, p)];
-  const valueExpr = spec.perGame
-    ? `ROUND(SUM(${def.expr})::numeric / NULLIF(COUNT(DISTINCT s.game_id), 0), 1)`
-    : `SUM(${def.expr})`;
+  // Ratio/formula stats (completion %, passer rating) are already per-unit
+  // rates — aggExpr sums the components and divides, so a plain SUM (which
+  // would be SUM() over their empty expr) is wrong; perGame doesn't apply.
+  const valueExpr =
+    def.ratio || def.formula
+      ? aggExpr(spec)
+      : spec.perGame
+        ? `ROUND(SUM(${def.expr})::numeric / NULLIF(COUNT(DISTINCT s.game_id), 0), 1)`
+        : `SUM(${def.expr})`;
   return (
     `SELECT ${valueExpr} AS value, COUNT(DISTINCT s.game_id) AS games ` +
     "FROM player_game_stats s " +

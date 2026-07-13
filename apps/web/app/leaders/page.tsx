@@ -13,7 +13,7 @@ import { PageHeader } from "../components/ui";
 import { useLeaderboards, useSeasonParam, useStandings, useStrParam, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
 import { formatPct, formatSigned, formatStatValue } from "../lib/format";
-import type { LeaderRow, StandingRow } from "../lib/api";
+import type { StandingRow } from "../lib/api";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"] as const;
 const TEAM_TAB = "team_rankings";

@@ -62,7 +62,22 @@ export type {
   TeamStat,
 } from "@yunoball/types";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+// NEXT_PUBLIC_* is inlined at build time. If a production build is made
+// without it, every browser would silently fetch localhost — an invisible,
+// total outage. Fail the build loudly instead; dev falls back to localhost.
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL;
+if (!RAW_API_URL && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "NEXT_PUBLIC_API_URL is not set. It must be provided at build time for " +
+      "production builds (e.g. on Vercel). Refusing to ship a localhost API URL.",
+  );
+}
+export const API_URL = RAW_API_URL ?? "http://localhost:4000";
+
+// POST endpoints (search/agent) do real DB work, so they get a longer cap than
+// GETs — but still bounded: a hung request becomes a friendly timeout error,
+// never a forever-spinner. (friendlyError translates the abort.)
+const POST_TIMEOUT_MS = 30_000;
 
 /* Client-side GET cache: 60s TTL + in-flight dedupe. Revisited screens
    render instantly from memory while stats change on ingest cadence, not
@@ -124,6 +139,7 @@ export async function ask(question: string): Promise<AnswerResult> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question }),
+    signal: AbortSignal.timeout(POST_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return (await res.json()) as AnswerResult;
@@ -222,6 +238,7 @@ export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages: messages.slice(-20) }),
+    signal: AbortSignal.timeout(POST_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return (await res.json()) as AgentResponse;
