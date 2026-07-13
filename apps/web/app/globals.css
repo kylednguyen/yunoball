@@ -222,7 +222,6 @@ body {
   flex-direction: column;
   gap: 16px;
   padding: 20px 14px 16px;
-  border-right: 1px solid var(--border);
   background: var(--panel);
   z-index: var(--z-nav);
   overflow-y: auto;
@@ -302,8 +301,7 @@ body {
 }
 .yb-nav-foot {
   margin: auto 0 0;
-  padding: 12px 10px 0;
-  border-top: 1px solid var(--border);
+  padding: 16px 10px 0;
   font-size: var(--fs-caption);
   line-height: 1.45;
   color: var(--faint);
@@ -351,7 +349,6 @@ body {
     gap: 12px;
     padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
       10px max(14px, env(safe-area-inset-left));
-    border-bottom: 1px solid var(--border);
     background: var(--bg-scrim);
     backdrop-filter: saturate(180%) blur(8px);
     -webkit-backdrop-filter: saturate(180%) blur(8px);
@@ -396,7 +393,7 @@ body {
     padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom))
       max(18px, env(safe-area-inset-left));
     background: var(--panel);
-    border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-pop);
     overflow-y: auto;
     overscroll-behavior: contain;
     transform: translateX(-100%);
@@ -495,15 +492,13 @@ body {
   display: flex;
   align-items: stretch;
   background: var(--panel);
-  border-bottom: 1px solid var(--border);
 }
 .yb-tick-label {
   flex: none;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 8px 16px;
-  border-right: 1px solid var(--border);
+  padding: 8px 20px 8px 16px;
   font-family: var(--display);
   text-transform: uppercase;
   line-height: 1.05;
@@ -538,13 +533,13 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 1px;
-  padding: 8px 14px 6px;
-  border-right: 1px solid var(--border);
+  padding: 8px 16px 6px;
+  border-radius: var(--r-md);
   color: var(--muted);
   transition: background var(--dur) var(--ease);
 }
 .yb-tick-game:hover {
-  background: var(--bg-soft);
+  background: var(--elevated);
   text-decoration: none;
 }
 .yb-tick-row {
@@ -584,8 +579,7 @@ body {
   width: 104px;
   height: 100%;
   min-height: 62px;
-  border-radius: 0;
-  border-right: 1px solid var(--border);
+  border-radius: var(--r-md);
 }
 
 /* ---- Front-page hero ---- */
