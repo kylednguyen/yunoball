@@ -317,8 +317,9 @@ function threshold(qText: string): { op: ">" | ">=" | "<"; value: number } | nul
 /** Which bio fact a question about a named player asks for. */
 function bioFieldOf(
   qText: string,
-): "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "full" | null {
+): "team" | "teams" | "age" | "height" | "weight" | "college" | "experience" | "jersey" | "full" | null {
   // Plural/history phrasings before the singular current-team check.
+  if (/\bjersey\b|\bwhat number (?:does|is|do)\b|\bnumber does\b/.test(qText)) return "jersey";
   if (/\bwhat teams\b|\bwhich teams\b|\bprevious teams\b|\bteam history\b|\bevery team\b|\ball the teams\b/.test(qText)) return "teams";
   if (/\bhow many (?:seasons|years)\b|\byears of experience\b|\bhow long has\b|\bseasons played\b|\bexperience\b/.test(qText)) return "experience";
   if (/\bhow old\b|\bwhat age\b|\bage\b|\bhow young\b|\bbirth\s?date\b|\bbirthday\b/.test(qText)) return "age";
@@ -472,9 +473,9 @@ const UNSUPPORTED: [RegExp, string][] = [
   ],
   [
     // Advanced metrics needing play-by-play or proprietary models. Simple
-    // rates (yards per carry/attempt/reception, catch rate, per-game) ARE
-    // computed — see the ratio stats and perGame modifier.
-    /\b(qbr|passer rating|third down|red ?zone|time of possession|epa|dvoa|cpoe|success rate|air yards|win probability|expected points|turnovers? forced)\b/,
+    // rates (yards per carry/attempt/reception, catch rate, per-game) and
+    // air yards ARE computed — see the ratio stats and perGame modifier.
+    /\b(qbr|passer rating|third down|red ?zone|time of possession|epa|dvoa|cpoe|success rate|win probability|expected points|turnovers? forced)\b/,
     "Advanced metrics like passer rating, EPA and win probability aren't tracked yet. Rates like yards per carry, completion percentage and per-game averages are.",
   ],
   [
@@ -510,8 +511,10 @@ const UNSUPPORTED: [RegExp, string][] = [
     "I answer historical stats and results. For week-by-week scores, head to the Scores page.",
   ],
   [
-    /\b(primetime|prime time|monday night|sunday night|thursday night|snf|mnf|tnf|thanksgiving|against winning teams|after (the )?bye|overtime|comeback|record when)\b/,
-    "That game-situation split isn't tracked yet. I can filter by season, playoffs, home/away, week ranges and stat thresholds.",
+    // Primetime and cold-weather splits ARE computed now (weekday/gametime
+    // and kickoff temperature); these remaining situations aren't.
+    /\b(thanksgiving|against winning teams|after (the )?bye|overtime|comeback|record when)\b/,
+    "That game-situation split isn't tracked yet. I can filter by season, playoffs, home/away, weeks, months, primetime and cold weather.",
   ],
   [
     // Play-level distance — not stored; the warehouse is box-score totals plus
@@ -558,6 +561,9 @@ export function parseRules(
   // are already rates, so the flag is cleared for them at spec construction.
   const perGameCue = /\bper[- ]game\b|\baverages?\b|\bavg\b/.test(qText);
   const month = detectMonth(qText);
+  const primetime =
+    /\b(primetime|prime time|monday night|sunday night|thursday night|snf|mnf|tnf|night games?)\b/.test(qText);
+  const tempMax = /\b(freezing|below freezing|in the cold|cold[- ]weather)\b/.test(qText) ? 32 : null;
   const filters = {
     venue: venue(qText),
     ...weekRange(qText),
@@ -692,7 +698,7 @@ export function parseRules(
     return {
       intent: "game_log", stat: "total_tds",
       player: player.name, playerId: player.playerId, position: player.position,
-      season: effSeason, seasonType, sbOnly, round: playerRound, month,
+      season: effSeason, seasonType, sbOnly, round: playerRound, month, primetime, tempMax,
       opponentId: opp?.teamId ?? null, team2Name: opp?.name ?? null,
       venue: filters.venue, weekMin: filters.weekMin ?? null, weekMax: filters.weekMax ?? null,
       firstN: filters.firstN, lastN: filters.lastN,
@@ -816,7 +822,9 @@ export function parseRules(
           : !roundInfo && /\bconference\b/.test(qText) ? ("conference" as const)
             : /\bstadium\b|\bplay (?:their )?home games\b|\bhome field\b/.test(qText)
               ? ("stadium" as const)
-              : null;
+              : /\bcoach(?:ed|es)?\b|\bhead coach\b/.test(qText) ? ("coach" as const)
+                : /\bcolors?\b/.test(qText) ? ("colors" as const)
+                  : null;
       if (teamField) {
         return {
           intent: "team_bio", stat: "total_tds", teamField,
@@ -928,6 +936,11 @@ export function parseRules(
   // Stat: specific vocabulary first, then generic cues resolved by context,
   // then the player's (or position's) primary stat.
   let stat = detectStat(qText);
+  // Bare "air yards" picks a side of the ball from the player/position —
+  // before the generic "yards" cue would swallow it as regular yardage.
+  if (stat === null && /\bair yards\b/.test(qText)) {
+    stat = (player?.position ?? position) === "QB" ? "passing_air_yards" : "receiving_air_yards";
+  }
   if (stat === null) {
     const cue = genericCue(qText);
     const pos = player?.position ?? position ?? "";
@@ -1022,6 +1035,8 @@ export function parseRules(
       seasonType,
       sbOnly,
       month,
+      primetime,
+      tempMax,
       threshold: th,
       venue: filters.venue,
       weekMin: filters.weekMin ?? null,
@@ -1053,6 +1068,8 @@ export function parseRules(
       seasonMax: range?.max ?? null,
       perGame,
       month,
+      primetime,
+      tempMax,
       round: playerRound,
       seasonType,
       sbOnly,
@@ -1081,6 +1098,8 @@ export function parseRules(
     sbOnly,
     perGame,
     month,
+    primetime,
+    tempMax,
     seasonMin: range?.min ?? null,
     seasonMax: range?.max ?? null,
     // "most career passing yards" ranks all-time totals; a bare position

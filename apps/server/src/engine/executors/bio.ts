@@ -7,7 +7,8 @@ import { Params } from "./shared.js";
 export function bioSql(spec: PlayerBioSpec, p: Params): string {
   const bioCols =
     "p.player_id, p.full_name, p.position, p.birth_date, p.height_inches, " +
-    "p.weight_lbs, p.college, EXTRACT(YEAR FROM age(p.birth_date))::int AS age";
+    "p.weight_lbs, p.college, p.jersey_number, " +
+    "EXTRACT(YEAR FROM age(p.birth_date))::int AS age";
   if (spec.playerId && spec.bioField === "teams") {
     // Every franchise the player has appeared for, in order of arrival.
     return (

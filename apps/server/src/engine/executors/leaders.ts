@@ -14,7 +14,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
   if (
     def.source !== "game" &&
     (spec.venue || spec.weekMin != null || spec.weekMax != null ||
-      spec.month != null || spec.sbOnly)
+      spec.month != null || spec.primetime || spec.tempMax != null || spec.sbOnly)
   ) {
     const where = gamePreds(spec, p);
     if (spec.teamId) where.push(`s.team_id = ${p.add(spec.teamId)}`);
@@ -31,11 +31,14 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
     );
   }
   if (def.source === "game") {
-    // Game-sourced leaders (completion %, yards per carry): aggregate the
-    // game log, with a volume qualifier so tiny samples can't top the board.
+    // Game-sourced leaders: aggregate the game log. Ratio stats (completion
+    // %, yards per carry) get a volume qualifier so tiny samples can't top
+    // the board; plain game-sourced sums (air yards) rank directly.
     const where = gamePreds(spec, p);
     if (spec.teamId) where.push(`s.team_id = ${p.add(spec.teamId)}`);
-    const minDen = ratioFloor(def, spec.scope);
+    const having = def.ratio
+      ? `HAVING SUM(COALESCE(s.${def.ratio.den}, 0)) >= ${p.add(ratioFloor(def, spec.scope))} `
+      : "";
     return (
       `SELECT p.player_id, p.full_name, ${aggExpr(spec)} AS value ` +
       "FROM player_game_stats s " +
@@ -43,8 +46,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE ${where.join(" AND ")}` +
       (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
-      " GROUP BY p.player_id, p.full_name " +
-      `HAVING SUM(COALESCE(s.${def.ratio?.den ?? "attempts"}, 0)) >= ${p.add(minDen)} ` +
+      " GROUP BY p.player_id, p.full_name " + having +
       `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"} NULLS LAST, p.full_name ` +
       `LIMIT ${p.add(spec.limit)}`
     );
