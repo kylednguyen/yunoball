@@ -16,7 +16,6 @@ import { EntityHero, InfoGrid, SectionHeader, StatSummary } from "../../componen
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
-import { teamTheme } from "../../lib/teamTheme";
 import type { PlayerProfile, PlayerSeasonLine, SplitRow } from "../../lib/api";
 
 type SeasonRow = PlayerProfile["seasons"][number];
@@ -493,7 +492,7 @@ export default function PlayerPage() {
 
   return (
     <>
-      <main id="main" className="yb-page yb-entity-page" style={teamTheme(profile?.team)}>
+      <main id="main" className="yb-page yb-entity-page">
         {loading && (
           <>
             <div className="yb-skel" style={{ height: 60, width: 380, marginBottom: 20 }} />

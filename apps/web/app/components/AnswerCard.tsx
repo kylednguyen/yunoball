@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 
 import type { AnswerResult } from "../lib/api";
-import { teamTheme } from "../lib/teamTheme";
 import { Headshot } from "./Headshot";
 import { PlayerComparisonResult } from "./PlayerComparisonResult";
 import { ResultDrilldown } from "./ResultDrilldown";
@@ -12,6 +11,7 @@ import { SinglePlayerResult } from "./SinglePlayerResult";
 import { SortTable } from "./SortTable";
 import { TeamLogo } from "./TeamLogo";
 import { Badge, Surface } from "./ui";
+import { teamTheme } from "../lib/teamTheme";
 
 /** A column is numeric if every non-empty cell parses as a number. */
 function isNumericColumn(rows: AnswerResult["rows"], c: string): boolean {
@@ -200,6 +200,8 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const columns = result.columns.filter(
     (c) => !(linkPlayers && c === "player_id") && !(linkGames && c === "game_id"),
   );
+  // The queried metric = first real numeric column (not a season/week/rank id).
+  const metricCol = columns.find((c) => numericCols.has(c) && !NO_GROUPING.has(c) && c !== "rank");
 
   function downloadCsv() {
     const esc = (v: unknown) => {
@@ -228,6 +230,9 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const cards = [result.player_card, result.player_card2].filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
   );
+  // Theme the whole result by the top player's team, so the leader card and the
+  // metric column render in that team's primary colour.
+  const theme = teamTheme(cards[0]?.team);
   // Head-to-head renders as one compact element: the chart header carries the
   // player identities, so the separate mini cards would be repetition.
   const isCompare = result.intent === "compare" && result.rows.length === 2;
@@ -247,17 +252,6 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
     result.audit?.status ? `audit: ${result.audit.status}` : null,
   ].filter(Boolean) as string[];
 
-  // Team context: when exactly one team is in play (a player's team or a
-  // team entity), the card's accent re-tints to that team's branding.
-  // Ambiguous contexts (head-to-heads, multi-team answers) stay neutral.
-  const contextTeams = new Set<string>();
-  for (const c of cards) if (c.team) contextTeams.add(c.team);
-  for (const e of result.entities ?? []) {
-    if (e.entity_type === "team") contextTeams.add(e.canonical_id);
-  }
-  const theme =
-    contextTeams.size === 1 ? teamTheme([...contextTeams][0]) : undefined;
-
   const leaderboard = (
     <SortTable
       rows={result.rows.map((row, i) => ({ row, i }))}
@@ -268,6 +262,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
           label:
             c === "full_name" ? "player" : c === "game_date" ? "date" : c.replace(/_/g, " "),
           numeric: numericCols.has(c),
+          highlight: c === metricCol,
           title: HEADER_TITLES[c],
           value: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
             const v = row[c];

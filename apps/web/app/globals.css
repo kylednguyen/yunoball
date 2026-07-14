@@ -884,8 +884,8 @@ p.yb-answer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
-  gap: 24px;
-  padding-bottom: 24px;
+  gap: 20px;
+  padding-bottom: 16px;
 }
 .yb-result-page-head > div:first-child > span {
   display: block;
@@ -895,12 +895,12 @@ p.yb-answer {
   font-weight: 700;
 }
 .yb-result-page-head h1 {
-  max-width: 20ch;
+  max-width: 24ch;
   margin: 0;
-  font-size: clamp(34px, 28px + 2vw, 52px);
-  font-weight: 760;
-  letter-spacing: -0.05em;
-  line-height: 0.98;
+  font-size: clamp(24px, 20px + 1.3vw, 34px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
   text-wrap: balance;
 }
 .yb-result-page-head p {
@@ -1160,8 +1160,8 @@ p.yb-answer {
   gap: 14px;
   padding: 14px 16px;
   border-radius: var(--r-xl);
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 .yb-single-player-strip > div {
   min-width: 0;
@@ -1314,8 +1314,8 @@ p.yb-answer {
   gap: 14px;
   min-width: 0;
   padding: 20px 24px 22px;
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 .yb-comparison-identity.is-a {
   padding-right: 46px;
@@ -1468,7 +1468,8 @@ p.yb-answer {
 }
 .yb-comparison-table td.is-edge {
   color: var(--accent-ink);
-  font-weight: 750;
+  background: var(--accent-soft);
+  font-weight: 800;
 }
 .yb-comparison-edge {
   color: var(--muted);
@@ -1530,8 +1531,8 @@ table.yb-table th {
   color: var(--muted);
   font-weight: 600;
   font-size: var(--fs-small);
-  letter-spacing: 0.02em;
-  text-transform: none;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 table.yb-table td {
@@ -1556,6 +1557,18 @@ table.yb-table th:first-child {
 
 /* Click-to-sort column headers (SortTable). The button inherits the th's
    small-caps styling so sortable and plain headers look identical at rest. */
+/* The queried metric column(s) sit in the team's primary colour. teamTheme()
+   on an ancestor scopes --accent to the team; otherwise it's the brand accent. */
+.yb-table th.is-metric,
+.yb-table td.is-metric {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+.yb-table th.is-metric .yb-th-sort,
+.yb-table th.is-metric .yb-th-sort:hover,
+.yb-table th.is-metric .yb-th-sort.on {
+  color: var(--accent-contrast);
+}
 .yb-th-sort {
   display: inline-flex;
   align-items: center;
@@ -2021,8 +2034,8 @@ pre.yb-sql {
   padding: 24px;
   border-top: 0;
   border-radius: var(--r-xl);
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 .yb-entity-hero-main {
   display: grid;
@@ -2132,8 +2145,8 @@ pre.yb-sql {
   padding: 18px;
   border-top: 0;
   border-radius: var(--r-lg);
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 .yb-stat-summary > h2 {
   margin: 0 0 16px;
@@ -2541,13 +2554,238 @@ tr.yb-div-leader .yb-seed {
 .yb-standing-team-name {
   white-space: nowrap;
 }
+/* Monocolor: a win carries the single accent, a loss stays neutral — no red. */
 .yb-streak-w {
-  color: var(--success);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 .yb-streak-l {
-  color: var(--danger);
+  color: var(--faint);
   font-weight: 600;
+}
+
+/* ---- Standings: AFC/NFC/Playoff tabs, divisional tables, clinch tags ---- */
+.yb-standings-tabs {
+  margin-bottom: 20px;
+}
+.yb-division-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+  gap: 12px 28px;
+  align-items: start;
+}
+.yb-div-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-ui);
+}
+.yb-div-table thead th {
+  padding: 10px 8px 6px;
+  border-bottom: 1px solid var(--border);
+  color: var(--faint);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  text-align: right;
+}
+.yb-div-table thead th.team {
+  text-align: left;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  letter-spacing: -0.01em;
+}
+.yb-div-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.yb-div-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.yb-div-table td.pct {
+  font-weight: 700;
+}
+.yb-div-table td.team {
+  width: 100%;
+  text-align: left;
+}
+.yb-div-table tbody tr {
+  background: var(--accent-soft);
+}
+.yb-div-table tbody tr:hover {
+  filter: brightness(1.25);
+}
+.yb-div-table td.team a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--text);
+  font-weight: 650;
+}
+.yb-div-table td.team a:hover {
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+.yb-div-table td.team .nm {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Clinch tags are SEMANTIC (fixed colors), never team-tinted, so their meaning
+   reads the same on every row. */
+.yb-clinch {
+  margin-left: 3px;
+  font-size: var(--fs-small);
+  font-weight: 800;
+  color: var(--faint);
+}
+/* Monocolor: in-playoff tags carry the single brand accent; eliminated stays
+   neutral (faint), so colour appears only where it means "in". */
+.yb-clinch.bye,
+.yb-clinch.div,
+.yb-clinch.wc {
+  color: var(--accent-ink);
+}
+
+/* Playoff tab: seeded team-color blocks with a cutline before the wildcards. */
+.yb-seed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yb-seed-block {
+  display: grid;
+  grid-template-columns: 24px 30px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+.yb-seed-block:not(.is-wc) + .yb-seed-block.is-wc {
+  margin-top: 10px;
+  border-top: 1px dashed var(--border);
+  padding-top: 13px;
+}
+.yb-seed-block .sd {
+  text-align: center;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.yb-seed-block .tm {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-seed-block .tm:hover {
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+.yb-seed-block .kd {
+  font-size: var(--fs-small);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.yb-seed-block .rc {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text);
+}
+.yb-seed-note {
+  margin-top: 10px;
+  font-size: var(--fs-small);
+  color: var(--faint);
+}
+
+/* Team colour returns to the dense lists as a soft per-row tint — teamTheme()
+   on the row scopes --accent-soft to that team. Never a side stripe. */
+.yb-mini-table tr.yb-team-row {
+  background: var(--accent-soft);
+}
+.yb-team-shortcut {
+  background: var(--accent-soft);
+}
+.yb-team-shortcut:hover {
+  background: var(--accent-soft);
+  filter: brightness(1.25);
+}
+
+/* League leaders — one compact StatMuse-style card: every category stacked,
+   the #1 value in a single-accent pill, chasers as quiet rows. */
+.yb-lead-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+  gap: 4px 32px;
+}
+.yb-lead-group {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.yb-lead-cat {
+  display: block;
+  margin-bottom: 7px;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
+.yb-lead-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yb-lead-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-ui);
+}
+.yb-lead-row .nm {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-lead-row.is-leader .nm {
+  font-weight: 750;
+}
+.yb-lead-row .nm:hover {
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+.yb-lead-row .tm {
+  font-size: var(--fs-small);
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.yb-lead-val {
+  color: var(--muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.yb-lead-pill {
+  justify-self: start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: var(--fs-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Positions: plain text, pure white, readable — no bubble. ---- */
@@ -3088,6 +3326,62 @@ table.yb-mini-table {
   padding-top: 12px;
 }
 
+/* Featured matchup: one box-score card, centered so it never leaves lopsided
+   dead space on wide screens. */
+.yb-featured {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+/* Trending questions: reuse the chip token; just let them wrap. */
+.yb-trending-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Team shortcuts: dense grid of all 32 teams, each a direct link to its page. */
+.yb-team-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+  gap: 10px;
+}
+.yb-team-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--panel);
+  color: var(--text);
+  transition:
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+.yb-team-shortcut:hover {
+  background: var(--elevated);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.yb-team-shortcut .who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+.yb-team-shortcut .ab {
+  font-weight: 700;
+  font-size: var(--fs-small);
+}
+.yb-team-shortcut .nk {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---- Explore: breadcrumbs, team cards, leader cards, filters ---- */
 .yb-crumbs {
   font-size: var(--fs-body);
@@ -3231,10 +3525,10 @@ table.yb-table a:hover {
   align-items: center;
   gap: 12px;
   border-top: 0;
-  background: var(--accent);
+  background: var(--accent-soft);
   border-radius: var(--r-lg);
   padding: 12px 14px;
-  color: var(--accent-contrast);
+  color: var(--text);
   transition:
     background var(--dur) var(--ease),
     transform var(--dur) var(--ease),
@@ -4000,8 +4294,8 @@ mark.yb-hit {
   color: var(--muted);
 }
 .yb-boxscore-row.winner {
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 .yb-boxscore-row td {
   padding: 14px 16px;
@@ -4050,8 +4344,8 @@ mark.yb-hit {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 .yb-team-box-head h2 {
   margin: 0;

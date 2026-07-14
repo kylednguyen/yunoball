@@ -6,10 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { AnswerResult, PlayerGameLogRow, PlayerProfile } from "../lib/api";
 import { fetchPlayer } from "../lib/api";
 import { passerRating } from "../lib/rating";
-import { teamTheme } from "../lib/teamTheme";
 import { Headshot } from "./Headshot";
 import { ResultMethodology } from "./ResultMethodology";
 import { TeamLogo } from "./TeamLogo";
+import { teamTheme } from "../lib/teamTheme";
 
 type Mode = "rates" | "equal" | "best" | "totals";
 type Direction = "higher" | "lower" | "neutral";
@@ -479,7 +479,7 @@ export function PlayerComparisonResult({ result }: { result: AnswerResult }) {
 
       {(selectedA.season != null || selectedB.season != null) && (
         <p className="yb-comparison-window">
-          Best-season window: {a.name} {selectedA.season ?? "—"} · {b.name} {selectedB.season ?? "—"}
+          Best-season window: {a.name} {selectedA.season ?? "-"} · {b.name} {selectedB.season ?? "-"}
         </p>
       )}
 
@@ -509,9 +509,9 @@ export function PlayerComparisonResult({ result }: { result: AnswerResult }) {
               const format = metric.format ?? oneDecimal;
               return (
                 <tr key={metric.label}>
-                  <td className={`num${aWins ? " is-edge" : ""}`}>{valueA == null ? "—" : format(valueA)}</td>
+                  <td className={`num${aWins ? " is-edge" : ""}`} style={aWins ? teamTheme(a.team) : undefined}>{valueA == null ? "-" : format(valueA)}</td>
                   <th scope="row">{metric.label}</th>
-                  <td className={`num${bWins ? " is-edge" : ""}`}>{valueB == null ? "—" : format(valueB)}</td>
+                  <td className={`num${bWins ? " is-edge" : ""}`} style={bWins ? teamTheme(b.team) : undefined}>{valueB == null ? "-" : format(valueB)}</td>
                   <td className="yb-comparison-edge">{edge}</td>
                 </tr>
               );

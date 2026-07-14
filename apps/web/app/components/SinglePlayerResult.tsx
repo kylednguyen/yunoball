@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AnswerResult, PlayerGameLogRow, PlayerProfile } from "../lib/api";
 import { fetchLeaderboards, fetchPlayer } from "../lib/api";
 import { passerRating } from "../lib/rating";
-import { NFL_TEAM_NAMES, teamTheme } from "../lib/teamTheme";
+import { NFL_TEAM_NAMES } from "../lib/teamTheme";
 import { Headshot } from "./Headshot";
 import { ResultMethodology } from "./ResultMethodology";
 import { TeamLogo } from "./TeamLogo";
@@ -206,7 +206,7 @@ export function SinglePlayerResult({ result }: { result: AnswerResult }) {
     : `/players/${encodeURIComponent(playerId)}${season != null ? `?season=${season}` : ""}#game-log`;
 
   return (
-    <section className="yb-single-player-answer yb-enter" style={teamTheme(team)}>
+    <section className="yb-single-player-answer yb-enter">
       <div className="yb-single-response-block">
         <span className="yb-single-response-label">Response</span>
         <p className="yb-single-response">{response}</p>

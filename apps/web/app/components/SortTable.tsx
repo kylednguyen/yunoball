@@ -9,6 +9,8 @@ export interface SortColumn<T> {
   numeric?: boolean;
   /** Hover/focus tooltip — spells out abbreviated headers. */
   title?: string;
+  /** The queried metric column — rendered in the team's primary colour. */
+  highlight?: boolean;
   width?: number | string;
   /** Value used for sorting (and display when no render is given). */
   value: (row: T) => string | number | null;
@@ -71,7 +73,7 @@ export function SortTable<T>({
                 <th
                   key={c.key}
                   scope="col"
-                  className={c.numeric ? "num" : undefined}
+                  className={[c.numeric ? "num" : "", c.highlight ? "is-metric" : ""].filter(Boolean).join(" ") || undefined}
                   style={c.width ? { width: c.width } : undefined}
                   aria-sort={
                     active ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined
@@ -97,7 +99,7 @@ export function SortTable<T>({
           {sorted.map((row) => (
             <tr key={rowKey(row)} className={rowClass?.(row)}>
               {columns.map((c) => (
-                <td key={c.key} className={c.numeric ? "num" : undefined}>
+                <td key={c.key} className={[c.numeric ? "num" : "", c.highlight ? "is-metric" : ""].filter(Boolean).join(" ") || undefined}>
                   {c.render ? c.render(row) : (c.value(row) ?? "-")}
                 </td>
               ))}

@@ -1,147 +1,189 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { SeasonSelect } from "../components/SeasonSelect";
-import { SortTable, type SortColumn } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
 import { PageHeader } from "../components/ui";
-import { formatPct, formatRecord, formatSigned } from "../lib/format";
-import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
-import type { StandingsResponse } from "../lib/api";
+import type { ConferenceStandings } from "../lib/api";
+import { formatPct } from "../lib/format";
+import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
+import { CLINCH_TAG, clinchByTeam, seedConference, type ClinchKind } from "../lib/playoff";
+import { teamTheme } from "../lib/teamTheme";
 
-type TeamRow = StandingsResponse["conferences"][number]["divisions"][number]["teams"][number];
-
-function StreakCell({ streak }: { streak: string }) {
-  const cls = streak.startsWith("W") ? "yb-streak-w" : streak.startsWith("L") ? "yb-streak-l" : "";
-  return <span className={cls}>{streak}</span>;
-}
-
-/** "W3" -> 3, "L2" -> -2, so streaks sort from hottest to coldest. */
-function streakValue(streak: string): number {
-  const n = Number(streak.slice(1)) || 0;
-  return streak.startsWith("L") ? -n : n;
-}
-
-const columnsFor = (season: number, conferenceTeams: TeamRow[]): SortColumn<TeamRow>[] => [
-  {
-    key: "seed",
-    label: "Seed",
-    numeric: true,
-    width: 58,
-    value: (t) => conferenceTeams.findIndex((row) => row.team_id === t.team_id) + 1,
-    render: (t) => {
-      const seed = conferenceTeams.findIndex((row) => row.team_id === t.team_id) + 1;
-      return <span className="yb-seed">{seed}</span>;
-    },
-  },
-  {
-    key: "team",
-    label: "Team",
-    value: (t) => t.name,
-    render: (t) => (
-      <Link
-        href={`/teams/${t.team_id}?season=${season}`}
-        style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-      >
-        <TeamLogo team={t.team_id} />
-        <span className="yb-standing-team-name">{t.name}</span>
-      </Link>
-    ),
-  },
-  {
-    key: "record",
-    label: "Record",
-    value: (t) => `${t.wins}-${t.losses}-${t.ties}`,
-    render: (t) => <>{formatRecord(t.wins, t.losses, t.ties)}</>,
-  },
-  {
-    key: "pct",
-    label: "PCT",
-    numeric: true,
-    value: (t) => t.pct,
-    render: (t) => <>{formatPct(t.pct)}</>,
-  },
-  { key: "pf", label: "PF", numeric: true, value: (t) => t.points_for },
-  { key: "pa", label: "PA", numeric: true, value: (t) => t.points_against },
-  {
-    key: "diff",
-    label: "DIFF",
-    numeric: true,
-    value: (t) => t.point_diff,
-    render: (t) => <>{formatSigned(t.point_diff)}</>,
-  },
-  {
-    key: "streak",
-    label: "STRK",
-    numeric: true,
-    value: (t) => streakValue(t.streak),
-    render: (t) => <StreakCell streak={t.streak} />,
-  },
-];
-
+/** Standard divisional standings behind AFC / NFC / Playoff tabs. Conference
+ *  tabs show the four division tables (W-L-T-PCT) with clinch tags; the Playoff
+ *  tab shows each conference's projected seven-team field. Every row is themed
+ *  in its team's colors and links to the team page. */
 export default function StandingsPage() {
   useTitle("Standings");
   const [season, setSeason] = useSeasonParam();
   const { data, error, loading } = useStandings(season);
+  const [tab, setTab] = useState("AFC");
+
+  const conferences = data?.conferences ?? [];
+  const activeConf = conferences.find((c) => c.conference === tab) ?? null;
+  const tabs = [...conferences.map((c) => c.conference), "Playoff"];
 
   return (
-    <>
-      <main id="main" className="yb-page">
-        <PageHeader
-          crumbs={[
-            { label: "NFL", href: "/" },
-            ...(data ? [{ label: String(data.season) }] : []),
-            { label: "Standings" },
-          ]}
-          title="Standings"
-          description="Division tables computed live from game results. Click a column to sort."
-          controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
-        />
+    <main id="main" className="yb-page" style={{ maxWidth: 900 }}>
+      <PageHeader
+        crumbs={[
+          { label: "NFL", href: "/" },
+          ...(data ? [{ label: String(data.season) }] : []),
+          { label: "Standings" },
+        ]}
+        title="Standings"
+        description="Division tables computed live from game results. Playoff seeding is projected from win pct."
+        controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
+      />
 
-        {error && (
-          <div className="yb-state error" role="alert">
-            <h2>Couldn’t load standings</h2>
-            <p>{friendlyError(error)}</p>
-          </div>
-        )}
+      {error && (
+        <div className="yb-state error" role="alert">
+          <h2>Couldn’t load standings</h2>
+          <p>{friendlyError(error)}</p>
+        </div>
+      )}
 
-        {loading && !data && (
-          <div className="yb-standings-grid">
-            {[0, 1].map((i) => (
-              <div key={i} className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
+      {loading && !data && (
+        <div className="yb-standings-grid">
+          {[0, 1].map((i) => (
+            <div key={i} className="yb-skel" style={{ height: 420, borderRadius: 14 }} />
+          ))}
+        </div>
+      )}
+
+      {data && !error && (
+        <>
+          <div className="yb-seg yb-standings-tabs" role="group" aria-label="Standings view">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={tab === t}
+                onClick={() => setTab(t)}
+              >
+                {t}
+              </button>
             ))}
           </div>
-        )}
 
-        {data && !error && (
-          <div className="yb-standings-grid" style={{ opacity: loading ? 0.6 : 1 }}>
-            {data.conferences.map((conf) => (
-              <section key={conf.conference} aria-label={`${conf.conference} standings`}>
-                <h2 className="yb-conf-title">{conf.conference}</h2>
-                {conf.divisions.map((div) => {
-                  const leader = div.teams[0]?.team_id;
-                  const conferenceTeams = conf.divisions
-                    .flatMap((d) => d.teams)
-                    .sort((a, b) => b.pct - a.pct || b.point_diff - a.point_diff);
-                  return (
-                    <div key={div.division} className="yb-division">
-                      <h3>{div.division}</h3>
-                      <SortTable<TeamRow>
-                        rows={div.teams}
-                        rowKey={(t) => t.team_id}
-                        rowClass={(t) => (t.team_id === leader ? "yb-div-leader" : undefined)}
-                        columns={columnsFor(data.season, conferenceTeams)}
-                      />
-                    </div>
-                  );
-                })}
-              </section>
-            ))}
+          <div style={{ opacity: loading ? 0.6 : 1 }}>
+            {tab === "Playoff" ? (
+              <div className="yb-standings-grid">
+                {conferences.map((conf) => (
+                  <PlayoffField key={conf.conference} conf={conf} season={data.season} />
+                ))}
+              </div>
+            ) : activeConf ? (
+              <div className="yb-division-grid">
+                {activeConf.divisions.map((div) => (
+                  <DivisionTable
+                    key={div.division}
+                    division={div.division}
+                    teams={div.teams}
+                    clinch={clinchByTeam(activeConf)}
+                    season={data.season}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
-        )}
-      </main>
-    </>
+        </>
+      )}
+    </main>
+  );
+}
+
+function ClinchTag({ kind }: { kind: ClinchKind }) {
+  const title: Record<ClinchKind, string> = {
+    bye: "Projected #1 seed (first-round bye)",
+    div: "Projected division winner",
+    wc: "Projected wildcard",
+    out: "Projected to miss the playoffs",
+  };
+  return (
+    <span className={`yb-clinch ${kind}`} title={title[kind]}>
+      {CLINCH_TAG[kind]}
+    </span>
+  );
+}
+
+/** One division: standard W-L-T-PCT table, team-color themed rows, leader on
+ *  top with a stronger tint. */
+function DivisionTable({
+  division,
+  teams,
+  clinch,
+  season,
+}: {
+  division: string;
+  teams: ConferenceStandings["divisions"][number]["teams"];
+  clinch: Map<string, ClinchKind>;
+  season: number;
+}) {
+  return (
+    <table className="yb-div-table">
+      <thead>
+        <tr>
+          <th className="team">{division}</th>
+          <th className="num">W</th>
+          <th className="num">L</th>
+          <th className="num">T</th>
+          <th className="num">PCT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {teams.map((t, i) => (
+          <tr key={t.team_id} className={i === 0 ? "is-leader" : undefined} style={teamTheme(t.team_id)}>
+            <td className="team">
+              <Link href={`/teams/${t.team_id}?season=${season}`}>
+                <TeamLogo team={t.team_id} size={28} />
+                <span className="nm">{t.nickname ?? t.name}</span>
+                <ClinchTag kind={clinch.get(t.team_id) ?? "out"} />
+              </Link>
+            </td>
+            <td className="num">{t.wins}</td>
+            <td className="num">{t.losses}</td>
+            <td className="num">{t.ties}</td>
+            <td className="num pct">{formatPct(t.pct)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** One conference's projected seven-team playoff field as team-color blocks,
+ *  with a cutline under the division winners and after the last wildcard. */
+function PlayoffField({ conf, season }: { conf: ConferenceStandings; season: number }) {
+  const seeds = seedConference(conf);
+  return (
+    <section aria-label={`${conf.conference} playoff picture`}>
+      <h2 className="yb-conf-title">{conf.conference}</h2>
+      <ol className="yb-seed-list">
+        {seeds.map((s) => (
+          <li
+            key={s.team.team_id}
+            className={`yb-seed-block${s.kind === "wc" ? " is-wc" : ""}`}
+            style={teamTheme(s.team.team_id)}
+          >
+            <span className="sd">{s.seed}</span>
+            <TeamLogo team={s.team.team_id} size={30} />
+            <Link className="tm" href={`/teams/${s.team.team_id}?season=${season}`}>
+              {s.team.nickname ?? s.team.name}
+            </Link>
+            <span className="kd">{s.kind === "wc" ? "Wildcard" : s.kind === "bye" ? "#1 seed" : `${conf.conference} ${s.seed}`}</span>
+            <span className="rc">
+              {s.team.wins}-{s.team.losses}
+              {s.team.ties ? `-${s.team.ties}` : ""}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="yb-seed-note">Seeds 1–4 win their division · 5–7 wildcards · projected by win pct</p>
+    </section>
   );
 }

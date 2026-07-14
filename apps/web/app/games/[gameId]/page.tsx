@@ -10,7 +10,6 @@ import { useBoxScore, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
 import type { BoxScorePlayer, BoxScoreTeam } from "../../lib/api";
-import { teamTheme } from "../../lib/teamTheme";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -90,7 +89,7 @@ function TeamBox({ team }: { team: BoxScoreTeam }) {
   );
 
   return (
-    <section className="yb-team-box" style={teamTheme(team.team_id)}>
+    <section className="yb-team-box">
       <header className="yb-team-box-head">
         <TeamLogo team={team.team_id} size={28} />
         <div>
@@ -231,7 +230,6 @@ export default function BoxScorePage() {
                   <tr
                     key={t.team_id}
                     className={`yb-boxscore-row${won ? " winner" : ""}`}
-                    style={won ? teamTheme(t.team_id) : undefined}
                   >
                     <td>
                       <Link href={`/teams/${t.team_id}?season=${box.season}`} className="tm">

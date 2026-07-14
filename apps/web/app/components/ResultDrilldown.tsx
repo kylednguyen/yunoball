@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AnswerResult, PlayerGameLogRow, PlayerProfile } from "../lib/api";
 import { fetchPlayer } from "../lib/api";
 import { passerRating } from "../lib/rating";
-import { teamTheme } from "../lib/teamTheme";
 import { Dropdown } from "./Dropdown";
 import { Headshot } from "./Headshot";
 import { tablistKeys } from "./tablist";
@@ -296,7 +295,6 @@ export function ResultDrilldown({ result, leaderboard }: { result: AnswerResult;
               key={id}
               className="yb-result-leader-card"
               data-themed={Boolean(profile?.team)}
-              style={profile?.team ? teamTheme(profile.team) : undefined}
             >
               {profile && (
                 <Headshot

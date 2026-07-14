@@ -17,10 +17,7 @@ function TeamLine({
   won: boolean;
 }) {
   return (
-    <span
-      className={`yb-tick-row${won ? " win" : ""}`}
-      style={won ? teamTheme(team) : undefined}
-    >
+    <span className={`yb-tick-row${won ? " win" : ""}`} style={won ? teamTheme(team) : undefined}>
       <TeamLogo team={team} size={20} />
       <span className="yb-tick-team">{team}</span>
       <span className="yb-tick-score">{score}</span>
