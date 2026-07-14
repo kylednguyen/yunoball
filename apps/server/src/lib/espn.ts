@@ -20,7 +20,16 @@ try {
   ids = {}; // generated file not present yet — headshots degrade gracefully
 }
 
+// Retired stars are outside the active-roster sync window but still appear in
+// historical queries and comparisons. Keep the small verified legacy bridge
+// here so those answer templates receive the same real headshots as active
+// players without changing any stats source.
+const LEGACY_ESPN_IDS: Record<string, number> = {
+  "00-0010346": 1428, // Peyton Manning
+  "00-0019596": 2330, // Tom Brady
+};
+
 export function headshotUrl(playerId: string): string | null {
-  const espnId = ids[playerId];
+  const espnId = ids[playerId] ?? LEGACY_ESPN_IDS[playerId];
   return espnId ? `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png` : null;
 }

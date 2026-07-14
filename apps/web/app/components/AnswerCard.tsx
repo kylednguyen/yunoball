@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 
 import type { AnswerResult } from "../lib/api";
-import { teamTheme } from "../lib/teamTheme";
 import { Headshot } from "./Headshot";
+import { PlayerComparisonResult } from "./PlayerComparisonResult";
+import { ResultDrilldown } from "./ResultDrilldown";
+import { SinglePlayerResult } from "./SinglePlayerResult";
 import { SortTable } from "./SortTable";
 import { TeamLogo } from "./TeamLogo";
 import { Badge, Surface } from "./ui";
+import { teamTheme } from "../lib/teamTheme";
 
 /** A column is numeric if every non-empty cell parses as a number. */
 function isNumericColumn(rows: AnswerResult["rows"], c: string): boolean {
@@ -110,7 +113,7 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
               className={`nm ${i === 0 ? "a" : "b"}`}
               href={`/players/${encodeURIComponent(String(p.player_id))}`}
             >
-              {card && <Headshot src={card.headshot_url} name={card.name} size={40} />}
+              {card && <Headshot src={card.headshot_url} name={card.name} scale="comparison" />}
               <span className="who">
                 <span>
                   {String(p.full_name)}
@@ -178,6 +181,14 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
 export function AnswerCard({ result }: { result: AnswerResult }) {
   const [showSql, setShowSql] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  if (result.intent === "player_total" && result.player_card) {
+    return <SinglePlayerResult result={result} />;
+  }
+  if (result.intent === "compare") {
+    return <PlayerComparisonResult result={result} />;
+  }
+
   const numericCols = new Set(result.columns.filter((c) => isNumericColumn(result.rows, c)));
 
   // When rows carry a player_id, the name column links to the player page and
@@ -189,6 +200,8 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const columns = result.columns.filter(
     (c) => !(linkPlayers && c === "player_id") && !(linkGames && c === "game_id"),
   );
+  // The queried metric = first real numeric column (not a season/week/rank id).
+  const metricCol = columns.find((c) => numericCols.has(c) && !NO_GROUPING.has(c) && c !== "rank");
 
   function downloadCsv() {
     const esc = (v: unknown) => {
@@ -217,9 +230,17 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const cards = [result.player_card, result.player_card2].filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
   );
+  // Theme the whole result by the top player's team, so the leader card and the
+  // metric column render in that team's primary colour.
+  const theme = teamTheme(cards[0]?.team);
   // Head-to-head renders as one compact element: the chart header carries the
   // player identities, so the separate mini cards would be repetition.
   const isCompare = result.intent === "compare" && result.rows.length === 2;
+  const isPlayerLeaderboard =
+    result.intent === "leaders" &&
+    linkPlayers &&
+    result.rows.length > 0 &&
+    result.rows.every((row) => row.player_id && row.full_name && row.value != null);
   // Entity chips only add value for entities the mini cards don't already cover.
   const chips = (result.entities ?? []).filter(
     (e) => !(e.entity_type === "player" && cards.some((c) => c.player_id === e.canonical_id)),
@@ -231,16 +252,67 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
     result.audit?.status ? `audit: ${result.audit.status}` : null,
   ].filter(Boolean) as string[];
 
-  // Team context: when exactly one team is in play (a player's team or a
-  // team entity), the card's accent re-tints to that team's branding.
-  // Ambiguous contexts (head-to-heads, multi-team answers) stay neutral.
-  const contextTeams = new Set<string>();
-  for (const c of cards) if (c.team) contextTeams.add(c.team);
-  for (const e of result.entities ?? []) {
-    if (e.entity_type === "team") contextTeams.add(e.canonical_id);
-  }
-  const theme =
-    contextTeams.size === 1 ? teamTheme([...contextTeams][0]) : undefined;
+  const leaderboard = (
+    <SortTable
+      rows={result.rows.map((row, i) => ({ row, i }))}
+      rowKey={({ i }) => String(i)}
+      columns={[
+        ...columns.map((c) => ({
+          key: c,
+          label:
+            c === "full_name" ? "player" : c === "game_date" ? "date" : c.replace(/_/g, " "),
+          numeric: numericCols.has(c),
+          highlight: c === metricCol,
+          title: HEADER_TITLES[c],
+          value: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
+            const v = row[c];
+            if (v === null || v === undefined || v === "") return null;
+            if (c === "game_date") return String(v).slice(0, 10);
+            return numericCols.has(c) ? Number(v) : String(v);
+          },
+          render: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
+            const v = row[c];
+            if (v === null || v === undefined || v === "") return <>{""}</>;
+            if (c === "full_name" && linkPlayers && row.player_id) {
+              return (
+                <Link href={`/players/${encodeURIComponent(String(row.player_id))}`}>
+                  {String(v)}
+                </Link>
+              );
+            }
+            if (c === "game_date") {
+              const d = fmtGameDate(v);
+              if (linkGames && row.game_id) {
+                return (
+                  <Link href={`/games/${encodeURIComponent(String(row.game_id))}`}>{d}</Link>
+                );
+              }
+              return <>{d}</>;
+            }
+            if (TEAM_COLS.has(c) && typeof v === "string" && /^[A-Z]{2,3}$/.test(v)) {
+              return <Link href={`/teams/${v}`}>{v}</Link>;
+            }
+            return <>{numericCols.has(c) ? fmtCell(c, v) : String(v)}</>;
+          },
+        })),
+        ...(isPlayerLeaderboard
+          ? [{
+              key: "__profile",
+              label: "Profile",
+              value: () => "",
+              render: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => (
+                <Link
+                  className="yb-table-profile-link"
+                  href={`/players/${encodeURIComponent(String(row.player_id))}`}
+                >
+                  View full profile
+                </Link>
+              ),
+            }]
+          : []),
+      ]}
+    />
+  );
 
   return (
     <Surface as="section" variant="standard" className="yb-query-result yb-enter" style={theme}>
@@ -263,7 +335,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         </div>
       </div>
 
-      {!isCompare && cards.length > 0 && (
+      {!isCompare && !isPlayerLeaderboard && cards.length > 0 && (
         <div>
           {cards.map((card) => (
             <Link
@@ -271,7 +343,7 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
               href={`/players/${encodeURIComponent(card.player_id)}`}
               className="yb-player-mini"
             >
-              <Headshot src={card.headshot_url} name={card.name} size={52} />
+              <Headshot src={card.headshot_url} name={card.name} scale="card" />
               <span className="who">
                 <span className="nm">
                   {card.name}
@@ -315,53 +387,17 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         </div>
       )}
 
-      {!isCompare && result.rows.length > 0 && (
+      {isPlayerLeaderboard && (
+        <ResultDrilldown result={result} leaderboard={leaderboard} />
+      )}
+
+      {!isCompare && !isPlayerLeaderboard && result.rows.length > 0 && (
         <div className="yb-result-body">
-          <SortTable
-            rows={result.rows.map((row, i) => ({ row, i }))}
-            rowKey={({ i }) => String(i)}
-            columns={columns.map((c) => ({
-              key: c,
-              label:
-                c === "full_name" ? "player" : c === "game_date" ? "date" : c.replace(/_/g, " "),
-              numeric: numericCols.has(c),
-              title: HEADER_TITLES[c],
-              value: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
-                const v = row[c];
-                if (v === null || v === undefined || v === "") return null;
-                if (c === "game_date") return String(v).slice(0, 10);
-                return numericCols.has(c) ? Number(v) : String(v);
-              },
-              render: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => {
-                const v = row[c];
-                if (v === null || v === undefined || v === "") return <>{""}</>;
-                if (c === "full_name" && linkPlayers && row.player_id) {
-                  return (
-                    <Link href={`/players/${encodeURIComponent(String(row.player_id))}`}>
-                      {String(v)}
-                    </Link>
-                  );
-                }
-                if (c === "game_date") {
-                  const d = fmtGameDate(v);
-                  if (linkGames && row.game_id) {
-                    return (
-                      <Link href={`/games/${encodeURIComponent(String(row.game_id))}`}>{d}</Link>
-                    );
-                  }
-                  return <>{d}</>;
-                }
-                if (TEAM_COLS.has(c) && typeof v === "string" && /^[A-Z]{2,3}$/.test(v)) {
-                  return <Link href={`/teams/${v}`}>{v}</Link>;
-                }
-                return <>{numericCols.has(c) ? fmtCell(c, v) : String(v)}</>;
-              },
-            }))}
-          />
+          {leaderboard}
         </div>
       )}
 
-      <div className="yb-result-actions">
+      <div className="yb-result-actions" data-export-exclude="true">
         <button onClick={() => setShowSql((s) => !s)} className="yb-link">
           {showSql ? "Hide query" : "Show query"}
         </button>

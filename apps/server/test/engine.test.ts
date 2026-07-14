@@ -177,6 +177,23 @@ describe("parseRules — career leaders, top-N, relative seasons", () => {
     },
   );
 
+  it("bare leaderboard question defaults to last season, not all-time", () => {
+    // No year, no "career", no position -> the most recent loaded season,
+    // instead of ranking the best single season in all of history.
+    expect(parse("most rushing touchdowns")).toMatchObject({
+      intent: "leaders", stat: "rushing_tds", season: 2025, scope: "season",
+    });
+    // "career"/"all-time" still widens to the all-time board.
+    expect(parse("most career rushing touchdowns")).toMatchObject({
+      intent: "leaders", scope: "career", season: null,
+    });
+    // Degrades to null when no season is loaded (nothing to default to).
+    expect(parse("most rushing touchdowns", null)).toMatchObject({ season: null });
+    // A generic name search and a comparison keep their own career default —
+    // the season default is scoped to leaderboard questions only.
+    expect(parse("patrick mahomes")).toMatchObject({ intent: "player_seasons", scope: "career" });
+  });
+
   it("'top 5' sets the result count", () => {
     expect(parse("top 5 passing yards in 2023")).toMatchObject({ intent: "leaders", limit: 5 });
     expect(parse("top ten rushing yards in 2019")).toMatchObject({ limit: 10 });

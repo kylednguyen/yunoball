@@ -24,7 +24,7 @@ function PlayerCell({ p }: { p: BoxScorePlayer }) {
       href={`/players/${encodeURIComponent(p.player_id)}`}
       style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
     >
-      <Headshot src={p.headshot_url} name={p.name} size={24} />
+      <Headshot src={p.headshot_url} name={p.name} scale="compact" />
       {p.name}
       {p.position && (
         <span className="yb-muted" style={{ fontSize: 12 }}>
@@ -89,11 +89,16 @@ function TeamBox({ team }: { team: BoxScoreTeam }) {
   );
 
   return (
-    <div>
-      <h2 className="yb-conf-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <TeamLogo team={team.team_id} size={22} /> {team.name}
-      </h2>
-      <StatSection
+    <section className="yb-team-box">
+      <header className="yb-team-box-head">
+        <TeamLogo team={team.team_id} size={28} />
+        <div>
+          <h2>{team.name}</h2>
+          <span>{team.players.length} recorded players</span>
+        </div>
+      </header>
+      <div className="yb-team-box-body">
+        <StatSection
         title="Passing"
         players={passers}
         columns={[
@@ -109,8 +114,8 @@ function TeamBox({ team }: { team: BoxScoreTeam }) {
               "-",
           },
         ]}
-      />
-      <StatSection
+        />
+        <StatSection
         title="Rushing"
         players={rushers}
         columns={[
@@ -122,8 +127,8 @@ function TeamBox({ team }: { team: BoxScoreTeam }) {
           },
           { label: "TD", value: (p) => p.rushing_tds },
         ]}
-      />
-      <StatSection
+        />
+        <StatSection
         title="Receiving"
         players={receivers}
         columns={[
@@ -132,8 +137,8 @@ function TeamBox({ team }: { team: BoxScoreTeam }) {
           { label: "YDS", value: (p) => p.receiving_yards.toLocaleString() },
           { label: "TD", value: (p) => p.receiving_tds },
         ]}
-      />
-      <StatSection
+        />
+        <StatSection
         title="Defense"
         players={defenders}
         columns={[
@@ -143,8 +148,9 @@ function TeamBox({ team }: { team: BoxScoreTeam }) {
           { label: "FF", value: (p) => p.forced_fumbles },
           { label: "PD", value: (p) => p.passes_defended },
         ]}
-      />
-    </div>
+        />
+      </div>
+    </section>
   );
 }
 
@@ -199,30 +205,48 @@ export default function BoxScorePage() {
                 { label: `${box.away.team_id} @ ${box.home.team_id}` },
               ]}
             />
-            <div className="yb-boxhead">
+            <section className="yb-boxscore-summary" aria-label="Final score">
+              <header>
+                <strong>Final</strong>
+                <span>
+                  {box.season_type === "POST" ? "Postseason" : "Week"} {box.week} ·{" "}
+                  {fmtDate(box.date) ?? box.season}
+                  {box.stadium ? ` · ${box.stadium}` : ""}
+                </span>
+              </header>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Team</th>
+                    <th className="num">Score</th>
+                  </tr>
+                </thead>
+                <tbody>
               {[box.away, box.home].map((t, i) => {
                 const other = i === 0 ? box.home : box.away;
                 const won =
                   t.score !== null && other.score !== null && t.score > other.score;
                 return (
-                  <div key={t.team_id} className={`side${won ? " won" : ""}`}>
-                    <Link href={`/teams/${t.team_id}?season=${box.season}`} className="tm">
-                      <TeamLogo team={t.team_id} size={40} />
+                  <tr
+                    key={t.team_id}
+                    className={`yb-boxscore-row${won ? " winner" : ""}`}
+                  >
+                    <td>
+                      <Link href={`/teams/${t.team_id}?season=${box.season}`} className="tm">
+                      <TeamLogo team={t.team_id} size={44} />
                       <span>
                         <span className="nm">{t.nickname ?? t.name}</span>
                         <span className="sub">{i === 0 ? "Away" : "Home"}</span>
                       </span>
-                    </Link>
-                    <span className="score">{t.score ?? "-"}</span>
-                  </div>
+                      </Link>
+                    </td>
+                    <td className="score num">{t.score ?? "-"}</td>
+                  </tr>
                 );
               })}
-              <p className="meta">
-                {box.season_type === "POST" ? "Postseason" : "Week"} {box.week} ·{" "}
-                {fmtDate(box.date) ?? box.season}
-                {box.stadium ? ` · ${box.stadium}` : ""}
-              </p>
-            </div>
+                </tbody>
+              </table>
+            </section>
 
             <div className="yb-box-teams">
               <TeamBox team={box.away} />

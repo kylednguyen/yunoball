@@ -27,10 +27,29 @@ import { statComputableFor } from "./executors/shared.js";
 import { loadIndex, loadTeamIndex, resolveEntities } from "./resolve.js";
 import { fields, specCacheKey, STATS } from "./spec.js";
 
+function metricCategory(
+  metric: string,
+  intent: string,
+): NonNullable<AnswerResult["query_context"]>["category"] {
+  if (intent.startsWith("team_")) return "team";
+  if (intent === "game_result" || intent === "single_game") return "game";
+  if (/^(passing_|passer_|completion_|cpoe|interceptions$|sacks_taken$|pass_)/.test(metric)) {
+    return "passing";
+  }
+  if (/^(rushing_|rush_)/.test(metric)) return "rushing";
+  if (/^(receiving_|receptions$|recv_)/.test(metric)) return "receiving";
+  if (/^(tackles$|def_|forced_fumbles$|passes_defended$)/.test(metric)) return "defense";
+  if (/(kick|field_goal|extra_point|punt)/.test(metric)) return "kicking";
+  if (metric.includes("fantasy")) return "fantasy";
+  return "other";
+}
+
 async function finalize(response: AnswerResult, sKey: string | null): Promise<AnswerResult> {
   cacheSet(textKey(response.question), response);
   if (sKey !== null) cacheSet(sKey, response);
-  void persistAnswer(response); // best-effort, off the response path
+  // The result route opens immediately after this response. Await the
+  // best-effort durable write so /a/<share_id> cannot race its own lookup.
+  await persistAnswer(response);
   return response;
 }
 
@@ -112,7 +131,7 @@ export async function runQueryPipeline(
       question, spec: null, status: "unsupported", warnings: [],
       confidence: null, rowCount: 0, durationMs: Date.now() - startedAt,
     });
-    return {
+    return finalize({
       question,
       narration: parsed.refusal,
       sql: "",
@@ -121,7 +140,7 @@ export async function runQueryPipeline(
       entities,
       cached: false,
       share_id: shareId(question),
-    };
+    }, null);
   }
   const spec = parsed;
 
@@ -140,14 +159,14 @@ export async function runQueryPipeline(
         question, spec, status: "unsupported", warnings: [],
         confidence: null, rowCount: 0, durationMs: Date.now() - startedAt,
       });
-      return {
+      return finalize({
         question,
         narration:
           `I can't compute ${label} for that kind of question yet — try it as a ` +
           `season leaderboard or a player total.`,
         sql: "", rows: [], columns: [], entities, cached: false,
         share_id: shareId(question),
-      };
+      }, null);
     }
 
     // --- Second-layer audit: validate against warehouse reality before SQL ---
@@ -161,7 +180,7 @@ export async function runQueryPipeline(
         confidence: verdict.confidence, rowCount: rows.length,
         durationMs: Date.now() - startedAt,
       });
-      return {
+      return finalize({
         question,
         narration: verdict.reason ?? "That query didn't pass validation.",
         sql: "",
@@ -175,7 +194,7 @@ export async function runQueryPipeline(
           warnings: verdict.warnings,
           confidence: verdict.confidence.overall,
         },
-      };
+      }, null);
     }
 
     // --- L2: spec-keyed cache (dedupes phrasings that map to one spec) ---
@@ -201,6 +220,7 @@ export async function runQueryPipeline(
     if (verdict.warnings.length) {
       narration += ` Note: ${verdict.warnings.join(" ")}`;
     }
+    const answerValue = rows[0]?.total ?? rows[0]?.value ?? rows[0]?.cmp_value ?? null;
     // Window totals fed the narration; per-row they are just repetition.
     // Compare keeps `games` — the head-to-head chart shows it and the
     // per-game toggle divides by it.
@@ -222,6 +242,10 @@ export async function runQueryPipeline(
       cached: false,
       share_id: shareId(question),
       intent: spec.intent,
+      answer_value:
+        typeof answerValue === "number" || typeof answerValue === "string"
+          ? answerValue
+          : null,
       player_card: await playerCard(
         fields(spec).playerId ?? (rows[0]?.player_id as string | undefined),
       ),
@@ -230,6 +254,15 @@ export async function runQueryPipeline(
         status: verdict.status,
         warnings: verdict.warnings,
         confidence: verdict.confidence.overall,
+      },
+      query_context: {
+        metric: spec.stat,
+        metric_label: STATS[spec.stat]?.label ?? spec.stat.replace(/_/g, " "),
+        category: metricCategory(spec.stat, spec.intent),
+        season: spec.season ?? null,
+        season_type: spec.seasonType,
+        scope: spec.intent === "compare" && spec.season == null ? "career" : spec.scope,
+        per_game: "perGame" in spec && Boolean(spec.perGame),
       },
     };
     logAudit({
@@ -247,7 +280,7 @@ export async function runQueryPipeline(
 
   // --- Nothing parsed to a spec: the rule-based engine only answers
   // structured shapes; be honest rather than guess. ---
-  return {
+  return finalize({
     question,
     narration:
       "I can't answer that one yet. Try a stats question like " +
@@ -259,5 +292,5 @@ export async function runQueryPipeline(
     entities,
     cached: false,
     share_id: shareId(question),
-  };
+  }, null);
 }

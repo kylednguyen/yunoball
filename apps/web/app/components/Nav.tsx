@@ -37,6 +37,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M12 6v14" />
     </>
   ),
+  nfl: (
+    <>
+      <path d="M7.5 4.5c3.7-2.3 7.4-.8 9.7 2.9 2.3 3.7 1.3 7.6-2.4 9.9-3.7 2.3-7.4.8-9.7-2.9-2.3-3.7-1.3-7.6 2.4-9.9z" />
+      <path d="M8 16L16.5 6M8.8 10.2l5 3.1M10.4 8.1l5 3.1" />
+    </>
+  ),
 };
 
 function NavIcon({ name }: { name: string }) {
@@ -58,15 +64,13 @@ function NavIcon({ name }: { name: string }) {
 }
 
 const LINKS = [
-  { href: "/", label: "Search", icon: "search" },
+  { href: "/", label: "NFL", icon: "nfl", group: "Sports" },
   { href: "/scores", label: "Scores", icon: "scores" },
-  { href: "/teams", label: "Teams", icon: "teams" },
-  { href: "/standings", label: "Standings", icon: "standings" },
-  { href: "/leaders", label: "Leaders", icon: "leaders" },
-  { href: "/fantasy", label: "Fantasy", icon: "fantasy" },
-  { href: "/assistant", label: "Assistant", badge: "Pro", icon: "assistant" },
   { href: "/glossary", label: "Glossary", icon: "glossary" },
+  { href: "/fantasy", label: "Fantasy Builder AI", icon: "fantasy" },
 ];
+
+const NFL_ROUTE_PREFIXES = ["/teams", "/standings", "/leaders", "/leaderboards", "/players", "/a/"];
 
 /** Hamburger / close icon for the mobile drawer toggle. */
 function MenuIcon({ open }: { open: boolean }) {
@@ -258,24 +262,26 @@ export function Nav() {
         inert={isMobile && !open}
       >
         <div className="yb-nav-links">
-          {LINKS.map(({ href, label, badge, icon }) => {
+          {LINKS.map(({ href, label, icon, group }) => {
             const active =
               href === "/"
-                ? pathname === "/"
+                ? pathname === "/" || NFL_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
                 : pathname.startsWith(href) ||
                   // Box scores are children of Scores in the IA.
-                  (href === "/scores" && pathname.startsWith("/games"));
+                  (href === "/scores" && pathname.startsWith("/games")) ||
+                  (href === "/fantasy" && pathname.startsWith("/assistant"));
             return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                onClick={close}
-              >
-                <NavIcon name={icon} />
-                {label}
-                {badge && <span className="yb-nav-badge">{badge}</span>}
-              </Link>
+              <span className="yb-nav-entry" key={href}>
+                {group && <span className="yb-nav-section">{group}</span>}
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={close}
+                >
+                  <NavIcon name={icon} />
+                  {label}
+                </Link>
+              </span>
             );
           })}
         </div>

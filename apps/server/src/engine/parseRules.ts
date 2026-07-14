@@ -1196,14 +1196,17 @@ export function parseRules(
     tempMax,
     seasonMin: range?.min ?? null,
     seasonMax: range?.max ?? null,
-    // "most career passing yards" ranks all-time totals; a bare position
-    // question ("best qb") means the newest season, not all of history.
+    // Default a leaderboard question to the most recent loaded season, not all
+    // of history: "most passing yards" means last season's leader, the same as
+    // "best qb" does. Only "career"/"all-time" (isCareer) or an explicit season
+    // range widens it; a generic name search and a comparison are different
+    // intents (player_seasons / compare) and keep their own career default.
     round: playerRound,
     season: range
       ? null
       : isCareer
         ? null
-        : (effSeason ?? (position && !CAREER_RE.test(qText) ? (opts.latestSeason ?? null) : null)),
+        : (effSeason ?? (opts.latestSeason ?? null)),
     seasonType,
     limit: limit ?? 10,
     position,

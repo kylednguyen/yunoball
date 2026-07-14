@@ -308,7 +308,7 @@ export default function FantasyPage() {
                         <tr key={p.player_id}>
                           <td>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <Headshot src={p.headshot_url} name={p.name} size={32} />
+                              <Headshot src={p.headshot_url} name={p.name} scale="row" />
                               <div>
                                 <div>
                                   <Link

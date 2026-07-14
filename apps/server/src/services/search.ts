@@ -11,7 +11,7 @@ import { headshotUrl } from "../lib/espn.js";
  * most-productive players first. The player's team is his latest season's. */
 export async function suggest(query: string, limit = 6): Promise<SuggestResponse> {
   const needle = query.trim().toLowerCase();
-  if (needle.length < 2) return { query, players: [], teams: [] };
+  if (needle.length < 2) return { query, questions: [], players: [], teams: [] };
   const sub = `%${needle}%`;
   const pre = `${needle}%`;
 
@@ -42,8 +42,27 @@ export async function suggest(query: string, limit = 6): Promise<SuggestResponse
     [sub, pre],
   );
 
+  const terms = needle.split(/\s+/).filter(Boolean);
+  const questions = (await supportedQuestions())
+    .filter((question) => {
+      const words = question.toLowerCase().split(/\s+/);
+      return (
+        question.toLowerCase().includes(needle) ||
+        terms.every((term) => words.some((word) => word.startsWith(term)))
+      );
+    })
+    .sort((a, b) => {
+      const aText = a.toLowerCase();
+      const bText = b.toLowerCase();
+      const aStart = aText.startsWith(needle) ? 0 : 1;
+      const bStart = bText.startsWith(needle) ? 0 : 1;
+      return aStart - bStart || aText.indexOf(needle) - bText.indexOf(needle) || a.length - b.length;
+    })
+    .slice(0, 5);
+
   return {
     query,
+    questions,
     players: players.map((r) => ({
       player_id: r.player_id,
       name: r.full_name,
@@ -84,18 +103,22 @@ async function loadedSeasonRange(): Promise<{ min: number; max: number } | null>
   return seasonRange;
 }
 
-/** A random sample from the question corpus — powers the example chips.
- * Only questions the warehouse can actually answer are offered: any year a
- * question names must fall inside the loaded season window (year-less
- * questions — careers, single-game records — are always fair game). */
-export async function examples(n: number): Promise<string[]> {
+async function supportedQuestions(): Promise<string[]> {
   const range = await loadedSeasonRange();
-  const qs = commonQuestions().filter((question) => {
+  return commonQuestions().filter((question) => {
     const years = question.match(/\b(?:19|20)\d{2}\b/g);
     if (!years) return true;
     if (!range) return false;
     return years.every((y) => Number(y) >= range.min && Number(y) <= range.max);
   });
+}
+
+/** A random sample from the question corpus — powers the example chips.
+ * Only questions the warehouse can actually answer are offered: any year a
+ * question names must fall inside the loaded season window (year-less
+ * questions — careers, single-game records — are always fair game). */
+export async function examples(n: number): Promise<string[]> {
+  const qs = await supportedQuestions();
   const out: string[] = [];
   while (out.length < Math.min(n, qs.length)) {
     out.push(...qs.splice(Math.floor(Math.random() * qs.length), 1));

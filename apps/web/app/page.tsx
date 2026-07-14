@@ -1,30 +1,17 @@
 import { HomeDashboard } from "./components/HomeDashboard";
-import { Leaders } from "./components/Leaders";
 import { ScoreTicker } from "./components/ScoreTicker";
-import { Search } from "./search";
 
+/** NFL hub. Search is the persistent bar in the layout (1); the ticker is the
+ *  current week's scores (3); everything else — featured matchup, performers,
+ *  division & league leaders, fantasy, playoff picture, trending questions and
+ *  team shortcuts — lives in the dashboard below (4–11). */
 export default function Home() {
   return (
-    <>
+    <main id="main" className="yb-home">
+      <h1 className="yb-sr-only">NFL data dashboard</h1>
       <ScoreTicker />
-      <main id="main">
-        <section className="yb-hero">
-          <h1>
-            Ask anything about the <span>NFL</span>
-          </h1>
-          <p>
-            Every answer is computed from real historical data, and we show you the
-            query behind it.
-          </p>
-          <div className="yb-search-shell">
-            <Search />
-          </div>
-        </section>
 
-        <HomeDashboard />
-
-        <Leaders />
-      </main>
-    </>
+      <HomeDashboard />
+    </main>
   );
 }

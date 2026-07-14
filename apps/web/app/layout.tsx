@@ -1,23 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Geist } from "next/font/google";
 import "./globals.css";
 import { Nav } from "./components/Nav";
+import { Search } from "./search";
 
-/* Display face for headlines, scores and big numbers. Exposed as
-   --font-display for globals.css. */
-const display = Barlow_Condensed({
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
-});
-
-/* Body face — Geist, with the system sans stack as fallback (--font). */
-const body = Geist({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
-
+/* One variable face across copy, headings, controls and data keeps the
+   information-dense interface coherent while retaining distinct weights. */
 /* viewport-fit=cover exposes env(safe-area-inset-*) on notched phones;
    globals.css guards the sticky bar and page padding with them. */
 export const viewport: Viewport = {
@@ -40,7 +27,7 @@ export default function RootLayout({
 }) {
   const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang="en">
       <head>
         {/* Every page pulls headshots/logos from ESPN and data from the API —
             warm both connections before first use. */}
@@ -55,6 +42,17 @@ export default function RootLayout({
             fixed sidebar keeps a viewport containing block and never re-animates
             on navigation. */}
         <Nav />
+        <section className="yb-search-utility" aria-label="Search the NFL stats warehouse">
+          <div className="yb-search-utility-head">
+            <div>
+              <strong>Search the stats warehouse</strong>
+              <span>Players, teams, seasons, and records</span>
+            </div>
+          </div>
+          <div className="yb-search-shell">
+            <Search />
+          </div>
+        </section>
         {children}
       </body>
     </html>
