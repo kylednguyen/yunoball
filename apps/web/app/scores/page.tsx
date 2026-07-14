@@ -20,6 +20,7 @@ import {
   type PerformersResponse,
 } from "../lib/api";
 import { formatGameDate } from "../lib/format";
+import { teamTheme } from "../lib/teamTheme";
 
 function GameCard({ game }: { game: GameRow }) {
   const homeWon = game.final && (game.home.score ?? 0) > (game.away.score ?? 0);
@@ -30,26 +31,48 @@ function GameCard({ game }: { game: GameRow }) {
     <Surface as="article" variant="standard" interactive className="yb-game-card yb-enter">
       <div className="yb-game-card-head">
         <Badge tone={game.final ? "neutral" : hasScore ? "success" : "accent"}>{status}</Badge>
-        <span>Week {game.week}</span>
+        <span>{formatGameDate(game.date)} · Week {game.week}</span>
       </div>
-      {[
-        { side: game.away, won: awayWon },
-        { side: game.home, won: homeWon },
-      ].map(({ side, won }) => (
-        <div key={side.team_id} className={`yb-game-row${won ? " winner" : ""}`}>
-          <Link className="yb-game-team" href={`/teams/${side.team_id}?season=${game.season}`}>
-            <TeamLogo team={side.team_id} />
-            <span className="abbr">{side.team_id}</span>
-            <span className="nick">{side.nickname ?? side.name}</span>
-          </Link>
-          <span className="yb-game-score">{side.score ?? "-"}</span>
-        </div>
-      ))}
+      <table
+        className="yb-mini-boxscore"
+        aria-label={`${game.away.name} at ${game.home.name} box score`}
+      >
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th className="num">Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            { side: game.away, won: awayWon, site: "Away" },
+            { side: game.home, won: homeWon, site: "Home" },
+          ].map(({ side, won, site }) => (
+            <tr
+              key={side.team_id}
+              className={`yb-game-result-row${won ? " winner" : ""}`}
+              style={won ? teamTheme(side.team_id) : undefined}
+            >
+              <td>
+                <Link className="yb-game-team" href={`/teams/${side.team_id}?season=${game.season}`}>
+                  <TeamLogo team={side.team_id} />
+                  <span>
+                    <span className="abbr">{side.team_id}</span>
+                    <span className="nick">{side.nickname ?? side.name}</span>
+                    <span className="site">{site}</span>
+                  </span>
+                </Link>
+              </td>
+              <td className="yb-game-score num">{side.score ?? "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <div className="yb-game-foot">
-        <span>{formatGameDate(game.date)}</span>
+        <span>{game.final ? "Complete" : hasScore ? "In progress" : "Pregame"}</span>
         {game.final ? (
           <Link className="yb-link" style={{ fontSize: 12 }} href={`/games/${encodeURIComponent(game.game_id)}`}>
-            Box score
+            Full box score
           </Link>
         ) : (
           <span className="yb-final-chip">Pregame</span>

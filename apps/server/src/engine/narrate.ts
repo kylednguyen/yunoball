@@ -567,20 +567,30 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
     );
   }
   // leaders
+  const topValue = Number(top.value);
+  const tied = rows.filter((row) => Number(row.value) === topValue);
+  const tiedNames = tied.map((row) => String(row.full_name));
+  const leaderName =
+    tiedNames.length <= 1
+      ? name
+      : tiedNames.length === 2
+        ? `${tiedNames[0]} and ${tiedNames[1]}`
+        : `${tiedNames.slice(0, -1).join(", ")}, and ${tiedNames.at(-1)}`;
+  const leaderVerb = tiedNames.length > 1 ? "are tied for the lead" : "leads";
   const forTeam = spec.teamName ? ` the ${spec.teamName}` : "";
   const posText = spec.position ? ` among ${spec.position}s` : "";
   const rate = spec.perGame ? " per game" : "";
   const verb = spec.dir === "asc" ? "has the fewest" : "leads";
   if (spec.scope === "career" && spec.seasonMin != null) {
-    return `${name} ${verb === "leads" ? "leads" : "has the fewest"}${forTeam} with ${fmt(top.value)}${unit}${post} ${label}${rate}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
+    return `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam} with ${fmt(top.value)}${unit}${post} ${label}${rate}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
   }
   if (spec.scope === "career") {
-    return `${name} ${verb === "leads" ? `leads${forTeam} all time` : "has the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${rate}${posText}.`;
+    return `${leaderName} ${verb === "leads" ? `${leaderVerb}${forTeam} all time` : "have the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${rate}${posText}.`;
   }
   const season = top.season ?? spec.season;
   const where = season && post ? ` in the ${season} postseason` : season ? ` in ${season}` : "";
   if (spec.dir === "asc") {
     return `${name} has the fewest ${label}${rate}${posText}${forTeam ? ` for${forTeam}` : ""}${where}${quals} (min. 8 games) at ${fmt(top.value)}${unit}.`;
   }
-  return `${name} leads${forTeam}${posText} with ${fmt(top.value)}${unit} ${label}${rate}${where}${quals}${spec.rookie ? " among rookies" : ""}.`;
+  return `${leaderName} ${leaderVerb}${forTeam}${posText} with ${fmt(top.value)}${unit} ${label}${rate}${where}${quals}${spec.rookie ? " among rookies" : ""}.`;
 }

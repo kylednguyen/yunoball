@@ -136,19 +136,41 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfile>
     game_id: string; season: number; season_type: string; week: number; game_date: string | null;
     team_id: string; home_team: string; away_team: string;
     home_score: number | null; away_score: number | null;
-    pass_yds: number; pass_tds: number; rush_yds: number; rush_tds: number;
-    rec: number; rec_yds: number; rec_tds: number;
+    cmp: number; att: number; pass_yds: number; pass_tds: number; ints: number;
+    car: number; rush_yds: number; rush_tds: number;
+    tgt: number; rec: number; rec_yds: number; rec_tds: number;
+    fum: number; fuml: number; tkl: number; dsk: number; dint: number;
+    ff: number; pd: number; fp: number;
+    pass_plays: number; pass_epa: number; pass_success: number;
   }>(
     `SELECT s.game_id, g.season, g.season_type, g.week, g.game_date,
             s.team_id, g.home_team, g.away_team, g.home_score, g.away_score,
+            COALESCE(s.completions, 0) AS cmp,
+            COALESCE(s.attempts, 0) AS att,
             COALESCE(s.passing_yards, 0) AS pass_yds,
             COALESCE(s.passing_tds, 0) AS pass_tds,
+            COALESCE(s.interceptions, 0) AS ints,
+            COALESCE(s.carries, 0) AS car,
             COALESCE(s.rushing_yards, 0) AS rush_yds,
             COALESCE(s.rushing_tds, 0) AS rush_tds,
+            COALESCE(s.targets, 0) AS tgt,
             COALESCE(s.receptions, 0) AS rec,
             COALESCE(s.receiving_yards, 0) AS rec_yds,
-            COALESCE(s.receiving_tds, 0) AS rec_tds
+            COALESCE(s.receiving_tds, 0) AS rec_tds,
+            COALESCE(s.fumbles, 0) AS fum,
+            COALESCE(s.fumbles_lost, 0) AS fuml,
+            COALESCE(s.tackles, 0) AS tkl,
+            COALESCE(s.def_sacks, 0) AS dsk,
+            COALESCE(s.def_interceptions, 0) AS dint,
+            COALESCE(s.forced_fumbles, 0) AS ff,
+            COALESCE(s.passes_defended, 0) AS pd,
+            COALESCE(s.fantasy_points_ppr, 0) AS fp,
+            COALESCE(a.pass_plays, 0) AS pass_plays,
+            COALESCE(a.pass_epa, 0) AS pass_epa,
+            COALESCE(a.pass_success, 0) AS pass_success
      FROM player_game_stats s JOIN games g ON g.game_id = s.game_id
+     LEFT JOIN player_game_advanced a
+       ON a.player_id = s.player_id AND a.game_id = s.game_id
      WHERE s.player_id = $1
      ORDER BY g.season DESC, g.week DESC`,
     [playerId],
@@ -249,13 +271,29 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerProfile>
       team_score: teamScore,
       opp_score: oppScore,
       result,
+      completions: r.cmp,
+      attempts: r.att,
       passing_yards: r.pass_yds,
       passing_tds: r.pass_tds,
+      interceptions: r.ints,
+      carries: r.car,
       rushing_yards: r.rush_yds,
       rushing_tds: r.rush_tds,
+      targets: r.tgt,
       receptions: r.rec,
       receiving_yards: r.rec_yds,
       receiving_tds: r.rec_tds,
+      fumbles: r.fum,
+      fumbles_lost: r.fuml,
+      tackles: r.tkl,
+      def_sacks: Number(r.dsk),
+      def_interceptions: r.dint,
+      forced_fumbles: r.ff,
+      passes_defended: r.pd,
+      fantasy_points_ppr: round(r.fp, 1),
+      pass_plays: r.pass_plays,
+      pass_epa: round(r.pass_epa, 3),
+      pass_success: r.pass_success,
     };
   });
 

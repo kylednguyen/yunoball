@@ -9,8 +9,10 @@ import { useState } from "react";
 import { Crumbs } from "../../components/Crumbs";
 import { Dropdown } from "../../components/Dropdown";
 import { Headshot } from "../../components/Headshot";
+import { SeasonSelect } from "../../components/SeasonSelect";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
+import { EntityHero, InfoGrid, SectionHeader, StatSummary } from "../../components/ui";
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
@@ -261,6 +263,56 @@ function SeasonTable({
 
 /** Game log table shared by Overview (recent), Game Log and Playoffs tabs. */
 function GameLogTable({ rows, position }: { rows: GameRow[]; position: string | null }) {
+  const statColumns = position === "QB"
+    ? [
+        {
+          key: "cmp_att", label: "Cmp/Att", numeric: true,
+          value: (g: GameRow) => g.attempts,
+          render: (g: GameRow) => <>{g.completions}/{g.attempts}</>,
+        },
+        {
+          key: "pass_yds", label: "Pass yds", numeric: true,
+          value: (g: GameRow) => g.passing_yards,
+          render: (g: GameRow) => <>{g.passing_yards.toLocaleString()}</>,
+        },
+        { key: "pass_td", label: "Pass TD", numeric: true, value: (g: GameRow) => g.passing_tds },
+        { key: "int", label: "INT", numeric: true, value: (g: GameRow) => g.interceptions },
+        {
+          key: "rating", label: "Rating", numeric: true,
+          value: (g: GameRow) => passerRating(g.completions, g.attempts, g.passing_yards, g.passing_tds, g.interceptions),
+        },
+      ]
+    : position === "RB"
+      ? [
+          { key: "carries", label: "Carries", numeric: true, value: (g: GameRow) => g.carries },
+          { key: "rush_yds", label: "Rush yds", numeric: true, value: (g: GameRow) => g.rushing_yards },
+          { key: "rush_td", label: "Rush TD", numeric: true, value: (g: GameRow) => g.rushing_tds },
+          { key: "rec", label: "Rec", numeric: true, value: (g: GameRow) => g.receptions },
+          { key: "rec_yds", label: "Rec yds", numeric: true, value: (g: GameRow) => g.receiving_yards },
+          { key: "rec_td", label: "Rec TD", numeric: true, value: (g: GameRow) => g.receiving_tds },
+        ]
+      : position && DEFENSIVE.has(position)
+        ? [
+            { key: "tackles", label: "Tackles", numeric: true, value: (g: GameRow) => g.tackles },
+            { key: "sacks", label: "Sacks", numeric: true, value: (g: GameRow) => g.def_sacks },
+            { key: "def_int", label: "INT", numeric: true, value: (g: GameRow) => g.def_interceptions },
+            { key: "ff", label: "FF", numeric: true, value: (g: GameRow) => g.forced_fumbles },
+            { key: "pd", label: "PD", numeric: true, value: (g: GameRow) => g.passes_defended },
+          ]
+        : position === "WR" || position === "TE"
+          ? [
+              { key: "targets", label: "Targets", numeric: true, value: (g: GameRow) => g.targets },
+              { key: "rec", label: "Rec", numeric: true, value: (g: GameRow) => g.receptions },
+              { key: "rec_yds", label: "Rec yds", numeric: true, value: (g: GameRow) => g.receiving_yards },
+              { key: "rec_td", label: "Rec TD", numeric: true, value: (g: GameRow) => g.receiving_tds },
+            ]
+          : [
+              {
+                key: "fantasy", label: "Fantasy PPR", numeric: true,
+                value: (g: GameRow) => g.fantasy_points_ppr,
+                render: (g: GameRow) => <>{g.fantasy_points_ppr.toFixed(1)}</>,
+              },
+            ];
   return (
     <SortTable<GameRow>
       rows={rows}
@@ -295,28 +347,7 @@ function GameLogTable({ rows, position }: { rows: GameRow[]; position: string | 
             </span>
           ),
         },
-        ...(position === "QB"
-          ? [
-              {
-                key: "pass_yds",
-                label: "Pass yds",
-                numeric: true,
-                value: (g: GameRow) => g.passing_yards,
-                render: (g: GameRow) => <>{g.passing_yards.toLocaleString()}</>,
-              },
-              {
-                key: "pass_td",
-                label: "Pass TD",
-                numeric: true,
-                value: (g: GameRow) => g.passing_tds,
-              },
-            ]
-          : []),
-        { key: "rush_yds", label: "Rush yds", numeric: true, value: (g) => g.rushing_yards },
-        { key: "rush_td", label: "Rush TD", numeric: true, value: (g) => g.rushing_tds },
-        { key: "rec", label: "Rec", numeric: true, value: (g) => g.receptions },
-        { key: "rec_yds", label: "Rec yds", numeric: true, value: (g) => g.receiving_yards },
-        { key: "rec_td", label: "Rec TD", numeric: true, value: (g) => g.receiving_tds },
+        ...statColumns,
       ]}
     />
   );
@@ -439,10 +470,30 @@ export default function PlayerPage() {
   const hasPlayoffs = (profile?.postseasons.length ?? 0) > 0 || postLog.length > 0;
   const gameLog = season ? regLog.filter((g) => g.season === season) : regLog;
   const logSeasons = [...new Set(regLog.map((g) => g.season))];
+  const playerAge = ageFrom(profile?.bio.birth_date ?? null);
+  const bioItems = profile
+    ? [
+        { label: "Height", value: fmtHeight(profile.bio.height_inches) },
+        {
+          label: "Weight",
+          value: profile.bio.weight_lbs ? `${profile.bio.weight_lbs} lbs` : null,
+        },
+        { label: "Age", value: playerAge ? `${playerAge} years` : null },
+        { label: "Born", value: fmtDate(profile.bio.birth_date) },
+        { label: "College", value: profile.bio.college },
+        {
+          label: "Seasons",
+          value:
+            profile.bio.first_season && profile.bio.last_season
+              ? `${profile.bio.first_season}-${profile.bio.last_season}`
+              : null,
+        },
+      ].filter((item): item is { label: string; value: string } => Boolean(item.value))
+    : [];
 
   return (
     <>
-      <main id="main" className="yb-page" style={{ maxWidth: 980, ...teamTheme(profile?.team) }}>
+      <main id="main" className="yb-page yb-entity-page" style={teamTheme(profile?.team)}>
         {loading && (
           <>
             <div className="yb-skel" style={{ height: 60, width: 380, marginBottom: 20 }} />
@@ -477,74 +528,64 @@ export default function PlayerPage() {
                 { label: profile.name },
               ]}
             />
-            <div className="yb-page-head" style={{ alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <Headshot src={profile.headshot_url} name={profile.name} size={72} />
-                <h1 className="yb-page-title">{profile.name}</h1>
-                {profile.position && <span className="yb-pos">{profile.position}</span>}
-              </div>
-              <button
-                className="yb-btn ghost"
-                onClick={() =>
-                  (window.location.href = `/?q=${encodeURIComponent(
-                    `${profile.name} career stats`,
-                  )}`)
-                }
-              >
-                Ask about {profile.name.split(" ").pop()} →
-              </button>
-            </div>
-            <p className="yb-page-sub">
-              {profile.team ? (
-                <Link className="yb-link" href={`/teams/${profile.team}`}>
-                  {profile.team_name ?? profile.team}
-                </Link>
-              ) : (
-                "-"
-              )}{" "}
-              · {profile.career.seasons} season
-              {profile.career.seasons === 1 ? "" : "s"}, {profile.career.games_played} games
-              {latest?.position_rank && profile.position ? (
+            <EntityHero
+              className="yb-player-profile"
+              label={`${profile.name} profile`}
+              media={
+                <Headshot
+                  src={profile.headshot_url}
+                  name={profile.name}
+                  scale="profile"
+                  priority
+                />
+              }
+              eyebrow={profile.position ? `${profile.position} profile` : "Player profile"}
+              title={profile.name}
+              meta={
                 <>
-                  {" "}
-                  · {profile.position} #{latest.position_rank} of {latest.position_players} in{" "}
-                  {latest.season} (PPR)
+                  {profile.team ? (
+                    <Link className="yb-link" href={`/teams/${profile.team}`}>
+                      <TeamLogo team={profile.team} size={18} />
+                      {profile.team_name ?? profile.team}
+                    </Link>
+                  ) : (
+                    <span>Free agent</span>
+                  )}
+                  <span>
+                    {profile.career.seasons} season
+                    {profile.career.seasons === 1 ? "" : "s"} / {profile.career.games_played} games
+                  </span>
+                  {latest?.position_rank && profile.position ? (
+                    <span>
+                      {profile.position} #{latest.position_rank} of {latest.position_players} in{" "}
+                      {latest.season} PPR
+                    </span>
+                  ) : null}
                 </>
-              ) : null}
-            </p>
-
-            <dl className="yb-bio">
-              {[
-                { label: "Height", value: fmtHeight(profile.bio.height_inches) },
-                {
-                  label: "Weight",
-                  value: profile.bio.weight_lbs ? `${profile.bio.weight_lbs} lbs` : null,
-                },
-                {
-                  label: "Age",
-                  value: (() => {
-                    const age = ageFrom(profile.bio.birth_date);
-                    return age ? `${age} years` : null;
-                  })(),
-                },
-                { label: "Born", value: fmtDate(profile.bio.birth_date) },
-                { label: "College", value: profile.bio.college },
-                {
-                  label: "Seasons",
-                  value:
-                    profile.bio.first_season && profile.bio.last_season
-                      ? `${profile.bio.first_season}–${profile.bio.last_season}`
-                      : null,
-                },
-              ]
-                .filter((f) => f.value)
-                .map((f) => (
-                  <div key={f.label}>
-                    <dt>{f.label}</dt>
-                    <dd>{f.value}</dd>
-                  </div>
-                ))}
-            </dl>
+              }
+              utilities={
+                <>
+                  {latest && (
+                    <SeasonSelect
+                      seasons={profile.seasons.map((row) => row.season)}
+                      value={latest.season}
+                      onChange={setSeason}
+                    />
+                  )}
+                  <button
+                    className="yb-btn ghost"
+                    onClick={() =>
+                      (window.location.href = `/?q=${encodeURIComponent(
+                        `${profile.name} career stats`,
+                      )}`)
+                    }
+                  >
+                    Ask about {profile.name.split(" ").pop()} →
+                  </button>
+                </>
+              }
+              details={<InfoGrid items={bioItems} />}
+            />
 
             <div className="yb-player-tabs" role="tablist" aria-label="Player views" onKeyDown={tablistKeys}>
               {TABS.filter((t) => t !== "Playoffs" || hasPlayoffs).map((t) => (
@@ -560,60 +601,51 @@ export default function PlayerPage() {
             </div>
 
             {tab === "Overview" && (
-              <>
-                {latest && (
-                  <>
-                    <h2 className="yb-conf-title">{latest.season} season</h2>
-                    <div className="yb-tiles">
-                      {tiles(profile, latest, `${latest.games_played} games`).map((t) => (
-                        <div key={t.label} className="yb-tile">
-                          <div className="yb-tile-label">{t.label}</div>
-                          <div className="yb-tile-value">{t.value}</div>
-                          <div className="yb-tile-meta">{t.meta}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-                <h2 className="yb-conf-title" style={{ marginTop: 24 }}>
-                  Career
-                </h2>
-                <div className="yb-tiles">
-                  {tiles(profile, profile.career, "career").map((t) => (
-                    <div key={t.label} className="yb-tile">
-                      <div className="yb-tile-label">{t.label}</div>
-                      <div className="yb-tile-value">{t.value}</div>
-                      <div className="yb-tile-meta">{t.meta}</div>
-                    </div>
-                  ))}
+              <div className="yb-profile-workspace">
+                <aside className="yb-profile-rail" aria-label="Current season summary">
+                  {latest && (
+                    <StatSummary
+                      title={`${latest.season} season summary`}
+                      items={tiles(profile, latest, `${latest.games_played} games`)}
+                    />
+                  )}
+                </aside>
+                <div className="yb-profile-main">
+                  {regLog.length > 0 && (
+                    <section id="game-log" aria-label="Recent games">
+                      <SectionHeader
+                        title="Recent games"
+                        meta="Latest five regular-season appearances"
+                      />
+                      <GameLogTable rows={regLog.slice(0, 5)} position={profile.position} />
+                    </section>
+                  )}
+                  {profile.scoring_plays.length > 0 && (
+                    <p className="yb-player-note">
+                      {profile.scoring_plays.length} career touchdowns. First on{" "}
+                      {fmtDate(profile.scoring_plays.at(-1)!.date)} against{" "}
+                      {profile.scoring_plays.at(-1)!.opponent}, most recent on{" "}
+                      {fmtDate(profile.scoring_plays[0]!.date)} against{" "}
+                      {profile.scoring_plays[0]!.opponent}.
+                    </p>
+                  )}
                 </div>
-                {regLog.length > 0 && (
-                  <>
-                    <h2 className="yb-conf-title" style={{ marginTop: 24 }}>
-                      Recent games
-                    </h2>
-                    <GameLogTable rows={regLog.slice(0, 5)} position={profile.position} />
-                  </>
-                )}
-                {profile.scoring_plays.length > 0 && (
-                  <p className="yb-muted" style={{ marginTop: 14, maxWidth: "62ch" }}>
-                    {profile.scoring_plays.length} career touchdowns. First on{" "}
-                    {fmtDate(profile.scoring_plays.at(-1)!.date)} against{" "}
-                    {profile.scoring_plays.at(-1)!.opponent}, most recent on{" "}
-                    {fmtDate(profile.scoring_plays[0]!.date)} against{" "}
-                    {profile.scoring_plays[0]!.opponent}.
-                  </p>
-                )}
-              </>
+                <aside className="yb-profile-career" aria-label="Career statistics">
+                  <StatSummary
+                    title="Career summary"
+                    items={tiles(profile, profile.career, "career")}
+                  />
+                </aside>
+              </div>
             )}
 
             {tab === "Splits" && (
               <>
-                <div className="yb-page-head" style={{ marginBottom: 16 }}>
-                  <h2 className="yb-conf-title" style={{ margin: 0 }}>
-                    Splits
-                  </h2>
-                  {splits && (
+                <SectionHeader
+                  title="Splits"
+                  meta="Performance by situation"
+                  action={
+                    splits ? (
                     <Dropdown
                       ariaLabel="Splits season"
                       value={String(splits.season)}
@@ -623,8 +655,9 @@ export default function PlayerPage() {
                         label: `${s} season`,
                       }))}
                     />
-                  )}
-                </div>
+                    ) : undefined
+                  }
+                />
                 {splitsLoading && <div className="yb-skel" style={{ height: 260, borderRadius: 14 }} />}
                 {!splitsLoading && splits === null && (
                   <div className="yb-state">
@@ -646,10 +679,10 @@ export default function PlayerPage() {
 
             {tab === "Game Log" && (
               <>
-                <div className="yb-page-head" style={{ marginBottom: 16 }}>
-                  <h2 className="yb-conf-title" style={{ margin: 0 }}>
-                    Game log
-                  </h2>
+                <SectionHeader
+                  title="Game log"
+                  meta={season ? `${season} regular season` : "All regular seasons"}
+                  action={
                   <Dropdown
                     ariaLabel="Filter game log by season"
                     value={season ? String(season) : "all"}
@@ -659,7 +692,8 @@ export default function PlayerPage() {
                       ...logSeasons.map((s) => ({ value: String(s), label: `${s} season` })),
                     ]}
                   />
-                </div>
+                  }
+                />
                 {gameLog.length === 0 ? (
                   <div className="yb-state">
                     <h2>No games{season ? ` for ${season}` : ""}</h2>
@@ -673,19 +707,20 @@ export default function PlayerPage() {
 
             {tab === "Career" && (
               <>
-                <div className="yb-page-head" style={{ marginBottom: 16 }}>
-                  <h2 className="yb-conf-title" style={{ margin: 0 }}>
-                    Season by season
-                  </h2>
-                  <div className="yb-seg" role="group" aria-label="Stat display mode">
-                    <button aria-pressed={!perGame} onClick={() => setPerGame(false)}>
-                      Totals
-                    </button>
-                    <button aria-pressed={perGame} onClick={() => setPerGame(true)}>
-                      Per game
-                    </button>
-                  </div>
-                </div>
+                <SectionHeader
+                  title="Season by season"
+                  meta={`${profile.seasons.length} regular seasons`}
+                  action={
+                    <div className="yb-seg" role="group" aria-label="Stat display mode">
+                      <button aria-pressed={!perGame} onClick={() => setPerGame(false)}>
+                        Totals
+                      </button>
+                      <button aria-pressed={perGame} onClick={() => setPerGame(true)}>
+                        Per game
+                      </button>
+                    </div>
+                  }
+                />
                 <SeasonTable
                   rows={profile.seasons}
                   position={profile.position}
@@ -693,10 +728,11 @@ export default function PlayerPage() {
                   showRank
                 />
                 {profile.scoring_plays.length > 0 && (
-                  <>
-                    <h2 className="yb-conf-title" style={{ marginTop: 28 }}>
-                      Touchdown log
-                    </h2>
+                  <section className="yb-profile-section-spaced">
+                    <SectionHeader
+                      title="Touchdown log"
+                      meta={`${profile.scoring_plays.length} recorded scoring plays`}
+                    />
                     <SortTable
                       rows={profile.scoring_plays}
                       rowKey={(t) => `${t.game_id}-${t.description?.slice(0, 24)}`}
@@ -746,7 +782,7 @@ export default function PlayerPage() {
                         },
                       ]}
                     />
-                  </>
+                  </section>
                 )}
               </>
             )}
@@ -754,23 +790,24 @@ export default function PlayerPage() {
             {tab === "Playoffs" && (
               <>
                 {profile.postseasons.length > 0 && (
-                  <>
-                    <h2 className="yb-conf-title">Postseason, year by year</h2>
+                  <section>
+                    <SectionHeader
+                      title="Postseason, year by year"
+                      meta={`${profile.postseasons.length} playoff seasons`}
+                    />
                     <SeasonTable
                       rows={profile.postseasons}
                       position={profile.position}
                       perGame={false}
                       showRank={false}
                     />
-                  </>
+                  </section>
                 )}
                 {postLog.length > 0 && (
-                  <>
-                    <h2 className="yb-conf-title" style={{ marginTop: 24 }}>
-                      Playoff game log
-                    </h2>
+                  <section className="yb-profile-section-spaced">
+                    <SectionHeader title="Playoff game log" meta={`${postLog.length} games`} />
                     <GameLogTable rows={postLog} position={profile.position} />
-                  </>
+                  </section>
                 )}
                 {profile.postseasons.length === 0 && postLog.length === 0 && (
                   <div className="yb-state">

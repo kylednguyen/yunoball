@@ -8,6 +8,7 @@ import { Headshot } from "../../components/Headshot";
 import { SeasonSelect } from "../../components/SeasonSelect";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
+import { EntityHero, InfoGrid, SectionHeader, StatSummary } from "../../components/ui";
 import { useSeasonParam, useTeam, useTitle } from "../../lib/hooks";
 import { friendlyError } from "../../lib/api";
 import { teamTheme } from "../../lib/teamTheme";
@@ -57,10 +58,28 @@ export default function TeamPage() {
   const { data: team, error, loading } = useTeam(params?.teamId, season);
   useTitle(team?.name);
   const notFound = !loading && !error && team === null;
+  const record = team
+    ? `${team.record.wins}-${team.record.losses}${team.record.ties ? `-${team.record.ties}` : ""}`
+    : "";
+  const winPct = team
+    ? `.${String(Math.round(team.record.pct * 1000)).padStart(3, "0")}`
+    : "";
+  const offenseRank = team?.offense.find((stat) => stat.key === "points_for")?.rank ?? 0;
+  const defenseRank = team?.defense.find((stat) => stat.key === "points_against")?.rank ?? 0;
+  const pointDiff = team
+    ? team.record.point_diff > 0
+      ? `+${team.record.point_diff}`
+      : String(team.record.point_diff)
+    : "";
+  const streakClass = team?.record.streak.startsWith("W")
+    ? "yb-streak-w"
+    : team?.record.streak.startsWith("L")
+      ? "yb-streak-l"
+      : undefined;
 
   return (
     <>
-      <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
+      <main id="main" className="yb-page yb-entity-page">
         {loading && !team && (
           <>
             <div className="yb-skel" style={{ height: 60, width: 380, marginBottom: 20 }} />
@@ -95,69 +114,66 @@ export default function TeamPage() {
               ]}
             />
 
-            <div className="yb-page-head" style={{ alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <TeamLogo team={team.team_id} size={64} />
-                <h1 className="yb-page-title">{team.name}</h1>
-              </div>
-              <SeasonSelect seasons={team.seasons} value={team.season} onChange={setSeason} />
-            </div>
-            <p className="yb-page-sub">
-              {team.division} · {team.record.wins}-{team.record.losses}
-              {team.record.ties ? `-${team.record.ties}` : ""} ({ord(team.record.division_rank)} of{" "}
-              {team.record.division_size} in the {team.division}) · streak{" "}
-              <span
-                className={
-                  team.record.streak.startsWith("W")
-                    ? "yb-streak-w"
-                    : team.record.streak.startsWith("L")
-                      ? "yb-streak-l"
-                      : ""
-                }
-              >
-                {team.record.streak}
-              </span>
-            </p>
+            <EntityHero
+              label={`${team.name} profile`}
+              media={<TeamLogo team={team.team_id} size={80} />}
+              eyebrow={team.conference}
+              title={team.name}
+              meta={
+                <>
+                  <span>{team.division}</span>
+                  <span>{record}</span>
+                  <span>
+                    {ord(team.record.division_rank)} of {team.record.division_size} in division
+                  </span>
+                  <span className={streakClass}>{team.record.streak} streak</span>
+                </>
+              }
+              utilities={
+                <SeasonSelect seasons={team.seasons} value={team.season} onChange={setSeason} />
+              }
+              details={
+                <InfoGrid
+                  items={[
+                    { label: "Division", value: team.division },
+                    { label: "Conference", value: team.conference },
+                    { label: "Record", value: record },
+                    {
+                      label: "Division rank",
+                      value: `${ord(team.record.division_rank)} of ${team.record.division_size}`,
+                    },
+                    { label: "Point differential", value: pointDiff },
+                    { label: "Season", value: team.season },
+                  ]}
+                />
+              }
+            />
 
-            <div className="yb-tiles">
-              <div className="yb-tile">
-                <div className="yb-tile-label">Record</div>
-                <div className="yb-tile-value">
-                  {team.record.wins}-{team.record.losses}
-                  {team.record.ties ? `-${team.record.ties}` : ""}
-                </div>
-                <div className="yb-tile-meta">
-                  .{String(Math.round(team.record.pct * 1000)).padStart(3, "0")} win pct
-                </div>
-              </div>
-              <div className="yb-tile">
-                <div className="yb-tile-label">Points scored</div>
-                <div className="yb-tile-value">{team.record.points_for}</div>
-                <div className="yb-tile-meta">
-                  {ord(team.offense.find((s) => s.key === "points_for")?.rank ?? 0)} in the NFL
-                </div>
-              </div>
-              <div className="yb-tile">
-                <div className="yb-tile-label">Points allowed</div>
-                <div className="yb-tile-value">{team.record.points_against}</div>
-                <div className="yb-tile-meta">
-                  {ord(team.defense.find((s) => s.key === "points_against")?.rank ?? 0)} in the NFL
-                </div>
-              </div>
-              <div className="yb-tile">
-                <div className="yb-tile-label">Point differential</div>
-                <div className="yb-tile-value">
-                  {team.record.point_diff > 0 ? `+${team.record.point_diff}` : team.record.point_diff}
-                </div>
-                <div className="yb-tile-meta">{team.conference}</div>
-              </div>
-            </div>
+            <StatSummary
+              title={`${team.season} season summary`}
+              className="yb-team-summary"
+              items={[
+                { label: "Record", value: record, meta: `${winPct} win pct` },
+                {
+                  label: "Points scored",
+                  value: team.record.points_for,
+                  meta: `${ord(offenseRank)} in the NFL`,
+                },
+                {
+                  label: "Points allowed",
+                  value: team.record.points_against,
+                  meta: `${ord(defenseRank)} in the NFL`,
+                },
+                { label: "Point differential", value: pointDiff, meta: team.conference },
+              ]}
+            />
 
             {team.leaders.length > 0 && (
-              <>
-                <h2 className="yb-conf-title" style={{ marginTop: 24 }}>
-                  Team leaders
-                </h2>
+              <section className="yb-entity-section" aria-label="Team leaders">
+                <SectionHeader
+                  title="Team leaders"
+                  meta={`${team.season} regular season leaders`}
+                />
                 <div className="yb-leader-cards">
                   {team.leaders.map((l) => (
                     <Link
@@ -165,7 +181,7 @@ export default function TeamPage() {
                       className="yb-leader-card"
                       href={`/players/${encodeURIComponent(l.player_id)}?season=${team.season}`}
                     >
-                      <Headshot src={l.headshot_url} name={l.name} size={44} />
+                      <Headshot src={l.headshot_url} name={l.name} scale="card" />
                       <span className="body">
                         <span className="lbl">{l.label}</span>
                         <span className="nm">{l.name}</span>
@@ -176,16 +192,16 @@ export default function TeamPage() {
                     </Link>
                   ))}
                 </div>
-              </>
+              </section>
             )}
 
-            <div className="yb-standings-grid" style={{ marginTop: 24 }}>
+            <div className="yb-standings-grid yb-entity-section">
               <section aria-label="Offense">
-                <h2 className="yb-conf-title">Offense</h2>
+                <SectionHeader title="Offense" meta="Team production and league rank" />
                 <StatTable stats={team.offense} caption="Offense" />
               </section>
               <section aria-label="Defense">
-                <h2 className="yb-conf-title">Defense</h2>
+                <SectionHeader title="Defense" meta="Team prevention and league rank" />
                 <StatTable stats={team.defense} caption="Defense" />
                 <p className="yb-muted" style={{ fontSize: 13, marginTop: 8 }}>
                   Defensive player stats aren’t in the warehouse yet. Points allowed is the
@@ -195,10 +211,11 @@ export default function TeamPage() {
             </div>
 
             {team.key_players.length > 0 && (
-              <>
-                <h2 className="yb-conf-title" style={{ marginTop: 28 }}>
-                  Key players
-                </h2>
+              <section className="yb-entity-section" aria-label="Key players">
+                <SectionHeader
+                  title="Key players"
+                  meta={`${team.key_players.length} players with recorded production`}
+                />
                 <SortTable<TeamKeyPlayer>
                   rows={team.key_players}
                   rowKey={(p) => p.player_id}
@@ -213,7 +230,7 @@ export default function TeamPage() {
                           href={`/players/${encodeURIComponent(p.player_id)}?season=${team.season}`}
                           style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
                         >
-                          <Headshot src={p.headshot_url} name={p.name} size={26} />
+                          <Headshot src={p.headshot_url} name={p.name} scale="compact" />
                           {p.name}
                         </Link>
                       ),
@@ -259,14 +276,15 @@ export default function TeamPage() {
                     },
                   ]}
                 />
-              </>
+              </section>
             )}
 
             {team.games.length > 0 && (
-              <>
-                <h2 className="yb-conf-title" style={{ marginTop: 28 }}>
-                  Schedule &amp; results
-                </h2>
+              <section className="yb-entity-section" aria-label="Schedule and results">
+                <SectionHeader
+                  title="Schedule & results"
+                  meta={`${team.games.length} regular-season games`}
+                />
                 <SortTable<TeamGame>
                   rows={team.games}
                   rowKey={(g) => g.game_id}
@@ -304,7 +322,7 @@ export default function TeamPage() {
                     { key: "date", label: "Date", value: (g) => g.date ?? "" },
                   ]}
                 />
-              </>
+              </section>
             )}
           </div>
         )}

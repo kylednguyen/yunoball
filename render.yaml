@@ -1,20 +1,18 @@
-# Render blueprint — one-click deploy of the YunoBall API (persistent container).
+# Render blueprint — one-click deploy of the YunoBall API as a Docker container.
 # Frontend deploys separately on Vercel (see docs/DEPLOYMENT.md).
 #
 #   render.com → New → Blueprint → point at this repo.
-#   Then set DATABASE_URL / READONLY_DATABASE_URL in the dashboard — they are
-#   marked sync:false so they are never committed.
+#   Render builds ./Dockerfile and runs the container. Then set the sync:false
+#   secrets in the dashboard — they are never committed.
 services:
   - type: web
     name: yunoball-api
-    runtime: node
+    runtime: docker
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
-    startCommand: pnpm --filter @yunoball/server start
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /ready   # readiness — verifies Postgres is reachable (see app.ts)
     envVars:
-      - key: NODE_VERSION
-        value: "22"          # repo requires node >=22
       - key: DATABASE_URL
         sync: false          # Supabase SESSION pooler (…pooler.supabase.com:5432) — this is a
                              # persistent server, not serverless; do NOT use the :6543 txn pooler

@@ -16,6 +16,7 @@ import { fetchSuggest, type SuggestResponse } from "../lib/api";
 
 type Item =
   | { kind: "search"; label: string }
+  | { kind: "question"; label: string }
   | { kind: "team"; id: string; label: string; sub: string }
   | { kind: "player"; id: string; label: string; sub: string; headshot: string | null };
 
@@ -43,6 +44,7 @@ export function SearchSuggest({
   ariaLabel,
   autoFocus,
   inputRef: externalRef,
+  suggestions = [],
   children,
 }: {
   value: string;
@@ -53,6 +55,7 @@ export function SearchSuggest({
   ariaLabel: string;
   autoFocus?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
+  suggestions?: string[];
   children?: ReactNode;
 }) {
   const router = useRouter();
@@ -61,7 +64,7 @@ export function SearchSuggest({
   const inputRef = externalRef ?? localRef;
   const [open, setOpen] = useState(false);
   const [sug, setSug] = useState<SuggestResponse | null>(null);
-  const [hi, setHi] = useState(0);
+  const [hi, setHi] = useState(-1);
 
   const q = value.trim();
 
@@ -76,7 +79,7 @@ export function SearchSuggest({
         .then((s) => {
           if (active) {
             setSug(s);
-            setHi(0);
+            setHi(-1);
           }
         })
         .catch(() => active && setSug(null));
@@ -87,7 +90,16 @@ export function SearchSuggest({
     };
   }, [q]);
 
-  const items: Item[] = [{ kind: "search", label: q }];
+  const questionSuggestions = q
+    ? [
+        ...(sug && sug.query.trim() === q ? sug.questions : []),
+        ...suggestions.filter((item) => item.toLowerCase().includes(q.toLowerCase())),
+      ]
+    : suggestions;
+  const items: Item[] = [...new Set(questionSuggestions)].slice(0, 6).map((label) => ({
+    kind: "question" as const,
+    label,
+  }));
   if (sug && sug.query.trim() === q) {
     for (const t of sug.teams) {
       items.push({
@@ -107,27 +119,44 @@ export function SearchSuggest({
       });
     }
   }
-  const show = open && q.length >= 2;
+  if (q && !items.some((item) => item.label.toLowerCase() === q.toLowerCase())) {
+    items.push({ kind: "search", label: q });
+  }
+  const show = open && items.length > 0;
 
   function pick(item: Item) {
     setOpen(false);
     if (item.kind === "player") router.push(`/players/${encodeURIComponent(item.id)}`);
     else if (item.kind === "team") router.push(`/teams/${item.id}`);
-    else if (item.label) onSearch(item.label);
+    else if (item.label) {
+      onValueChange(item.label);
+      onSearch(item.label);
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    const selected = items[hi];
+    const acceptingCompletion =
+      selected?.kind === "question" &&
+      selected.label.toLowerCase() !== q.toLowerCase() &&
+      (e.key === "Tab" ||
+        (e.key === "ArrowRight" && inputRef.current?.selectionStart === value.length));
+    if (acceptingCompletion) {
+      e.preventDefault();
+      onValueChange(selected.label);
+      setHi(-1);
+      setOpen(true);
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       if (!show) {
         setOpen(true);
         return;
       }
       const d = e.key === "ArrowDown" ? 1 : -1;
-      setHi((h) => (h + d + items.length) % items.length);
+      setHi((h) => h < 0 ? (d > 0 ? 0 : items.length - 1) : (h + d + items.length) % items.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (show && items[hi]) pick(items[hi]);
+      if (show && hi >= 0 && items[hi]) pick(items[hi]);
       else if (q) onSearch(q);
     } else if (e.key === "Escape") {
       // When the suggestion popup is open, consume Escape so an enclosing
@@ -141,7 +170,7 @@ export function SearchSuggest({
   }
 
   return (
-    <div className="yb-suggest">
+    <div className={`yb-suggest${show ? " is-open" : ""}`}>
       <input
         ref={inputRef}
         className={inputClass}
@@ -149,7 +178,7 @@ export function SearchSuggest({
         role="combobox"
         aria-expanded={show}
         aria-controls={listId}
-        aria-activedescendant={show ? `${listId}-${hi}` : undefined}
+        aria-activedescendant={show && hi >= 0 ? `${listId}-${hi}` : undefined}
         aria-autocomplete="list"
         aria-label={ariaLabel}
         placeholder={placeholder}
@@ -160,9 +189,13 @@ export function SearchSuggest({
         value={value}
         onChange={(e) => {
           onValueChange(e.target.value);
+          setHi(-1);
           setOpen(true);
         }}
-        onFocus={() => q.length >= 2 && setOpen(true)}
+        onFocus={() => {
+          setHi(-1);
+          setOpen(true);
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={onKeyDown}
       />
@@ -171,11 +204,17 @@ export function SearchSuggest({
         <ul className="yb-suggest-pop" id={listId} role="listbox" aria-label="Suggestions">
           {items.map((item, i) => (
             <li
-              key={item.kind === "search" ? "search" : `${item.kind}-${item.id}`}
+              key={
+                item.kind === "search"
+                  ? "search"
+                  : item.kind === "question"
+                    ? `question-${item.label}`
+                    : `${item.kind}-${item.id}`
+              }
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === hi}
-              className="yb-suggest-item"
+              className={`yb-suggest-item ${item.kind}`}
               onMouseDown={(e) => {
                 e.preventDefault();
                 pick(item);
@@ -193,6 +232,17 @@ export function SearchSuggest({
                   </span>
                 </>
               )}
+              {item.kind === "question" && (
+                <>
+                  <span className="glyph" aria-hidden="true">
+                    ↗
+                  </span>
+                  <span className="who">
+                    <span className="nm"><Hit text={item.label} q={value} /></span>
+                    <span className="sub">Suggested from the supported question bank</span>
+                  </span>
+                </>
+              )}
               {item.kind === "team" && (
                 <>
                   <TeamLogo team={item.id} size={24} />
@@ -204,7 +254,7 @@ export function SearchSuggest({
               )}
               {item.kind === "player" && (
                 <>
-                  <Headshot src={item.headshot} name={item.label} size={24} />
+                  <Headshot src={item.headshot} name={item.label} scale="compact" />
                   <span className="who">
                     <span className="nm"><Hit text={item.label} q={value} /></span>
                     <span className="sub">{item.sub}</span>

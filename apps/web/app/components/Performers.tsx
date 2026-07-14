@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Headshot } from "./Headshot";
 import type { Performer } from "../lib/api";
+import { teamTheme } from "../lib/teamTheme";
 
 /** Performers of the week: the top calculated fantasy player(s) for a week,
  *  each shown with headshot, PPR total and full stat line. */
@@ -40,8 +41,9 @@ export function Performers({
         className="yb-potw"
         href={`/players/${encodeURIComponent(top.player_id)}`}
         aria-label={`Player of the week: ${top.name}`}
+        style={teamTheme(top.team)}
       >
-        <Headshot src={top.headshot_url} name={top.name} size={64} />
+        <Headshot src={top.headshot_url} name={top.name} scale="feature" />
         <div className="yb-potw-body">
           <span className="yb-potw-tag">Player of the week</span>
           <span className="yb-potw-name">
@@ -61,9 +63,13 @@ export function Performers({
       <ol className="yb-performers">
         {rest.map((p) => (
           <li key={p.player_id}>
-            <Link className="yb-performer" href={`/players/${encodeURIComponent(p.player_id)}`}>
+            <Link
+              className="yb-performer"
+              href={`/players/${encodeURIComponent(p.player_id)}`}
+              style={teamTheme(p.team)}
+            >
               <span className="rk">{p.rank}</span>
-              <Headshot src={p.headshot_url} name={p.name} size={34} />
+              <Headshot src={p.headshot_url} name={p.name} scale="row" />
               <span className="who">
                 <span className="nm">
                   <span className="t">{p.name}</span>

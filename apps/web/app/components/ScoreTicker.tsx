@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
 
 import { fetchGames, type GamesResponse } from "../lib/api";
+import { teamTheme } from "../lib/teamTheme";
 import { TeamLogo } from "./TeamLogo";
 
 function TeamLine({
@@ -15,8 +17,11 @@ function TeamLine({
   won: boolean;
 }) {
   return (
-    <span className={`yb-tick-row${won ? " win" : ""}`}>
-      <TeamLogo team={team} size={16} />
+    <span
+      className={`yb-tick-row${won ? " win" : ""}`}
+      style={won ? teamTheme(team) : undefined}
+    >
+      <TeamLogo team={team} size={20} />
       <span className="yb-tick-team">{team}</span>
       <span className="yb-tick-score">{score}</span>
     </span>
@@ -49,8 +54,11 @@ export function ScoreTicker() {
       <a className="yb-tick-label" href="/scores">
         {games ? (
           <>
-            <strong>Week {games.week}</strong>
-            <span>{games.season}</span>
+            <span className="yb-tick-title">
+              <CalendarDays size={15} aria-hidden="true" />
+              <strong>Week {games.week}</strong>
+            </span>
+            <span className="yb-tick-season">{games.season}</span>
           </>
         ) : (
           <strong>Scores</strong>

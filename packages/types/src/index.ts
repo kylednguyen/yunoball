@@ -37,6 +37,8 @@ export interface AnswerResult {
   cached: boolean;
   share_id?: string | null;
   intent?: string | null;
+  /** Primary scalar answer before internal helper columns are removed. */
+  answer_value?: number | string | null;
   player_card?: PlayerCard | null;
   /** Second card for head-to-head answers. */
   player_card2?: PlayerCard | null;
@@ -48,6 +50,25 @@ export interface AnswerResult {
     status: string;
     warnings: string[];
     confidence: number;
+  } | null;
+  /** Structured display context for reusable result drill-downs. */
+  query_context?: {
+    metric: string;
+    metric_label: string;
+    category:
+      | "passing"
+      | "rushing"
+      | "receiving"
+      | "defense"
+      | "kicking"
+      | "fantasy"
+      | "team"
+      | "game"
+      | "other";
+    season: number | null;
+    season_type: string;
+    scope: "season" | "career";
+    per_game: boolean;
   } | null;
 }
 
@@ -67,6 +88,7 @@ export interface SuggestTeam {
 
 export interface SuggestResponse {
   query: string;
+  questions: string[];
   players: SuggestPlayer[];
   teams: SuggestTeam[];
 }
@@ -260,13 +282,29 @@ export interface PlayerGameLogRow {
   team_score: number | null;
   opp_score: number | null;
   result: string;
+  completions: number;
+  attempts: number;
   passing_yards: number;
   passing_tds: number;
+  interceptions: number;
+  carries: number;
   rushing_yards: number;
   rushing_tds: number;
+  targets: number;
   receptions: number;
   receiving_yards: number;
   receiving_tds: number;
+  fumbles: number;
+  fumbles_lost: number;
+  tackles: number;
+  def_sacks: number;
+  def_interceptions: number;
+  forced_fumbles: number;
+  passes_defended: number;
+  fantasy_points_ppr: number;
+  pass_plays: number;
+  pass_epa: number;
+  pass_success: number;
 }
 
 /** One aggregated line in a splits table (Home/Road, Wins/Losses, ...). */

@@ -67,7 +67,10 @@ export function HomeDashboard() {
         <section className="yb-card" aria-label="Division leaders">
           <div className="yb-dash-head">
             <h2>Division leaders</h2>
-            <Link href="/teams">All teams →</Link>
+            <span className="yb-dash-links">
+              <Link href="/standings">Standings</Link>
+              <Link href="/teams">All teams →</Link>
+            </span>
           </div>
           {leaders ? (
             <div className="yb-scroll-x">
@@ -81,7 +84,7 @@ export function HomeDashboard() {
                         href={`/teams/${team.team_id}`}
                         style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
                       >
-                        <TeamLogo team={team.team_id} size={18} />
+                        <TeamLogo team={team.team_id} size={22} />
                         {team.nickname ?? team.name}
                       </Link>
                     </td>
@@ -130,7 +133,7 @@ export function HomeDashboard() {
                         href={`/players/${encodeURIComponent(p.player_id)}`}
                         style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
                       >
-                        <Headshot src={p.headshot_url} name={p.name} size={26} />
+                        <Headshot src={p.headshot_url} name={p.name} scale="compact" />
                         {p.name}
                       </Link>
                     </td>

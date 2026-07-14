@@ -2,6 +2,15 @@ import type { HTMLAttributes, ReactNode } from "react";
 
 import { Crumbs, type Crumb } from "./Crumbs";
 
+export type InfoItem = {
+  label: string;
+  value: ReactNode;
+};
+
+export type StatSummaryItem = InfoItem & {
+  meta?: ReactNode;
+};
+
 type SurfaceVariant = "standard" | "feature" | "dense";
 
 export function Surface({
@@ -85,6 +94,97 @@ export function SectionHeader({
       </div>
       {action}
     </div>
+  );
+}
+
+/** Shared identity surface for data-backed entity pages. The route owns all
+ * data and controls; this component owns only hierarchy and layout. */
+export function EntityHero({
+  className = "",
+  label,
+  media,
+  title,
+  eyebrow,
+  meta,
+  utilities,
+  details,
+}: {
+  className?: string;
+  label: string;
+  media: ReactNode;
+  title: string;
+  eyebrow?: ReactNode;
+  meta?: ReactNode;
+  utilities?: ReactNode;
+  details?: ReactNode;
+}) {
+  return (
+    <section
+      className={["yb-entity-hero", className].filter(Boolean).join(" ")}
+      role="region"
+      aria-label={label}
+    >
+      <div className="yb-entity-hero-main">
+        <div className="yb-entity-hero-media">{media}</div>
+        <div className="yb-entity-hero-copy">
+          {eyebrow && <div className="yb-entity-eyebrow">{eyebrow}</div>}
+          <h1 className="yb-entity-title">{title}</h1>
+          {meta && <div className="yb-entity-meta">{meta}</div>}
+        </div>
+        {utilities && <div className="yb-entity-utilities">{utilities}</div>}
+      </div>
+      {details}
+    </section>
+  );
+}
+
+/** Compact definition grid for biography and entity metadata. */
+export function InfoGrid({
+  items,
+  className = "",
+}: {
+  items: InfoItem[];
+  className?: string;
+}) {
+  return (
+    <dl className={["yb-info-grid", className].filter(Boolean).join(" ")}>
+      {items.map((item) => (
+        <div key={item.label}>
+          <dt>{item.label}</dt>
+          <dd>{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Position-aware headline metrics presented as one coherent stat group. */
+export function StatSummary({
+  title,
+  items,
+  className = "",
+}: {
+  title: string;
+  items: StatSummaryItem[];
+  className?: string;
+}) {
+  return (
+    <section
+      className={["yb-stat-summary", className].filter(Boolean).join(" ")}
+      role="region"
+      aria-label={title}
+    >
+      <h2>{title}</h2>
+      <dl>
+        {items.map((item) => (
+          <div key={item.label}>
+            <dt>{item.label}</dt>
+            <dd className="yb-stat-summary-value">{item.value}</dd>
+            {item.meta && <dd className="yb-stat-summary-meta">{item.meta}</dd>}
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 

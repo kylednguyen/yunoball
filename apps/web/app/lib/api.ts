@@ -129,6 +129,7 @@ async function getJsonOr404<T>(path: string): Promise<T | null> {
 
 export interface LeaderboardFilters {
   season?: number;
+  category?: string;
   team?: string;
   position?: string;
   limit?: number;
@@ -160,10 +161,11 @@ export function fetchSharedAnswer(shareId: string): Promise<AnswerResult | null>
 export async function fetchLeaderboards(
   season?: number,
   limit = 10,
-  filters?: Pick<LeaderboardFilters, "team" | "position">,
+  filters?: Pick<LeaderboardFilters, "category" | "team" | "position">,
 ): Promise<LeaderboardsResponse> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (season) params.set("season", String(season));
+  if (filters?.category) params.set("category", filters.category);
   if (filters?.team) params.set("team", filters.team);
   if (filters?.position) params.set("position", filters.position);
   return getJson<LeaderboardsResponse>(`/api/leaderboards?${params}`);

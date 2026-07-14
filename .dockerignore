@@ -1,0 +1,26 @@
+# Never bake local installs, build caches, VCS, or secrets into the image.
+node_modules
+**/node_modules
+.next
+**/.next
+.turbo
+**/.turbo
+.git
+.gitignore
+*.log
+
+# Secrets — env comes from the host (Render) at runtime, never the image.
+.env
+.env.*
+
+# Exclude the web app's source but KEEP its package.json: pnpm --frozen-lockfile
+# validates every workspace manifest, and --filter means web's deps are never
+# actually installed into the API image.
+apps/web/*
+!apps/web/package.json
+
+# Not needed by the API image.
+docs
+.claude
+.github
+.vscode

@@ -13,6 +13,7 @@ import { PageHeader } from "../components/ui";
 import { useLeaderboards, useSeasonParam, useStandings, useStrParam, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
 import { formatPct, formatSigned, formatStatValue } from "../lib/format";
+import { teamTheme } from "../lib/teamTheme";
 import type { StandingRow } from "../lib/api";
 
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE"] as const;
@@ -162,8 +163,9 @@ export default function LeadersPage() {
                       key={r.player_id}
                       className="yb-board-top"
                       href={`/players/${encodeURIComponent(r.player_id)}?season=${data.season}`}
+                      style={teamTheme(r.team)}
                     >
-                      <Headshot src={r.headshot_url} name={r.name} size={64} />
+                      <Headshot src={r.headshot_url} name={r.name} scale="feature" />
                       <span className="who">
                         <span className="nm">
                           {r.name}
@@ -185,9 +187,10 @@ export default function LeadersPage() {
                       key={r.player_id}
                       className="yb-board-row"
                       href={`/players/${encodeURIComponent(r.player_id)}?season=${data.season}`}
+                      style={teamTheme(r.team)}
                     >
                       <span className="rk">{r.rank}</span>
-                      <Headshot src={r.headshot_url} name={r.name} size={30} />
+                      <Headshot src={r.headshot_url} name={r.name} scale="row" />
                       <span className="nm">
                         {r.name}
                         {r.position && (
