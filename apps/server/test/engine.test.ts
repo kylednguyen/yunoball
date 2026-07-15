@@ -127,6 +127,38 @@ describe("parseRules — short terms & synonyms", () => {
   });
 });
 
+describe("parseRules — fantasy scoring formats", () => {
+  // "half ppr" / "standard ppr" embed the "ppr"/"fantasy" cues, so their stat
+  // entries sit ABOVE fantasy_points_ppr in STATS: the first matching phrase
+  // wins, so the more specific format claims the question before the bare cue
+  // can fall through to PPR.
+  it.each([
+    ["half ppr leaders", "fantasy_points_half"],
+    ["half-ppr leaders this season", "fantasy_points_half"],
+    ["standard fantasy leaders", "fantasy_points_std"],
+    ["non-ppr leaders", "fantasy_points_std"],
+    // Unchanged: bare "ppr"/"fantasy"/"full ppr" still route to PPR.
+    ["ppr leaders", "fantasy_points_ppr"],
+    ["full ppr leaders", "fantasy_points_ppr"],
+    ["fantasy leaders in 2024", "fantasy_points_ppr"],
+  ])("%s -> %s", (question, stat) => {
+    expect(parse(question)).toMatchObject({ intent: "leaders", stat });
+  });
+
+  it("narrates each format with its own label", () => {
+    const row = [{ full_name: "Christian McCaffrey", season: 2024, value: 300 }];
+    expect(narrate(spec("half ppr leaders in 2024"), row)).toBe(
+      "Christian McCaffrey leads with 300 fantasy points (half-PPR) in 2024.",
+    );
+    expect(narrate(spec("standard fantasy leaders in 2024"), row)).toBe(
+      "Christian McCaffrey leads with 300 fantasy points (standard) in 2024.",
+    );
+    expect(narrate(spec("ppr leaders in 2024"), row)).toBe(
+      "Christian McCaffrey leads with 300 fantasy points (PPR) in 2024.",
+    );
+  });
+});
+
 describe("parseRules — generic cues resolve by context", () => {
   it("RB + 'touchdowns' -> rushing TDs, not passing", () => {
     expect(parse("derrick henry touchdowns")).toMatchObject({

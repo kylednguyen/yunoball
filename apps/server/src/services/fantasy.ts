@@ -38,7 +38,10 @@ export async function getFantasyPlayers(opts: {
     player_id: string; name: string; team: string | null; position: string | null;
     gp: number; pass_yds: number; pass_tds: number; ints: number; rush_yds: number;
     rush_tds: number; rec: number; rec_yds: number; rec_tds: number; fp: number;
+    fp_half: number; fp_std: number;
   }>(
+    // Half-PPR and standard scoring differ from PPR only by the per-reception
+    // bonus, so they subtract 0.5/1.0 per catch from the stored PPR total.
     `SELECT p.player_id, p.full_name AS name, s.team_id AS team, p.position,
             COALESCE(s.games_played, 0) AS gp,
             COALESCE(s.passing_yards, 0) AS pass_yds,
@@ -49,7 +52,9 @@ export async function getFantasyPlayers(opts: {
             COALESCE(s.receptions, 0) AS rec,
             COALESCE(s.receiving_yards, 0) AS rec_yds,
             COALESCE(s.receiving_tds, 0) AS rec_tds,
-            COALESCE(s.fantasy_points_ppr, 0) AS fp
+            COALESCE(s.fantasy_points_ppr, 0) AS fp,
+            COALESCE(s.fantasy_points_ppr, 0) - 0.5 * COALESCE(s.receptions, 0) AS fp_half,
+            COALESCE(s.fantasy_points_ppr, 0) - COALESCE(s.receptions, 0) AS fp_std
      FROM player_season_stats s JOIN players p USING (player_id)
      WHERE ${clauses.join(" AND ")}
      ORDER BY fp DESC, p.full_name
@@ -76,6 +81,8 @@ export async function getFantasyPlayers(opts: {
       receiving_yards: r.rec_yds,
       receiving_tds: r.rec_tds,
       fantasy_points_ppr: round(r.fp, 1),
+      fantasy_points_half: round(r.fp_half, 1),
+      fantasy_points_std: round(r.fp_std, 1),
       points_per_game: r.gp ? round(r.fp / r.gp, 1) : 0,
     })),
   };

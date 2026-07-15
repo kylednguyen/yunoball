@@ -230,10 +230,27 @@ export const STATS: Record<string, StatDef> = {
     phrases: ["reception", "catches", "caught"],
     words: ["rec", "recs", "grabs"],
   },
+  // Half-PPR and standard scoring differ from PPR only by the per-reception
+  // bonus, so they derive from the same column: PPR minus 0.5/1.0 per catch.
+  // They sit ABOVE fantasy_points_ppr because "half ppr"/"standard ppr" embed
+  // "ppr" as a substring — placed first, they claim those phrases before the
+  // bare "ppr" cue routes to PPR.
+  fantasy_points_half: {
+    expr: `${n("fantasy_points_ppr")} - 0.5 * ${n("receptions")}`,
+    label: "fantasy points (half-PPR)",
+    phrases: ["half ppr", "half-ppr", "half point ppr", "half-point ppr", "0.5 ppr"],
+    words: [],
+  },
+  fantasy_points_std: {
+    expr: `${n("fantasy_points_ppr")} - ${n("receptions")}`,
+    label: "fantasy points (standard)",
+    phrases: ["standard fantasy", "non-ppr", "non ppr", "no ppr", "standard scoring", "0 ppr", "zero ppr", "standard ppr"],
+    words: [],
+  },
   fantasy_points_ppr: {
     expr: "s.fantasy_points_ppr",
     label: "fantasy points (PPR)",
-    phrases: ["fantasy", "ppr"],
+    phrases: ["fantasy", "full ppr", "ppr"],
     words: [],
   },
   tackles: {

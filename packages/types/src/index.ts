@@ -217,6 +217,8 @@ export interface FantasyPlayer {
   receiving_yards: number;
   receiving_tds: number;
   fantasy_points_ppr: number;
+  fantasy_points_half: number;
+  fantasy_points_std: number;
   points_per_game: number;
 }
 
