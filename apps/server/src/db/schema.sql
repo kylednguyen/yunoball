@@ -262,3 +262,150 @@ CREATE INDEX IF NOT EXISTS pss_team_season_idx
     ON player_season_stats (team_id, season);
 CREATE INDEX IF NOT EXISTS games_season_type_idx
     ON games (season, season_type);
+
+-- ===========================================================================
+-- P0 ingestion worker: cross-source id crosswalk + modern nflverse datasets
+-- (trades, injuries, depth charts, snap counts) + run/source tracking.
+-- Column sets come from the REAL nflverse release CSV headers.
+-- NOTE (Supabase): the orchestrator must ENABLE RLS on every table below
+-- (they are PostgREST-exposed; the worker connects as postgres and bypasses
+-- RLS, but public reads must be gated by policy). e.g.
+--   ALTER TABLE player_ids ENABLE ROW LEVEL SECURITY; (+ a read policy)
+-- ===========================================================================
+
+-- The nflverse players master (players.csv) carries every external id. This is
+-- the cross-source join backbone: gsis <-> pfr / espn / pff / otc / esb / smart
+-- / nfl. players.csv does NOT carry a sportradar id, so there is no column for
+-- it. player_id is the gsis id (FK -> players): only players present in the
+-- loaded rosters are crosswalked.
+CREATE TABLE IF NOT EXISTS player_ids (
+    player_id  varchar PRIMARY KEY REFERENCES players (player_id),
+    esb_id     varchar,   -- Elias Sports Bureau id
+    nfl_id     varchar,   -- NFL.com id
+    pfr_id     varchar,   -- Pro-Football-Reference id
+    pff_id     varchar,   -- Pro Football Focus id
+    otc_id     varchar,   -- OverTheCap id
+    espn_id    varchar,
+    smart_id   varchar    -- nflverse smart id (uuid)
+);
+CREATE INDEX IF NOT EXISTS player_ids_pfr_idx ON player_ids (pfr_id);
+CREATE INDEX IF NOT EXISTS player_ids_espn_idx ON player_ids (espn_id);
+
+-- NFL trades (nflverse trades.csv, 2002+). One row per ASSET moved (a player
+-- or a draft pick); trade_id groups the assets of a single trade. asset_id is
+-- a deterministic composite surrogate (the source has no per-row key), so
+-- upserts stay idempotent. Teams are normalized to the current franchise.
+-- Players are carried as pfr_id (the source has no gsis); player_id is
+-- resolved from player_ids when a match exists (nullable otherwise).
+CREATE TABLE IF NOT EXISTS trades (
+    asset_id    varchar PRIMARY KEY,
+    trade_id    integer NOT NULL,
+    season      integer,
+    trade_date  date,
+    gave        varchar,   -- franchise that gave up this asset
+    received    varchar,   -- franchise that received it
+    pick_season smallint,  -- set when the asset is a draft pick
+    pick_round  smallint,
+    pick_number smallint,
+    conditional boolean,
+    player_id   varchar,   -- gsis, resolved from pfr_id (nullable)
+    pfr_id      varchar,   -- set when the asset is a player
+    pfr_name    varchar
+);
+CREATE INDEX IF NOT EXISTS trades_trade_id_idx ON trades (trade_id);
+CREATE INDEX IF NOT EXISTS trades_player_idx ON trades (player_id);
+CREATE INDEX IF NOT EXISTS trades_pfr_idx ON trades (pfr_id);
+
+-- Weekly injury reports (nflverse injuries_<year>.csv, 2009+). Keyed by
+-- (player, season, game_type, week, team). player_id is the gsis id.
+CREATE TABLE IF NOT EXISTS injuries (
+    player_id                 varchar NOT NULL REFERENCES players (player_id),
+    season                    integer NOT NULL,
+    game_type                 varchar NOT NULL DEFAULT 'REG',  -- REG | POST
+    week                      smallint NOT NULL,
+    team                      varchar NOT NULL,  -- normalized franchise
+    "position"                varchar,
+    report_primary_injury     varchar,
+    report_secondary_injury   varchar,
+    report_status             varchar,   -- Out | Doubtful | Questionable | ...
+    practice_primary_injury   varchar,
+    practice_secondary_injury varchar,
+    practice_status           varchar,
+    date_modified             timestamptz,
+    PRIMARY KEY (player_id, season, game_type, week, team)
+);
+CREATE INDEX IF NOT EXISTS injuries_season_week_idx ON injuries (season, week);
+CREATE INDEX IF NOT EXISTS injuries_team_season_idx ON injuries (team, season);
+
+-- Weekly depth charts (nflverse depth_charts_<year>.csv, 2001+). Keyed by
+-- (player, season, game_type, week, team, position). depth_team: 1 = starter,
+-- 2 = backup, ... ; formation: Offense | Defense | Special Teams.
+CREATE TABLE IF NOT EXISTS depth_charts (
+    player_id      varchar NOT NULL REFERENCES players (player_id),
+    season         integer NOT NULL,
+    game_type      varchar NOT NULL DEFAULT 'REG',  -- REG | POST
+    week           smallint NOT NULL,
+    team           varchar NOT NULL,  -- normalized franchise (club_code)
+    "position"     varchar NOT NULL,
+    depth_team     smallint,
+    depth_position varchar,
+    formation      varchar,
+    jersey_number  smallint,
+    PRIMARY KEY (player_id, season, game_type, week, team, "position")
+);
+CREATE INDEX IF NOT EXISTS depth_charts_season_week_idx ON depth_charts (season, week);
+CREATE INDEX IF NOT EXISTS depth_charts_team_season_idx ON depth_charts (team, season);
+
+-- Per-game snap counts (nflverse snap_counts_<year>.csv, 2012+). Keyed by
+-- (pfr_player_id, game_id); game_id matches the schedule (FK -> games).
+-- Players are keyed by PFR id in the source; player_id (gsis) is resolved from
+-- player_ids when a match exists (nullable otherwise). *_pct are 0..1 fractions.
+CREATE TABLE IF NOT EXISTS snap_counts (
+    pfr_player_id varchar NOT NULL,
+    game_id       varchar NOT NULL REFERENCES games (game_id),
+    player_id     varchar,   -- gsis, resolved from pfr_player_id (nullable)
+    season        integer NOT NULL,
+    game_type     varchar NOT NULL DEFAULT 'REG',
+    week          smallint NOT NULL,
+    team          varchar NOT NULL,
+    opponent      varchar,
+    "position"    varchar,
+    offense_snaps smallint,
+    offense_pct   real,
+    defense_snaps smallint,
+    defense_pct   real,
+    st_snaps      smallint,
+    st_pct        real,
+    PRIMARY KEY (pfr_player_id, game_id)
+);
+CREATE INDEX IF NOT EXISTS snap_counts_player_idx ON snap_counts (player_id);
+CREATE INDEX IF NOT EXISTS snap_counts_game_idx ON snap_counts (game_id);
+CREATE INDEX IF NOT EXISTS snap_counts_season_idx ON snap_counts (season, week);
+
+-- Ingestion run log: one row per (dataset, season) attempt. season is NULL for
+-- single-file datasets (players, trades, ...).
+CREATE TABLE IF NOT EXISTS ingestion_runs (
+    id          bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    source      varchar NOT NULL,   -- e.g. 'nflverse'
+    dataset     varchar NOT NULL,   -- e.g. 'injuries'
+    season      integer,            -- NULL for single-file datasets
+    status      varchar NOT NULL,   -- running | success | error
+    row_count   integer,
+    started_at  timestamptz NOT NULL DEFAULT now(),
+    finished_at timestamptz,
+    error       text
+);
+CREATE INDEX IF NOT EXISTS ingestion_runs_dataset_idx ON ingestion_runs (dataset, season);
+CREATE INDEX IF NOT EXISTS ingestion_runs_started_idx ON ingestion_runs (started_at);
+
+-- Resumable-backfill checkpoint: the last successful load per (source, dataset,
+-- season). season = -1 is the sentinel for single-file datasets (a PK can't
+-- hold NULL). `worker resume` skips any pair present here unless --force.
+CREATE TABLE IF NOT EXISTS source_state (
+    source          varchar NOT NULL,
+    dataset         varchar NOT NULL,
+    season          integer NOT NULL DEFAULT -1,  -- -1 = single-file (no season)
+    last_success_at timestamptz NOT NULL DEFAULT now(),
+    row_count       integer,
+    PRIMARY KEY (source, dataset, season)
+);

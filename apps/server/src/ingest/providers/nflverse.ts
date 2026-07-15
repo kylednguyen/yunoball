@@ -24,6 +24,14 @@ export const assets = {
     `${RELEASES}/stats_player/stats_player_${level}_${year}.csv`,
   pbp: (year: number) => `${RELEASES}/pbp/play_by_play_${year}.csv.gz`,
   draftPicks: () => `${RELEASES}/draft_picks/draft_picks.csv`, // all drafts, one file
+  // P0 datasets. players/trades are single all-history files; the rest are
+  // per-season (like weeklyStats). Season floors (injuries 2009, depth 2001,
+  // snaps 2012, trades 2010) are enforced by the worker, not here.
+  players: () => `${RELEASES}/players/players.csv`, // all-time master + id crosswalk
+  trades: () => `${RELEASES}/trades/trades.csv`, // all trades (2002+), one file
+  injuries: (year: number) => `${RELEASES}/injuries/injuries_${year}.csv`,
+  depthCharts: (year: number) => `${RELEASES}/depth_charts/depth_charts_${year}.csv`,
+  snapCounts: (year: number) => `${RELEASES}/snap_counts/snap_counts_${year}.csv`,
 };
 
 const CACHE_DIR =

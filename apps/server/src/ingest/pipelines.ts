@@ -10,6 +10,9 @@ import {
   float, int, str, team, SEASON_TYPE, TEAM_MAP,
   draftPickRow, gameRow, playerGameStatsRow, playerRow, playerSeasonStatsRow,
   playerGameAdvancedRow, scoringPlayRow, seasonRow, teamGameStatsRow, teamRow,
+  playerIdsRow, tradeRow, injuryRow, depthChartRow, snapCountRow,
+  mapPlayerIds, mapTrade, mapInjury, mapDepthChart, mapSnapCount,
+  type GsisByPfr,
 } from "./normalize.js";
 import { logger } from "../lib/logger.js";
 import type { Ctx } from "./context.js";
@@ -475,4 +478,143 @@ export async function loadDraftPicks(ctx: Ctx): Promise<number> {
   rows = ctx.drop(rows, (r) => r.round >= 1 && r.pick >= 1, "draft_picks",
     "missing round/pick number", (r) => r.player_name);
   return upsert(ctx, "draft_picks", rows, ["season", "pick"], draftPickRow);
+}
+
+// ===========================================================================
+// P0 datasets: cross-source ID crosswalk + trades / injuries / depth / snaps.
+// ===========================================================================
+
+/** Fetch a per-season asset across many years, tolerating seasons the dataset
+ * doesn't publish (a 404 below its floor is expected — the worker clamps to
+ * the floor, but this stays defensive). Non-404 errors still fail the run so a
+ * network outage is never silently swallowed. */
+async function allRowsForYears(
+  asset: (year: number) => string,
+  years: number[],
+  dataset: string,
+): Promise<CsvRow[]> {
+  const out: CsvRow[] = [];
+  for (const year of years) {
+    try {
+      out.push(...(await allRows(asset(year))));
+    } catch (err) {
+      if (String(err).includes("404")) {
+        logger.warn({ dataset, year }, `${dataset}: season file not published — skipping`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  return out;
+}
+
+/** pfr_id -> gsis player_id, read from the already-loaded player_ids crosswalk.
+ * Used to resolve datasets that key players by PFR id (trades, snap counts)
+ * onto the warehouse's gsis id. Empty if player_ids hasn't been loaded yet
+ * (then those player_id columns stay null — they are nullable by design). */
+async function pfrToGsis(ctx: Ctx): Promise<GsisByPfr> {
+  const map: GsisByPfr = new Map();
+  try {
+    const res = await ctx.pool.query(
+      "SELECT pfr_id, player_id FROM player_ids WHERE pfr_id IS NOT NULL",
+    );
+    for (const row of res.rows) map.set(String(row.pfr_id), String(row.player_id));
+  } catch (err) {
+    if ((err as { code?: string }).code !== "42P01") throw err; // table not migrated yet
+  }
+  return map;
+}
+
+/** The nflverse players master — the cross-source id crosswalk (gsis <-> pfr,
+ * espn, pff, otc, esb, smart, nfl). One all-history file. Only players present
+ * in the loaded `players` dimension are kept (player_ids FK -> players), so run
+ * `players` for the seasons you care about first. */
+export async function loadPlayerIds(ctx: Ctx): Promise<number> {
+  const raw = await allRows(assets.players());
+  checkColumns(raw[0], "players", ["gsis_id"],
+    ["pfr_id", "espn_id", "pff_id", "otc_id", "esb_id", "smart_id"]);
+  let rows = raw.map(mapPlayerIds);
+  rows = ctx.drop(rows, (r) => r.player_id !== "", "player_ids",
+    "players master row without a gsis id", (r) => String(r.pfr_id ?? r.esb_id));
+  const players = await ctx.known("players", "player_id");
+  rows = ctx.drop(rows, (r) => players.has(r.player_id), "player_ids",
+    "player not in players dimension (load rosters for the season first)",
+    (r) => r.player_id);
+  return upsert(ctx, "player_ids", rows, ["player_id"], playerIdsRow);
+}
+
+/** All NFL trades (nflverse, 2002+). One row per asset moved; asset_id is a
+ * deterministic surrogate so re-runs are idempotent. player_id (gsis) is
+ * resolved from pfr_id via the id crosswalk when available. */
+export async function loadTrades(ctx: Ctx): Promise<number> {
+  const raw = await allRows(assets.trades());
+  checkColumns(raw[0], "trades", ["trade_id", "gave", "received"],
+    ["pfr_id", "pick_round", "pick_number"]);
+  const gsisByPfr = await pfrToGsis(ctx);
+  let rows = raw.map((r) => mapTrade(r, gsisByPfr));
+  rows = ctx.drop(rows, (r) => r.trade_id !== 0, "trades",
+    "row without a trade id", (r) => r.asset_id);
+  return upsert(ctx, "trades", rows, ["asset_id"], tradeRow);
+}
+
+/** Weekly injury reports (nflverse, 2009+). Keyed by (player, season,
+ * game_type, week, team). Rows for players missing from the dimension or
+ * outside REG/POST are dropped and logged. */
+export async function loadInjuries(ctx: Ctx, years: number[]): Promise<number> {
+  const raw = await allRowsForYears(assets.injuries, years, "injuries");
+  checkColumns(raw[0], "injuries", ["gsis_id", "season", "week", "team", "game_type"],
+    ["report_status", "practice_status", "report_primary_injury"]);
+  let rows = raw.map(mapInjury);
+  rows = ctx.drop(rows, (r) => r.player_id !== "", "injuries",
+    "injury row without a gsis id", (r) => String(r.team));
+  rows = ctx.drop(rows, (r) => r.game_type === "REG" || r.game_type === "POST", "injuries",
+    "not a REG/POST report", (r) => String(r.player_id));
+  const players = await ctx.known("players", "player_id");
+  rows = ctx.drop(rows, (r) => players.has(r.player_id as string), "injuries",
+    "player not in players dimension", (r) => String(r.player_id));
+  return upsert(ctx, "injuries", rows,
+    ["player_id", "season", "game_type", "week", "team"], injuryRow);
+}
+
+/** Weekly depth charts (nflverse, 2001+). Keyed by (player, season, game_type,
+ * week, team, position). depth_team 1 = starter, 2 = backup, ... */
+export async function loadDepthCharts(ctx: Ctx, years: number[]): Promise<number> {
+  const raw = await allRowsForYears(assets.depthCharts, years, "depth_charts");
+  checkColumns(raw[0], "depth_charts",
+    ["gsis_id", "season", "week", "club_code", "game_type", "position"],
+    ["depth_team", "formation", "depth_position"]);
+  let rows = raw.map(mapDepthChart);
+  rows = ctx.drop(rows, (r) => r.player_id !== "", "depth_charts",
+    "depth chart row without a gsis id", (r) => String(r.team));
+  rows = ctx.drop(rows, (r) => r.position !== "", "depth_charts",
+    "depth chart row without a position", (r) => String(r.player_id));
+  rows = ctx.drop(rows, (r) => r.game_type === "REG" || r.game_type === "POST", "depth_charts",
+    "not a REG/POST depth chart", (r) => String(r.player_id));
+  const players = await ctx.known("players", "player_id");
+  rows = ctx.drop(rows, (r) => players.has(r.player_id as string), "depth_charts",
+    "player not in players dimension", (r) => String(r.player_id));
+  return upsert(ctx, "depth_charts", rows,
+    ["player_id", "season", "game_type", "week", "team", "position"], depthChartRow);
+}
+
+/** Per-game snap counts (nflverse, 2012+). Keyed by (pfr_player_id, game_id);
+ * game_id matches the schedule (FK -> games). player_id (gsis) is resolved
+ * from pfr_player_id via the id crosswalk when available. */
+export async function loadSnapCounts(ctx: Ctx, years: number[]): Promise<number> {
+  const raw = await allRowsForYears(assets.snapCounts, years, "snap_counts");
+  checkColumns(raw[0], "snap_counts",
+    ["pfr_player_id", "game_id", "season", "week", "team", "game_type"],
+    ["offense_snaps", "defense_snaps", "st_snaps"]);
+  const gsisByPfr = await pfrToGsis(ctx);
+  let rows = raw.map((r) => mapSnapCount(r, gsisByPfr));
+  rows = ctx.drop(rows, (r) => r.pfr_player_id !== "", "snap_counts",
+    "row without a pfr player id", (r) => String(r.game_id));
+  rows = ctx.drop(rows, (r) => r.game_id !== "", "snap_counts",
+    "row without a game id", (r) => String(r.pfr_player_id));
+  rows = ctx.drop(rows, (r) => r.game_type === "REG" || r.game_type === "POST", "snap_counts",
+    "not a REG/POST game", (r) => String(r.pfr_player_id));
+  const games = await ctx.known("games", "game_id");
+  rows = ctx.drop(rows, (r) => games.has(r.game_id as string), "snap_counts",
+    "game not ingested (run games first)", (r) => String(r.game_id));
+  return upsert(ctx, "snap_counts", rows, ["pfr_player_id", "game_id"], snapCountRow);
 }
