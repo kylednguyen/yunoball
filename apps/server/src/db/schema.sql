@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS scoring_plays (
 );
 CREATE INDEX IF NOT EXISTS scoring_plays_player_idx ON scoring_plays (player_id);
 CREATE INDEX IF NOT EXISTS scoring_plays_game_idx ON scoring_plays (game_id);
+CREATE INDEX IF NOT EXISTS scoring_plays_team_idx ON scoring_plays (team_id);
 
 -- NFL draft history (nflverse draft_picks, 1980+). No season FK: the draft
 -- runs ahead of (and behind) the stats warehouse's loaded seasons. player_id
