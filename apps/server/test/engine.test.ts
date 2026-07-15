@@ -159,6 +159,68 @@ describe("parseRules — fantasy scoring formats", () => {
   });
 });
 
+describe("parseRules — offensive vs defensive interceptions", () => {
+  // Bare "interceptions" stays passing picks THROWN (offense) — the historical
+  // default. Every one of these must NOT flip to def_interceptions.
+  it.each([
+    "who threw the most interceptions in 2022",
+    "most interceptions thrown in 2020",
+    "most ints in 2020",
+    "who threw the most picks",
+    "career interceptions",
+    "fewest interceptions this season",
+  ])("offensive: '%s' -> interceptions", (question) => {
+    expect(parse(question)).toMatchObject({ stat: "interceptions" });
+  });
+
+  it("a QB's interceptions stay offensive (picks thrown)", () => {
+    expect(parse("patrick mahomes interceptions")).toMatchObject({
+      intent: "player_total", stat: "interceptions", playerId: "P_MAHOMES",
+    });
+  });
+
+  // A defensive position, a resolved defender, or explicit defensive phrasing
+  // flips to def_interceptions (picks CAUGHT).
+  it("a named defensive position -> def_interceptions, scoped to that position", () => {
+    expect(parse("most interceptions by a cornerback in 2023")).toMatchObject({
+      intent: "leaders", stat: "def_interceptions", position: "CB", season: 2023,
+    });
+    expect(parse("interceptions by a safety in 2024")).toMatchObject({
+      intent: "leaders", stat: "def_interceptions", position: "S",
+    });
+  });
+
+  it("explicit defensive phrasing -> def_interceptions even without a position", () => {
+    expect(parse("defensive interception leaders")).toMatchObject({
+      intent: "leaders", stat: "def_interceptions",
+    });
+    expect(parse("most interceptions caught in 2023")).toMatchObject({
+      intent: "leaders", stat: "def_interceptions",
+    });
+  });
+
+  it("a resolved defender's interceptions -> def_interceptions", () => {
+    // T.J. Rushing (CB) — a defender, so his picks are caught, not thrown.
+    expect(parse("t.j. rushing interceptions")).toMatchObject({
+      intent: "player_total", stat: "def_interceptions", playerId: "P_RUSHING",
+    });
+  });
+
+  it("an offensive cue outranks a defensive position (contradictions -> offense)", () => {
+    // "interceptions thrown by a cornerback" is contradictory; the explicit
+    // "thrown" cue pins it to the offensive picks-thrown board.
+    expect(parse("interceptions thrown by a cornerback")).toMatchObject({
+      stat: "interceptions",
+    });
+  });
+
+  it("def_interceptions builds to the defensive column with a position filter", () => {
+    const { sql } = buildSql(spec("most interceptions by a cornerback in 2023"));
+    expect(sql).toContain("s.def_interceptions");
+    expect(sql).toContain("p.position");
+  });
+});
+
 describe("parseRules — generic cues resolve by context", () => {
   it("RB + 'touchdowns' -> rushing TDs, not passing", () => {
     expect(parse("derrick henry touchdowns")).toMatchObject({

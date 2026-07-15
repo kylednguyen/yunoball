@@ -179,9 +179,24 @@ export const STATS: Record<string, StatDef> = {
     table: "advanced",
     ratio: { num: "cpoe_sum", den: "cpoe_n", floorSeason: 150, floorCareer: 1000 },
   },
+  // Interceptions come in two flavors that share their everyday vocabulary
+  // ("interception", "int", "picks"): picks CAUGHT (defense) and picks THROWN
+  // (offense). Like the air-yards pair above, the SIDE of the ball is resolved
+  // in the parser from the named position or the resolved player; only the
+  // unambiguous defensive phrasings anchor def_interceptions directly, so it
+  // sits above interceptions to win those (a bare "interception" still falls
+  // through to the offensive entry, the historical default).
+  def_interceptions: {
+    expr: "s.def_interceptions",
+    label: "interceptions",
+    phrases: ["defensive interception", "interceptions caught", "interception caught"],
+    words: [],
+  },
   interceptions: {
     expr: "s.interceptions",
     label: "interceptions",
+    // Passing interceptions THROWN (offense); a defender's picks CAUGHT live in
+    // def_interceptions above, routed by position/player in the parser.
     // "pick" (singular) is deliberately absent — it collides with draft picks.
     phrases: ["interception", "picked off", "pick six", "int thrown"],
     words: ["int", "ints", "picks"],

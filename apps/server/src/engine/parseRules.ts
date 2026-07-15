@@ -75,6 +75,39 @@ const POSITION_WORDS: [RegExp, string][] = [
   [/\b(tes?|tight ends?)\b/, "TE"],
 ];
 
+/** The coarse defensive-position groups the warehouse stores. Used to route
+ * interception questions to the DEFENSIVE side of the ball (see wantsDefInt)
+ * and to test whether a resolved player is a defender. */
+const DEF_POSITIONS = new Set([
+  "CB", "S", "FS", "SS", "SAF", "DB", "LB", "ILB", "OLB", "MLB",
+  "DL", "DE", "DT", "NT", "EDGE",
+]);
+
+function isDefender(pos: string | null | undefined): boolean {
+  return pos != null && DEF_POSITIONS.has(pos);
+}
+
+/** A defensive position named in a question -> its warehouse code, so a
+ * defensive-interception board can be scoped ("interceptions by a cornerback"
+ * -> CB). Kept separate from the offense-only POSITION_WORDS the general
+ * position filter uses, and only consulted for the interception routing. */
+const DEF_POSITION_WORDS: [RegExp, string][] = [
+  [/\b(cbs?|cornerbacks?|corners?)\b/, "CB"],
+  [/\b(safeties|safety|saf|free safet(?:y|ies)|strong safet(?:y|ies))\b/, "S"],
+  [/\b(linebackers?|lbs?)\b/, "LB"],
+  [/\b(defensive backs?|dbs?|secondary)\b/, "DB"],
+  [/\b(edge rushers?|edge defenders?|edge)\b/, "EDGE"],
+  [/\bdefensive ends?\b/, "DE"],
+  [/\b(defensive tackles?|nose tackles?|defensive line(?:men|man)?|d-?line)\b/, "DL"],
+];
+
+function detectDefPosition(qText: string): string | null {
+  for (const [re, pos] of DEF_POSITION_WORDS) {
+    if (re.test(qText)) return pos;
+  }
+  return null;
+}
+
 const WORD_NUMS: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5,
   six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
@@ -647,6 +680,26 @@ export function parseRules(
     player = playerHit(qText, index, opts.teams) ?? (mentioned.length > 0 ? mentioned[0]! : null);
   }
 
+  // ---- Interception side-of-the-ball disambiguation ----
+  // "interceptions" defaults to passing picks THROWN (offense) — the historical
+  // behavior the interceptions StatDef and every existing test assert. It flips
+  // to def_interceptions (picks CAUGHT) only in a DEFENSIVE context: a defensive
+  // position named ("interceptions by a cornerback"), a resolved defender, or
+  // the explicit "defensive interceptions"/"interceptions caught" phrasing.
+  // Precedence: an offensive cue ("thrown"/"threw"/"picked off"/"int thrown")
+  // always pins it to offense and is never flipped — so "interceptions thrown"
+  // and "who threw the most picks" stay the QB board. The flip itself lands
+  // after stat detection below; this is also read to keep the generic "defense"
+  // team-unit refusal from swallowing an answerable defensive-INT question.
+  const defPosition = detectDefPosition(qText);
+  const offensiveIntCue = /\bthrew\b|\bthrown\b|\bpicked off\b|\bint thrown\b/.test(qText);
+  const wantsDefInt =
+    (/\binterceptions?\b/.test(qText) ||
+      hasWord(qText, "int") || hasWord(qText, "ints") || hasWord(qText, "picks")) &&
+    !offensiveIntCue &&
+    (/\bdefensive interceptions?\b|\binterceptions? caught\b/.test(qText) ||
+      defPosition != null || isDefender(player?.position));
+
   // ---- Draft questions ("who was the first pick 2025", "when was X drafted",
   // "who did the chiefs draft in round 1") ----
   const draftCue =
@@ -757,6 +810,10 @@ export function parseRules(
 
   // Vocabulary we recognize but genuinely can't answer — say so, usefully.
   for (const [re, message] of UNSUPPORTED) {
+    // Defensive interceptions ARE queryable now (def_interceptions), so the
+    // generic "defense" team-unit refusal must not swallow "defensive
+    // interception leaders" — the only UNSUPPORTED entry that matches "defense".
+    if (wantsDefInt && re.test("defense")) continue;
     if (re.test(qText)) return { refusal: message };
   }
 
@@ -995,6 +1052,14 @@ export function parseRules(
   }
   // A QB asked about "sacks" means sacks TAKEN, not defensive sacks.
   if (stat === "def_sacks" && player?.position === "QB") stat = "sacks_taken";
+  // An interception question asked in a defensive context is picks CAUGHT, not
+  // thrown — flip the offensive default to def_interceptions (see wantsDefInt).
+  if (stat === "interceptions" && wantsDefInt) stat = "def_interceptions";
+  // Scope a defensive-INT board to the named defensive position; the offense-
+  // only POSITION_WORDS never sets CB/S/LB/DB/DE/EDGE.
+  if (stat === "def_interceptions" && position == null && defPosition != null) {
+    position = defPosition;
+  }
   // A truly bare player mention ("Patrick Mahomes", "show me mahomes stats")
   // asks about the player, not one number: show the season-by-season line.
   // Any leftover token (a year, "career", "playoffs", a stat word…) falls

@@ -160,7 +160,9 @@ const CASES: [string, Expect][] = [
   ["Touchdown leader", answer({ intent: "leaders", stat: "total_tds" })],
   ["Completion percentage leader", answer({ intent: "leaders", stat: "completion_pct" })],
   ["Highest QBR", refusal()],
-  ["Most interceptions thrown", answer({ intent: "leaders", stat: "interceptions" })],
+  ["Most interceptions thrown", answer({ intent: "leaders", stat: "interceptions" })], // offense: picks THROWN (unchanged)
+  ["most interceptions by a cornerback in 2023", answer({ intent: "leaders", stat: "def_interceptions", position: "CB", season: 2023 })], // defense: picks CAUGHT
+  ["defensive interception leaders", answer({ intent: "leaders", stat: "def_interceptions" })], // "defensive" must not refuse
   ["Most forced fumbles", answer({ intent: "leaders", stat: "forced_fumbles" })],
   ["Most tackles", answer({ intent: "leaders", stat: "tackles" })],
   // ---- 7. Games / schedules ----
