@@ -18,30 +18,44 @@ The Next.js app lives in `apps/web` (pnpm monorepo).
    - `NEXT_PUBLIC_API_URL` → your deployed API origin (e.g. `https://yunoball-api.onrender.com`).
 4. Deploy. That's the whole frontend.
 
-## 2. API → Render (persistent Node service)
+## 2. API → Render (Docker blueprint)
 
-The API keeps a warm connection pool and an in-process answer cache, so a
-**persistent Node service** is the right shape (not serverless functions, not a
-container — Render's native `node` runtime runs it straight from `render.yaml`).
+The committed `render.yaml` deploys the API as a **Docker container**
+(`runtime: docker`, built from `./Dockerfile`) — this is what Render actually
+uses, so deploy it as a **Blueprint**, not a hand-made Node service.
 
-The code already handles the two things hosts need: it binds Render's injected
+> ⚠️ **Do not create a plain "Web Service" and pick the Node runtime.** There is
+> no `build` script at the repo root (only `build:web`), so Render's Node
+> runtime runs a build command that doesn't exist and the **build fails**
+> ("Missing script: build"). The image runs the TypeScript source directly via
+> `tsx` — there is no compile step — so it must be built as Docker.
+
+The image already handles the two things hosts need: it binds Render's injected
 `$PORT`, and it enables TLS automatically for any non-localhost database host.
 
 **Steps (Render dashboard):**
 1. Push this branch to GitHub.
-2. Render → **New → Blueprint** → pick this repo. Render reads `render.yaml`
-   and provisions the `yunoball-api` web service.
+2. Render → **New → Blueprint** → pick this repo. Render reads `render.yaml` and
+   provisions `yunoball-api` on the **Docker** runtime. (If you already made a
+   Node service by hand: either delete it and use the Blueprint, or in Settings
+   switch Runtime to **Docker**, set Dockerfile Path `./Dockerfile`, Docker
+   Context `.`, and clear any Build Command.)
 3. Fill the three `sync:false` secrets when prompted (they never live in git):
    - `DATABASE_URL` → Supabase **session pooler** string, port **5432**
      (Supabase → Connect → *Session pooler*). **Not** the 6543 transaction
-     pooler — that's for serverless and drops session features.
+     pooler (serverless-only), and **not** the direct `db.<ref>.supabase.co`
+     host — that host is **IPv6-only and Render has no IPv6 egress**, so it can
+     never connect and the deploy goes unhealthy. The pooler host looks like
+     `aws-0-<region>.pooler.supabase.com`, and the username carries the project
+     ref: `postgres.<ref>`.
    - `READONLY_DATABASE_URL` → a read-only role's session-pooler string
      (recommended; leave blank to fall back to `DATABASE_URL`).
    - `CORS_ORIGINS` → your Vercel origin, e.g. `https://<project>.vercel.app`
      (comma-separate to allow more, e.g. a custom domain).
-4. **Apply** → first build runs `pnpm install --frozen-lockfile`, start runs
-   `pnpm --filter @yunoball/server start`. Watch **Logs** for
-   `YunoBall API up on :<port>`; the `/health` check must go green.
+4. **Apply** → Render builds `./Dockerfile` and starts the container. Watch
+   **Logs** for `YunoBall API up on :<port>`. The health check hits **`/ready`**,
+   which runs `SELECT 1` against Postgres — so a wrong/unreachable `DATABASE_URL`
+   lets the build succeed but leaves the deploy **unhealthy**.
 5. Copy the service URL (`https://yunoball-api.onrender.com`) — it's the
    `NEXT_PUBLIC_API_URL` for Vercel (step 1) and must appear in `CORS_ORIGINS`.
 
