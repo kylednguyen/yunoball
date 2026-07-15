@@ -2,7 +2,7 @@
  * production so the stars lead the list. */
 
 import type { TeamRosterSpec } from "../spec.js";
-import { Params } from "./shared.js";
+import { Params, positionPred } from "./shared.js";
 
 export function teamRosterSql(spec: TeamRosterSpec, p: Params): string {
   const preds = [
@@ -10,7 +10,7 @@ export function teamRosterSql(spec: TeamRosterSpec, p: Params): string {
     "s.season_type = 'REG'",
   ];
   if (spec.season != null) preds.push(`s.season = ${p.add(spec.season)}`);
-  if (spec.position) preds.push(`p.position = ${p.add(spec.position)}`);
+  if (spec.position) preds.push(positionPred(spec.position, p));
   return (
     "SELECT p.player_id, p.full_name, p.position, " +
     "COALESCE(s.games_played, 0) AS gp, " +

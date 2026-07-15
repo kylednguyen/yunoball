@@ -133,13 +133,21 @@ function hasWord(qText: string, word: string): boolean {
   return new RegExp(`\\b${escapeRe(word)}\\b`).test(qText);
 }
 
+/** Phrase match with a digit-boundary guard: a phrase that STARTS with a digit
+ * ("0 ppr", "0.5 ppr") must not match mid-number ("300 ppr" is 300 PPR points,
+ * not standard scoring). Plain phrases use a simple substring test. */
+function phraseMatch(qText: string, phrase: string): boolean {
+  if (!/^\d/.test(phrase)) return qText.includes(phrase);
+  return new RegExp(`(?<![\\d.])${escapeRe(phrase)}`).test(qText);
+}
+
 /** First stat whose vocabulary matches, in STATS declaration order.
  * Phrases (multi-word, specific) beat single words across ALL stats, so
  * "threw for ... yards" hits passing_yards before the bare "threw" word
  * can claim passing touchdowns. */
 function detectStat(qText: string): string | null {
   for (const [stat, def] of Object.entries(STATS)) {
-    if (def.phrases.some((p) => qText.includes(p))) return stat;
+    if (def.phrases.some((p) => phraseMatch(qText, p))) return stat;
   }
   for (const [stat, def] of Object.entries(STATS)) {
     if (def.words.some((w) => hasWord(qText, w))) return stat;
@@ -177,6 +185,17 @@ export const RESERVED: Set<string> = (() => {
     "against", "draft", "drafted", "pick", "round", "rounds", "appearance", "appearances",
     "log", "matchup", "matchups", "championship", "afc", "nfc",
     "wild", "card", "divisional", "conference",
+    // Comparison / quantity / superlative / draft-verb / scheduling vocabulary —
+    // all collide with real surnames via the fuzzy resolver (more->Moore,
+    // long->Chris Long, night->Knight, went->Wentz, every->Devery Henderson,
+    // shortest->Shorts, drive->Driver, right->Wright, take->Takeo) yet are never
+    // player anchors. Multi-word full names stay exempt (RESERVED only blocks
+    // SINGLE-word anchoring), so "chris long" / "donald driver" still resolve.
+    "more", "than", "fewer", "less", "least", "shortest", "tallest", "heaviest",
+    "lightest", "oldest", "youngest", "take", "took", "select", "selected",
+    "went", "every", "each", "long", "right", "drive", "drives", "night",
+    "nights", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday",
+    "saturday", "football", "primetime", "snf", "mnf", "tnf",
   ]);
   for (const def of Object.values(STATS)) {
     for (const phrase of def.phrases) {
@@ -383,6 +402,13 @@ function bioSuperlative(qText: string): { field: "height" | "weight" | "age"; di
  * game-grain threshold() deliberately ignores these to avoid mis-routing a
  * plain player question into a game count. */
 function countThreshold(qText: string): { op: ">="; value: number } | null {
+  // Countable units (receptions, TDs, sacks, tackles, INTs) count naturally at
+  // single digits ("5 sacks", "10 touchdowns"), so accept 1-3 digits for them
+  // first. Yardage stays 2+ digits below so "5 yard" never trips a count.
+  const m1 = qText.match(
+    /\b(\d{1,3})\+?\s*(?:or more\s+)?(?:receptions?|catches|touchdowns?|tds?|sacks?|tackles?|interceptions?)\b/,
+  );
+  if (m1) return { op: ">=", value: Number(m1[1]) };
   const m = qText.match(
     /\b(\d{2,6})\+?\s*(?:or more\s+)?(?:career\s+)?(?:(?:rushing|passing|receiving)\s+)?(?:yards?|yds?|receptions?|catches|touchdowns?|tds?|sacks?|tackles?|interceptions?)\b/,
   );
@@ -519,7 +545,7 @@ const UNSUPPORTED: [RegExp, string][] = [
   [
     // MVP and Super Bowl MVP ARE answered (curated facts table); the rest
     // would risk invented honors, which is worse than a refusal.
-    /\b(pro bowl|all[- ]pro|hall of fame|ring of honor|retired (?:number|jersey)|rookie of the year|player of the year|opoy|dpoy|roty)\b/,
+    /\b(pro bowls?|all[- ]pros?|hall of fame(?:rs?)?|ring of honor|retired (?:numbers?|jerseys?)|rookie of the year|player of the year|opoy|dpoy|roty)\b/,
     "Only MVP and Super Bowl MVP awards are loaded so far — try \"who won MVP in 2023\". Other honors aren't in the warehouse.",
   ],
   [
@@ -710,7 +736,7 @@ export function parseRules(
     if (m) return Number(m[1]);
     m = qText.match(/\bpick (\d{1,3})\b/);
     if (m && draftCue) return Number(m[1]);
-    if (/\b(?:first|1st|#\s?1|number one) (?:overall )?pick\b(?! six)/.test(qText)) return 1;
+    if (/(?:\b(?:first|1st|number one)|#\s?1) (?:overall )?pick\b(?! six)/.test(qText)) return 1;
     if (/\b(?:first|1st) overall\b/.test(qText)) return 1;
     if (/\bsecond (?:overall )?pick\b/.test(qText)) return 2;
     if (/\bthird (?:overall )?pick\b/.test(qText)) return 3;
@@ -720,7 +746,10 @@ export function parseRules(
     const roundM = qText.match(/\b(?:round (\d{1,2})|(\d{1,2})(?:st|nd|rd|th) round|first round)\b/);
     const draftRound = roundM ? Number(roundM[1] ?? roundM[2] ?? 1) : null;
     const draftTeam = opts.teams ? teamHit(qText, opts.teams) : null;
-    if (player && draftCue) {
+    // When a team is named, a co-mentioned player's draft slot is not the
+    // question — "who did the Bears take with the first round pick" wants the
+    // team's board, not that player's own selection. So guard on !draftTeam.
+    if (player && draftCue && !draftTeam) {
       return {
         intent: "draft_pick", stat: "total_tds", player: player.name,
         playerId: player.playerId, seasonType: "REG", scope: "career", limit: 1,
@@ -734,6 +763,18 @@ export function parseRules(
         limit: overallPick != null ? 1 : 40,
       };
     }
+  }
+
+  // Projection questions ("on pace for 2000 rushing yards") aren't answerable —
+  // the warehouse is historical. Hoisted ABOVE player_bio so a surname collision
+  // ("pace" -> Calvin Pace) can't turn it into a bio card. (A redundant on-pace
+  // UNSUPPORTED entry stays below as a backstop.)
+  if (/\bon pace\b/.test(qText)) {
+    return {
+      refusal:
+        'Projection / "on pace" questions aren\'t supported — the warehouse is ' +
+        'historical. Try "fastest to 2000 rushing yards".',
+    };
   }
 
   // ---- Player bio / roster ("what team does X play for", "how old is X") —

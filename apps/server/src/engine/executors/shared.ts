@@ -41,6 +41,29 @@ export function statDef(spec: { stat: string }): StatDef {
   return STATS[spec.stat]!;
 }
 
+/** The warehouse stores defenders under inconsistent position codes: a corner
+ * is "CB" or the coarse "DB"; a safety "S"/"SS"/"FS"/"DB"; a linebacker
+ * "LB"/"OLB"/"MLB"/"ILB"; the line "DL"/"DE"/"DT"/"NT". A named position expands
+ * to every code that role can appear under, so a "CB" filter also catches
+ * DB-coded players (the 2023 INT leader DaRon Bland is stored as "DB"). Any
+ * position NOT listed (QB/RB/WR/TE/…) maps to itself — identical behavior. */
+export const POSITION_GROUPS: Record<string, string[]> = {
+  CB: ["CB", "DB"],
+  S: ["S", "SS", "FS", "DB"],
+  DB: ["DB", "CB", "S", "SS", "FS"],
+  LB: ["LB", "OLB", "MLB", "ILB"],
+  DL: ["DL", "DE", "DT", "NT"],
+  DE: ["DE", "DL"],
+  EDGE: ["EDGE", "DE", "OLB", "DL"],
+};
+
+/** SQL predicate scoping `p.position` to a position GROUP. node-postgres binds
+ * a JS array to `= ANY($n)`, so a single-position group is identical to the old
+ * `p.position = $n` equality. */
+export function positionPred(pos: string, p: Params): string {
+  return `p.position = ANY(${p.add(POSITION_GROUPS[pos] ?? [pos])})`;
+}
+
 /** The game-grain table a stat lives in. */
 export function gameTable(def: StatDef): string {
   return def.table === "advanced" ? "player_game_advanced" : "player_game_stats";

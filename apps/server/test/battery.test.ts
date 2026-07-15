@@ -44,6 +44,13 @@ const INDEX = new Map<string, IndexedPlayer>([
   ...P("P_MAYE", "Drake Maye", "QB"),
   ...P("P_STROUD", "C.J. Stroud", "QB"),
   ...P("P_LOVE", "Jordan Love", "QB"),
+  // Surnames/first names that collide with question vocabulary the audit found
+  // (long->Chris Long, drive->Driver, went->Wentz, pace->Calvin Pace). RESERVED
+  // must keep these from anchoring a single-word match; the full names still do.
+  ...P("P_CLONG", "Chris Long", "DE"),
+  ...P("P_DRIVER", "Donald Driver", "WR"),
+  ...P("P_WENTZ", "Carson Wentz", "QB"),
+  ...P("P_CPACE", "Calvin Pace", "LB"),
   // Nickname keys the live resolver installs from its map:
   ["cmc", { playerId: "P_CMC", name: "Christian McCaffrey", position: "RB" }],
   ["tb12", { playerId: "P_BRADY", name: "Tom Brady", position: "QB" }],
@@ -62,6 +69,8 @@ const TEAMS = new Map<string, IndexedTeam>(
     ["MIA", "Miami Dolphins", "Dolphins"],
     ["SF", "San Francisco 49ers", "49ers"],
     ["NE", "New England Patriots", "Patriots"],
+    ["NYJ", "New York Jets", "Jets"],
+    ["CHI", "Chicago Bears", "Bears"],
   ].flatMap(([id, name, nick]): [string, IndexedTeam][] => [
     [name!.toLowerCase(), { teamId: id!, name: name! }],
     [nick!.toLowerCase(), { teamId: id!, name: name! }],
@@ -345,6 +354,61 @@ const CASES: [string, Expect][] = [
   ["chiefs depth chart", refusal("depth charts")],
   ["patriots injury report", refusal("injury")],
   ["who made the pro bowl in 2023", refusal("awards")],
+
+  // ==== Audit-flagged parser fixes (7 root causes) + regression controls ====
+  // FIX 1 — question vocabulary must never anchor a single-word surname match.
+  // ("long"->Chris Long is a whole-word collision; the rest collide only via the
+  // fuzzy resolver, exercised by scripts/parseHarness.mts against the 1500-player
+  // fixture — here they land in the right bucket either way.)
+  ["how long is the Jets losing streak", answer({ intent: "team_streak", teamId: "NYJ", kind: "loss" })],
+  ["chris long sacks", answer({ intent: "player_total", stat: "def_sacks", playerId: "P_CLONG" })],
+  ["most touchdowns on Sunday Night Football", answer({ intent: "leaders", stat: "total_tds", primetime: true })],
+  ["who went number 1 in the 2021 draft", answer({ intent: "draft_pick", season: 2021, draftPick: null, limit: 40 })],
+  ["every AFC championship game", generic],
+  ["shortest player in the league", answer({ intent: "player_bio", bioField: "height", dir: "asc" })],
+  ["Chiefs points per drive in 2023", answer({ intent: "team_stat", teamId: "KC", metric: "points_for", perDrive: true, season: 2023 })],
+  ["donald driver receiving yards", answer({ intent: "player_total", stat: "receiving_yards", playerId: "P_DRIVER" })],
+  ["who's the best right now", generic],
+  // FIX 2 — the "receiving" phrase must not swallow "receiver(s)" (a position).
+  ["top 10 fantasy wide receivers in 2023", answer({ intent: "leaders", stat: "fantasy_points_ppr", position: "WR", season: 2023 })],
+  ["most touchdowns by a wide receiver in 2023", answer({ intent: "leaders", stat: "receiving_tds", position: "WR", season: 2023 })],
+  ["how many receivers caught fewer than 30 passes in 2023", answer({ intent: "qualifying_count", stat: "receptions", threshold: { op: "<", value: 30 }, position: "WR" })],
+  ["best wide receivers by EPA", answer({ intent: "leaders", stat: "receiving_epa", position: "WR" })],
+  ["which receiver has the highest CPOE", answer({ intent: "leaders", stat: "cpoe", position: "WR" })],
+  ["top 10 wide receivers this season", answer({ intent: "leaders", stat: "receiving_yards", position: "WR" })], // PRIMARY_STAT[WR] fallback
+  ["most receiving yards", answer({ intent: "leaders", stat: "receiving_yards" })],
+  ["most receiving touchdowns", answer({ intent: "leaders", stat: "receiving_tds" })],
+  // FIX 3 — plural-tolerant honors refusal.
+  ["how many pro bowls did Peyton Manning make", refusal("honors")],
+  ["how many pro bowls did Ray Lewis make", refusal("honors")],
+  ["is Aaron Donald a future hall of famer", refusal("honors")],
+  ["who are the Steelers' hall of famers", refusal("honors")],
+  ["who won MVP in 2023", answer({ intent: "award", award: "MVP", season: 2023 })], // award intent still routes
+  ["peyton manning passing yards", answer({ intent: "player_total", stat: "passing_yards", playerId: "P_PEYTON" })],
+  // FIX 4 — a digit-leading fantasy phrase ("0 ppr") must not match mid-number.
+  ["how many players scored 300 ppr points in 2024", answer({ intent: "leaders", stat: "fantasy_points_ppr", season: 2024 })],
+  ["10.5 ppr", answer({ intent: "leaders", stat: "fantasy_points_ppr" })],
+  ["0 ppr leaders", answer({ intent: "leaders", stat: "fantasy_points_std" })],
+  ["standard fantasy leaders", answer({ intent: "leaders", stat: "fantasy_points_std" })],
+  ["half ppr leaders", answer({ intent: "leaders", stat: "fantasy_points_half" })],
+  // FIX 5 — countable stats count at a single digit; yardage never does.
+  ["how many players had 5 sacks in 2023", answer({ intent: "qualifying_count", stat: "def_sacks", threshold: { op: ">=", value: 5 }, season: 2023 })],
+  ["how many players had 10 sacks", answer({ intent: "qualifying_count", stat: "def_sacks", threshold: { op: ">=", value: 10 } })],
+  ["how many players had 15 sacks", answer({ intent: "qualifying_count", stat: "def_sacks", threshold: { op: ">=", value: 15 } })],
+  ["how many players had 5 yard runs", answer({ intent: "leaders", stat: "scrimmage_yards" })], // "5 yard" never trips a count
+  // FIX 6 — the #1-pick regex branch was dead (leading \b gated the # alt).
+  ["who was the #1 pick in 2022", answer({ intent: "draft_pick", draftPick: 1, season: 2022, limit: 1 })],
+  ["who was the first overall pick", answer({ intent: "draft_pick", draftPick: 1 })],
+  ["who was the 21st pick in 2020", answer({ intent: "draft_pick", draftPick: 21, season: 2020 })], // not 1
+  ["he threw a pick six", answer({ intent: "leaders", stat: "interceptions" })], // pick six unaffected
+  // FIX 7a — "on pace" projection refusal, hoisted above the bio branch.
+  ["who is on pace for 2000 rushing yards this season", refusal("on pace")],
+  ["how old is Calvin Pace", answer({ intent: "player_bio", bioField: "age", playerId: "P_CPACE" })], // surname still resolves
+  // FIX 7b — a team-named draft prefers the team board over a player's slot.
+  ["who did the Bears take with the first round pick in 2023", answer({ intent: "draft_pick", teamId: "CHI", draftRound: 1, season: 2023 })],
+  // regression: unchanged behavior for a plain player + a QB position filter.
+  ["carson wentz passing yards", answer({ intent: "player_total", stat: "passing_yards", playerId: "P_WENTZ" })],
+  ["best qb 2023", answer({ intent: "leaders", stat: "passing_yards", position: "QB", season: 2023 })],
 ];
 
 describe("the 100-question battery + parser edge cases", () => {

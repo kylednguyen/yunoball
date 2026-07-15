@@ -219,6 +219,18 @@ describe("parseRules — offensive vs defensive interceptions", () => {
     expect(sql).toContain("s.def_interceptions");
     expect(sql).toContain("p.position");
   });
+
+  it("a defensive position filters by its whole GROUP, not one code", () => {
+    // The warehouse stores corners as CB *or* the coarse DB (DaRon Bland is a
+    // "DB"), so a CB filter must match the group or it misses the real leader.
+    const { sql, params } = buildSql(spec("most interceptions by a cornerback in 2023"));
+    expect(sql).toMatch(/p\.position = ANY\(\$\d+\)/);
+    expect(params).toContainEqual(["CB", "DB"]);
+    // Offensive positions map to themselves — QB stays QB-only, no regression.
+    const qb = buildSql(spec("best qb 2023"));
+    expect(qb.sql).toMatch(/p\.position = ANY\(\$\d+\)/);
+    expect(qb.params).toContainEqual(["QB"]);
+  });
 });
 
 describe("parseRules — generic cues resolve by context", () => {

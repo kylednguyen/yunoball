@@ -6,7 +6,7 @@
 
 import type { GameCountSpec, QualifyingCountSpec } from "../spec.js";
 import {
-  gamePreds, Params, passerRatingExpr, ratioFloor, ratioRowExpr, statDef, sumValueExpr,
+  gamePreds, Params, passerRatingExpr, positionPred, ratioFloor, ratioRowExpr, statDef, sumValueExpr,
 } from "./shared.js";
 
 export function gameCountSql(spec: GameCountSpec, p: Params): string {
@@ -42,7 +42,7 @@ export function qualifyingCountSql(spec: QualifyingCountSpec, p: Params): string
   const def = statDef(spec);
   const op = { ">": ">", ">=": ">=", "<": "<" }[spec.threshold.op];
   const join = spec.position ? "JOIN players p ON p.player_id = s.player_id " : "";
-  const posPred = spec.position ? ` AND p.position = ${p.add(spec.position)}` : "";
+  const posPred = spec.position ? ` AND ${positionPred(spec.position, p)}` : "";
   if (spec.scope === "career") {
     // Ratio stats need a volume floor so tiny samples don't clear the bar.
     const having = def.ratio

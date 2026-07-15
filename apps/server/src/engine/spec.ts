@@ -236,7 +236,9 @@ export const STATS: Record<string, StatDef> = {
   receiving_yards: {
     expr: "s.receiving_yards",
     label: "receiving yards",
-    phrases: ["receiving yard", "receiving yds", "rec yds", "rec yard", "receiv"],
+    // "receiving" (not the bare "receiv") so it can't swallow "receiver(s)":
+    // "wide receivers" is a position, not a receiving-yards question.
+    phrases: ["receiving yard", "receiving yds", "rec yds", "rec yard", "receiving"],
     words: [],
   },
   receptions: {

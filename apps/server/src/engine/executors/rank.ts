@@ -2,7 +2,7 @@
  * (career / season / range). */
 
 import type { PlayerRankSpec } from "../spec.js";
-import { Params, ratioFloor, statDef, sumValueExpr } from "./shared.js";
+import { Params, positionPred, ratioFloor, statDef, sumValueExpr } from "./shared.js";
 
 export function rankSql(spec: PlayerRankSpec, p: Params): string {
   const def = statDef(spec);
@@ -15,7 +15,7 @@ export function rankSql(spec: PlayerRankSpec, p: Params): string {
     } else if (spec.scope !== "career" && spec.season != null) {
       preds.push(`g.season = ${p.add(spec.season)}`);
     }
-    const posPred = spec.position ? ` AND p.position = ${p.add(spec.position)}` : "";
+    const posPred = spec.position ? ` AND ${positionPred(spec.position, p)}` : "";
     // Volume floor: ratio stats gate on their denominator; plain EPA sums
     // gate on the matching plays column so the pool is that role's players.
     const playsCol = def.ratio ? null : def.expr.replace("_epa", "_plays");

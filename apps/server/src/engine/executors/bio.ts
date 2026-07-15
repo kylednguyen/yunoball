@@ -2,7 +2,7 @@
  * ("tallest player", "oldest quarterback"). */
 
 import type { PlayerBioSpec } from "../spec.js";
-import { Params } from "./shared.js";
+import { Params, positionPred } from "./shared.js";
 
 export function bioSql(spec: PlayerBioSpec, p: Params): string {
   const bioCols =
@@ -64,7 +64,7 @@ export function bioSql(spec: PlayerBioSpec, p: Params): string {
   if (spec.bioField === "height") preds.push("p.height_inches BETWEEN 63 AND 82");
   else if (spec.bioField === "weight") preds.push("p.weight_lbs BETWEEN 150 AND 400");
   else if (spec.bioField === "age") preds.push("p.birth_date >= DATE '1970-01-01'");
-  if (spec.position) preds.push(`p.position = ${p.add(spec.position)}`);
+  if (spec.position) preds.push(positionPred(spec.position, p));
   return (
     `SELECT ${bioCols} FROM players p WHERE ${preds.join(" AND ")} ` +
     `ORDER BY ${col} ${dir}, p.full_name LIMIT ${p.add(spec.limit)}`

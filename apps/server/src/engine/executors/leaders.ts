@@ -4,7 +4,7 @@
 
 import type { LeadersSpec } from "../spec.js";
 import {
-  aggExpr, gamePreds, gameTable, Params, ratioFloor, ROOKIE_PRED, statDef,
+  aggExpr, gamePreds, gameTable, Params, positionPred, ratioFloor, ROOKIE_PRED, statDef,
 } from "./shared.js";
 
 export function leadersSql(spec: LeadersSpec, p: Params): string {
@@ -24,7 +24,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
       "JOIN games g ON g.game_id = s.game_id " +
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE ${where.join(" AND ")}` +
-      (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
+      (spec.position ? ` AND ${positionPred(spec.position, p)}` : "") +
       " GROUP BY p.player_id, p.full_name " +
       `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, p.full_name ` +
       `LIMIT ${p.add(spec.limit)}`
@@ -47,7 +47,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
       "JOIN games g ON g.game_id = s.game_id " +
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE ${where.join(" AND ")}` +
-      (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
+      (spec.position ? ` AND ${positionPred(spec.position, p)}` : "") +
       " GROUP BY p.player_id, p.full_name " + having +
       `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"} NULLS LAST, p.full_name ` +
       `LIMIT ${p.add(spec.limit)}`
@@ -74,7 +74,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
       "JOIN players p ON p.player_id = s.player_id " +
       `WHERE s.season_type = ${stype}${rangePred}` +
       (spec.teamId ? ` AND s.team_id = ${p.add(spec.teamId)}` : "") +
-      (spec.position ? ` AND p.position = ${p.add(spec.position)}` : "") +
+      (spec.position ? ` AND ${positionPred(spec.position, p)}` : "") +
       " GROUP BY p.player_id, p.full_name " + perGameFloor +
       `ORDER BY value ${spec.dir === "asc" ? "ASC" : "DESC"}, p.full_name ` +
       `LIMIT ${p.add(spec.limit)}`
@@ -83,7 +83,7 @@ export function leadersSql(spec: LeadersSpec, p: Params): string {
   const where = [`s.season_type = ${p.add(spec.seasonType)}`];
   if (spec.season != null) where.push(`s.season = ${p.add(spec.season)}`);
   if (spec.teamId) where.push(`s.team_id = ${p.add(spec.teamId)}`);
-  if (spec.position) where.push(`p.position = ${p.add(spec.position)}`);
+  if (spec.position) where.push(positionPred(spec.position, p));
   if (spec.rookie) where.push(ROOKIE_PRED);
   // Ascending boards need a floor, or benchwarmers sweep "fewest X".
   if (spec.dir === "asc") where.push("COALESCE(s.games_played, 0) >= 8");
