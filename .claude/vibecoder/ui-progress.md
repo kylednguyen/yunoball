@@ -46,18 +46,18 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 42. Optimize the Critical Rendering Path — n/a: preconnects (ESPN CDN + API), font preloaded (p15), Next inlines critical CSS, zero render-blocking third-parties.
 - [x] 43. Audit Third-Party Script Performance — n/a: zero third-party scripts in the app.
 - [x] 44. Load Critical Content First — n/a: shell renders immediately w/ skeletons; slower fetches (standings on team page) explicitly non-shifting; primary data prioritized per view.
-- [ ] 45. Run a Full Accessibility Audit
-- [ ] 46. Make Everything Keyboard Navigable
-- [ ] 47. Add Clear Visible Focus Indicators
-- [ ] 48. Make Forms Fully Accessible
-- [ ] 49. Use Proper Semantic HTML
-- [ ] 50. Add Meaningful Image Alt Text
-- [ ] 51. Respect Reduced Motion Preferences
-- [ ] 52. Announce Dynamic Changes to Screen Readers
-- [ ] 53. Build Fully Accessible Modals
-- [ ] 54. Don't Rely on Color Alone
-- [ ] 55. Add a Skip-To-Content Link
-- [ ] 56. Fix Page Titles and Language
+- [x] 45. Run a Full Accessibility Audit — audited: contrast ≥7:1, global focus-visible, skip link, landmarks, sr-only h1s, aria-live regions, labeled icon buttons, reduced-motion blocks, focus-trapped drawer. One gap noted: th scope attrs sparse (2/41) — simple single-header tables, inference reliable, skipped.
+- [x] 46. Make Everything Keyboard Navigable — n/a: Dropdown = full ARIA listbox pattern (arrows/Home/End/Escape/type-ahead); drawer traps Tab + Escape + focus return; all controls native button/a.
+- [x] 47. Add Clear Visible Focus Indicators — n/a: global :focus-visible 2px accent outline + offset, never removed (doctrine comment in CSS).
+- [x] 48. Make Forms Fully Accessible — n/a: the one form (search) has aria-label, live-region feedback, error text adjacent; no multi-field forms exist.
+- [x] 49. Use Proper Semantic HTML — n/a: nav/main/section landmarks, one main per page (id=main), real button/a everywhere, tables are tables.
+- [x] 50. Add Meaningful Image Alt Text — n/a: headshots/logos are alt="" decorative BY DESIGN (player/team name always adjacent as text) — correct classification, no redundant announcements.
+- [x] 51. Respect Reduced Motion Preferences — n/a: 2 prefers-reduced-motion blocks cover transitions/animations.
+- [x] 52. Announce Dynamic Changes to Screen Readers — n/a: aria-live polite + aria-busy on search flow and result loading; sr-only live text pattern in place.
+- [x] 53. Build Fully Accessible Modals — n/a: only modal surface is the nav drawer — inert background, Tab trap, Escape, focus return all implemented.
+- [x] 54. Don’t Rely on Color Alone — n/a: W/L are letters, leader pills carry text, links underline on hover-context, status text everywhere; accent is reinforcement not sole signal.
+- [x] 55. Add a Skip-To-Content Link — n/a: yb-skip link exists as first focusable, visible on focus, targets #main.
+- [x] 56. Fix Page Titles and Language — n/a: per-route titles ("Standings · YunoBall", question-first result titles), html lang=en.
 - [ ] 57. Add Small Purposeful Micro-Interactions
 - [ ] 58. Standardize Animation Timing and Easing
 - [ ] 59. Implement Smooth Page Transitions
