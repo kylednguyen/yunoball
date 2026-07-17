@@ -17,11 +17,11 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 13. Build a Flexible Responsive Grid — n/a: already auto-fit minmax collections, overflow-safe minmax(0,1fr) columns, fixed px only for avatar gutters; verified no overflow at 360.
 - [x] 14. Enlarge Mobile Touch Targets — in-row text links (leaders/divisions, 23-28px) now 47-52px effective via invisible padding-block/negative-margin on .yb-team-row a; verified live, no layout shift. Controls already ≥44px from prior work.
 - [x] 15. Eliminate Cumulative Layout Shift — images all carry explicit width/height; skeletons are content-matched heights; added preload for the single Geist woff2 (was swap-only → metric flash risk). No injected banners.
-- [ ] 16. Respect Mobile Safe Area Insets
-- [ ] 17. Build a Smart Sticky Header
-- [ ] 18. Balance Content Density and Whitespace
-- [ ] 19. Use Container Queries for Components
-- [ ] 20. Untangle Z-Index Stacking Issues
+- [x] 16. Respect Mobile Safe Area Insets — n/a: viewportFit "cover" set; 9 env(safe-area-inset-*) usages on bars/sub-tabs already in place.
+- [x] 17. Build a Smart Sticky Header — n/a: mobile bar is sticky with --bg-scrim translucency; sticky box sub-tabs offset-coordinated with it. Hide-on-scroll skipped: would break the sub-tab offset math for marginal gain on a ~compact bar.
+- [x] 18. Balance Content Density and Whitespace — n/a: StatMuse-dense doctrine is deliberate (design-language.md); hierarchy verified p6; tables dense, forms/heroes breathe.
+- [x] 19. Use Container Queries for Components — n/a: no component renders in multiple width contexts (no sidebar/main reuse); YAGNI.
+- [x] 20. Untangle Z-Index Stacking Issues — documented 4-tier token scale already; tokenized the one stray (box-subtabs z:5 → calc(--z-sticky)+1); locals 0/1 are intra-component. No portal/clipping issues (overlays render in-flow by design).
 - [ ] 21. Establish a Modular Type Scale
 - [ ] 22. Add Fluid Responsive Typography
 - [ ] 23. Optimize Reading Line Length

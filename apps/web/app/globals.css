@@ -4219,7 +4219,8 @@ a.yb-game-team:hover {
 .yb-box-subtabs {
   position: sticky;
   top: var(--topbar-h);
-  z-index: 5;
+  /* above table sticky headers, below the nav */
+  z-index: calc(var(--z-sticky) + 1);
   margin: 0 -4px var(--s-4);
   padding: 8px 4px;
   background: var(--bg);
