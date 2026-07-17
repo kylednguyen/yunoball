@@ -32,6 +32,15 @@ export default function RootLayout({
             warm both connections before first use. */}
         <link rel="preconnect" href="https://a.espncdn.com" />
         <link rel="preconnect" href={api} crossOrigin="anonymous" />
+        {/* The one interface font — preload so the swap window is a frame,
+            not a flash (Geist carries every glyph on screen). */}
+        <link
+          rel="preload"
+          href="/fonts/Geist-Variable.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>
         <a href="#main" className="yb-skip">
