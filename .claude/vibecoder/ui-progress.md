@@ -3,7 +3,7 @@
 Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <title>`).
 
 - [x] 1. Establish a Design Token System — already established (globals.css :root primitives+semantic tiers; eslint/stylelint enforce). Verified: only non-token hex = 2 mask-alpha `#000`. Inline strays (radius 14, gap 10) deferred to prompts 3/5.
-- [ ] 2. Build a Semantic Color System
+- [x] 2. Build a Semantic Color System — already semantic (surfaces/ink/accent/success/danger + soft variants). All text pairings ≥7:1. No warning UI exists → no --warning token (YAGNI).
 - [ ] 3. Define a Consistent Spacing Scale
 - [ ] 4. Create an Elevation Shadow System
 - [ ] 5. Standardize the Border Radius Scale
