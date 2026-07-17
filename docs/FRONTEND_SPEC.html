@@ -5011,14 +5011,14 @@ principles in <a class="yb-link" href="DESIGN_BRIEF.html">DESIGN_BRIEF</a>.</p>
       <button class="yb-chip" type="button" aria-pressed="true">Active chip</button>
       <a class="yb-link" href="#team-theming">Accent-ink link</a>
     </div>
-    <ul class="yb-lb">
+    <ol class="yb-lb">
       <li class="yb-lb-row">
         <span class="yb-lb-rank">1</span>
-        <span class="yb-lb-name"><span class="yb-lb-player">Chart mark</span><span class="yb-lb-meta">re-tints with the theme</span></span>
-        <span class="yb-lb-track"><span class="yb-lb-fill" style="width:82%"></span></span>
-        <span class="yb-lb-value">1,799 <span class="yb-lb-unit">yds</span></span>
+        <button class="yb-lb-name" type="button"><span class="yb-lb-player">Chart mark</span><span class="yb-lb-meta">re-tints with the theme</span></button>
+        <span class="yb-lb-track" aria-hidden="true"><span class="yb-lb-fill" style="transform:scaleX(0.82)"></span></span>
+        <span class="yb-lb-value">1,799<span class="yb-lb-unit"> yds</span></span>
       </li>
-    </ul>
+    </ol>
   </div>
   <p class="sp-note">Overrides applied: <code>--accent, --accent-deep, --accent-hover, --accent-ink, --accent-soft, --accent-border, --accent-contrast, --chart, --chart-strong</code>. Source: <code>apps/web/app/lib/teamTheme.ts</code>.</p>
 </div>
@@ -5105,20 +5105,20 @@ principles in <a class="yb-link" href="DESIGN_BRIEF.html">DESIGN_BRIEF</a>.</p>
 <h2 class="sp-h2" id="search">5 · Search</h2>
 <p class="sp-sub">The front door. Input on <code>--bg-soft</code> with no border; focus draws an inset accent ring. Suggest popover mixes supported questions, players (headshots), and teams.</p>
 <div class="sp-demo sp-static">
-  <div class="yb-suggest is-open" style="max-width:620px">
-    <div class="yb-search-wrap">
-      <span class="yb-search-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
-      <input class="yb-search" type="search" value="jefferson receiving" aria-label="Ask a question" readonly>
-      <span class="yb-kbd-hint">/</span>
+  <div class="yb-search-wrap" role="search" style="max-width:620px">
+    <div class="yb-suggest is-open">
+      <input class="yb-search" type="text" role="combobox" aria-expanded="true" value="jefferson" aria-label="Search NFL stats, players, and teams" readonly>
+      <svg class="yb-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span class="yb-kbd-hint" aria-hidden="true">/</span>
+      <ul class="yb-suggest-pop" role="listbox" aria-label="Suggestions">
+        <li class="yb-suggest-item question" role="option" aria-selected="true"><span class="glyph" aria-hidden="true">↗</span><span class="who"><span class="nm">How many receiving yards did Justin <mark class="yb-hit">Jefferson</mark> have in 2024?</span><span class="sub">Suggested from the supported question bank</span></span></li>
+        <li class="yb-suggest-item player" role="option"><img class="yb-avatar" src="https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/5150249.png&amp;w=128" alt="" width="28" height="28"><span class="who"><span class="nm">Justin <mark class="yb-hit">Jefferson</mark></span><span class="sub">WR · MIN</span></span></li>
+        <li class="yb-suggest-item team" role="option"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/min.png&amp;w=128&amp;h=128" alt="" width="24" height="24"><span class="who"><span class="nm">Minnesota Vikings</span><span class="sub">NFC North</span></span></li>
+        <li class="yb-suggest-item search" role="option"><span class="glyph" aria-hidden="true">?</span><span class="who"><span class="nm">Ask: “jefferson”</span><span class="sub">Answer from the stats warehouse</span></span></li>
+      </ul>
     </div>
-    <ul class="yb-suggest-pop" role="listbox">
-      <li class="yb-suggest-item question" role="option" aria-selected="true"><span class="glyph">?</span><span class="who"><span class="nm">Justin Jefferson receiving yards in 2024</span><span class="sub">Supported question</span></span></li>
-      <li class="yb-suggest-item player" role="option"><span class="glyph"><span class="sp-dot" style="background:#4F2683;width:24px;height:24px;font-size:9px">JJ</span></span><span class="who"><span class="nm">Justin Jefferson</span><span class="sub">WR · MIN</span></span></li>
-      <li class="yb-suggest-item team" role="option"><span class="glyph"><span class="sp-dot" style="background:#4F2683;width:24px;height:24px">MIN</span></span><span class="who"><span class="nm">Minnesota Vikings</span><span class="sub">Team</span></span></li>
-      <li class="yb-suggest-item muted" role="option"><span class="glyph">↵</span><span class="who"><span class="nm">Search "jefferson receiving"</span></span></li>
-    </ul>
   </div>
-  <p class="sp-note"><code>.yb-suggest.is-open</code> squares the input's bottom corners into the pop. Item kinds: <code>question / player / team / .muted</code>.</p>
+  <p class="sp-note"><code>.yb-suggest.is-open</code> squares the input's bottom corners into the pop. Item kinds: <code>question / player / team / search</code>; matched substrings highlight with <code>mark.yb-hit</code>. Headshots and team marks come from ESPN's CDN combiner (<code>Headshot.tsx</code> / <code>TeamLogo.tsx</code>), exactly as in the app.</p>
 </div>
 
 <!-- ============================================================ -->
@@ -5149,14 +5149,27 @@ principles in <a class="yb-link" href="DESIGN_BRIEF.html">DESIGN_BRIEF</a>.</p>
 
 <h3 class="sp-h3">Leaderboard rows — <code>.yb-lb</code> <span class="sp-kv">(Leaders.tsx)</span></h3>
 <div class="sp-demo">
-  <div class="yb-leaders-head" style="margin-bottom:10px"><span class="yb-leaders-title" style="font-weight:700">Receiving yards</span> <span class="yb-leaders-sub" style="color:var(--faint);font-size:12px">2024 · REG</span></div>
-  <ul class="yb-lb">
-    <li class="yb-lb-row"><span class="yb-lb-rank">1</span><span class="yb-lb-name"><span class="yb-lb-player">Ja'Marr Chase</span><span class="yb-lb-meta">CIN · WR</span></span><span class="yb-lb-track"><span class="yb-lb-fill" style="width:100%"></span></span><span class="yb-lb-value">1,708 <span class="yb-lb-unit">yds</span></span></li>
-    <li class="yb-lb-row"><span class="yb-lb-rank">2</span><span class="yb-lb-name"><span class="yb-lb-player">Justin Jefferson</span><span class="yb-lb-meta">MIN · WR</span></span><span class="yb-lb-track"><span class="yb-lb-fill" style="width:90%"></span></span><span class="yb-lb-value">1,533 <span class="yb-lb-unit">yds</span></span></li>
-    <li class="yb-lb-row"><span class="yb-lb-rank">3</span><span class="yb-lb-name"><span class="yb-lb-player">Brian Thomas Jr.</span><span class="yb-lb-meta">JAX · WR</span></span><span class="yb-lb-track"><span class="yb-lb-fill" style="width:76%"></span></span><span class="yb-lb-value">1,282 <span class="yb-lb-unit">yds</span></span></li>
-    <li class="yb-lb-row"><span class="yb-lb-rank">4</span><span class="yb-lb-name"><span class="yb-lb-player">Amon-Ra St. Brown</span><span class="yb-lb-meta">DET · WR</span></span><span class="yb-lb-track"><span class="yb-lb-fill" style="width:74%"></span></span><span class="yb-lb-value">1,263 <span class="yb-lb-unit">yds</span></span></li>
-  </ul>
-  <p class="sp-note">Proportional <code>--chart</code> bars draw in over 700ms; row hover lifts to <code>--elevated</code> and re-tints the bar to accent.</p>
+  <section class="yb-leaders" aria-labelledby="sp-leaders-heading">
+    <div class="yb-leaders-head">
+      <h2 id="sp-leaders-heading" class="yb-leaders-title">The record books, since 1999</h2>
+      <a class="yb-leaders-more" href="#data">Live leaderboards →</a>
+    </div>
+    <p class="yb-leaders-sub">Single-season leaders from the warehouse. Pick a stat, then tap a name to ask about that season.</p>
+    <div class="yb-tabs" role="tablist" aria-label="Stat category">
+      <button class="yb-tab" role="tab" aria-selected="true" type="button">Passing yards</button>
+      <button class="yb-tab" role="tab" aria-selected="false" type="button">Rushing yards</button>
+      <button class="yb-tab" role="tab" aria-selected="false" type="button">Receiving yards</button>
+      <button class="yb-tab" role="tab" aria-selected="false" type="button">Passing TDs</button>
+    </div>
+    <ol class="yb-lb" role="tabpanel" aria-label="Passing yards">
+      <li class="yb-lb-row"><span class="yb-lb-rank">1</span><button class="yb-lb-name" type="button"><span class="yb-lb-player">Peyton Manning</span><span class="yb-lb-meta">DEN, 2013</span></button><span class="yb-lb-track" aria-hidden="true"><span class="yb-lb-fill" style="transform:scaleX(1)"></span></span><span class="yb-lb-value">5,477<span class="yb-lb-unit"> yds</span></span></li>
+      <li class="yb-lb-row"><span class="yb-lb-rank">2</span><button class="yb-lb-name" type="button"><span class="yb-lb-player">Drew Brees</span><span class="yb-lb-meta">NO, 2011</span></button><span class="yb-lb-track" aria-hidden="true"><span class="yb-lb-fill" style="transform:scaleX(0.9998)"></span></span><span class="yb-lb-value">5,476<span class="yb-lb-unit"> yds</span></span></li>
+      <li class="yb-lb-row"><span class="yb-lb-rank">3</span><button class="yb-lb-name" type="button"><span class="yb-lb-player">Tom Brady</span><span class="yb-lb-meta">NE, 2011</span></button><span class="yb-lb-track" aria-hidden="true"><span class="yb-lb-fill" style="transform:scaleX(0.956)"></span></span><span class="yb-lb-value">5,235<span class="yb-lb-unit"> yds</span></span></li>
+      <li class="yb-lb-row"><span class="yb-lb-rank">4</span><button class="yb-lb-name" type="button"><span class="yb-lb-player">Drew Brees</span><span class="yb-lb-meta">NO, 2016</span></button><span class="yb-lb-track" aria-hidden="true"><span class="yb-lb-fill" style="transform:scaleX(0.951)"></span></span><span class="yb-lb-value">5,208<span class="yb-lb-unit"> yds</span></span></li>
+      <li class="yb-lb-row"><span class="yb-lb-rank">5</span><button class="yb-lb-name" type="button"><span class="yb-lb-player">Patrick Mahomes</span><span class="yb-lb-meta">KC, 2018</span></button><span class="yb-lb-track" aria-hidden="true"><span class="yb-lb-fill" style="transform:scaleX(0.931)"></span></span><span class="yb-lb-value">5,097<span class="yb-lb-unit"> yds</span></span></li>
+    </ol>
+  </section>
+  <p class="sp-note">Exact landing-page composition (<code>Leaders.tsx</code>): header + sub, category tablist, then rows — rank, <code>button.yb-lb-name</code> (clicking asks the search), <code>scaleX</code>-driven <code>--chart</code> fill (700ms draw-in, 70ms stagger), counted-up value. Row hover lifts to <code>--elevated</code> and re-tints the bar to accent.</p>
 </div>
 
 <h3 class="sp-h3">Game card — <code>.yb-game-card</code> <span class="sp-kv">(GameCard.tsx)</span> &nbsp;·&nbsp; Score ticker — <code>.yb-ticker</code></h3>
@@ -5164,25 +5177,25 @@ principles in <a class="yb-link" href="DESIGN_BRIEF.html">DESIGN_BRIEF</a>.</p>
   <div class="sp-2col">
     <article class="yb-surface yb-surface-standard is-interactive yb-game-card">
       <div class="yb-game-card-head"><span class="yb-badge">Final</span><span>Jan 26 · Week 21</span></div>
-      <table class="yb-mini-boxscore">
+      <table class="yb-mini-boxscore" aria-label="Buffalo Bills at Kansas City Chiefs box score">
         <thead><tr><th>Team</th><th class="num">Score</th></tr></thead>
         <tbody>
-          <tr class="yb-game-result-row"><td><a class="yb-game-team" href="#data"><span class="sp-dot" style="background:#00338D">BUF</span><span><span class="abbr">BUF</span><span class="nick">Bills</span><span class="site">Away</span></span></a></td><td class="yb-game-score num">29</td></tr>
-          <tr class="yb-game-result-row winner" data-team="KC"><td><a class="yb-game-team" href="#data"><span class="sp-dot" style="background:#E31837">KC</span><span><span class="abbr">KC</span><span class="nick">Chiefs</span><span class="site">Home</span></span></a></td><td class="yb-game-score num">32</td></tr>
+          <tr class="yb-game-result-row"><td><a class="yb-game-team" href="#data"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/buf.png&amp;w=128&amp;h=128" alt="" width="18" height="18"><span><span class="abbr">BUF</span><span class="nick">Bills</span><span class="site">Away</span></span></a></td><td class="yb-game-score num">29</td></tr>
+          <tr class="yb-game-result-row winner" data-team="KC"><td><a class="yb-game-team" href="#data"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/kc.png&amp;w=128&amp;h=128" alt="" width="18" height="18"><span><span class="abbr">KC</span><span class="nick">Chiefs</span><span class="site">Home</span></span></a></td><td class="yb-game-score num">32</td></tr>
         </tbody>
       </table>
       <div class="yb-game-foot"><span>Complete</span><a class="yb-link" style="font-size:12px" href="#data">Full box score</a></div>
     </article>
     <div class="sp-col">
-      <div class="yb-ticker" style="width:100%;max-width:none;margin:0">
-        <a class="yb-tick-label" href="#data"><span class="yb-tick-title"><strong>Scores</strong></span><span class="yb-tick-season">2024 · Week 21</span></a>
+      <div class="yb-ticker" aria-label="Latest scores" style="width:100%;max-width:none;margin:0">
+        <a class="yb-tick-label" href="#data"><span class="yb-tick-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><strong>Week 21</strong></span><span class="yb-tick-season">2024</span></a>
         <div class="yb-tick-scroll">
-          <a class="yb-tick-game" href="#data"><span class="yb-tick-row"><span class="yb-tick-team"><span class="sp-dot" style="background:#00338D;width:16px;height:16px;font-size:7px">BUF</span> BUF</span><span class="yb-tick-score">29</span></span><span class="yb-tick-row win"><span class="yb-tick-team"><span class="sp-dot" style="background:#E31837;width:16px;height:16px;font-size:7px">KC</span> KC</span><span class="yb-tick-score">32</span></span><span class="yb-tick-status">Final</span></a>
-          <a class="yb-tick-game" href="#data"><span class="yb-tick-row win"><span class="yb-tick-team"><span class="sp-dot" style="background:#004C54;width:16px;height:16px;font-size:7px">PHI</span> PHI</span><span class="yb-tick-score">55</span></span><span class="yb-tick-row"><span class="yb-tick-team"><span class="sp-dot" style="background:#0B2265;width:16px;height:16px;font-size:7px">WAS</span> WAS</span><span class="yb-tick-score">23</span></span><span class="yb-tick-status">Final</span></a>
-          <a class="yb-tick-game" href="#data"><span class="yb-tick-row"><span class="yb-tick-team"><span class="sp-dot" style="background:#0076B6;width:16px;height:16px;font-size:7px">DET</span> DET</span><span class="yb-tick-score">31</span></span><span class="yb-tick-row win"><span class="yb-tick-team"><span class="sp-dot" style="background:#0B162A;width:16px;height:16px;font-size:7px">CHI</span> CHI</span><span class="yb-tick-score">33</span></span><span class="yb-tick-status">Final</span></a>
+          <a class="yb-tick-game" href="#data"><span class="yb-tick-row"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/buf.png&amp;w=128&amp;h=128" alt="" width="20" height="20"><span class="yb-tick-team">BUF</span><span class="yb-tick-score">29</span></span><span class="yb-tick-row win" data-team="KC"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/kc.png&amp;w=128&amp;h=128" alt="" width="20" height="20"><span class="yb-tick-team">KC</span><span class="yb-tick-score">32</span></span><span class="yb-tick-status">Final</span></a>
+          <a class="yb-tick-game" href="#data"><span class="yb-tick-row win" data-team="PHI"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/phi.png&amp;w=128&amp;h=128" alt="" width="20" height="20"><span class="yb-tick-team">PHI</span><span class="yb-tick-score">55</span></span><span class="yb-tick-row"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/wsh.png&amp;w=128&amp;h=128" alt="" width="20" height="20"><span class="yb-tick-team">WAS</span><span class="yb-tick-score">23</span></span><span class="yb-tick-status">Final</span></a>
+          <a class="yb-tick-game" href="#data"><span class="yb-tick-row"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/det.png&amp;w=128&amp;h=128" alt="" width="20" height="20"><span class="yb-tick-team">DET</span><span class="yb-tick-score">31</span></span><span class="yb-tick-row win" data-team="CHI"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/chi.png&amp;w=128&amp;h=128" alt="" width="20" height="20"><span class="yb-tick-team">CHI</span><span class="yb-tick-score">33</span></span><span class="yb-tick-status">Final</span></a>
         </div>
       </div>
-      <p class="sp-note">Winner rows carry <code>.winner</code> + <code>teamTheme(team)</code> — the KC row here is themed by the same JS port as §2. Status badge: accent = Scheduled, success = Live, neutral = Final.</p>
+      <p class="sp-note">Exact <code>ScoreTicker.tsx</code>/<code>GameCard.tsx</code> markup: winner rows carry <code>.win</code>/<code>.winner</code> + <code>teamTheme(team)</code> (applied here by the same JS port as §2). Team marks are ESPN CDN images (<code>TeamLogo.tsx</code>). Status badge: accent = Scheduled, success = Live, neutral = Final.</p>
     </div>
   </div>
 </div>
@@ -5220,59 +5233,119 @@ principles in <a class="yb-link" href="DESIGN_BRIEF.html">DESIGN_BRIEF</a>.</p>
 <h2 class="sp-h2" id="answer">7 · The answer experience</h2>
 <p class="sp-sub">The flagship composition (<code>AnswerCard.tsx</code>): kicker → narration → identity → evidence → interpretation → disclosure → actions. Everything an answer claims is inspectable.</p>
 <div class="sp-demo on-bg">
-  <section class="yb-query-result" style="max-width:720px;margin:0 auto">
-    <header class="yb-query-result-head">
-      <span class="yb-result-kicker">Answer · cached</span>
-      <div class="yb-result-entities"><span class="yb-chip-static">Justin Jefferson · player · 0.98</span><span class="yb-chip-static">2024 · season</span></div>
-    </header>
-    <div class="yb-result-body">
-      <p class="yb-answer">Justin Jefferson had <strong>1,533 receiving yards</strong> in the 2024 regular season.</p>
-      <a class="yb-player-mini" href="#answer" data-team="MIN">
-        <span class="sp-avatar" style="background:var(--accent);color:var(--accent-contrast)">JJ</span>
-        <span class="who"><span class="nm">Justin Jefferson</span><span class="sub">WR · Minnesota Vikings</span></span>
-        <span class="go">→</span>
-      </a>
-      <div class="yb-query-interpretation"><span>Interpreted as: <strong>player_total</strong> · stat <code>receiving_yards</code> · season 2024 · REG · confidence 0.96</span></div>
-      <pre class="yb-sql">SELECT SUM(COALESCE(s.receiving_yards, 0)) AS receiving_yards
-FROM player_season_stats s
-WHERE s.player_id = $1 AND s.season = $2 AND s.season_type = 'REG'</pre>
-      <div class="yb-result-actions">
-        <button class="yb-btn sm" type="button">Copy share link</button>
-        <button class="yb-btn sm ghost" type="button">Export CSV</button>
-        <button class="yb-link" type="button">Methodology</button>
+  <section class="yb-surface yb-surface-standard yb-query-result yb-enter" data-team="CIN" style="max-width:760px;margin:0 auto">
+    <div class="yb-query-result-head">
+      <div>
+        <span class="yb-result-kicker">Result</span>
+        <p class="yb-answer">Ja'Marr Chase led the NFL with 1,708 receiving yards in 2024.</p>
       </div>
-      <p class="yb-source-note">Computed from the YunoBall warehouse (nflverse). Zero LLM calls.</p>
+      <span class="yb-badge">Cached</span>
     </div>
+    <div class="yb-query-interpretation" aria-label="Query interpretation">
+      <span>Query interpretation</span>
+      <div>
+        <span class="yb-badge">leaders</span>
+        <span class="yb-badge">stat: receiving yards</span>
+        <span class="yb-badge">10 rows</span>
+        <span class="yb-badge accent">audit: ok</span>
+      </div>
+    </div>
+    <div>
+      <a class="yb-player-mini" href="#answer">
+        <img class="yb-avatar" src="https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4362628.png&amp;w=156" alt="" width="52" height="52">
+        <span class="who">
+          <span class="nm">Ja'Marr Chase<span class="yb-pos">WR</span></span>
+          <span class="sub"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/cin.png&amp;w=128&amp;h=128" alt="" width="14" height="14">Cincinnati Bengals</span>
+        </span>
+        <span class="go" aria-hidden="true">View profile →</span>
+      </a>
+    </div>
+    <div class="yb-result-body">
+      <div class="yb-table-scroll">
+        <table class="yb-table">
+          <thead><tr>
+            <th scope="col" class="num"><button class="yb-th-sort" type="button">rank <span class="dir"></span></button></th>
+            <th scope="col"><button class="yb-th-sort" type="button">player <span class="dir"></span></button></th>
+            <th scope="col"><button class="yb-th-sort" type="button">team <span class="dir"></span></button></th>
+            <th scope="col" class="num is-metric" aria-sort="descending"><button class="yb-th-sort on" type="button" title="Receiving yards">receiving yards <span class="dir">▾</span></button></th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td><a href="#answer">Ja'Marr Chase</a></td><td><a href="#answer">CIN</a></td><td class="num is-metric">1,708</td></tr>
+            <tr><td class="num">2</td><td><a href="#answer">Justin Jefferson</a></td><td><a href="#answer">MIN</a></td><td class="num is-metric">1,533</td></tr>
+            <tr><td class="num">3</td><td><a href="#answer">Brian Thomas Jr.</a></td><td><a href="#answer">JAX</a></td><td class="num is-metric">1,282</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="yb-result-actions">
+      <button class="yb-link" type="button">Hide query</button>
+      <button class="yb-link" type="button">Download CSV</button>
+      <button class="yb-link" type="button">Share</button>
+    </div>
+    <pre class="yb-sql" style="margin-top:12px">SELECT p.full_name, s.team_id AS team,
+       SUM(COALESCE(s.receiving_yards, 0)) AS receiving_yards
+FROM player_season_stats s
+JOIN players p USING (player_id)
+WHERE s.season = $1 AND s.season_type = 'REG'
+GROUP BY p.player_id ORDER BY receiving_yards DESC LIMIT $2</pre>
+    <p class="yb-source-note">Data source: YunoBall warehouse, computed from nflverse data.</p>
   </section>
+  <p class="sp-note">Exact <code>AnswerCard.tsx</code> composition: kicker + narration in the head with a Cached badge · interpretation as a badge list (audit gets accent tone) · player mini card (real ESPN headshot, position tag, team mark) · sortable rows with the queried metric highlighted · <code>.yb-link</code> actions (Show/Hide query, Download CSV, Share) · SQL disclosure · source note. The whole card is themed by the top player's team — Bengals orange here — via <code>teamTheme(cards[0].team)</code>.</p>
 </div>
 
 <h3 class="sp-h3">Head-to-head comparison — <code>.yb-cmp</code></h3>
 <div class="sp-demo">
-  <div class="yb-cmp" style="max-width:720px">
-    <div class="yb-cmp-head" style="display:grid;grid-template-columns:1fr 96px 1fr;gap:10px;text-align:center;font-weight:700;margin-bottom:6px"><span>J. Jefferson</span><span style="color:var(--faint);font-weight:600">vs</span><span>J. Chase</span></div>
+  <div class="yb-cmp yb-compare" style="max-width:760px">
+    <div class="yb-cmp-head">
+      <a class="nm a" href="#answer">
+        <img class="yb-avatar" src="https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/5150249.png&amp;w=216" alt="" width="72" height="72">
+        <span class="who">
+          <span>Justin Jefferson<span class="yb-pos">WR</span></span>
+          <span class="sub"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/min.png&amp;w=128&amp;h=128" alt="" width="13" height="13">Minnesota Vikings</span>
+        </span>
+      </a>
+      <div class="yb-seg" role="group" aria-label="Value mode">
+        <button type="button" aria-pressed="true">Totals</button>
+        <button type="button" aria-pressed="false">Per game</button>
+      </div>
+      <a class="nm b" href="#answer">
+        <img class="yb-avatar" src="https://a.espncdn.com/combiner/i?img=/i/headshots/nfl/players/full/4362628.png&amp;w=216" alt="" width="72" height="72">
+        <span class="who">
+          <span>Ja'Marr Chase<span class="yb-pos">WR</span></span>
+          <span class="sub"><img class="yb-team-logo" src="https://a.espncdn.com/combiner/i?img=/i/teamlogos/nfl/500/cin.png&amp;w=128&amp;h=128" alt="" width="13" height="13">Cincinnati Bengals</span>
+        </span>
+      </a>
+    </div>
+    <div class="yb-cmp-row">
+      <span class="val">17</span>
+      <span class="track left" aria-hidden="true"><span class="bar" style="width:100%"></span></span>
+      <span class="lbl">Games</span>
+      <span class="track" aria-hidden="true"><span class="bar" style="width:100%"></span></span>
+      <span class="val right">17</span>
+    </div>
     <div class="yb-cmp-row">
       <span class="val">1,533</span>
       <span class="track left" aria-hidden="true"><span class="bar" style="width:90%"></span></span>
       <span class="lbl">Rec yards</span>
       <span class="track" aria-hidden="true"><span class="bar lead" style="width:100%"></span></span>
-      <span class="val lead">1,708</span>
+      <span class="val right lead">1,708</span>
     </div>
     <div class="yb-cmp-row">
-      <span class="val lead">103</span>
-      <span class="track left" aria-hidden="true"><span class="bar lead" style="width:100%"></span></span>
+      <span class="val">103</span>
+      <span class="track left" aria-hidden="true"><span class="bar" style="width:81%"></span></span>
       <span class="lbl">Receptions</span>
-      <span class="track" aria-hidden="true"><span class="bar" style="width:98%"></span></span>
-      <span class="val">101</span>
+      <span class="track" aria-hidden="true"><span class="bar lead" style="width:100%"></span></span>
+      <span class="val right lead">127</span>
     </div>
     <div class="yb-cmp-row">
       <span class="val">10</span>
       <span class="track left" aria-hidden="true"><span class="bar" style="width:59%"></span></span>
       <span class="lbl">Rec TD</span>
       <span class="track" aria-hidden="true"><span class="bar lead" style="width:100%"></span></span>
-      <span class="val lead">17</span>
+      <span class="val right lead">17</span>
     </div>
   </div>
-  <p class="sp-note">Butterfly grid <code>[val | track | label | track | val]</code>; the leading side carries <code>.lead</code>.</p>
+  <p class="sp-note">Exact <code>CompareChart</code> markup (<code>AnswerCard.tsx</code>): both identities in the head with the Totals/Per-game toggle centered between them, then one mirrored-bar row per stat — butterfly grid <code>[val | track | label | track | val]</code>, the leader's side carrying <code>.lead</code>. Games sets context, not a contest — no leader highlight.</p>
 </div>
 
 <!-- ============================================================ -->
