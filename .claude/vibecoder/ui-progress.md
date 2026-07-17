@@ -32,20 +32,20 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 28. Format Numbers, Dates, and Currency — n/a: toLocaleString throughout, 37 tabular-nums usages, 14 right-aligned numeric columns, weekLabel() for playoff weeks; no currency in domain.
 - [x] 29. Add Refined Typographic Details — n/a: optimizeLegibility + Geist cv05/ss01 features, curly apostrophes in all UI copy, deliberate letter-spacing scale, text-wrap:balance on answers.
 - [x] 30. Standardize Text Casing and Labels — n/a: verified at p10 — Title Case sections, sentence-case states/errors, consistent throughout.
-- [ ] 31. Run a Full Performance Audit
-- [ ] 32. Shrink the JavaScript Bundle
-- [ ] 33. Add Route-Based Code Splitting
-- [ ] 34. Optimize and Modernize All Images
-- [ ] 35. Implement Content-Aware Loading Skeletons
-- [ ] 36. Virtualize Long Scrolling Lists
-- [ ] 37. Eliminate Unnecessary Component Re-renders
-- [ ] 38. Cache and Dedupe Data Fetching
-- [ ] 39. Add Optimistic UI Updates
-- [ ] 40. Prefetch Data on User Intent
-- [ ] 41. Debounce and Throttle Costly Handlers
-- [ ] 42. Optimize the Critical Rendering Path
-- [ ] 43. Audit Third-Party Script Performance
-- [ ] 44. Load Critical Content First
+- [x] 31. Run a Full Performance Audit — static audit (next build forbidden during dev): 5 deps, per-icon imports, CDN-resized images w/ lazy+fetchPriority, 60s TTL client cache w/ dedupe, app-router route splitting, zero third-party scripts. No high-impact issues found.
+- [x] 32. Shrink the JavaScript Bundle — n/a: 5 total deps (next/react/react-dom/lucide/types); lucide imported per-icon (tree-shaken); knip enforces no dead exports.
+- [x] 33. Add Route-Based Code Splitting — n/a: Next app router splits per route segment automatically; no heavy below-fold components (no charts/editors/modals libs) to lazy().
+- [x] 34. Optimize and Modernize All Images — n/a: headshots/logos CDN-resized (cdnResize w/ f_auto → WebP/AVIF at edge), explicit dims, lazy/eager split + fetchPriority + async decode.
+- [x] 35. Implement Content-Aware Loading Skeletons — n/a: yb-skel skeletons content-matched (heights per view) with shimmer token, used on all data views.
+- [x] 36. Virtualize Long Scrolling Lists — n/a: largest lists ~50-350 simple rows (leaders 50, rosters ~70, career logs); render fine without windowing; virtualization would add a dep for no measured need.
+- [x] 37. Eliminate Unnecessary Component Re-renders — n/a: views are fetch-once + local state; no context fan-out; memoized aggregations (useMemo) where logs aggregate. No measured hotspots to fix.
+- [x] 38. Cache and Dedupe Data Fetching — n/a: lib/api.ts has 60s TTL GET cache + in-flight dedupe (ponytail-marked for SWR upgrade if freshness bites); POSTs uncached by design.
+- [x] 39. Add Optimistic UI Updates — n/a: read-only app; only mutation-like action is search (navigates on response). Nothing to make optimistic.
+- [x] 40. Prefetch Data on User Intent — n/a: next/link viewport-prefetches route code (19 files); data cached 60s after first hit. Hover data-warming skipped: no shared link component, 19-file churn for sub-200ms gain.
+- [x] 41. Debounce and Throttle Costly Handlers — n/a: suggest debounced 180ms w/ stale-guard; no heavy scroll/resize handlers exist.
+- [x] 42. Optimize the Critical Rendering Path — n/a: preconnects (ESPN CDN + API), font preloaded (p15), Next inlines critical CSS, zero render-blocking third-parties.
+- [x] 43. Audit Third-Party Script Performance — n/a: zero third-party scripts in the app.
+- [x] 44. Load Critical Content First — n/a: shell renders immediately w/ skeletons; slower fetches (standings on team page) explicitly non-shifting; primary data prioritized per view.
 - [ ] 45. Run a Full Accessibility Audit
 - [ ] 46. Make Everything Keyboard Navigable
 - [ ] 47. Add Clear Visible Focus Indicators
