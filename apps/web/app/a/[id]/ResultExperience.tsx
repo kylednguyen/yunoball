@@ -45,7 +45,7 @@ export function ResultExperience({ shareId }: { shareId: string }) {
       {loading && (
         <div aria-live="polite" aria-busy="true">
           <div className="yb-skel" style={{ width: "55%", height: 46, marginBottom: 18 }} />
-          <div className="yb-skel" style={{ height: 420, borderRadius: 14 }} />
+          <div className="yb-skel" style={{ height: 420, borderRadius: "var(--r-xl)" }} />
         </div>
       )}
 

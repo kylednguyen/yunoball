@@ -520,8 +520,8 @@ export default function PlayerPage() {
         {loading && (
           <>
             <div className="yb-skel" style={{ height: 60, width: "min(380px, 100%)", marginBottom: 20 }} />
-            <div className="yb-skel" style={{ height: 110, borderRadius: 14, marginBottom: 20 }} />
-            <div className="yb-skel" style={{ height: 300, borderRadius: 14 }} />
+            <div className="yb-skel" style={{ height: 110, borderRadius: "var(--r-xl)", marginBottom: 20 }} />
+            <div className="yb-skel" style={{ height: 300, borderRadius: "var(--r-xl)" }} />
           </>
         )}
 

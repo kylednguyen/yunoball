@@ -64,6 +64,7 @@
   --r-md: 8px;
   --r-lg: 12px;
   --r-xl: 14px;
+  --r-2xl: 16px; /* hero search family only */
   --r-pill: 999px;
 
   /* Spacing scale — 4px base */
@@ -151,7 +152,7 @@ dd a,
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
 }
 
 /* Tactile press: every button-like control gives a 1px physical push. */
@@ -231,7 +232,7 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.26);
@@ -667,7 +668,7 @@ input.yb-search {
   color: var(--text);
   background: var(--bg-soft);
   border: none;
-  border-radius: 16px;
+  border-radius: var(--r-2xl);
   box-shadow: none;
   outline: none;
   transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
@@ -689,7 +690,7 @@ input.yb-search:focus {
   transform: translateY(-50%);
   font-size: var(--fs-caption);
   color: var(--faint);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 3px 9px;
   background: var(--bg-soft);
   pointer-events: none;
@@ -3405,13 +3406,13 @@ a.yb-game-team:hover {
   padding: 6px;
   list-style: none;
   background: var(--elevated);
-  border-radius: 0 0 16px 16px;
+  border-radius: 0 0 var(--r-2xl) var(--r-2xl);
   box-shadow: var(--shadow-pop);
   max-height: 380px;
   overflow-y: auto;
 }
 .yb-suggest.is-open input.yb-search {
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
   background: var(--elevated);
   box-shadow: none;
 }

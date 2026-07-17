@@ -166,8 +166,8 @@ export default function FantasyPage() {
 
         {loading && !data && (
           <div className="yb-fantasy-grid">
-            <div className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
-            <div className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
+            <div className="yb-skel" style={{ height: 480, borderRadius: "var(--r-xl)" }} />
+            <div className="yb-skel" style={{ height: 480, borderRadius: "var(--r-xl)" }} />
           </div>
         )}
 

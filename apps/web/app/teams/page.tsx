@@ -47,7 +47,7 @@ export default function TeamsPage() {
         {loading && !data && (
           <div className="yb-team-grid">
             {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="yb-skel" style={{ height: 96, borderRadius: 14 }} />
+              <div key={i} className="yb-skel" style={{ height: 96, borderRadius: "var(--r-xl)" }} />
             ))}
           </div>
         )}

@@ -444,8 +444,8 @@ export function GameExperience({ tab }: { tab: "summary" | "box" }) {
       </h1>
       {loading && (
         <>
-          <div className="yb-skel" style={{ height: 150, borderRadius: 14, marginBottom: 20 }} />
-          <div className="yb-skel" style={{ height: 340, borderRadius: 14 }} />
+          <div className="yb-skel" style={{ height: 150, borderRadius: "var(--r-xl)", marginBottom: 20 }} />
+          <div className="yb-skel" style={{ height: 340, borderRadius: "var(--r-xl)" }} />
         </>
       )}
 

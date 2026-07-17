@@ -46,7 +46,7 @@ export default function StandingsPage() {
       {loading && !data && (
         <div className="yb-standings-grid">
           {[0, 1].map((i) => (
-            <div key={i} className="yb-skel" style={{ height: 420, borderRadius: 14 }} />
+            <div key={i} className="yb-skel" style={{ height: 420, borderRadius: "var(--r-xl)" }} />
           ))}
         </div>
       )}
