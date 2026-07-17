@@ -846,6 +846,8 @@ p.yb-answer {
 }
 .yb-result-page-head h1 {
   max-width: 24ch;
+  /* The question is user input — an unbroken string must wrap, not overflow. */
+  overflow-wrap: anywhere;
   margin: 0;
   font-size: clamp(24px, 20px + 1.3vw, 34px);
   font-weight: 750;

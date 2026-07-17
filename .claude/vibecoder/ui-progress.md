@@ -24,14 +24,14 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 20. Untangle Z-Index Stacking Issues — documented 4-tier token scale already; tokenized the one stray (box-subtabs z:5 → calc(--z-sticky)+1); locals 0/1 are intra-component. No portal/clipping issues (overlays render in-flow by design).
 - [x] 21. Establish a Modular Type Scale — added heading tiers --fs-h5..--fs-h1 + --fs-hero + --fs-micro; consolidated 26 raw sizes (9-32px, collapsing 19→18, 21→20, 23→22) into tokens. Kept 2 display-numeral one-offs (score 24, stat hero 46).
 - [x] 22. Add Fluid Responsive Typography — --fs-hero already clamp(); made --fs-h1 clamp(26px,5vw,32px) and --fs-h2 clamp(24px,4.2vw,28px); body tiers stay fixed per readability.
-- [ ] 23. Optimize Reading Line Length
-- [ ] 24. Optimize Web Font Loading
-- [ ] 25. Tune Text Color and Contrast
-- [ ] 26. Fix Semantic Heading Structure
-- [ ] 27. Handle Text Overflow Gracefully
-- [ ] 28. Format Numbers, Dates, and Currency
-- [ ] 29. Add Refined Typographic Details
-- [ ] 30. Standardize Text Casing and Labels
+- [x] 23. Optimize Reading Line Length — n/a: ch-based measures on prose (24/42/44ch), line-height 1.45-1.55 body vs 1-1.1 display; data-dense app has no long-form pages.
+- [x] 24. Optimize Web Font Loading — single self-hosted 68KB variable woff2, font-display swap, system fallback stack; preload added in p15. Subsetting skipped (tooling cost > ~30KB gain).
+- [x] 25. Tune Text Color and Contrast — n/a: verified at p2; white-not-gray ink doctrine, all pairings ≥7:1, deliberate 3-tier ink hierarchy by weight.
+- [x] 26. Fix Semantic Heading Structure — n/a: PageHeader/EntityHero render per-page h1; sections h2→h3, no skips; Result page 3 h1s are mutually-exclusive branches; home has sr-only h1.
+- [x] 27. Handle Text Overflow Gracefully — 11 truncation/wrap rules existed; added overflow-wrap:anywhere to the result h1 (arbitrary user question was the one unprotected input).
+- [x] 28. Format Numbers, Dates, and Currency — n/a: toLocaleString throughout, 37 tabular-nums usages, 14 right-aligned numeric columns, weekLabel() for playoff weeks; no currency in domain.
+- [x] 29. Add Refined Typographic Details — n/a: optimizeLegibility + Geist cv05/ss01 features, curly apostrophes in all UI copy, deliberate letter-spacing scale, text-wrap:balance on answers.
+- [x] 30. Standardize Text Casing and Labels — n/a: verified at p10 — Title Case sections, sentence-case states/errors, consistent throughout.
 - [ ] 31. Run a Full Performance Audit
 - [ ] 32. Shrink the JavaScript Bundle
 - [ ] 33. Add Route-Based Code Splitting
