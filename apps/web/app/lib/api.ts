@@ -239,7 +239,9 @@ export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
 export function friendlyError(message: string | null | undefined): string {
   if (!message) return "Something unexpected went wrong. Please try again.";
   if (/failed to fetch|networkerror|load failed/i.test(message)) {
-    return "Can’t reach the server. Check your connection and try again.";
+    return typeof navigator !== "undefined" && !navigator.onLine
+      ? "You’re offline. Reconnect and try again."
+      : "Can’t reach the server. Check your connection and try again.";
   }
   if (/timed? ?out|abort/i.test(message)) {
     return "That took too long to answer. Try again in a moment.";

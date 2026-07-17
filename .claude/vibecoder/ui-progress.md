@@ -78,16 +78,16 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 74. Improve Password Field UX — n/a: no auth/passwords in the app.
 - [x] 75. Add Input Hints and Affordances — n/a: search placeholder + trending-question examples + recents give live affordances; no required/optional distinction needed (single input).
 - [x] 76. Clarify Form Submission Feedback — n/a + p7: in-flight guard, "Computing answer…" live region, errors preserve the typed question, success navigates to the shareable result.
-- [ ] 77. Build a Toast Notification System
-- [ ] 78. Handle Loading, Empty, Error, Success States
-- [ ] 79. Add Graceful Error Boundaries
-- [ ] 80. Confirm Destructive and Irreversible Actions
-- [ ] 81. Add Undo for Reversible Actions
-- [ ] 82. Handle Offline and Network Errors
-- [ ] 83. Show Progress for Long Operations
-- [ ] 84. Improve Perceived Performance Everywhere
-- [ ] 85. Add Contextual Help and Tooltips
-- [ ] 86. Standardize Status and State Indicators
+- [x] 77. Build a Toast Notification System — n/a: read-only app has no transient mutations to confirm; errors render inline where the user is looking. A toast layer would be dead weight.
+- [x] 78. Handle Loading, Empty, Error, Success States — n/a: verified p8 — all four states on every data view.
+- [x] 79. Add Graceful Error Boundaries — n/a: error.tsx (route errors w/ retry) + global-error.tsx (shell-level, self-contained styles) already in place.
+- [x] 80. Confirm Destructive and Irreversible Actions — n/a: no destructive actions; fantasy lineup remove is instantly reversible by re-adding.
+- [x] 81. Add Undo for Reversible Actions — n/a: same as 80 — nothing destructive enough to warrant an undo layer.
+- [x] 82. Handle Offline and Network Errors — friendlyError() already split network/timeout/429/5xx; added explicit navigator.onLine offline copy. Retry affordances on all error states; fetches have timeouts.
+- [x] 83. Show Progress for Long Operations — n/a: longest op is search (1-3s) with live "Computing answer…"; no uploads/batch ops.
+- [x] 84. Improve Perceived Performance Everywhere — n/a: skeletons, 60s cache, instant press feedback, opacity-dim refresh (not blanking), route-enter fade.
+- [x] 85. Add Contextual Help and Tooltips — n/a: glossary page defines terms; icon buttons labeled; refusal copy teaches phrasing inline. Hover-tooltips skipped on touch-first data tables.
+- [x] 86. Standardize Status and State Indicators — n/a: yb-badge family (success/soft tokens) + W/L letters + FINAL/live labels consistent across scores/standings; color never sole signal.
 - [ ] 87. Clarify Primary Navigation Structure
 - [ ] 88. Add a Command Palette
 - [ ] 89. Show Clear Active Location Indicators
