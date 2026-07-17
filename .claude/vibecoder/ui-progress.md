@@ -14,8 +14,8 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 10. Run a Full Consistency Audit — lint battery green repo-wide (eslint+stylelint enforce tokens/spacing); heading casing consistent by role (Title Case sections, sentence-case states); no one-off colors/radii after p1-p5.
 - [x] 11. Audit Mobile and Tablet Breakpoints — tested 360/1440 on home, standings, box score, result: no overflow, layouts reflow. Fixed redundant "6-Game Split production across 6 games" context copy at desktop.
 - [x] 12. Eliminate Horizontal Scroll on Mobile — n/a: scrollWidth === innerWidth at 360px on all heavy pages (home, standings, box score tables, result); box sub-tabs side-scroll internally by design.
-- [ ] 13. Build a Flexible Responsive Grid
-- [ ] 14. Enlarge Mobile Touch Targets
+- [x] 13. Build a Flexible Responsive Grid — n/a: already auto-fit minmax collections, overflow-safe minmax(0,1fr) columns, fixed px only for avatar gutters; verified no overflow at 360.
+- [x] 14. Enlarge Mobile Touch Targets — in-row text links (leaders/divisions, 23-28px) now 47-52px effective via invisible padding-block/negative-margin on .yb-team-row a; verified live, no layout shift. Controls already ≥44px from prior work.
 - [ ] 15. Eliminate Cumulative Layout Shift
 - [ ] 16. Respect Mobile Safe Area Insets
 - [ ] 17. Build a Smart Sticky Header

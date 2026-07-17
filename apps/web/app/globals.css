@@ -4332,6 +4332,13 @@ a.yb-game-team:hover {
     display: inline-flex;
     align-items: center;
   }
+  /* In-row text links (leaders, divisions): invisible hit-area expansion —
+     vertical padding on an inline element grows the tap box without moving
+     the line box, so dense rows stay dense but taps land. */
+  .yb-team-row a {
+    padding-block: 12px;
+    margin-block: -12px;
+  }
   .yb-search-icon {
     width: 44px;
     height: 44px;
