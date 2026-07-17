@@ -33,8 +33,13 @@ export function Search() {
   const [recents, setRecents] = useState<string[]>([]);
   const [examples, setExamples] = useState<string[]>(FALLBACK_EXAMPLES);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inFlight = useRef(false);
 
   const run = useCallback(async (q: string) => {
+    // One ask at a time — a double Enter would fire a duplicate POST against
+    // the rate-limited search endpoint.
+    if (inFlight.current) return;
+    inFlight.current = true;
     setActive(q);
     setLoading(true);
     setError(null);
@@ -59,6 +64,7 @@ export function Search() {
     } catch (err) {
       setError((err as Error).message);
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }, [router]);

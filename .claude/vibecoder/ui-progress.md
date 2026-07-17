@@ -8,7 +8,7 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 4. Create an Elevation Shadow System — n/a: deliberate flat-on-dark doctrine; elevation = surface-brightness ramp (bg→panel→elevated) + tokenized --shadow-card/--shadow-pop (pop is layered ambient+diffuse). All 28 usages tokenized or accent rings.
 - [x] 5. Standardize the Border Radius Scale — tokenized all raw radii (999→--r-pill, 6/4→--r-sm, 16→new --r-2xl for the hero search family); TSX skeletons 14→var(--r-xl). Kept 2px track micro-radii + 50% avatars.
 - [x] 6. Strengthen Overall Visual Hierarchy — verified live: search=hero, score digits dominate matchup, Performers #1 visually tiered, accent only on CTAs. Built deliberately in prior session tasks; no competing emphasis found.
-- [ ] 7. Polish All Button Interaction States
+- [x] 7. Polish All Button Interaction States — default/hover/active(1px push)/focus-visible/disabled all present (one deliberate gray-pill family). Added: in-flight guard on search (the app's only async action) to prevent double-submit against the rate-limited endpoint.
 - [ ] 8. Design Helpful Empty States
 - [ ] 9. Unify the App's Iconography
 - [ ] 10. Run a Full Consistency Audit
