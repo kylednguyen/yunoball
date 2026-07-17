@@ -11,7 +11,7 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 7. Polish All Button Interaction States — default/hover/active(1px push)/focus-visible/disabled all present (one deliberate gray-pill family). Added: in-flight guard on search (the app's only async action) to prevent double-submit against the rate-limited endpoint.
 - [x] 8. Design Helpful Empty States — n/a: every data view has yb-state empty + error branches (verified per-file); search results distinguish no-results; leaderboards is a redirect, glossary static.
 - [x] 9. Unify the App's Iconography — n/a: 6 icons total, all 24-grid stroke style (2 lucide + 4 matching inline), no emoji, every icon-only control aria-labeled. Deliberately icon-light design.
-- [ ] 10. Run a Full Consistency Audit
+- [x] 10. Run a Full Consistency Audit — lint battery green repo-wide (eslint+stylelint enforce tokens/spacing); heading casing consistent by role (Title Case sections, sentence-case states); no one-off colors/radii after p1-p5.
 - [ ] 11. Audit Mobile and Tablet Breakpoints
 - [ ] 12. Eliminate Horizontal Scroll on Mobile
 - [ ] 13. Build a Flexible Responsive Grid
