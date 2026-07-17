@@ -501,6 +501,19 @@ const CASES: [string, Expect][] = [
   ["derrick henry compared to saquon barkley", // "compared to" routes to compare, never a pairing
     answer({ intent: "compare", playerId: "P_HENRY", player2Id: "P_SAQUON" })],
   ["passer rating with jamarr chase", refusal("named player")],
+  // ---- Workflow-confirmed defect pins (verify run wf_90104bf5) ----
+  ["joe burrow games with 2 passing touchdowns to jamarr chase", // targeting inside a with-half still discloses
+    answer({ intent: "game_count", playerId: "P_BURROW", withPlayerId: "P_CHASE", pairingApprox: true })],
+  ["who threw the most passing touchdowns to travis kelce", // passer board keyed on target: refuse, never subject-flip
+    refusal("pass-target")],
+  ["mahomes most passing yards in a playoff game", // adjective between "a" and "game"
+    answer({ intent: "single_game", playerId: "P_MAHOMES", seasonType: "POST" })],
+  ["derrick henry most rushing yards in a road game",
+    answer({ intent: "single_game", playerId: "P_HENRY", venue: "away" })],
+  ["josh allen most passing yards in a primetime game",
+    answer({ intent: "single_game", playerId: "P_JALLEN", primetime: true })],
+  ["most rushing yards in a super bowl", // all-time single-SB board, never pinned to the latest season
+    answer({ intent: "single_game", stat: "rushing_yards", sbOnly: true, season: null, playerId: null })],
   // ---- Opponent splits ("X vs the <team>": games against one opponent) ----
   ["mahomes vs the bills", // bare form defaults to the position's primary stat
     answer({ intent: "player_total", stat: "passing_yards", playerId: "P_MAHOMES", opponentId: "BUF" })],

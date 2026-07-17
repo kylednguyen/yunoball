@@ -895,6 +895,10 @@ export function parseRules(
   // at least 3 TDs") are unaffected — their second half names no player.
   let withMate: IndexedPlayer | null = null;
   let pairingApprox = false;
+  // Targeting words — shared by the with-branch (a teammate that rode a
+  // targeting word inside a with-clause still needs the disclosure) and the
+  // standalone targeting branch below.
+  const TO_RE = /\s+(?:targeting|thrown to|throwing to|passes to|to|from)\s+/;
   {
     // The teammate rides the LAST with-clause ("games with 3 TDs with Chase"
     // has a threshold "with" first) — everything before it is the subject.
@@ -906,6 +910,16 @@ export function parseRules(
         if (p1 && p1.playerId !== p2.playerId) {
           player = p1;
           withMate = p2;
+          // "games with 2 passing touchdowns TO chase": the teammate sits
+          // behind a targeting word inside the with-half — that's still a
+          // targeting ask, so the approximation must be disclosed.
+          const tail = halves.at(-1)!.split(TO_RE);
+          if (
+            tail.length >= 2 &&
+            playerHit(tail.slice(1).join(" to "), index, opts.teams)?.playerId === p2.playerId
+          ) {
+            pairingApprox = true;
+          }
         } else if (!p1) {
           return {
             refusal:
@@ -922,7 +936,7 @@ export function parseRules(
     // with the approximation disclosed in narration via pairingApprox.
     // ponytail: appeared-together, not target-paired — upgrade to exact
     // splits when pbp lands.
-    const toHalves = qText.split(/\s+(?:targeting|thrown to|throwing to|passes to|to|from)\s+/);
+    const toHalves = qText.split(TO_RE);
     if (!withMate && toHalves.length >= 2) {
       const target = playerHit(toHalves.slice(1).join(" to "), index, opts.teams);
       const subject = playerHit(toHalves[0]!, index, opts.teams);
@@ -930,6 +944,18 @@ export function parseRules(
         player = subject;
         withMate = target;
         pairingApprox = true;
+      } else if (target && !subject && /\b(?:who|most|top|leaders?)\b/.test(toHalves[0]!)) {
+        // "Who threw the most touchdowns TO Kelce" — a passer board keyed on
+        // the target. Without pass-target pairing the played-together
+        // stand-in has no subject to attach to, and letting the fallback
+        // make the TARGET the subject answers a different question with a
+        // confident wrong number. Refuse by name instead.
+        return {
+          refusal:
+            `Ranking passers by their production to ${target.name} needs pass-target ` +
+            `pairing the warehouse doesn't carry. Try a named passer instead — ` +
+            `"Patrick Mahomes touchdowns with ${target.name}".`,
+        };
       }
     }
   }
@@ -1006,10 +1032,17 @@ export function parseRules(
 
   // Single-game superlatives ("most passing yards in a game vs the bills")
   // must not read "game vs" as a game-log ask — hoisted here so the log
-  // branch below can defer to the single_game branch.
+  // branch below can defer to the single_game branch. The "in a … game"
+  // regex allows up to two adjectives ("in a playoff game", "in a road
+  // game") — a literal "in a game" match silently answered career TOTALS
+  // for best-single-game asks. "In a super bowl" is a single game too;
+  // "in THE super bowl" stays a career window (sbOnly).
   const isSingleGame =
-    qText.includes("game") &&
-    (qText.includes("single") || qText.includes("in a game") || qText.includes("one game"));
+    (qText.includes("game") &&
+      (qText.includes("single") ||
+        qText.includes("one game") ||
+        /\bin an? (?:[\w-]+ ){0,2}game\b/.test(qText))) ||
+    /\bin a super ?bowl\b/.test(qText);
 
   // Player game log: "mahomes super bowl game log", "jefferson games against
   // green bay". Generic words like "record" never route a player here.
