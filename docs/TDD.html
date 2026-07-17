@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YunoBall — Technical Design Document</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
+  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
+h3 { font-size: 16px; margin: 28px 0 8px; }
+a { color: #34d399; text-decoration: none; }
+a:hover { text-decoration: underline; }
+p, ul, ol { margin: 12px 0; }
+li { margin: 4px 0; }
+blockquote {
+  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
+  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+}
+blockquote p { margin: 4px 0; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+}
+pre {
+  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:hover td { background: #121417; }
+hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
+.docnav a { margin-right: 12px; }
+.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<nav class="docnav"><a href="PRD.html">PRD</a><span class="here">TDD</span><a href="APP_FLOW.html">APP_FLOW</a><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a></nav>
+<h1>YunoBall — Technical Design Document</h1>
+<blockquote>
+<p>How the system is built and why. Complements <a href="ARCHITECTURE.md">ARCHITECTURE.md</a>
+(the narrative overview) with the full technical reference.
+Companion docs: <a href="PRD.html">PRD.md</a> · <a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA.md</a> · <a href="DEPLOYMENT.md">DEPLOYMENT.md</a></p>
+</blockquote>
+<h2>1. System overview</h2>
+<p>One language, one runtime — TypeScript end to end:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Frontend</td>
+<td>Next.js (App Router)</td>
+<td><code>apps/web</code></td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>Express</td>
+<td><code>apps/server</code></td>
+</tr>
+<tr>
+<td>Wire contract</td>
+<td>Shared type package (types only, no runtime)</td>
+<td><code>packages/types</code></td>
+</tr>
+<tr>
+<td>Database</td>
+<td>Postgres (Supabase-hostable), plain-SQL schema</td>
+<td><code>apps/server/src/db</code></td>
+</tr>
+<tr>
+<td>Cache</td>
+<td>In-process two-tier answer cache + durable Postgres store</td>
+<td>engine + <code>answer_cache</code></td>
+</tr>
+<tr>
+<td>Data</td>
+<td>nflverse release CSVs</td>
+<td><code>apps/server/src/ingest</code></td>
+</tr>
+<tr>
+<td>Tooling</td>
+<td>pnpm workspaces + turbo; Node ≥ 22</td>
+<td>repo root</td>
+</tr>
+</tbody></table>
+<pre><code>web (Next.js) ──/api/*──► server (Express)
+                          routes → controllers (zod) → services → repositories
+                          engine: POST /api/search (deterministic pipeline)
+                          agent:  POST /api/agent  (intent routing)
+                                        │
+                                  Postgres warehouse ◄── ingest CLI (nflverse)
+</code></pre>
+<h2>2. Monorepo layout</h2>
+<pre><code>apps/web            Next.js UI (app router pages, components, lib)
+apps/server/src
+  routes/           path table only (thin)
+  controllers/      request validation (zod) — one file
+  services/         business logic per surface (search, games, standings,
+                    leaderboards, players, teams, fantasy, agent)
+  repositories/     shared SQL helpers
+  engine/           NL → QuerySpec → SQL (spec, parseRules, resolve, build,
+                    executors/, narrate, audit, similarity, pipeline, facts)
+  ingest/           providers/ (nflverse), normalize, upsert, pipelines, cli
+  db/               pool, schema.sql, migrate
+  cli/              fetchEspnIds (ESPN headshot ids)
+  lib/              cross-cutting helpers (espn, rateLimit, …)
+packages/types      the API wire contract (snake_case = JSON format)
+</code></pre>
+<p><strong>Dependency rule:</strong> web and server share <em>types only</em>. Field names are
+snake_case because they are the wire format; <code>packages/types</code> never ships
+runtime code.</p>
+<h2>3. API surface</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>POST /api/search</code></td>
+<td>Ask a question → <code>AnswerResult</code></td>
+</tr>
+<tr>
+<td><code>GET /api/search/examples</code></td>
+<td>Supported example questions</td>
+</tr>
+<tr>
+<td><code>GET /api/search/suggest</code></td>
+<td>Autocomplete (players, teams, questions)</td>
+</tr>
+<tr>
+<td><code>GET /api/search/answer/:shareId</code></td>
+<td>Persisted answer for <code>/a/</code> pages</td>
+</tr>
+<tr>
+<td><code>GET /api/leaderboards</code></td>
+<td>Season leader boards</td>
+</tr>
+<tr>
+<td><code>GET /api/games</code></td>
+<td>Week slate (season/week pickers)</td>
+</tr>
+<tr>
+<td><code>GET /api/games/performers</code></td>
+<td>Weekly top performers (PPR)</td>
+</tr>
+<tr>
+<td><code>GET /api/games/:gameId/boxscore</code></td>
+<td>Full box score</td>
+</tr>
+<tr>
+<td><code>GET /api/standings</code></td>
+<td>Computed standings</td>
+</tr>
+<tr>
+<td><code>GET /api/fantasy/players</code></td>
+<td>Fantasy player pool</td>
+</tr>
+<tr>
+<td><code>GET /api/players/:playerId</code></td>
+<td>Player profile (+ <code>/splits</code>)</td>
+</tr>
+<tr>
+<td><code>GET /api/teams/:teamId</code></td>
+<td>Team profile</td>
+</tr>
+<tr>
+<td><code>POST /api/agent</code></td>
+<td>Assistant (tool routing, demo mode)</td>
+</tr>
+<tr>
+<td><code>GET /health</code> / <code>GET /ready</code></td>
+<td>Liveness / readiness (readiness pings Postgres; Render health-checks <code>/ready</code>)</td>
+</tr>
+</tbody></table>
+<p>Response shapes are exactly the interfaces in <code>packages/types/src/index.ts</code>
+(<code>AnswerResult</code>, <code>LeaderboardsResponse</code>, <code>StandingsResponse</code>, <code>PlayerProfile</code>,
+<code>TeamProfile</code>, <code>BoxScore</code>, …).</p>
+<h2>4. The query engine (the core subsystem)</h2>
+<h3>4.1 Pipeline — deterministic end to end, zero LLM calls</h3>
+<pre><code>question ─► L1 cache (normalized text) ── hit ─► response
+        └─► resolve   fuzzy name → canonical player_id / team_id
+        └─► parse     rule-based → typed QuerySpec
+        └─► L2 cache  (specCacheKey) ── hit ─► response
+        └─► build     allowlisted template + bound params
+        └─► execute   read-only role
+        └─► narrate   templated from spec + rows
+        └─► audit     structured verdict → query_audit
+</code></pre>
+<p>Unparseable questions return an honest refusal — never a guess. Every parsed
+answer is persisted with a deterministic <code>share_id</code> <strong>before</strong> returning, so
+navigation to <code>/a/&lt;id&gt;</code> can&#39;t race the write.</p>
+<h3>4.2 QuerySpec — a typed AST, not SQL</h3>
+<p><code>engine/spec.ts</code> defines a <strong>discriminated union on <code>intent</code></strong> — 21 intents:
+<code>leaders</code>, <code>player_total</code>, <code>player_seasons</code>, <code>single_game</code>, <code>compare</code>,
+<code>scoring</code>, <code>game_count</code>, <code>qualifying_count</code>, <code>player_rank</code>, <code>player_bio</code>,
+<code>game_log</code>, <code>team_game_log</code>, <code>game_result</code>, <code>draft_pick</code>, <code>team_bio</code>,
+<code>team_stat</code>, <code>team_roster</code>, <code>player_streak</code>, <code>team_streak</code>, <code>milestone</code>,
+<code>award</code>.</p>
+<p>Each intent&#39;s node carries <strong>only the fields its executor consumes</strong> — &quot;the
+parser set a field the executor silently ignores&quot; (the engine&#39;s worst
+historical bug class) is a compile error. Cross-intent readers (auditor,
+narration, cache key) use the loosened <code>fields()</code> view; executors must not.</p>
+<p>Shared field bags: <code>SpecBase</code> (stat, season, REG/POST, season/career scope,
+limit), <code>GameWindow</code> (venue, week range, playoff round, Super Bowl only,
+opponent, season range, month, primetime, temperature ceiling), and
+<code>TeamGameFields</code> (team-anchored lookups, exact dates, margin ceilings).</p>
+<h3>4.3 The stat allowlist</h3>
+<p><code>STATS</code> maps ~30 stat keys to <code>StatDef</code>s: an SQL expression over alias <code>s</code>
+(<strong>allowlisted here, never taken from free text</strong>), a narration label, and
+matching vocabulary (substring <code>phrases</code> + whole-word <code>words</code>, ordered most
+specific first so rate stats match before the volume stats they embed).
+Machinery:</p>
+<ul>
+<li><code>ratio</code> stats (completion %, YPC, CPOE…) aggregate numerator/denominator
+separately and divide after summing, with season/career qualifier floors.</li>
+<li><code>formula: &quot;passer_rating&quot;</code> — the one multi-column named formula.</li>
+<li><code>source: &quot;game&quot;</code> — stats that exist only at game grain aggregate the game
+log instead of season rollups; <code>table: &quot;advanced&quot;</code> routes to
+<code>player_game_advanced</code> (EPA/success/CPOE).</li>
+<li>Deliberate vocabulary gaps are correctness features: &quot;pick&quot; (collides with
+draft picks) and &quot;carries&quot; (means attempts, not yards) are excluded — a
+wrong number is worse than an honest refusal.</li>
+</ul>
+<h3>4.4 Safety properties</h3>
+<ul>
+<li><strong>Injection-proof by construction:</strong> SQL text comes only from fixed
+templates + allowlisted stat expressions; all user-derived values are bound
+parameters.</li>
+<li><strong>Least privilege:</strong> engine SQL executes on <code>READONLY_DATABASE_URL</code> when
+set.</li>
+<li><strong>Auditable:</strong> every question logs a structured <code>query_audit</code> row (spec,
+status, warnings, confidence, row count, duration).</li>
+</ul>
+<h3>4.5 Caching &amp; shares</h3>
+<ul>
+<li><strong>L1:</strong> normalized question text → answer (repeat questions are instant).</li>
+<li><strong>L2:</strong> <code>specCacheKey(spec)</code> — different phrasings of the same intent share
+one answer. The key enumerates every executor-relevant field (notably
+<code>playerId</code>, since display names collide).</li>
+<li><strong>Durable:</strong> <code>answer_cache</code> persists every answer under its <code>share_id</code>
+(deterministic SHA-256 prefix), TTL <code>ANSWER_CACHE_TTL_SECONDS</code> (24h
+default), powering permanent <code>/a/</code> share pages.</li>
+</ul>
+<h3>4.6 Entity resolution</h3>
+<p>Fuzzy matcher (a difflib-equivalent port, golden-tested against CPython&#39;s
+behavior) maps mentions to canonical ids — last-name and typo tolerant, with
+confidence scores surfaced in <code>AnswerResult.entities</code>.</p>
+<h2>5. Services layer</h2>
+<p>Non-search surfaces are conventional service modules over the repositories:
+<code>games</code>, <code>standings</code> (computed live from <code>team_game_stats</code>/<code>games</code>),
+<code>leaderboards</code> (defaults to the latest loaded season), <code>players</code> (profile,
+splits), <code>teams</code> (record, ranks, leaders), <code>fantasy</code>, <code>search</code>, <code>agent</code>. The
+assistant routes intents to these same services and reports its tool steps
+(<code>mode: &quot;demo&quot;</code>).</p>
+<h2>6. Ingestion subsystem</h2>
+<ul>
+<li><strong>Providers</strong> (<code>ingest/providers/nflverse</code>): release-file CSV download with
+disk cache and retries. New sources (ESPN, live scoring, injuries…) slot in
+as sibling provider modules without touching the public API.</li>
+<li><strong>Normalize:</strong> stable gsis/schedule ids, relocations folded to current
+franchises, playoff rounds → <code>POST</code>, postponed games kept with NULL scores.</li>
+<li><strong>Validate:</strong> zod row schemas; malformed/orphaned rows are skipped with a
+logged reason and an end-of-run tally (never silently dropped, never fatal).</li>
+<li><strong>Upsert:</strong> batched idempotent upserts in transactions; per-dataset failure
+isolation (one bad dataset doesn&#39;t kill the run).</li>
+<li><strong>CLI:</strong> <code>pnpm ingest:nfl --season 2024 | --all | --years … [--season-type] [--dry-run]</code>; re-runs are safe.</li>
+<li><strong>Pbp distillation:</strong> scoring plays (TD events), per-player-game advanced
+aggregates, TD yards, drive counts — full play-by-play is never stored.</li>
+</ul>
+<h2>7. Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>Env var</th>
+<th>Purpose</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>DATABASE_URL</code></td>
+<td>Postgres (Supabase session pooler in prod, :5432)</td>
+<td>local Docker</td>
+</tr>
+<tr>
+<td><code>READONLY_DATABASE_URL</code></td>
+<td>read-only role for engine SQL</td>
+<td>falls back to <code>DATABASE_URL</code></td>
+</tr>
+<tr>
+<td><code>CORS_ORIGINS</code></td>
+<td>allowed browser origins</td>
+<td>localhost dev ports</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_PER_MINUTE</code></td>
+<td>per-IP cap on <code>/api/search</code> + <code>/api/agent</code> (0 = off)</td>
+<td>30</td>
+</tr>
+<tr>
+<td><code>ANSWER_CACHE_TTL_SECONDS</code></td>
+<td>durable answer TTL</td>
+<td>86400</td>
+</tr>
+<tr>
+<td><code>LOG_LEVEL</code></td>
+<td>pino level</td>
+<td>info</td>
+</tr>
+<tr>
+<td><code>NEXT_PUBLIC_API_URL</code></td>
+<td>(web) API origin</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p>TLS auto-enables for any non-localhost database host; the server binds the
+host-injected <code>$PORT</code>. Rate limiting reads the client from <code>X-Forwarded-For</code>
+behind the proxy.</p>
+<h2>8. Deployment</h2>
+<p>Vercel (web, root <code>apps/web</code>) → Render (API — Docker blueprint in
+<code>render.yaml</code>, persistent Node service; health check <code>/ready</code>) → Supabase
+Postgres (session pooler). Full runbook: <a href="DEPLOYMENT.md">DEPLOYMENT.md</a>.
+The API must be a persistent process (warm pool + in-process cache), not
+serverless.</p>
+<h2>9. Testing</h2>
+<table>
+<thead>
+<tr>
+<th>Suite</th>
+<th>What it proves</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>apps/server/test/engine.test.ts</code></td>
+<td>Parser/builder/narration golden cases; similarity port matches CPython difflib</td>
+</tr>
+<tr>
+<td><code>apps/server/test/ingest.test.ts</code></td>
+<td>Messy-data suite against a scratch Postgres: relocations, duplicate ids, postponed games, orphan stats, dry-run, idempotency, schema drift</td>
+</tr>
+<tr>
+<td><code>apps/web/e2e</code> (Playwright)</td>
+<td>Real browser flows over both servers (reuses running dev servers or boots its own)</td>
+</tr>
+<tr>
+<td>CI (<code>.github/workflows/ci.yml</code>)</td>
+<td>Lint, typecheck, both server suites, plus a real one-season ingest into a service Postgres before e2e</td>
+</tr>
+</tbody></table>
+<p>Run: <code>pnpm --filter @yunoball/server test</code> · <code>pnpm typecheck</code> · <code>pnpm e2e</code>.</p>
+<h2>10. Key decisions</h2>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Structured intent (QuerySpec), never raw SQL</td>
+<td>Fast, cacheable, injection-proof; the spec doubles as the cache key</td>
+</tr>
+<tr>
+<td>Discriminated union per intent</td>
+<td>Parser/executor field drift becomes a compile error</td>
+</tr>
+<tr>
+<td>Numbers from facts, not RAG/LLM</td>
+<td>Accuracy is the product; zero inference cost and latency</td>
+</tr>
+<tr>
+<td>Express + shared types package</td>
+<td>One language; the wire contract can&#39;t drift between web and server</td>
+</tr>
+<tr>
+<td>Plain-SQL schema + idempotent migrate</td>
+<td>~11 tables; <code>IF NOT EXISTS</code> beats a migration framework at this size</td>
+</tr>
+<tr>
+<td>nflverse release CSVs</td>
+<td>Free, open, 1999–present; no scraping/ToS risk</td>
+</tr>
+<tr>
+<td>Provider modules for new data sources</td>
+<td>Public API stays stable as sources are added</td>
+</tr>
+<tr>
+<td>Persistent Node API (not serverless)</td>
+<td>Warm pool, in-process cache, session-pooler compatibility</td>
+</tr>
+</tbody></table>
+
+</main>
+</body>
+</html>
