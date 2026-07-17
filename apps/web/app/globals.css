@@ -538,7 +538,7 @@ body {
 .yb-tick-title {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 .yb-tick-label strong {
   font-size: var(--fs-lead);
@@ -636,7 +636,7 @@ body {
   position: relative;
 }
 .yb-search-feedback {
-  margin: 7px 2px 0;
+  margin: 8px 2px 0;
   color: var(--faint);
   font-size: var(--fs-caption);
 }
@@ -645,13 +645,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 7px;
+  margin-top: 8px;
   color: var(--danger);
   font-size: var(--fs-small);
 }
 .yb-search-inline-error .yb-btn {
   min-height: 32px;
-  padding: 5px 10px;
+  padding: 4px 10px;
 }
 
 /* ---- Search input ---- */
@@ -661,7 +661,7 @@ body {
 input.yb-search {
   width: 100%;
   min-height: 50px;
-  padding: 13px 48px 13px 46px;
+  padding: 12px 48px 13px 46px;
   font-size: 16px;
   font-family: inherit;
   color: var(--text);
@@ -830,7 +830,7 @@ p.yb-answer {
 }
 .yb-result-page-head > div:first-child > span {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   color: var(--accent-ink);
   font-size: var(--fs-small);
   font-weight: 700;
@@ -911,7 +911,7 @@ p.yb-answer {
 }
 .yb-result-leader-card > div > span {
   display: block;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   color: inherit;
   font-size: var(--fs-caption);
   font-weight: 750;
@@ -928,7 +928,7 @@ p.yb-answer {
 .yb-result-leader-card p {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   margin: 6px 0 0;
   color: inherit;
   font-size: var(--fs-small);
@@ -939,7 +939,7 @@ p.yb-answer {
   justify-self: start;
   align-self: end;
   margin-top: 8px;
-  padding: 5px 8px;
+  padding: 4px 8px;
   border-radius: var(--r-sm);
   background: rgba(0, 0, 0, 0.18);
   color: inherit;
@@ -972,7 +972,7 @@ p.yb-answer {
 /* ---- Focused result templates: single-player answers and comparisons ---- */
 .yb-result-page-head.is-focused {
   align-items: end;
-  padding-bottom: 30px;
+  padding-bottom: 32px;
 }
 .yb-result-page-head.is-focused h1 {
   max-width: 24ch;
@@ -992,7 +992,7 @@ p.yb-answer {
 }
 .yb-single-response {
   max-width: 42ch;
-  margin: 7px 0 0;
+  margin: 8px 0 0;
   font-size: clamp(23px, 20px + 0.7vw, 30px);
   font-weight: 650;
   letter-spacing: -0.035em;
@@ -1179,7 +1179,7 @@ p.yb-answer {
 .yb-comparison-notice,
 .yb-comparison-summary {
   margin: var(--s-3) 0 0;
-  padding: 13px 15px;
+  padding: 12px 15px;
   border-radius: var(--r-lg);
   background: var(--bg-soft);
   color: var(--muted);
@@ -1263,7 +1263,7 @@ p.yb-answer {
   width: 42%;
 }
 .yb-comparison-table tbody th {
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
   font-size: inherit;
@@ -1283,8 +1283,8 @@ p.yb-answer {
 .yb-comparison-game-logs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 22px;
+  gap: 16px;
+  margin-top: 24px;
 }
 .yb-comparison-game-logs h3 {
   margin: 0 0 8px;
@@ -1765,7 +1765,7 @@ table.yb-table th.num .yb-th-sort {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   margin: 20px 0 0;
-  padding-top: 18px;
+  padding-top: 16px;
   border-top: 0;
 }
 .yb-player-profile > .yb-info-grid {
@@ -1828,7 +1828,7 @@ table.yb-table th.num .yb-th-sort {
   font-variant-numeric: tabular-nums;
 }
 .yb-stat-summary-meta {
-  margin-top: 5px;
+  margin-top: 4px;
   color: inherit;
   opacity: 1;
   font-size: var(--fs-small);
@@ -2046,7 +2046,7 @@ table.yb-table th.num .yb-th-sort {
   text-align: left;
 }
 .yb-div-standings td {
-  padding: 11px 10px;
+  padding: 12px 10px;
   border-bottom: 1px solid var(--border);
 }
 .yb-div-standings tr:last-child td {
@@ -2063,7 +2063,7 @@ table.yb-table th.num .yb-th-sort {
 .yb-div-standings .tm {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   color: var(--text);
   font-weight: 600;
 }
@@ -2219,7 +2219,7 @@ a.yb-game-stretch::after {
   font-weight: 700;
 }
 .yb-game-result-row td {
-  padding: 9px 10px;
+  padding: 8px 10px;
 }
 .yb-game-result-row td:first-child {
   border-radius: var(--r-md) 0 0 var(--r-md);
@@ -2283,7 +2283,7 @@ a.yb-game-stretch::after {
    Single-tone pills: only the active item carries a background. */
 .yb-week-current {
   border-radius: var(--r-pill);
-  padding: 7px 16px;
+  padding: 8px 16px;
   background: var(--bg-soft);
   color: var(--text);
   font-size: var(--fs-body);
@@ -2307,7 +2307,7 @@ a.yb-game-stretch::after {
   font-weight: 700;
 }
 .yb-score-performers {
-  margin-top: 30px;
+  margin-top: 32px;
 }
 
 /* ---- Standings ---- */
@@ -2367,7 +2367,7 @@ a.yb-game-stretch::after {
   letter-spacing: -0.01em;
 }
 .yb-div-table td {
-  padding: 9px 8px;
+  padding: 8px 8px;
   border-bottom: 1px solid var(--border);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -2435,14 +2435,14 @@ a.yb-game-stretch::after {
   grid-template-columns: 24px 30px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-radius: var(--r-md);
   background: var(--accent-soft);
 }
 .yb-seed-block:not(.is-wc) + .yb-seed-block.is-wc {
   margin-top: 10px;
   border-top: 1px dashed var(--border);
-  padding-top: 13px;
+  padding-top: 12px;
 }
 .yb-seed-block .sd {
   text-align: center;
@@ -2510,7 +2510,7 @@ a.yb-game-stretch::after {
   grid-template-areas: "cat nm tm val";
   align-items: center;
   gap: 12px;
-  padding: 11px 8px;
+  padding: 12px 8px;
   border-bottom: 1px solid var(--border);
   border-radius: var(--r-sm);
   color: var(--text);
@@ -2687,7 +2687,7 @@ input.yb-input {
   color: var(--text);
   border: none;
   border-radius: var(--r-md);
-  padding: 9px 13px;
+  padding: 8px 13px;
   font-size: var(--fs-ui);
   font-family: inherit;
   outline: none;
@@ -2928,7 +2928,7 @@ input.yb-input:focus {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   border-left: 0;
   background: var(--accent);
   border-radius: var(--r-md);
@@ -3189,7 +3189,7 @@ table.yb-mini-table {
 .yb-trend-groups {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-  gap: 18px 24px;
+  gap: 16px 24px;
 }
 .yb-trend-cat {
   display: block;
@@ -3357,7 +3357,7 @@ table.yb-table a:hover {
 }
 .yb-conference-section {
   scroll-margin-top: 24px;
-  margin-top: 26px;
+  margin-top: 24px;
 }
 .yb-conference-section:first-of-type {
   margin-top: 0;
@@ -3873,7 +3873,7 @@ a.yb-game-team:hover {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 16px 20px;
   border-radius: 0;
   background: var(--accent);
   color: var(--accent-contrast);
@@ -4131,7 +4131,7 @@ a.yb-game-team:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 0;
+  padding: 8px 0;
 }
 .yb-game-performer + .yb-game-performer {
   border-top: 1px solid var(--border);
@@ -4163,7 +4163,7 @@ a.yb-game-team:hover {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 9px 0;
+  padding: 8px 0;
 }
 .yb-scoring-row + .yb-scoring-row {
   border-top: 1px solid var(--border);
@@ -4199,7 +4199,7 @@ a.yb-game-team:hover {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr);
   gap: 12px;
-  padding: 7px 0;
+  padding: 8px 0;
 }
 .yb-game-info dl > div + div {
   border-top: 1px solid var(--border);
@@ -4227,7 +4227,7 @@ a.yb-game-team:hover {
   margin: 0;
 }
 .yb-box-team + .yb-box-team {
-  margin-top: 18px;
+  margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
 }
@@ -4241,7 +4241,7 @@ a.yb-game-team:hover {
 }
 .yb-box-table th,
 .yb-box-table td {
-  padding: 7px 12px;
+  padding: 8px 12px;
 }
 .yb-box-table tr.lead td {
   background: var(--bg-soft);
@@ -4350,7 +4350,7 @@ a.yb-game-team:hover {
     padding-top: 24px;
   }
   .yb-entity-hero {
-    padding: 18px;
+    padding: 16px;
   }
   .yb-entity-hero-main {
     grid-template-columns: auto minmax(0, 1fr);
@@ -4358,7 +4358,7 @@ a.yb-game-team:hover {
   }
   .yb-player-profile {
     min-height: 0;
-    padding: 18px;
+    padding: 16px;
   }
   .yb-player-profile .yb-entity-hero-media .yb-avatar.portrait {
     width: min(240px, 66vw) !important;
@@ -4398,7 +4398,7 @@ a.yb-game-team:hover {
     display: none;
   }
   input.yb-search {
-    padding-right: 22px;
+    padding-right: 24px;
   }
   /* iOS Safari zooms the page when a focused input's font is under 16px.
      Hold every text input at 16px on small screens. (input.yb-search is
@@ -4434,7 +4434,7 @@ a.yb-game-team:hover {
   }
   .yb-single-player-strip {
     grid-template-columns: 64px minmax(0, 1fr);
-    padding: 13px 14px;
+    padding: 12px 14px;
   }
   .yb-single-player-strip > .yb-avatar {
     width: 64px !important;
@@ -4460,7 +4460,7 @@ a.yb-game-team:hover {
   }
   .yb-single-stat-table td {
     display: grid;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
     padding: 12px;
     font-size: 19px;
@@ -4503,7 +4503,7 @@ a.yb-game-team:hover {
   .yb-comparison-identity.is-b {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
-    gap: 9px;
+    gap: 8px;
     padding: 16px 24px 18px;
     text-align: center;
   }
@@ -4544,7 +4544,7 @@ a.yb-game-team:hover {
   .yb-comparison-table table th,
   .yb-comparison-table table td,
   .yb-comparison-table tbody th {
-    padding: 9px 6px;
+    padding: 8px 6px;
     font-size: 12px;
     overflow-wrap: anywhere;
   }
@@ -4559,7 +4559,7 @@ a.yb-game-team:hover {
     width: 46%;
   }
   .yb-comparison-modes button {
-    padding-inline: 9px;
+    padding-inline: 8px;
     font-size: 12px;
   }
   .yb-comparison-actions {
