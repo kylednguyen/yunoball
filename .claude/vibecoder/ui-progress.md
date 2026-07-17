@@ -22,8 +22,8 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 18. Balance Content Density and Whitespace — n/a: StatMuse-dense doctrine is deliberate (design-language.md); hierarchy verified p6; tables dense, forms/heroes breathe.
 - [x] 19. Use Container Queries for Components — n/a: no component renders in multiple width contexts (no sidebar/main reuse); YAGNI.
 - [x] 20. Untangle Z-Index Stacking Issues — documented 4-tier token scale already; tokenized the one stray (box-subtabs z:5 → calc(--z-sticky)+1); locals 0/1 are intra-component. No portal/clipping issues (overlays render in-flow by design).
-- [ ] 21. Establish a Modular Type Scale
-- [ ] 22. Add Fluid Responsive Typography
+- [x] 21. Establish a Modular Type Scale — added heading tiers --fs-h5..--fs-h1 + --fs-hero + --fs-micro; consolidated 26 raw sizes (9-32px, collapsing 19→18, 21→20, 23→22) into tokens. Kept 2 display-numeral one-offs (score 24, stat hero 46).
+- [x] 22. Add Fluid Responsive Typography — --fs-hero already clamp(); made --fs-h1 clamp(26px,5vw,32px) and --fs-h2 clamp(24px,4.2vw,28px); body tiers stay fixed per readability.
 - [ ] 23. Optimize Reading Line Length
 - [ ] 24. Optimize Web Font Loading
 - [ ] 25. Tune Text Color and Contrast
