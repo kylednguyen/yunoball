@@ -13,9 +13,10 @@
  * class — is a compile error, not a wrong number.
  */
 
-export type Intent =
+type Intent =
   | "leaders" | "player_total" | "player_seasons" | "single_game" | "compare"
-  | "scoring" | "game_count" | "qualifying_count" | "player_rank" | "player_bio"
+  | "scoring" | "scoring_board" | "game_count" | "game_count_leaders" | "qualifying_count"
+  | "player_rank" | "player_bio"
   | "game_log" | "team_game_log" | "game_result" | "draft_pick"
   | "team_bio" | "team_stat" | "team_roster"
   | "player_streak" | "team_streak" | "milestone" | "award";
@@ -179,6 +180,26 @@ export const STATS: Record<string, StatDef> = {
     table: "advanced",
     ratio: { num: "cpoe_sum", den: "cpoe_n", floorSeason: 150, floorCareer: 1000 },
   },
+  // Declared BEFORE passing interceptions so the defensive phrasings win the
+  // first-match scan; bare "interceptions" still falls through to passing
+  // (thrown), preserving the QB-stat default. "Led the league in
+  // interceptions" is the football vernacular for a defender's picks.
+  def_interceptions: {
+    expr: "s.def_interceptions",
+    label: "interceptions caught",
+    phrases: [
+      "interceptions caught",
+      "interception caught",
+      "caught the most interception",
+      "defensive interception",
+      "picks caught",
+      "interception return",
+      "led the league in interception",
+      "most interceptions by a",
+      "interceptions on defense",
+    ],
+    words: [],
+  },
   interceptions: {
     expr: "s.interceptions",
     label: "interceptions",
@@ -210,11 +231,23 @@ export const STATS: Record<string, StatDef> = {
     phrases: ["passing yard", "passing yds", "pass yds", "pass yard", "threw for", "passing"],
     words: [],
   },
+  // Declared before rushing_yards so "rushing attempts" doesn't fall through
+  // to rushing_yards's bare "rushing" phrase — same rate-stats-go-first
+  // principle as yards_per_carry above. Game-sourced only: carries has no
+  // season-rollup column (player_season_stats has no attempts/carries count).
+  carries: {
+    expr: "s.carries",
+    label: "rushing attempts",
+    phrases: ["rushing attempts", "rush attempts"],
+    words: ["carries"],
+    source: "game",
+  },
   rushing_yards: {
     expr: "s.rushing_yards",
     label: "rushing yards",
-    // "carries" is deliberately absent — it means attempts, not yards, and a
-    // wrong number is worse than an honest "can't answer".
+    // "carries" is deliberately absent — it means attempts (its own stat
+    // above), not yards, and a wrong number is worse than an honest
+    // "can't answer".
     phrases: ["rushing yard", "rushing yds", "rush yds", "rush yard", "rushed for", "rushing"],
     words: ["rush", "rushes"],
   },
@@ -303,7 +336,7 @@ export const STATS: Record<string, StatDef> = {
 // --------------------------------------------------------------------------
 
 /** Fields every node carries. */
-export interface SpecBase {
+interface SpecBase {
   stat: keyof typeof STATS & string;
   season?: number | null;
   seasonType: string; // REG | POST
@@ -322,8 +355,11 @@ export interface GameWindow {
   sbOnly?: boolean;
   /** Playoff round (weeks ranked within each postseason: SB = final week). */
   round?: "WC" | "DIV" | "CON" | "SB" | null;
-  /** Restrict to games against one opponent ("Jefferson vs Green Bay games"). */
+  /** Restrict to games against one opponent ("Jefferson vs Green Bay games",
+   * "Mahomes passer rating vs the Bills"). */
   opponentId?: string | null;
+  /** Opponent display name for narration (game logs carry team2Name instead). */
+  opponentName?: string | null;
   /** Inclusive season range ("from 2021 to 2023"); overrides `season`. */
   seasonMin?: number | null;
   seasonMax?: number | null;
@@ -333,10 +369,34 @@ export interface GameWindow {
   primetime?: boolean;
   /** Kickoff temperature ceiling, °F ("in freezing weather" -> 32). */
   tempMax?: number | null;
+  /** Filter by the STAT OWNER's result in that game: "L" = games the team
+   * lost ("in games his team lost"), "W" = games it won ("...and still
+   * won"). Consumed by gamePreds() so every game-grain executor honors it. */
+  gameResult?: "W" | "L" | null;
+  /** Final margin of 8 points or fewer ("in one-score games/losses"). */
+  oneScore?: boolean;
+  /** The OPPONENT finished that season with a winning record (win pct > .5,
+   * a tie counting as half a win) — computed from the opponent's FINAL
+   * regular-season record, not its record as of that game ("against teams
+   * with winning records"); the as-of simplification is disclosed in
+   * narration. */
+  oppWinningRecord?: boolean;
+  /** Restrict to games a TEAMMATE also appeared in ("Josh Allen passer
+   * rating with Stefon Diggs"): same game, same team, both recorded a stat
+   * row. Targeting stats (QB→receiver pairing) are NOT this — the warehouse
+   * has no pass-target data; the parser refuses those by name. */
+  withPlayerId?: string | null;
+  /** Teammate display name for narration. */
+  withPlayer?: string | null;
+  /** The with-window is standing in for a targeting question ("Burrow
+   * passing yards TO Chase"): true passer→receiver pairing needs
+   * play-by-play the warehouse doesn't carry, so the engine answers the
+   * played-together split and narration discloses the approximation. */
+  pairingApprox?: boolean;
 }
 
 /** Team-anchored game lookups (team_game_log / game_result) share these. */
-export interface TeamGameFields {
+interface TeamGameFields {
   teamName?: string | null;
   team2Id?: string | null;
   team2Name?: string | null;
@@ -363,6 +423,53 @@ export interface LeadersSpec extends SpecBase, GameWindow {
   /** Restrict the board to one team's players ("who led the Chiefs in..."). */
   teamId?: string | null;
   teamName?: string | null;
+  /** Sum each player's own first N games (career or playoff, game-date
+   * order), ranked — "who scored the most touchdowns through his first 50
+   * career games". Same game-log-window idiom as PlayerTotalSpec.firstN. */
+  firstN?: number | null;
+  /** The question said "starts", not "games" — there's no starts data on
+   * file, so this still counts games; narration adds a caveat. */
+  startsPhrase?: boolean;
+  /** Season-rollup sum before the player's Nth season — season <
+   * rookie_season + (beforeSeasonN - 1); players with no rookie_season on
+   * file are excluded. Same field/semantics as
+   * GameCountLeadersSpec.beforeSeasonN. */
+  beforeSeasonN?: number | null;
+  /** Game-log sum from the player's Nth birthday on ("after turning 30");
+   * always aggregates the game log (age varies within a season, so the
+   * season rollup can't express it). Same field/semantics as
+   * GameCountLeadersSpec.minAgeYears. firstN/beforeSeasonN/minAgeYears
+   * combine as AND filters (executor + narration both honor every one set). */
+  minAgeYears?: number | null;
+  /** Rank (player, opponent) pairs instead of players: "most X against a
+   * single/specific opponent" — the best single-opponent total, not a
+   * career sum. */
+  perOpponent?: boolean;
+  /** "most career X without a Y-yard/catch season" — exclude any player
+   * whose best single SEASON (of the same stat being ranked) ever reached
+   * this value. player_season_stats-only: HAVING MAX(season value) <
+   * withoutSeasonAtLeast — every stat this field is set for is a plain
+   * season-rollup column (rushing/receiving yards, receptions), never a
+   * ratio/formula/game-only stat. */
+  withoutSeasonAtLeast?: number | null;
+  /** "without ever leading the league/NFL (in X)" — exclude any player who
+   * was ever that season's outright-or-tied leader in the ranked stat
+   * (ties: anyone matching the season max counts as having led).
+   * player_season_stats-only, same stat-shape restriction as
+   * withoutSeasonAtLeast above. */
+  withoutLeagueLead?: boolean;
+  /** A second stat's CAREER sum must clear this bound, alongside the
+   * primary ranked stat — "most rushing attempts without scoring a
+   * touchdown" (crossStat rushing_tds, op "=", value 0), "most rushing
+   * touchdowns with fewer than 1,000 career rushing yards" (crossStat
+   * rushing_yards, op "<", value 1000). Both stats' columns live on the
+   * same source table as the primary stat (game log when the primary is
+   * game-sourced, season rollup otherwise), so one query sums both — see
+   * the executor for why this is NOT generalized to advanced/ratio
+   * primary stats (their game-grain table doesn't carry every column). */
+  crossStat?: string | null;
+  crossOp?: "=" | "<" | null;
+  crossValue?: number | null;
 }
 
 export interface PlayerTotalSpec extends SpecBase, GameWindow {
@@ -385,7 +492,7 @@ export interface PlayerSeasonsSpec extends SpecBase {
   position?: string | null;
 }
 
-export interface SingleGameSpec extends SpecBase {
+export interface SingleGameSpec extends SpecBase, GameWindow {
   intent: "single_game";
   player?: string | null;
   playerId?: string | null;
@@ -414,12 +521,48 @@ export interface ScoringSpec extends SpecBase {
   edge?: "first" | "last" | null;
 }
 
+/** Touchdown-count leaderboard over the scoring_plays log, filtered by TD
+ * distance and/or how the TD was scored: "most TDs of 50 or more yards",
+ * "most rushing TDs from exactly 1 yard out", "most defensive touchdowns".
+ * GameWindow rides along so venue/week/month/playoff splits are consumed,
+ * never silently dropped (the executor joins games either way). */
+export interface ScoringBoardSpec extends SpecBase, GameWindow {
+  intent: "scoring_board";
+  /** Inclusive TD-length bounds: "of 50+ yards" -> min 50; "inside the 5"
+   * -> max 5; "exactly 1 yard out" -> min = max = 1. */
+  yardsMin?: number | null;
+  yardsMax?: number | null;
+  /** scoring_plays.td_kind filter. "pass" means the receiver scored (a
+   * receiving TD); "defense" spans int_return + fumble_return — kick/punt
+   * returns are special-teams scores, never defensive. */
+  tdKind?: "rush" | "pass" | "defense" | "int_return" | "fumble_return" | null;
+}
+
 export interface GameCountSpec extends SpecBase, GameWindow {
   intent: "game_count";
   playerId: string;
   player?: string | null;
   /** Qualifying-games threshold ("games over 300 passing yards"). */
   threshold: { op: ">" | ">=" | "<"; value: number };
+}
+
+/** Leaderboard of qualifying-game counts per player ("who has the most games
+ * with over 300 passing yards"): count each player's games clearing the bar,
+ * rank by count. */
+export interface GameCountLeadersSpec extends SpecBase, GameWindow {
+  intent: "game_count_leaders";
+  threshold: { op: ">" | ">=" | "<"; value: number };
+  position?: string | null;
+  /** Only games after the player's Nth birthday ("after turning 30"). */
+  minAgeYears?: number | null;
+  /** Only games before the player's Nth season ("before their fifth season"). */
+  beforeSeasonN?: number | null;
+  /** A second same-game stat threshold, ANDed with the primary stat/
+   * threshold: "games with both a rushing and receiving touchdown". Every
+   * benchmark compound case names exactly two stats, so one extra pair
+   * (not a general list) covers it. */
+  andStat?: string | null;
+  andThreshold?: { op: ">" | ">=" | "<"; value: number } | null;
 }
 
 export interface QualifyingCountSpec extends SpecBase {
@@ -537,7 +680,8 @@ export interface TeamRosterSpec extends SpecBase {
 
 export type QuerySpec =
   | LeadersSpec | PlayerTotalSpec | PlayerSeasonsSpec | SingleGameSpec
-  | CompareSpec | ScoringSpec | GameCountSpec | QualifyingCountSpec
+  | CompareSpec | ScoringSpec | ScoringBoardSpec | GameCountSpec | GameCountLeadersSpec
+  | QualifyingCountSpec
   | PlayerRankSpec | PlayerBioSpec | GameLogSpec | TeamGameLogSpec
   | GameResultSpec | DraftPickSpec | TeamBioSpec | TeamStatSpec | TeamRosterSpec
   | PlayerStreakSpec | TeamStreakSpec | MilestoneSpec | AwardSpec;
@@ -550,7 +694,7 @@ export type QuerySpec =
  * legitimately read across the union — the auditor, the narration templates,
  * the cache key — use this view via fields(). Executors must NOT: they take
  * their exact node type, which is where the type enforcement lives. */
-export interface SpecFields extends GameWindow, TeamGameFields {
+interface SpecFields extends GameWindow, TeamGameFields {
   player?: string | null;
   playerId?: string | null;
   player2?: string | null;
@@ -575,6 +719,20 @@ export interface SpecFields extends GameWindow, TeamGameFields {
   kind?: "win" | "loss" | null;
   target?: number | null;
   award?: "MVP" | "SBMVP" | null;
+  minAgeYears?: number | null;
+  beforeSeasonN?: number | null;
+  startsPhrase?: boolean;
+  yardsMin?: number | null;
+  yardsMax?: number | null;
+  tdKind?: "rush" | "pass" | "defense" | "int_return" | "fumble_return" | null;
+  perOpponent?: boolean;
+  andStat?: string | null;
+  andThreshold?: { op: ">" | ">=" | "<"; value: number } | null;
+  withoutSeasonAtLeast?: number | null;
+  withoutLeagueLead?: boolean;
+  crossStat?: string | null;
+  crossOp?: "=" | "<" | null;
+  crossValue?: number | null;
 }
 
 export type FieldedSpec = SpecBase & { intent: Intent } & SpecFields;
@@ -582,10 +740,6 @@ export type FieldedSpec = SpecBase & { intent: Intent } & SpecFields;
 /** Reader view over any node — same object, loosened type. */
 export function fields(spec: QuerySpec): FieldedSpec {
   return spec as unknown as FieldedSpec;
-}
-
-export function specExpr(spec: { stat: string }): string {
-  return STATS[spec.stat]!.expr;
 }
 
 export function specLabel(spec: { stat: string }): string {
@@ -606,5 +760,10 @@ export function specCacheKey(spec: QuerySpec): string {
     s.bioField, s.perGame, s.seasonMin, s.seasonMax,
     s.month, s.teamField, s.metric, s.primetime, s.tempMax,
     s.median, s.kind, s.target, s.award, s.longest, s.perDrive,
+    s.minAgeYears, s.beforeSeasonN, s.startsPhrase,
+    s.yardsMin, s.yardsMax, s.tdKind,
+    s.gameResult, s.oneScore, s.oppWinningRecord, s.perOpponent,
+    s.andStat, s.andThreshold && `${s.andThreshold.op}${s.andThreshold.value}`,
+    s.withoutSeasonAtLeast, s.withoutLeagueLead, s.crossStat, s.crossOp, s.crossValue,
   ].map(String).join("|");
 }

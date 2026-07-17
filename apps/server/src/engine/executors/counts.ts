@@ -1,12 +1,14 @@
 /** Threshold-count executors.
  *
- *   GAME_COUNT       — one player's qualifying games ("300-yard games")
- *   QUALIFYING_COUNT — how many players cleared a season/career threshold
+ *   GAME_COUNT         — one player's qualifying games ("300-yard games")
+ *   GAME_COUNT_LEADERS — most qualifying games per player, ranked by count
+ *   QUALIFYING_COUNT   — how many players cleared a season/career threshold
  */
 
-import type { GameCountSpec, QualifyingCountSpec } from "../spec.js";
+import type { GameCountLeadersSpec, GameCountSpec, QualifyingCountSpec } from "../spec.js";
 import {
-  gamePreds, Params, passerRatingExpr, ratioFloor, ratioRowExpr, statDef, sumValueExpr,
+  beforeSeasonPred, gamePreds, minAgePred, Params, passerRatingExpr, perGameValueExpr, ratioFloor,
+  ratioRowExpr, statDef, sumValueExpr,
 } from "./shared.js";
 
 export function gameCountSql(spec: GameCountSpec, p: Params): string {
@@ -15,10 +17,7 @@ export function gameCountSql(spec: GameCountSpec, p: Params): string {
   // Ratio thresholds must compare the per-game ratio (yards per carry), not the
   // raw numerator (rushing yards) — otherwise "games over 5 yards per carry"
   // counts every game with >5 rushing yards.
-  const valueExpr =
-    def.formula === "passer_rating"
-      ? passerRatingExpr(false)
-      : def.ratio ? ratioRowExpr(def) : def.expr;
+  const valueExpr = perGameValueExpr(def);
   const opSql = { ">": ">", ">=": ">=", "<": "<" }[spec.threshold.op];
   const where = [
     `s.player_id = ${p.add(spec.playerId)}`,
@@ -35,6 +34,40 @@ export function gameCountSql(spec: GameCountSpec, p: Params): string {
     "JOIN players p ON p.player_id = s.player_id " +
     `WHERE ${where.join(" AND ")} ` +
     `ORDER BY value DESC, g.season DESC, g.week LIMIT ${p.add(spec.limit)}`
+  );
+}
+
+/** "Who has the most games with over 300 passing yards?" — GROUP BY player,
+ * count the games clearing the bar, rank by count. Same qualifying predicate
+ * as gameCountSql; the players join enables position, age ("after turning
+ * 30") and experience ("before their fifth season") filters. */
+export function gameCountLeadersSql(spec: GameCountLeadersSpec, p: Params): string {
+  const def = statDef(spec);
+  const valueExpr = perGameValueExpr(def);
+  const opSql = { ">": ">", ">=": ">=", "<": "<" }[spec.threshold.op];
+  const where = [
+    ...gamePreds(spec, p),
+    `${valueExpr} ${opSql} ${p.add(spec.threshold.value)}`,
+  ];
+  if (spec.position) where.push(`p.position = ${p.add(spec.position)}`);
+  if (spec.minAgeYears != null) where.push(minAgePred(spec.minAgeYears, p));
+  if (spec.beforeSeasonN != null) where.push(beforeSeasonPred(spec.beforeSeasonN, p));
+  // A second same-game stat threshold, ANDed in: "games with both a rushing
+  // and receiving touchdown" — the qualifying game must clear BOTH bars.
+  if (spec.andStat && spec.andThreshold) {
+    const def2 = statDef({ stat: spec.andStat });
+    const valueExpr2 = perGameValueExpr(def2);
+    const opSql2 = { ">": ">", ">=": ">=", "<": "<" }[spec.andThreshold.op];
+    where.push(`${valueExpr2} ${opSql2} ${p.add(spec.andThreshold.value)}`);
+  }
+  return (
+    "SELECT p.player_id, p.full_name, COUNT(*) AS value " +
+    "FROM player_game_stats s " +
+    "JOIN games g ON g.game_id = s.game_id " +
+    "JOIN players p ON p.player_id = s.player_id " +
+    `WHERE ${where.join(" AND ")} ` +
+    "GROUP BY p.player_id, p.full_name " +
+    `ORDER BY value DESC, p.full_name LIMIT ${p.add(spec.limit)}`
   );
 }
 

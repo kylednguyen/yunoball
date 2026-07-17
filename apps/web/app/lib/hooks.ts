@@ -4,18 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   fetchBoxScore,
-  fetchGames,
   fetchLeaderboards,
   fetchPlayer,
   fetchPlayerSplits,
   fetchStandings,
   fetchTeam,
   type BoxScore,
-  type GamesResponse,
-  type LeaderboardsResponse,
   type PlayerProfile,
   type PlayerSplits,
-  type StandingsResponse,
   type TeamProfile,
 } from "./api";
 
@@ -27,7 +23,7 @@ export interface ApiState<T> {
 
 /** One fetch-on-deps-change effect for every data-driven page: loading flag,
  *  error capture and stale-response protection in a single place. */
-export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[]): ApiState<T> {
+function useApi<T>(fetcher: () => Promise<T>, deps: unknown[]): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({ data: null, error: null, loading: true });
 
   useEffect(() => {
@@ -49,9 +45,6 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[]): ApiState<
 }
 
 export const useStandings = (season?: number) => useApi(() => fetchStandings(season), [season]);
-
-export const useGames = (season?: number, week?: number) =>
-  useApi(() => fetchGames(season, week), [season, week]);
 
 export const useLeaderboards = (
   season?: number,
@@ -79,7 +72,6 @@ export const usePlayerSplits = (
     [playerId, season, enabled],
   );
 
-export type { GamesResponse, LeaderboardsResponse, StandingsResponse };
 
 /** Season kept in the URL (?season=2025) so team/player/leader views are
  *  linkable and survive refresh. Same window.location idiom as search.tsx. */

@@ -9,7 +9,7 @@
 import type { QuerySpec } from "./spec.js";
 import { bioSql } from "./executors/bio.js";
 import { compareSql } from "./executors/compare.js";
-import { gameCountSql, qualifyingCountSql } from "./executors/counts.js";
+import { gameCountLeadersSql, gameCountSql, qualifyingCountSql } from "./executors/counts.js";
 import { draftSql } from "./executors/draft.js";
 import { gameLogSql } from "./executors/gameLog.js";
 import { gameRowsSql } from "./executors/games.js";
@@ -17,7 +17,7 @@ import { leadersSql } from "./executors/leaders.js";
 import { playerSeasonsSql } from "./executors/playerSeasons.js";
 import { playerTotalSql } from "./executors/playerTotal.js";
 import { rankSql } from "./executors/rank.js";
-import { scoringSql } from "./executors/scoring.js";
+import { scoringBoardSql, scoringSql } from "./executors/scoring.js";
 import { Params } from "./executors/shared.js";
 import { singleGameSql } from "./executors/singleGame.js";
 import { teamBioSql } from "./executors/teamBio.js";
@@ -28,7 +28,7 @@ import {
   milestoneSql, playerStreakSql, teamStreakSql,
 } from "./executors/streaksMilestones.js";
 
-export { narrate, roman, sbName } from "./narrate.js";
+export { narrate, sbName } from "./narrate.js";
 
 export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
   const p = new Params();
@@ -45,7 +45,9 @@ export function buildSql(spec: QuerySpec): { sql: string; params: unknown[] } {
     case "draft_pick": return done(draftSql(spec, p));
     case "compare": return done(compareSql(spec, p));
     case "scoring": return done(scoringSql(spec, p));
+    case "scoring_board": return done(scoringBoardSql(spec, p));
     case "game_count": return done(gameCountSql(spec, p));
+    case "game_count_leaders": return done(gameCountLeadersSql(spec, p));
     case "leaders": return done(leadersSql(spec, p));
     case "player_total": return done(playerTotalSql(spec, p));
     case "single_game": return done(singleGameSql(spec, p));

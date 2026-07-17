@@ -27,6 +27,15 @@ export interface PlayerCard {
   headshot_url: string | null;
 }
 
+/** One example / trending question, tagged with its coarse stat category
+ * (passing, rushing, receiving, defense, head_to_head, playoffs, fantasy,
+ * other) so the client groups the trending card off the server-provided value
+ * instead of re-deriving the stat taxonomy from question text. */
+export interface ExampleQuestion {
+  question: string;
+  category: string;
+}
+
 export interface AnswerResult {
   question: string;
   narration: string;
@@ -322,6 +331,11 @@ export interface SplitRow {
   receptions: number;
   receiving_yards: number;
   receiving_tds: number;
+  tackles: number;
+  def_sacks: number;
+  def_interceptions: number;
+  forced_fumbles: number;
+  passes_defended: number;
   fantasy_points_ppr: number;
 }
 
@@ -357,6 +371,7 @@ export interface BoxScorePlayer {
   receptions: number;
   receiving_yards: number;
   receiving_tds: number;
+  fumbles: number;
   fumbles_lost: number;
   tackles: number;
   def_sacks: number;
@@ -366,11 +381,38 @@ export interface BoxScorePlayer {
   fantasy_points_ppr: number;
 }
 
+/** One team's game-level line from team_game_stats. */
+export interface TeamGameLine {
+  total_yards: number | null;
+  passing_yards: number | null;
+  rushing_yards: number | null;
+  turnovers: number | null;
+  time_of_possession_sec: number | null;
+  drives: number | null;
+}
+
+/** One scoring event, chronological. Clock is parsed from the play
+ * description when present; the warehouse distills TDs (plus return TDs and
+ * some field goals), so the log covers scoring as available, not exhaustively. */
+export interface ScoringLogEntry {
+  qtr: number | null;
+  clock: string | null;
+  team_id: string;
+  player_id: string | null;
+  player: string | null;
+  play_type: string | null;
+  yards: number | null;
+  description: string | null;
+}
+
 export interface BoxScoreTeam {
   team_id: string;
   name: string;
   nickname: string | null;
   score: number | null;
+  /** W-L(-T) through this game, e.g. "10-7". */
+  record: string | null;
+  line: TeamGameLine | null;
   players: BoxScorePlayer[];
 }
 
@@ -381,6 +423,14 @@ export interface BoxScore {
   week: number;
   date: string | null;
   stadium: string | null;
+  roof: string | null;
+  surface: string | null;
+  temp: number | null;
+  wind: number | null;
+  gametime: string | null;
+  home_coach: string | null;
+  away_coach: string | null;
+  scoring: ScoringLogEntry[];
   home: BoxScoreTeam;
   away: BoxScoreTeam;
 }
@@ -460,6 +510,7 @@ export interface TeamKeyPlayer {
   player_id: string;
   name: string;
   position: string | null;
+  jersey_number: number | null;
   headshot_url: string | null;
   games_played: number;
   passing_yards: number;

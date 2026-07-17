@@ -22,12 +22,22 @@ const HEADSHOT_SCALES: Record<
   profile: { width: 196, height: 246, variant: "portrait" },
 };
 
-/** ESPN's combiner resizes assets at the edge instead of sending the full
- * source image. Callers choose the pixel size needed for their density. */
+/** Resize at the CDN edge instead of shipping the full source image — the
+ * nflverse headshots are 3400px originals that decode visibly late in small
+ * avatars. ESPN goes through its combiner; nfl.com URLs are Cloudinary-style
+ * and take transforms inline. Callers choose the pixel size for their density. */
 export function cdnResize(src: string, px: number, square = true): string {
-  if (!src.startsWith("https://a.espncdn.com/i/")) return src;
-  const height = square ? `&h=${px}` : "";
-  return `https://a.espncdn.com/combiner/i?img=${src.slice("https://a.espncdn.com".length)}&w=${px}${height}`;
+  if (src.startsWith("https://a.espncdn.com/i/")) {
+    const height = square ? `&h=${px}` : "";
+    return `https://a.espncdn.com/combiner/i?img=${src.slice("https://a.espncdn.com".length)}&w=${px}${height}`;
+  }
+  if (src.startsWith("https://static.www.nfl.com/image/upload/")) {
+    const crop = square ? `,h_${px},c_fill` : "";
+    return src.includes("f_auto,q_auto")
+      ? src.replace("f_auto,q_auto", `f_auto,q_auto,w_${px}${crop}`)
+      : src.replace("/image/upload/", `/image/upload/f_auto,q_auto,w_${px}${crop}/`);
+  }
+  return src;
 }
 
 /** Player headshot from ESPN's CDN, falling back to an initials avatar when

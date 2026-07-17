@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays } from "lucide-react";
 
 import { fetchGames, type GamesResponse } from "../lib/api";
+import { weekLabel } from "../lib/format";
 import { teamTheme } from "../lib/teamTheme";
 import { TeamLogo } from "./TeamLogo";
 
@@ -53,7 +54,7 @@ export function ScoreTicker() {
           <>
             <span className="yb-tick-title">
               <CalendarDays size={15} aria-hidden="true" />
-              <strong>Week {games.week}</strong>
+              <strong>{weekLabel(games.week, games.season)}</strong>
             </span>
             <span className="yb-tick-season">{games.season}</span>
           </>
@@ -62,6 +63,9 @@ export function ScoreTicker() {
         )}
       </a>
       <div className="yb-tick-scroll">
+        {games && games.games.length === 0 && (
+          <span className="yb-tick-empty">No games at this time</span>
+        )}
         {games
           ? games.games.map((g) => {
               const homeWon = (g.home.score ?? 0) > (g.away.score ?? 0);

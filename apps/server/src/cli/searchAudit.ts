@@ -77,6 +77,17 @@ const QUESTIONS: string[] = [
   "Derrick Henry 100 yard rushing games in 2023",
   "Tyreek Hill games with over 100 receiving yards in 2023",
   "how many 400 yard passing games does Patrick Mahomes have",
+  "how many games did Lamar have above a 100 passer rating",
+  "how many games did Josh Allen throw at least three touchdowns",
+  "how many playoff games did Mahomes have a passer rating above 100",
+  // --- game_count leaderboards (count qualifying games per player, rank) ---
+  "who has the most games with over 300 passing yards",
+  "which quarterback had the most games with a passer rating over 100",
+  "who had the most games with two or more receiving touchdowns",
+  "which player had the most 100-yard rushing games after turning 30",
+  // --- "since YYYY" season ranges ---
+  "most passing yards since 2020",
+  "who has the most receptions since 2022",
   // --- game_result / team_game_log ---
   "who won the Super Bowl in 2023",
   "who won Super Bowl 58",

@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 
 import { Crumbs, type Crumb } from "./Crumbs";
 
@@ -11,25 +11,20 @@ export type StatSummaryItem = InfoItem & {
   meta?: ReactNode;
 };
 
-type SurfaceVariant = "standard" | "feature" | "dense";
-
 export function Surface({
   as: Tag = "section",
-  variant = "standard",
   interactive = false,
   className = "",
   children,
   ...props
 }: {
   as?: "article" | "aside" | "div" | "section";
-  variant?: SurfaceVariant;
   interactive?: boolean;
   className?: string;
   children: ReactNode;
 } & HTMLAttributes<HTMLElement>) {
   const classes = [
     "yb-surface",
-    `yb-surface-${variant}`,
     interactive ? "is-interactive" : "",
     className,
   ]
@@ -45,14 +40,12 @@ export function Surface({
 export function PageHeader({
   crumbs,
   title,
-  description,
   controls,
   action,
   filters,
 }: {
   crumbs?: Crumb[];
   title: string;
-  description?: ReactNode;
   controls?: ReactNode;
   action?: ReactNode;
   filters?: ReactNode;
@@ -63,7 +56,6 @@ export function PageHeader({
       <div className="yb-page-head">
         <div className="yb-page-copy">
           <h1 className="yb-page-title">{title}</h1>
-          {description && <p className="yb-page-sub">{description}</p>}
         </div>
         {(controls || action) && (
           <div className="yb-page-actions">
@@ -79,20 +71,17 @@ export function PageHeader({
 
 export function SectionHeader({
   title,
-  meta,
   action,
 }: {
   title: string;
-  meta?: ReactNode;
   action?: ReactNode;
 }) {
   return (
     <div className="yb-section-head">
       <div>
         <h2>{title}</h2>
-        {meta && <p>{meta}</p>}
       </div>
-      {action}
+      {action && <div className="yb-section-action">{action}</div>}
     </div>
   );
 }
@@ -108,6 +97,7 @@ export function EntityHero({
   meta,
   utilities,
   details,
+  style,
 }: {
   className?: string;
   label: string;
@@ -117,12 +107,14 @@ export function EntityHero({
   meta?: ReactNode;
   utilities?: ReactNode;
   details?: ReactNode;
+  style?: CSSProperties;
 }) {
   return (
     <section
       className={["yb-entity-hero", className].filter(Boolean).join(" ")}
       role="region"
       aria-label={label}
+      style={style}
     >
       <div className="yb-entity-hero-main">
         <div className="yb-entity-hero-media">{media}</div>

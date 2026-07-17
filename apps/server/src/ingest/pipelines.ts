@@ -8,8 +8,9 @@
 
 import {
   float, int, str, team, SEASON_TYPE, TEAM_MAP,
-  draftPickRow, gameRow, playerGameStatsRow, playerRow, playerSeasonStatsRow,
-  playerGameAdvancedRow, scoringPlayRow, seasonRow, teamGameStatsRow, teamRow,
+  draftPickRow, gameRow, playerGameStatsRow, playerIdMapRow, playerRow,
+  playerSeasonStatsRow, playerGameAdvancedRow, rosterRow, scoringPlayRow,
+  seasonRow, teamGameStatsRow, teamRow,
 } from "./normalize.js";
 import { logger } from "../lib/logger.js";
 import type { Ctx } from "./context.js";
@@ -102,6 +103,71 @@ export async function loadPlayers(ctx: Ctx, years: number[]): Promise<number> {
   rows.sort((a, b) => a._season - b._season);
   const players = rows.map(({ _season, ...rest }) => rest);
   return upsert(ctx, "players", players, ["player_id"], playerRow);
+}
+
+/** Cross-source player id crosswalk — one snapshot file covering every gsis
+ * player regardless of the requested seasons. Keyed on gsis id, never names,
+ * so same-named players can't swap identities. Also syncs espn_id +
+ * headshot_url onto the players dimension, which the API serves headshots
+ * from (lib/espn.ts). */
+export async function loadPlayerIds(ctx: Ctx): Promise<number> {
+  const raw = await allRows(assets.playerIds());
+  checkColumns(raw[0], "players (id crosswalk)", ["gsis_id"],
+    ["espn_id", "pfr_id", "pff_id", "otc_id", "esb_id", "headshot"]);
+  let rows = raw.map((r) => ({
+    player_id: r.gsis_id ?? "",
+    espn_id: str(r.espn_id),
+    pfr_id: str(r.pfr_id),
+    pff_id: str(r.pff_id),
+    otc_id: str(r.otc_id),
+    esb_id: str(r.esb_id),
+    headshot_url: str(r.headshot),
+  }));
+  rows = ctx.drop(rows, (r) => r.player_id !== "", "player_id_map",
+    "crosswalk row without a gsis id", (r) => r.esb_id ?? "(no esb id)");
+  const count = await upsert(ctx, "player_id_map", rows, ["player_id"], playerIdMapRow);
+  if (!ctx.dryRun) {
+    await ctx.pool.query(
+      `UPDATE players p SET espn_id = m.espn_id, headshot_url = m.headshot_url
+       FROM player_id_map m
+       WHERE p.player_id = m.player_id
+         AND (p.espn_id IS DISTINCT FROM m.espn_id
+           OR p.headshot_url IS DISTINCT FROM m.headshot_url)`,
+    );
+  }
+  return count;
+}
+
+/** Full historical rosters — the per-season (player, team, jersey, status)
+ * fact behind "who wore #18 for the Colts in 2004". Same roster files as
+ * loadPlayers (which keeps only the latest snapshot per player). */
+export async function loadRosters(ctx: Ctx, years: number[]): Promise<number> {
+  const raw: CsvRow[] = [];
+  for (const year of years) raw.push(...(await allRows(assets.rosters(year))));
+
+  checkColumns(raw[0], "rosters (per-season)", ["gsis_id", "season", "team"],
+    ["position", "jersey_number", "status"]);
+
+  let rows = raw.map((r) => ({
+    player_id: r.gsis_id ?? "",
+    season: int(r.season) ?? 0,
+    team_id: team(r.team ?? ""),
+    position: str(r.position),
+    jersey_number: int(r.jersey_number),
+    status: str(r.status),
+  }));
+  rows = ctx.drop(rows, (r) => r.player_id !== "", "rosters",
+    "roster row without a stable gsis id", (r) => `${r.season} ${r.team_id}`);
+  const players = await ctx.known("players", "player_id");
+  rows = ctx.drop(rows, (r) => players.has(r.player_id), "rosters",
+    "player not in players dimension", (r) => r.player_id);
+  const teams = await ctx.known("teams", "team_id");
+  rows = ctx.drop(rows, (r) => teams.has(r.team_id), "rosters",
+    "unknown team id", (r) => `${r.season} ${r.team_id}`);
+  const seasons = await ctx.known("seasons", "season");
+  rows = ctx.drop(rows, (r) => seasons.has(String(r.season)), "rosters",
+    "season not ingested (run seasons first)", (r) => String(r.season));
+  return upsert(ctx, "rosters", rows, ["player_id", "season", "team_id"], rosterRow);
 }
 
 async function schedules(years: number[]): Promise<CsvRow[]> {
@@ -334,6 +400,38 @@ export async function loadTeamGameStats(ctx: Ctx, years: number[]): Promise<numb
 
 const SCORING_BATCH = 5_000;
 
+/** True touchdown distance. Scrimmage scores carry it in yards_gained;
+ * return scores (pick six, kick/punt return) in return_yards — except fumble
+ * returns, where it lands in fumble_recovery_1_yards instead. Verified
+ * against the pbp files: on return touchdowns yards_gained is 0 or negative
+ * (the offense's yardage), never the return distance. */
+function tdYards(r: CsvRow): number | null {
+  if (r.return_touchdown !== "1") return int(r.yards_gained);
+  const ret = int(r.return_yards);
+  const fum = int(r.fumble_recovery_1_yards);
+  if (ret == null && fum == null) return null; // unknown, not zero
+  return Math.max(ret ?? 0, fum ?? 0);
+}
+
+/** Classify how the TD was scored, from the pbp's own discriminators (exact:
+ * pass_touchdown/rush_touchdown mark only offensive scrimmage scores).
+ * int_return + fumble_return are the DEFENSIVE touchdowns — a takeaway
+ * returned by the team that didn't have the ball. kickoff/punt plays are
+ * special-teams return scores. "other" catches own-fumble recoveries and
+ * blocked-kick recoveries: description matching (FUMBLE + TOUCHDOWN) counts
+ * those as defensive, which is why this is a stored column, not a query. */
+function tdKind(r: CsvRow, tdTeam: string | null): string {
+  if (r.pass_touchdown === "1") return "pass"; // scorer is the receiver
+  if (r.rush_touchdown === "1") return "rush";
+  if (r.play_type === "kickoff") return "kick_return";
+  if (r.play_type === "punt") return "punt_return";
+  const posteam = r.posteam ? team(r.posteam) : null;
+  if (r.return_touchdown === "1" && tdTeam && posteam && tdTeam !== posteam) {
+    return r.interception === "1" ? "int_return" : "fumble_return";
+  }
+  return "other";
+}
+
 /** Touchdown events distilled from play-by-play (~50k plays/season stream to
  * ~1.5k scoring rows). Streamed per year; each batch commits independently. */
 export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<number> {
@@ -382,7 +480,25 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
       adv.set(key, a);
     };
 
+    let columnsChecked = false;
     for await (const r of streamRows(assets.pbp(year))) {
+      // First row of each year's file: verify the columns this step reads
+      // still exist upstream (per year — the pbp schema varies by era).
+      if (!columnsChecked) {
+        columnsChecked = true;
+        checkColumns(
+          r,
+          `play_by_play_${year}`,
+          ["game_id", "play_id", "season_type", "touchdown", "td_player_id"],
+          [
+            "yards_gained", "return_yards", "fumble_recovery_1_yards",
+            "pass_touchdown", "rush_touchdown", "return_touchdown", "interception",
+            "td_team", "posteam", "qtr", "play_type", "desc",
+            "epa", "success", "cpoe", "drive",
+            "passer_player_id", "rusher_player_id", "receiver_player_id",
+          ],
+        );
+      }
       if (ctx.seasonType && SEASON_TYPE[r.season_type ?? ""] !== ctx.seasonType) continue;
       const gid = r.game_id ?? "";
       if (games.has(gid)) {
@@ -408,7 +524,8 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
         qtr: int(r.qtr),
         play_type: str(r.play_type),
         description: str(r.desc),
-        yards: int(r.yards_gained),
+        yards: tdYards(r),
+        td_kind: tdKind(r, tdTeam),
       });
       if (batch.length >= SCORING_BATCH) await flush();
     }

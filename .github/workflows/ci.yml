@@ -8,6 +8,10 @@ on:
 env:
   DATABASE_URL: postgresql://yunoball:yunoball@localhost:5432/yunoball
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   server-tests:
     runs-on: ubuntu-latest
@@ -31,6 +35,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm knip
       - run: pnpm --filter @yunoball/server test
         env:
           TEST_ADMIN_DATABASE_URL: postgresql://yunoball:yunoball@localhost:5432/yunoball
@@ -73,3 +79,17 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 7
+
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:web
+        env:
+          NEXT_PUBLIC_API_URL: https://api.example.invalid # build-time smoke value; Vercel injects the real one

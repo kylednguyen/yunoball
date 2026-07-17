@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { PageHeader } from "../components/ui";
 import { Glossary } from "./glossary";
 
 export const metadata: Metadata = {
@@ -12,13 +13,7 @@ export default function GlossaryPage() {
   return (
     <>
       <main id="main" className="yb-page">
-        <div className="yb-page-head">
-          <h1 className="yb-page-title">NFL Glossary</h1>
-        </div>
-        <p className="yb-page-sub">
-          Every stat, fantasy term and league concept used across YunoBall, in plain
-          language, no jargon required.
-        </p>
+        <PageHeader title="NFL Glossary" />
         <Glossary />
       </main>
     </>

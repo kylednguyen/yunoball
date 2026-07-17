@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { SeasonSelect } from "../components/SeasonSelect";
 import { TeamLogo } from "../components/TeamLogo";
 import { PageHeader } from "../components/ui";
 import { friendlyError } from "../lib/api";
 import type { ConferenceStandings } from "../lib/api";
-import { formatPct } from "../lib/format";
+import { divisionShortName, formatPct } from "../lib/format";
 import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
 import { CLINCH_TAG, clinchByTeam, seedConference, type ClinchKind } from "../lib/playoff";
 import { teamTheme } from "../lib/teamTheme";
@@ -19,7 +18,7 @@ import { teamTheme } from "../lib/teamTheme";
  *  in its team's colors and links to the team page. */
 export default function StandingsPage() {
   useTitle("Standings");
-  const [season, setSeason] = useSeasonParam();
+  const [season] = useSeasonParam();
   const { data, error, loading } = useStandings(season);
   const [tab, setTab] = useState("AFC");
 
@@ -31,13 +30,10 @@ export default function StandingsPage() {
     <main id="main" className="yb-page" style={{ maxWidth: 900 }}>
       <PageHeader
         crumbs={[
-          { label: "NFL", href: "/" },
           ...(data ? [{ label: String(data.season) }] : []),
           { label: "Standings" },
         ]}
         title="Standings"
-        description="Division tables computed live from game results. Playoff seeding is projected from win pct."
-        controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
       />
 
       {error && (
@@ -57,7 +53,7 @@ export default function StandingsPage() {
 
       {data && !error && (
         <>
-          <div className="yb-seg yb-standings-tabs" role="group" aria-label="Standings view">
+          <div className="yb-pill-seg yb-standings-tabs" role="group" aria-label="Standings view">
             {tabs.map((t) => (
               <button
                 key={t}
@@ -101,7 +97,7 @@ function ClinchTag({ kind }: { kind: ClinchKind }) {
   const title: Record<ClinchKind, string> = {
     bye: "Projected #1 seed (first-round bye)",
     div: "Projected division winner",
-    wc: "Projected wildcard",
+    wc: "Projected Wild Card",
     out: "Projected to miss the playoffs",
   };
   return (
@@ -128,7 +124,8 @@ function DivisionTable({
     <table className="yb-div-table">
       <thead>
         <tr>
-          <th className="team">{division}</th>
+          {/* The conference tab above already sets context: "East", not "AFC East". */}
+          <th className="team">{divisionShortName(division)}</th>
           <th className="num">W</th>
           <th className="num">L</th>
           <th className="num">T</th>
@@ -175,7 +172,7 @@ function PlayoffField({ conf, season }: { conf: ConferenceStandings; season: num
             <Link className="tm" href={`/teams/${s.team.team_id}?season=${season}`}>
               {s.team.nickname ?? s.team.name}
             </Link>
-            <span className="kd">{s.kind === "wc" ? "Wildcard" : s.kind === "bye" ? "#1 seed" : `${conf.conference} ${s.seed}`}</span>
+            <span className="kd">{s.kind === "wc" ? "Wild Card" : s.kind === "bye" ? "#1 seed" : `${conf.conference} ${s.seed}`}</span>
             <span className="rc">
               {s.team.wins}-{s.team.losses}
               {s.team.ties ? `-${s.team.ties}` : ""}
@@ -183,7 +180,7 @@ function PlayoffField({ conf, season }: { conf: ConferenceStandings; season: num
           </li>
         ))}
       </ol>
-      <p className="yb-seed-note">Seeds 1–4 win their division · 5–7 wildcards · projected by win pct</p>
+      <p className="yb-seed-note">Seeds 1-4 win the division, 5-7 are Wild Cards. Projected by win pct.</p>
     </section>
   );
 }

@@ -7,7 +7,7 @@ import { headshotUrl } from "../lib/espn.js";
 import { round } from "../lib/round.js";
 import { statSeasons } from "../repositories/seasons.js";
 
-export const POSITIONS = new Set(["QB", "RB", "WR", "TE"]);
+const POSITIONS = new Set(["QB", "RB", "WR", "TE"]);
 
 export async function getFantasyPlayers(opts: {
   season?: number; position?: string; q?: string; limit: number;

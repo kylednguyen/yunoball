@@ -2,18 +2,15 @@
  * a named player ("Derrick Henry most rushing yards in a game"). */
 
 import type { SingleGameSpec } from "../spec.js";
-import { Params, passerRatingExpr, ratioRowExpr, statDef } from "./shared.js";
+import { gamePreds, Params, perGameValueExpr, statDef } from "./shared.js";
 
 export function singleGameSql(spec: SingleGameSpec, p: Params): string {
   const def = statDef(spec);
-  const sgExpr =
-    def.formula === "passer_rating"
-      ? passerRatingExpr(false)
-      : def.ratio ? ratioRowExpr(def) : def.expr;
-  const stype = p.add(spec.seasonType);
-  const preds = [`${sgExpr} > 0`, `g.season_type = ${stype}`];
+  const sgExpr = perGameValueExpr(def);
+  // gamePreds carries season/seasonType plus every game window (opponent,
+  // teammate, venue, month…) — single-game bests compose them all.
+  const preds = [`${sgExpr} > 0`, ...gamePreds(spec, p)];
   if (spec.playerId) preds.push(`s.player_id = ${p.add(spec.playerId)}`);
-  if (spec.season != null) preds.push(`g.season = ${p.add(spec.season)}`);
   return (
     "SELECT p.player_id, p.full_name, g.season, g.week, " +
     "CASE WHEN s.team_id = g.home_team THEN g.away_team " +

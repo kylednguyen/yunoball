@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-import { SeasonSelect } from "../components/SeasonSelect";
 import { TeamLogo } from "../components/TeamLogo";
 import { Badge, PageHeader, SectionHeader } from "../components/ui";
 import { friendlyError } from "../lib/api";
@@ -13,7 +12,7 @@ import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
  *  standings endpoint so this page needs no API of its own. */
 export default function TeamsPage() {
   useTitle("Teams");
-  const [season, setSeason] = useSeasonParam();
+  const [season] = useSeasonParam();
   const { data, error, loading } = useStandings(season);
 
   return (
@@ -21,13 +20,10 @@ export default function TeamsPage() {
       <main id="main" className="yb-page">
         <PageHeader
           crumbs={[
-            { label: "NFL", href: "/" },
             ...(data ? [{ label: String(data.season) }] : []),
             { label: "Teams" },
           ]}
           title="Teams"
-          description="Division-by-division team cards with record, rank, streak, and season position."
-          controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
           filters={
             data && (
               <nav className="yb-conf-nav" aria-label="Conference navigation">
@@ -65,7 +61,7 @@ export default function TeamsPage() {
               aria-label={`${conf.conference} teams`}
               className="yb-conference-section"
             >
-              <SectionHeader title={conf.conference} meta={`${conf.divisions.length} divisions`} />
+              <SectionHeader title={conf.conference} />
               {conf.divisions.map((div) => (
                 <div key={div.division} style={{ opacity: loading ? 0.6 : 1 }}>
                   <h3 className="yb-conf-title">{div.division}</h3>

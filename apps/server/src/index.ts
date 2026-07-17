@@ -1,9 +1,13 @@
 import { buildApp } from "./app.js";
 import { config } from "./config.js";
 import { closePools } from "./db/pool.js";
+import { loadHeadshots } from "./lib/espn.js";
 import { logger } from "./lib/logger.js";
 
 const app = buildApp();
+// Fire-and-forget: loadHeadshots catches its own errors (headshots degrade to
+// initials avatars), so a slow/unreachable DB never blocks serving traffic.
+void loadHeadshots();
 const server = app.listen(config.port, () => {
   logger.info(`YunoBall API up on :${config.port} (rule-based engine, Postgres)`);
 });

@@ -101,8 +101,8 @@ Working prototype: a **structured `QuerySpec` query engine** (rules →
 deterministic SQL, fuzzy entity resolution, two-tier cache, templated
 narration, zero LLM calls) over a **real local warehouse** (nflverse
 1999–present), plus scores, standings, leaderboards,
-fantasy tools, shareable answer pages and an assistant. ESPN headshot ids are
-fetched by a standalone CLI (`apps/server/src/cli/fetchEspnIds.ts` via
-`apps/server/src/lib/espn.ts`); new nflverse-style data providers slot in as
-independent modules under `apps/server/src/ingest/providers` without touching
-the public API.
+fantasy tools, shareable answer pages and an assistant. Player headshots come
+from the nflverse id crosswalk (`player_ids` ingest step → players table,
+served by `apps/server/src/lib/espn.ts`); new nflverse-style data providers
+slot in as independent modules under `apps/server/src/ingest/providers`
+without touching the public API.

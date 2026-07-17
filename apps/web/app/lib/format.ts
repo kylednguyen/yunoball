@@ -10,15 +10,6 @@ export function formatSigned(value: number): string {
   return value > 0 ? `+${value}` : String(value);
 }
 
-export function formatNumber(value: number, decimals = 0): string {
-  return Number.isInteger(value) && decimals === 0
-    ? value.toLocaleString("en-US")
-    : value.toLocaleString("en-US", {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      });
-}
-
 export function formatStatValue(value: number): string {
   return Number.isInteger(value) ? value.toLocaleString("en-US") : value.toFixed(1);
 }
@@ -31,6 +22,20 @@ export function formatGameDate(iso: string | null): string {
     month: "short",
     day: "numeric",
   });
+}
+
+/** Playoff weeks get round names; regular-season weeks stay numbered.
+ * 2021+ seasons play 18 regular-season weeks, earlier seasons 17. */
+export function weekLabel(week: number, season: number, short = false): string {
+  const regWeeks = season >= 2021 ? 18 : 17;
+  if (week <= regWeeks) return short ? `Wk ${week}` : `Week ${week}`;
+  const rounds = ["Wild Card", "Divisional", "Championship", "Super Bowl"];
+  return rounds[week - regWeeks - 1] ?? `Week ${week}`;
+}
+
+/** Drop the conference prefix from a division name ("AFC East" → "East"). */
+export function divisionShortName(division: string): string {
+  return division.replace(/^(AFC|NFC)\s+/, "");
 }
 
 export function formatRank(rank: number): string {

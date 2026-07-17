@@ -7,6 +7,7 @@ import type {
   AnswerResult,
   BoxScore,
   ChatTurn,
+  ExampleQuestion,
   PlayerSplits,
   FantasyPlayersResponse,
   GamesResponse,
@@ -24,41 +25,28 @@ export type {
   AnswerResult,
   BoxScore,
   BoxScorePlayer,
-  BoxScoreTeam,
+  ScoringLogEntry,
   ChatTurn,
-  PlayerBio,
-  PlayerCard,
   PlayerSplits,
-  ScoringPlay,
-  SplitGroup,
   SplitRow,
   ConferenceStandings,
-  DivisionStandings,
+  ExampleQuestion,
   FantasyPlayer,
   FantasyPlayersResponse,
   GameRow,
-  GameTeam,
   GamesResponse,
-  Leaderboard,
   LeaderboardsResponse,
-  LeaderRow,
   Performer,
   PerformersResponse,
-  PlayerCareer,
   PlayerGameLogRow,
   PlayerProfile,
   PlayerSeasonLine,
-  ResolvedEntity,
   StandingRow,
   StandingsResponse,
-  SuggestPlayer,
   SuggestResponse,
-  SuggestTeam,
   TeamGame,
   TeamKeyPlayer,
-  TeamLeader,
   TeamProfile,
-  TeamRecord,
   TeamStat,
 } from "@yunoball/types";
 
@@ -72,7 +60,7 @@ if (!RAW_API_URL && process.env.NODE_ENV === "production") {
       "production builds (e.g. on Vercel). Refusing to ship a localhost API URL.",
   );
 }
-export const API_URL = RAW_API_URL ?? "http://localhost:4000";
+const API_URL = RAW_API_URL ?? "http://localhost:4000";
 
 // POST endpoints (search/agent) do real DB work, so they get a longer cap than
 // GETs — but still bounded: a hung request becomes a friendly timeout error,
@@ -146,8 +134,8 @@ export async function ask(question: string): Promise<AnswerResult> {
   return (await res.json()) as AnswerResult;
 }
 
-export async function fetchExamples(n = 4): Promise<string[]> {
-  return (await getJson<{ examples: string[] }>(`/api/search/examples?n=${n}`)).examples;
+export async function fetchExamples(n = 4): Promise<ExampleQuestion[]> {
+  return (await getJson<{ examples: ExampleQuestion[] }>(`/api/search/examples?n=${n}`)).examples;
 }
 
 export function fetchSuggest(q: string): Promise<SuggestResponse> {
@@ -251,13 +239,13 @@ export async function askAgent(messages: ChatTurn[]): Promise<AgentResponse> {
 export function friendlyError(message: string | null | undefined): string {
   if (!message) return "Something unexpected went wrong. Please try again.";
   if (/failed to fetch|networkerror|load failed/i.test(message)) {
-    return "Can’t reach the server — check your connection and try again.";
+    return "Can’t reach the server. Check your connection and try again.";
   }
   if (/timed? ?out|abort/i.test(message)) {
     return "That took too long to answer. Try again in a moment.";
   }
   if (/request failed \(429\)/i.test(message)) {
-    return "Too many requests — give it a few seconds and try again.";
+    return "Too many requests. Give it a few seconds and try again.";
   }
   if (/request failed \(5\d\d\)/i.test(message)) {
     return "The server hit an error answering that. Try again in a moment.";

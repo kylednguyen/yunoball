@@ -5,7 +5,7 @@ import { Search as SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { SearchSuggest } from "./components/SearchSuggest";
-import { ask, fetchExamples, friendlyError, type AnswerResult } from "./lib/api";
+import { ask, fetchExamples, fetchSuggest, friendlyError, type AnswerResult } from "./lib/api";
 
 const RECENTS_KEY = "yb:recent-searches";
 const FALLBACK_EXAMPLES = [
@@ -39,6 +39,17 @@ export function Search() {
     setLoading(true);
     setError(null);
     try {
+      // A bare team name ("eagles", "kansas city chiefs") goes straight to
+      // the team page instead of a query answer.
+      const norm = q.trim().toLowerCase();
+      const sug = await fetchSuggest(norm).catch(() => null);
+      const team = sug?.teams.find((t) =>
+        [t.name, t.nickname, t.team_id].some((n) => n?.toLowerCase() === norm),
+      );
+      if (team) {
+        router.push(`/teams/${team.team_id}`);
+        return;
+      }
       const result: AnswerResult = await ask(q);
       const next = [q, ...loadRecents().filter((r) => r !== q)].slice(0, 4);
       localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
@@ -56,7 +67,7 @@ export function Search() {
     setRecents(loadRecents());
     let active = true;
     fetchExamples(8)
-      .then((items) => active && setExamples(items))
+      .then((items) => active && setExamples(items.map((i) => i.question)))
       .catch(() => {
         if (active) {
           setExamples(FALLBACK_EXAMPLES);
@@ -120,7 +131,14 @@ export function Search() {
           inputRef={inputRef}
           suggestions={[...recents, ...examples]}
         >
-          <SearchIcon className="yb-search-icon" size={18} strokeWidth={2} aria-hidden="true" />
+          <button
+            type="button"
+            className="yb-search-icon"
+            aria-label="Search"
+            onClick={() => question.trim() && run(question)}
+          >
+            <SearchIcon size={18} strokeWidth={2} aria-hidden="true" />
+          </button>
           <span className="yb-kbd-hint" aria-hidden="true">
             /
           </span>

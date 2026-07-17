@@ -15,50 +15,48 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces — soft neutral ramp. Depth = background contrast, not lines. */
-  --bg: #0c0d0f;
-  --panel: #121417; /* primary surface */
-  --elevated: #181b20; /* raised surface (popovers, hovers) */
-  --bg-soft: #1f2328; /* secondary surface (inset wells, chips) */
-  --bg-hover: #262b31; /* one step brighter — hover state for soft surfaces */
+  /* Surfaces — a cool-slate ramp with a touch of chroma so the darks read
+     rich, not flat grey. Depth = background contrast, not lines. */
+  --bg: #0a0c11;
+  --panel: #13161e; /* primary surface */
+  --elevated: #1b1f29; /* raised surface (popovers, hovers) */
+  --bg-soft: #222835; /* secondary surface (inset wells, chips) */
+  --bg-hover: #2b3240; /* one step brighter — hover state for soft surfaces */
   /* Borders are rare by design — a whisper for the few places that need one. */
   --border: rgba(255, 255, 255, 0.05);
   --border-strong: rgba(255, 255, 255, 0.1);
 
-  /* Ink */
+  /* Ink — secondary text reads bright/white, not dull grey. Hierarchy is
+     carried mostly by weight and a slight step-down, not by dimming to grey. */
   --text: #f5f5f5;
-  --muted: #a1a1aa;
-  /* Tertiary ink — must clear 4.5:1 on every surface INCLUDING the hover
-     tier, the brightest thing text sits on: 4.8:1 on --bg-hover, 5.3:1 on
-     --bg-soft. (The old #82828c was 4.15:1 on the new soft surface.) */
-  --faint: #95959f;
+  --muted: #f2f2f4; /* secondary text — white (hierarchy carried by weight) */
+  /* Tertiary ink — the lightest step, still white-ish rather than grey. */
+  --faint: #e7e7ec; /* tertiary text — near-white, never grey */
 
-  /* Brand — emerald, used sparingly: search, selection, CTAs, links,
+  /* Brand — lime, used sparingly: search, selection, CTAs, links,
      positive metrics. Neutral dominates everywhere else. */
-  --accent: #10b981;
+  --accent: #89f336;
   --accent-deep: var(--accent);
-  --accent-hover: #22c55e;
-  --accent-soft: rgba(16, 185, 129, 0.12);
-  --accent-contrast: #04150e;
+  --accent-hover: #9ff955;
+  --accent-soft: rgba(137, 243, 54, 0.16);
+  --accent-contrast: #101c03;
   /* Bright variant — accent-colored TEXT on dark surfaces needs the lighter
      tone for contrast; solid accent FILLS use --accent itself. */
-  --accent-ink: #34d399;
+  --accent-ink: #9df84f;
 
   /* Data marks — validated for the dark surface (do not use raw accent). */
-  --chart: #10b981;
-  --chart-strong: #059669;
+  --chart: #89f336;
 
   /* Semantic */
   --success: #4ade80;
-  --warning: #facc15;
+  --success-soft: rgba(74, 222, 128, 0.1);
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.1);
   --danger-text: #fca5a5;
-  --danger-border: #7f1d1d;
 
   /* Derived surfaces */
-  --bg-scrim: rgba(12, 13, 15, 0.85); /* translucent bg for blurred bars */
-  --accent-border: rgba(16, 185, 129, 0.4);
+  --bg-scrim: rgba(10, 12, 17, 0.85); /* translucent bg for blurred bars */
+  --accent-border: rgba(137, 243, 54, 0.42);
   --shimmer: rgba(255, 255, 255, 0.07); /* skeleton sweep highlight */
 
   /* Radii */
@@ -67,7 +65,6 @@
   --r-lg: 12px;
   --r-xl: 14px;
   --r-pill: 999px;
-  --radius: var(--r-lg); /* legacy alias */
 
   /* Spacing scale — 4px base */
   --s-1: 4px;
@@ -78,29 +75,24 @@
   --s-6: 24px;
   --s-8: 32px;
   --s-10: 40px;
-  --s-12: 48px;
-  --s-16: 64px;
-  --s-20: 80px;
 
   /* The bundled Geist face carries the entire interface from navigation
      copy through display metrics without a runtime font request. */
   --font: "Geist", -apple-system, BlinkMacSystemFont,
     "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --display: var(--font);
 
   /* Type scale — text tiers (display sizes stay per-context in the
      display face). caption 11 / small 12 / body 13 / ui 14 / body-lg 15 /
      lead 16. */
-  --fs-caption: 11px;
-  --fs-small: 12px;
-  --fs-body: 13px;
-  --fs-ui: 14px;
-  --fs-body-lg: 15px;
-  --fs-lead: 16px;
+  --fs-caption: 12px;
+  --fs-small: 13px;
+  --fs-body: 14px;
+  --fs-ui: 15px;
+  --fs-body-lg: 16px;
+  --fs-lead: 17px;
 
   /* Elevation — flat, borders do the work on dark */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-pop: 0 2px 6px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.55);
 
@@ -114,10 +106,8 @@
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --dur-fast: 120ms;
   --dur: 160ms;
   --dur-slow: 240ms;
-  --dur-reveal: 700ms; /* data draw-ins (bars); loops keep their own rhythm */
 }
 
 * {
@@ -144,8 +134,9 @@ a {
   color: var(--accent);
   text-decoration: none;
 }
+/* Hover feedback is a colour shift, never an underline. */
 a:hover {
-  text-decoration: underline;
+  color: var(--accent-hover);
 }
 /* Links inside running text need a non-color cue (WCAG 1.4.1) — standalone
    links (nav, cards, rows) identify themselves by position instead. */
@@ -166,8 +157,7 @@ dd a,
 /* Tactile press: every button-like control gives a 1px physical push. */
 .yb-btn:active:not(:disabled),
 .yb-chip:active,
-.yb-tab:active,
-.yb-week-tab:active,
+.yb-pill-seg button:active,
 .yb-link:active,
 .yb-th-sort:active,
 .yb-nav-links a:active {
@@ -175,17 +165,10 @@ dd a,
 }
 
 /* Ragged-line control on display type. */
-.yb-hero h1,
 .yb-page-title,
 p.yb-answer {
   text-wrap: balance;
 }
-.yb-hero p,
-.yb-page-sub,
-.yb-gloss-item dd {
-  text-wrap: pretty;
-}
-
 /* Visually hidden but announced — for live-region text. */
 .yb-sr-only {
   position: absolute;
@@ -218,21 +201,73 @@ p.yb-answer {
 /* ---- Navigation: fixed left rail on desktop, top bar on small screens.
    The rail is position:fixed, so pages can render <Nav/> anywhere in their
    tree; body padding reserves its column. ---- */
+/* stylelint-disable-next-line no-duplicate-selectors -- nav vars live with the nav section */
 :root {
   --sidebar-w: 196px;
+  --topbar-h: 74px; /* fixed top search bar height (desktop) */
+  --nav-gap: 12px; /* gap around the floating sidebar card (desktop) */
 }
+/* stylelint-disable-next-line no-duplicate-selectors -- nav padding lives with the nav section */
 body {
-  padding-left: var(--sidebar-w);
+  /* Reserve the floating sidebar card (rail width + a gap each side). */
+  padding-left: calc(var(--sidebar-w) + var(--nav-gap) * 2);
+  /* Clear the fixed top search bar that spans the content column. */
+  padding-top: var(--topbar-h);
+}
+
+/* Transparent, thin scrollbars everywhere — track invisible, thumb barely there. */
+/* stylelint-disable-next-line no-duplicate-selectors -- scrollbar theming is its own section */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+/* Search moved into the nav bar; on desktop it pins across the content top,
+   staying in line with the brand in the rail. */
+.yb-nav-search-inline {
+  position: fixed;
+  top: 0;
+  left: calc(var(--sidebar-w) + var(--nav-gap) * 2);
+  right: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  padding: 12px max(20px, env(safe-area-inset-right)) 12px 20px;
+  background: var(--bg-scrim);
+  backdrop-filter: saturate(180%) blur(8px);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.yb-nav-search-inline .yb-search-controller {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
 }
 .yb-nav {
   position: fixed;
-  inset: 0 auto 0 0;
+  /* No box: nav elements sit straight on the page background. */
+  inset: var(--nav-gap) auto var(--nav-gap) var(--nav-gap);
   width: var(--sidebar-w);
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 20px 14px 16px;
-  background: var(--panel);
+  background: none;
+  border: none;
   z-index: var(--z-nav);
   overflow-y: auto;
 }
@@ -298,28 +333,18 @@ body {
 }
 .yb-nav-links a svg {
   flex: none;
-  opacity: 0.75;
+  opacity: 1;
 }
 .yb-nav-links a[aria-current="page"] svg {
   opacity: 1;
 }
 .yb-nav-links a:hover {
-  color: var(--text);
-  background: var(--bg-soft);
+  color: var(--accent-ink);
   text-decoration: none;
 }
 .yb-nav-links a[aria-current="page"] {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--accent-ink);
   font-weight: 600;
-}
-.yb-nav-search {
-  padding: 0 2px;
-}
-.yb-nav-search input {
-  width: 100%;
-  padding: 8px 12px;
-  font-size: var(--fs-body);
 }
 .yb-nav-foot {
   margin: auto 0 0;
@@ -328,22 +353,26 @@ body {
   line-height: 1.45;
   color: var(--faint);
 }
-.yb-nav-badge {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--accent-ink);
-  background: var(--accent-soft);
-  border-radius: var(--r-sm);
-  padding: 1px 6px;
-  margin-left: 6px;
-  vertical-align: 2px;
-}
 /* Small screens: the rail collapses to a sticky top bar (brand + hamburger)
    and the panel becomes a slide-in drawer over a scrim. */
 @media (max-width: 860px) {
   body {
     padding-left: 0;
+    /* Mobile bar is sticky and in-flow, so it reserves its own space. */
+    padding-top: 0;
+  }
+  /* Mobile: brand + toggle share row 1; search drops to its own full-width
+     row below, so the top bar never crowds and the placeholder never clips. */
+  .yb-nav-search-inline {
+    position: static;
+    order: 3;
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
   }
   .yb-nav {
     position: sticky;
@@ -352,7 +381,8 @@ body {
     width: auto;
     gap: 0;
     padding: 0;
-    border-right: none;
+    border: none;
+    border-radius: 0;
     /* No backdrop-filter here: it would establish a containing block and clamp
        the fixed drawer/scrim to the bar's height. The bar carries the blur. */
     background: transparent;
@@ -362,13 +392,15 @@ body {
     z-index: calc(var(--z-pop) + 1);
     transition: transform var(--dur-slow) var(--ease);
   }
-  /* Scrolling down slides the bar away; any upward scroll brings it back. */
+  /* Search stays pinned app-wide: the bar never hides on scroll. */
   .yb-nav.is-hidden {
-    transform: translateY(-100%);
+    transform: none;
   }
   .yb-nav-bar {
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: 12px;
+    align-items: center;
+    gap: 10px 12px;
     padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
       10px max(14px, env(safe-area-inset-left));
     background: var(--bg-scrim);
@@ -376,11 +408,13 @@ body {
     -webkit-backdrop-filter: saturate(180%) blur(8px);
   }
   .yb-brand {
+    order: 1;
     padding: 0;
     font-size: 19px;
   }
   /* Icon-only toggle with a full 44px hit area. */
   .yb-nav-toggle {
+    order: 2;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -425,9 +459,6 @@ body {
   .yb-nav.is-open .yb-nav-panel {
     transform: none;
   }
-  .yb-nav-search {
-    padding: 0;
-  }
   .yb-nav-foot {
     margin-top: auto;
   }
@@ -464,7 +495,6 @@ body {
 .yb-scroll-x {
   overflow-x: auto;
 }
-
 
 /* Offline notice in the nav — calm, not alarming. */
 .yb-offline {
@@ -511,7 +541,7 @@ body {
   gap: 7px;
 }
 .yb-tick-label strong {
-  font-size: 17px;
+  font-size: var(--fs-lead);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -584,6 +614,12 @@ body {
   text-transform: uppercase;
   color: var(--faint);
 }
+.yb-tick-empty {
+  align-self: center;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  white-space: nowrap;
+}
 .yb-tick-skel {
   flex: none;
   width: 104px;
@@ -593,71 +629,8 @@ body {
 }
 
 /* ---- Front-page hero ---- */
-.yb-hero {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 44px 20px 26px;
-  text-align: center;
-}
-.yb-hero h1 {
-  font-family: var(--display);
-  font-size: clamp(38px, 5.8vw, 58px);
-  font-weight: 800;
-  font-style: italic;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  line-height: 0.95;
-  margin: 0 0 8px;
-  padding-right: 0.04em; /* italic overhang */
-}
-.yb-hero h1 span {
-  color: var(--accent);
-}
-.yb-hero p {
-  color: var(--muted);
-  font-size: var(--fs-lead);
-  margin: 0 auto 26px;
-  max-width: 520px;
-}
-.yb-search-shell {
-  text-align: left;
-}
 .yb-home {
   min-width: 0;
-}
-.yb-search-utility {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
-  align-items: center;
-  gap: 20px;
-  width: calc(100% - 40px);
-  max-width: 1080px;
-  margin: 16px auto 12px;
-  padding: 12px;
-  border-radius: 18px;
-  background: var(--panel);
-}
-.yb-search-utility-head {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  padding: 0 4px;
-}
-.yb-search-utility-head > div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.yb-search-utility-head strong {
-  font-size: var(--fs-ui);
-  letter-spacing: -0.01em;
-}
-.yb-search-utility-head span {
-  color: var(--faint);
-  font-size: var(--fs-small);
 }
 .yb-search-controller {
   position: relative;
@@ -673,7 +646,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   margin-top: 7px;
-  color: var(--loss);
+  color: var(--danger);
   font-size: var(--fs-small);
 }
 .yb-search-inline-error .yb-btn {
@@ -721,14 +694,29 @@ input.yb-search:focus {
   background: var(--bg-soft);
   pointer-events: none;
 }
+/* The magnifying glass is the search button — clickable submit. */
 .yb-search-icon {
   position: absolute;
-  left: 17px;
+  left: 10px;
   top: 50%;
   z-index: 1;
   transform: translateY(-50%);
-  color: var(--faint);
-  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.yb-search-icon:hover {
+  color: var(--text);
+  background: var(--bg-hover);
 }
 
 /* ---- Chips (example queries) ---- */
@@ -748,42 +736,6 @@ input.yb-search:focus {
   color: var(--accent-ink);
   background: var(--accent-soft);
 }
-.yb-query-prompt,
-.yb-recent-searches {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.yb-query-prompt {
-  justify-content: flex-start;
-}
-.yb-query-prompt > span,
-.yb-recent-searches > span {
-  color: var(--faint);
-  font-size: var(--fs-small);
-  font-weight: 600;
-  line-height: 2.4;
-  white-space: nowrap;
-}
-.yb-query-prompt-list {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
-  flex: 1;
-}
-.yb-sample-query,
-.yb-recent-query {
-  max-width: min(100%, 310px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.yb-recent-searches .yb-link {
-  font-size: var(--fs-small);
-}
 
 /* ---- Answer card ---- */
 .yb-card {
@@ -798,19 +750,8 @@ input.yb-search:focus {
   background: var(--panel);
   color: var(--text);
   box-shadow: var(--shadow-card);
-}
-.yb-surface-standard {
   border-radius: var(--r-lg);
   padding: 16px;
-}
-.yb-surface-feature {
-  border-radius: var(--r-xl);
-  padding: 18px 20px;
-}
-.yb-surface-dense {
-  border-radius: var(--r-lg);
-  padding: 0;
-  overflow: hidden;
 }
 .yb-surface.is-interactive {
   transition:
@@ -842,7 +783,7 @@ input.yb-search:focus {
 }
 .yb-badge.success {
   color: var(--success);
-  background: rgba(74, 222, 128, 0.1);
+  background: var(--success-soft);
 }
 .yb-badge.danger {
   color: var(--danger-text);
@@ -920,48 +861,16 @@ p.yb-answer {
   background: transparent;
   box-shadow: none;
 }
-.yb-result-page .yb-query-interpretation {
-  padding: 0;
-  background: transparent;
-}
-.yb-result-export-error {
-  margin: 0 0 16px;
-  color: var(--danger-text);
-  font-size: var(--fs-body);
-}
 .yb-query-result-head {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
 }
-.yb-result-kicker {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--faint);
-  font-size: var(--fs-small);
-  font-weight: 700;
-}
-.yb-query-interpretation {
-  display: grid;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  background: var(--bg-soft);
-  margin: 2px 0 16px;
-}
-.yb-query-interpretation > span {
-  color: var(--muted);
-  font-size: var(--fs-small);
-  font-weight: 700;
-}
-.yb-query-interpretation > div,
 .yb-result-entities {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-}
-.yb-result-entities {
   margin-bottom: 12px;
 }
 .yb-result-body {
@@ -1006,9 +915,9 @@ p.yb-answer {
   color: inherit;
   font-size: var(--fs-caption);
   font-weight: 750;
-  opacity: 0.7;
+  opacity: 1;
 }
-.yb-result-leader-card h3 {
+.yb-result-leader-card h2 {
   margin: 0;
   color: inherit;
   font-size: 19px;
@@ -1023,7 +932,7 @@ p.yb-answer {
   margin: 6px 0 0;
   color: inherit;
   font-size: var(--fs-small);
-  opacity: 0.74;
+  opacity: 1;
 }
 .yb-result-leader-card > a {
   grid-column: 2;
@@ -1041,47 +950,14 @@ p.yb-answer {
   background: rgba(0, 0, 0, 0.28);
   text-decoration: none;
 }
-.yb-result-tabs {
-  display: flex;
-  gap: 24px;
-  margin-top: 28px;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--border);
-  scrollbar-width: none;
-}
-.yb-result-tabs::-webkit-scrollbar {
-  display: none;
-}
-.yb-result-tabs button {
-  position: relative;
-  flex: none;
-  padding: 0 0 11px;
-  border: 0;
-  background: transparent;
-  color: var(--faint);
-  font: inherit;
-  font-size: var(--fs-ui);
-  font-weight: 680;
-  cursor: pointer;
-}
-.yb-result-tabs button:hover,
-.yb-result-tabs button[aria-selected="true"] {
-  color: var(--text);
-}
-.yb-result-tabs button[aria-selected="true"]::after {
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--accent);
-  content: "";
-}
-.yb-result-ranked-table,
-.yb-leader-comparison,
-.yb-result-log-panel {
-  padding-top: 14px;
+/* Apple-style pills, matching player/team tabs. */
+/* Ranked leaderboard table on result pages: nested in its own card. */
+.yb-result-ranked-table {
+  margin-top: 16px;
+  padding: 8px 20px 14px;
+  background: var(--panel);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-card);
 }
 .yb-table-profile-link {
   color: var(--muted);
@@ -1091,37 +967,6 @@ p.yb-answer {
 }
 .yb-table-profile-link:hover {
   color: var(--accent);
-}
-.yb-leader-comparison table {
-  min-width: 980px;
-}
-.yb-leader-comparison > .yb-muted {
-  margin: 18px 14px;
-}
-.yb-result-log-panel > .yb-dd {
-  z-index: 2;
-  margin-bottom: 18px;
-}
-.yb-result-game-log h3 {
-  margin: 0 0 8px;
-  font-size: 20px;
-  font-weight: 740;
-  letter-spacing: -0.025em;
-}
-.yb-result-game-log table {
-  min-width: 720px;
-}
-.yb-result-actions {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 22px;
-  align-items: center;
-}
-.yb-source-note {
-  margin: 12px 0 0;
-  color: var(--faint);
-  font-size: var(--fs-small);
 }
 
 /* ---- Focused result templates: single-player answers and comparisons ---- */
@@ -1160,8 +1005,8 @@ p.yb-answer {
   gap: 14px;
   padding: 14px 16px;
   border-radius: var(--r-xl);
-  background: var(--accent-soft);
-  color: var(--text);
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 .yb-single-player-strip > div {
   min-width: 0;
@@ -1178,21 +1023,15 @@ p.yb-answer {
   gap: 6px;
   margin: 3px 0 0;
   color: inherit;
-  opacity: 0.78;
+  opacity: 1;
   font-size: var(--fs-body);
 }
 .yb-single-player-strip > div > span {
   display: block;
   margin-top: 2px;
   color: inherit;
-  opacity: 0.68;
+  opacity: 1;
   font-size: var(--fs-small);
-}
-.yb-single-player-strip .yb-btn.ghost,
-.yb-single-player-strip .yb-btn.ghost:hover:not(:disabled) {
-  border-color: transparent;
-  background: var(--accent-deep);
-  color: var(--accent-contrast);
 }
 .yb-single-stat-section {
   margin-top: 24px;
@@ -1263,42 +1102,6 @@ p.yb-answer {
   gap: 8px;
   margin-top: 14px;
 }
-.yb-result-methodology {
-  margin-top: 16px;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-}
-.yb-result-methodology summary {
-  min-height: 44px;
-  padding: 14px 0 0;
-  color: var(--faint);
-  font-size: var(--fs-small);
-  font-weight: 650;
-  cursor: pointer;
-}
-.yb-result-methodology > div {
-  padding: 4px 0 8px;
-}
-.yb-result-methodology p {
-  max-width: 70ch;
-  margin: 0 0 12px;
-  font-size: var(--fs-body);
-}
-.yb-result-methodology dl {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0 0 12px;
-}
-.yb-result-methodology dt {
-  color: var(--faint);
-  font-size: var(--fs-caption);
-}
-.yb-result-methodology dd {
-  margin: 2px 0 0;
-  color: var(--text);
-  font-size: var(--fs-small);
-}
 .yb-comparison-matchup {
   position: relative;
   display: grid;
@@ -1332,6 +1135,7 @@ p.yb-answer {
 .yb-comparison-identity.is-b > div {
   grid-column: 1;
   grid-row: 1;
+  padding-left: 32px;
 }
 .yb-comparison-identity:hover {
   background: var(--accent);
@@ -1344,9 +1148,6 @@ p.yb-answer {
 .yb-comparison-identity.is-a > div {
   padding-right: 32px;
 }
-.yb-comparison-identity.is-b > div {
-  padding-left: 32px;
-}
 .yb-comparison-identity h2 {
   margin: 0;
   font-size: 22px;
@@ -1356,17 +1157,8 @@ p.yb-answer {
 .yb-comparison-identity p {
   margin: 3px 0 0;
   color: inherit;
-  opacity: 0.72;
+  opacity: 1;
   font-size: var(--fs-body);
-}
-.yb-comparison-identity .yb-team-logo {
-  position: absolute;
-  top: -1px;
-  right: 0;
-}
-.yb-comparison-identity.is-b .yb-team-logo {
-  right: auto;
-  left: 0;
 }
 .yb-comparison-versus {
   position: absolute;
@@ -1386,7 +1178,7 @@ p.yb-answer {
 }
 .yb-comparison-notice,
 .yb-comparison-summary {
-  margin: 14px 0 0;
+  margin: var(--s-3) 0 0;
   padding: 13px 15px;
   border-radius: var(--r-lg);
   background: var(--bg-soft);
@@ -1398,15 +1190,13 @@ p.yb-answer {
   font-size: var(--fs-body-lg);
   font-weight: 580;
 }
+/* Comparison mode toggle: same single-tone pill spec as .yb-pill-seg. */
 .yb-comparison-modes {
   display: flex;
   justify-content: center;
-  gap: 4px;
-  margin-top: 12px;
+  gap: 8px;
+  margin: 20px 0 4px;
   overflow-x: auto;
-  padding: 4px;
-  border-radius: var(--r-lg);
-  background: var(--panel);
   scrollbar-width: none;
 }
 .yb-comparison-modes::-webkit-scrollbar {
@@ -1415,48 +1205,62 @@ p.yb-answer {
 .yb-comparison-modes button {
   flex: none;
   min-height: 38px;
-  padding: 8px 13px;
+  padding: 8px 14px;
   border: 0;
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--faint);
+  border-radius: var(--r-pill);
+  background: var(--bg-soft);
+  color: var(--muted);
   font: inherit;
   font-size: var(--fs-ui);
   font-weight: 650;
   cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .yb-comparison-modes button:hover {
+  background: var(--bg-hover);
   color: var(--text);
 }
 .yb-comparison-modes button[aria-pressed="true"] {
   background: var(--accent);
   color: var(--accent-contrast);
+  font-weight: 750;
 }
 .yb-comparison-window {
   margin: 10px 0 0;
   color: var(--faint);
   font-size: var(--fs-small);
 }
+/* Three centred columns: value | metric | value, nested inside its own card
+   like every other table. The leading value wears a team-coloured pill; rows
+   and cells stay untinted. */
 .yb-comparison-table {
-  margin-top: 14px;
+  margin-top: 16px;
+  background: var(--panel);
+  border-radius: var(--r-xl);
+  padding: 8px 20px;
+  box-shadow: var(--shadow-card);
 }
 .yb-comparison-table table {
-  min-width: 640px;
+  min-width: 520px;
+  max-width: 760px;
+  margin-inline: auto;
   table-layout: fixed;
+}
+.yb-comparison-table th,
+.yb-comparison-table td,
+.yb-comparison-table tbody th {
+  text-align: center;
 }
 .yb-comparison-table th:nth-child(1),
 .yb-comparison-table td:nth-child(1),
 .yb-comparison-table th:nth-child(3),
 .yb-comparison-table td:nth-child(3) {
-  width: 18%;
+  width: 29%;
+  font-variant-numeric: tabular-nums;
 }
 .yb-comparison-table th:nth-child(2),
 .yb-comparison-table td:nth-child(2) {
-  width: 38%;
-}
-.yb-comparison-table th:nth-child(4),
-.yb-comparison-table td:nth-child(4) {
-  width: 26%;
+  width: 42%;
 }
 .yb-comparison-table tbody th {
   padding: 11px 14px;
@@ -1464,17 +1268,17 @@ p.yb-answer {
   color: var(--text);
   font-size: inherit;
   font-weight: 620;
-  text-align: left;
+  white-space: normal; /* long metric names wrap instead of colliding */
 }
-.yb-comparison-table td.is-edge {
-  color: var(--accent-ink);
-  background: var(--accent-soft);
-  font-weight: 800;
-}
-.yb-comparison-edge {
-  color: var(--muted);
-  font-size: var(--fs-small);
-  font-weight: 650;
+.yb-edge-pill {
+  display: inline-block;
+  min-width: 52px;
+  padding: 3px 12px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 .yb-comparison-game-logs {
   display: grid;
@@ -1490,29 +1294,21 @@ p.yb-answer {
   min-width: 390px;
   font-size: var(--fs-body);
 }
-.yb-comparison-player {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-}
-.yb-comparison-player:hover {
-  text-decoration: none;
-}
-.yb-comparison-player > span {
-  display: flex;
-  flex-direction: column;
-}
-.yb-comparison-player small {
-  margin-top: 2px;
-  color: var(--faint);
-  font-weight: 450;
-}
 
 /* ---- Table — open layout: typography and hairline dividers, no frame ---- */
 .yb-table-scroll {
   overflow-x: auto;
   border-radius: var(--r-lg);
+}
+.yb-table-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: var(--fs-small);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 table.yb-table {
   border-collapse: separate;
@@ -1535,9 +1331,17 @@ table.yb-table th {
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* Tables nested inside a card surface: sticky headers take the card's panel
+   background so they don't punch a darker page-bg slab through the card. */
+.yb-card table.yb-table th,
+.yb-surface table.yb-table th {
+  background: var(--panel);
+}
 table.yb-table td {
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
+  /* Rows stay on one line; the table scrolls inside its own container. */
+  white-space: nowrap;
 }
 table.yb-table td.num,
 table.yb-table th.num {
@@ -1602,21 +1406,10 @@ table.yb-table th.num .yb-th-sort {
   object-fit: contain;
   flex: none;
   vertical-align: -3px;
-  filter:
-    drop-shadow(0 0 1px rgba(255, 255, 255, 0.72))
-    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.42));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 /* ---- SQL / misc ---- */
-pre.yb-sql {
-  background: var(--bg-soft);
-  border-radius: var(--r-md);
-  padding: 14px 16px;
-  overflow-x: auto;
-  font-size: var(--fs-body);
-  font-family: var(--font-mono);
-  color: var(--muted);
-}
 .yb-link {
   background: transparent;
   border: none;
@@ -1628,7 +1421,7 @@ pre.yb-sql {
   font-weight: 600;
 }
 .yb-link:hover {
-  text-decoration: underline;
+  color: var(--accent-hover);
 }
 .yb-muted {
   color: var(--muted);
@@ -1649,53 +1442,30 @@ pre.yb-sql {
   font-family: inherit;
   font-size: var(--fs-ui);
   font-weight: 600;
-  padding: 8px 14px;
-  border-radius: var(--r-md);
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
   cursor: pointer;
-  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  border: 1px solid var(--accent);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  /* The one button style — a grey surface pill on every surface; accent stays
+     reserved for links, content tabs, and content itself. */
+  background: var(--bg-soft);
+  color: var(--text);
+  border: none;
 }
 .yb-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: var(--bg-hover);
   text-decoration: none;
 }
 .yb-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.yb-btn.ghost {
-  background: var(--bg-soft);
-  color: var(--text);
-  border-color: transparent;
-}
-.yb-btn.ghost:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: transparent;
-}
 .yb-btn.sm {
   font-size: var(--fs-small);
   padding: 4px 10px;
-  border-radius: var(--r-sm);
 }
 
 /* ---- Select ---- */
-.yb-select {
-  background: var(--bg-soft);
-  color: var(--text);
-  border: none;
-  border-radius: var(--r-md);
-  padding: 9px 13px;
-  font-size: var(--fs-ui);
-  font-family: inherit;
-  cursor: pointer;
-  transition: background var(--dur) var(--ease);
-}
-.yb-select:hover {
-  background: var(--bg-hover);
-}
 
 /* ---- Empty & error states ---- */
 .yb-state {
@@ -1708,7 +1478,7 @@ pre.yb-sql {
   border-radius: var(--r-lg);
   background: var(--panel);
   color: var(--muted);
-  margin-top: 28px;
+  margin-top: var(--s-8);
 }
 .yb-state h2 {
   color: var(--text);
@@ -1812,7 +1582,7 @@ pre.yb-sql {
   /* Infinite loops must STOP, not spin at 0.001ms (repaint churn). */
   .yb-typing i {
     animation: none;
-    opacity: 0.7;
+    opacity: 1;
   }
   * {
     animation-duration: 0.001ms !important;
@@ -1820,161 +1590,11 @@ pre.yb-sql {
   }
 }
 
-/* ---- Single-season leaders (landing showcase) ---- */
-.yb-leaders {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 8px 20px 64px;
-}
-.yb-leaders-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-}
-.yb-leaders-title {
-  font-size: 27px;
-  line-height: 1.1;
-}
-.yb-leaders-more {
-  font-size: var(--fs-ui);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.yb-leaders-sub {
-  color: var(--muted);
-  font-size: var(--fs-body-lg);
-  margin: 6px 0 18px;
-  max-width: 60ch;
-}
-
-.yb-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.yb-tab {
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  border-radius: var(--r-md);
-  padding: 8px 13px;
-  font-size: var(--fs-ui);
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
-}
-.yb-tab:hover {
-  color: var(--text);
-  background: var(--bg-soft);
-}
-.yb-tab[aria-selected="true"] {
-  color: var(--accent-contrast);
-  background: var(--accent);
-}
-
-.yb-lb {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 4px;
-}
-.yb-lb-row {
-  display: grid;
-  grid-template-columns: 20px minmax(120px, 190px) minmax(0, 1fr) 92px;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: var(--r-md);
-  transition: background var(--dur) var(--ease);
-}
-.yb-lb-row:hover {
-  background: var(--elevated);
-}
-.yb-lb-rank {
-  font-size: var(--fs-body);
-  font-weight: 700;
-  color: var(--faint);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-.yb-lb-name {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  min-width: 0;
-  background: transparent;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.yb-lb-player {
-  max-width: 100%;
-  font-size: var(--fs-body-lg);
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color var(--dur) var(--ease);
-}
-.yb-lb-name:hover .yb-lb-player {
-  color: var(--accent);
-}
-.yb-lb-meta {
-  font-size: var(--fs-small);
-  color: var(--faint);
-  font-variant-numeric: tabular-nums;
-}
-.yb-lb-track {
-  height: 8px;
-  border-radius: var(--r-pill);
-  background: var(--bg-soft);
-  overflow: hidden;
-}
-.yb-lb-fill {
-  display: block;
-  height: 100%;
-  width: 100%;
-  transform-origin: left center;
-  border-radius: var(--r-pill);
-  background: var(--chart);
-  transition: transform var(--dur-reveal) var(--ease);
-}
-.yb-lb-row:hover .yb-lb-fill {
-  background: var(--accent);
-}
-.yb-lb-value {
-  font-size: var(--fs-body-lg);
-  font-weight: 700;
-  color: var(--text);
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
+/* Unit suffix on leaderboard values ("1,621 yds"). */
 .yb-lb-unit {
   font-size: var(--fs-caption);
   font-weight: 500;
   color: var(--faint);
-}
-
-@media (max-width: 560px) {
-  .yb-leaders-head {
-    flex-direction: column;
-    gap: 4px;
-  }
-  .yb-lb-row {
-    grid-template-columns: 18px minmax(0, 1fr) auto;
-  }
-  .yb-lb-track {
-    display: none;
-  }
 }
 
 /* ============================================================
@@ -2008,8 +1628,7 @@ pre.yb-sql {
    can't drift apart. Per-context sizes live on each selector below. */
 .yb-page-title,
 .yb-section-head h2,
-.yb-conf-title,
-.yb-leaders-title {
+.yb-conf-title {
   font-family: var(--display);
   font-weight: 750;
   letter-spacing: -0.025em;
@@ -2030,7 +1649,7 @@ pre.yb-sql {
   max-width: 1200px;
 }
 .yb-entity-hero {
-  margin-bottom: 8px;
+  margin-bottom: 0;
   padding: 24px;
   border-top: 0;
   border-radius: var(--r-xl);
@@ -2052,29 +1671,59 @@ pre.yb-sql {
 }
 .yb-player-profile {
   position: relative;
-  min-height: 296px;
-  padding-left: 240px;
+  padding: var(--s-2) 24px 0;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+/* Bio metadata moved out of the identity card into its own quiet row below. */
+/* Identity/bio card wears the team colour (auto black/white ink), matching
+   the hero — a solid brand surface, never a muddy tint. */
+.yb-player-bio {
+  margin: var(--s-3) 0 0;
+  padding: 16px 20px;
+  border-radius: var(--r-xl);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-card);
+}
+.yb-player-bio dt {
+  color: inherit;
+  opacity: 1;
+}
+.yb-player-bio dd {
+  color: inherit;
 }
 .yb-player-profile .yb-entity-hero-main {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 10px;
 }
 .yb-player-profile .yb-entity-hero-media {
-  position: absolute;
-  left: 24px;
-  bottom: 0;
-  width: 196px;
-  height: calc(100% - 24px);
-  align-items: end;
+  order: 2;
+  position: static;
+  width: auto;
+  height: auto;
+}
+.yb-player-profile .yb-avatar.portrait {
+  width: min(300px, 72vw);
+  height: auto;
 }
 .yb-player-profile .yb-entity-hero-copy {
+  order: 1;
   grid-column: 1;
 }
+.yb-player-profile .yb-entity-meta {
+  justify-content: center;
+}
 .yb-player-profile .yb-entity-utilities {
-  grid-column: 2;
+  order: 3;
+  grid-column: 1;
+  justify-content: center;
 }
 .yb-entity-eyebrow {
   color: inherit;
-  opacity: 0.76;
+  opacity: 1;
   font-size: var(--fs-small);
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -2096,7 +1745,7 @@ pre.yb-sql {
   gap: 8px;
   margin-top: 10px;
   color: inherit;
-  opacity: 0.78;
+  opacity: 1;
 }
 .yb-entity-meta .yb-link {
   display: inline-flex;
@@ -2129,7 +1778,7 @@ pre.yb-sql {
 .yb-info-grid dt,
 .yb-stat-summary dt {
   color: inherit;
-  opacity: 0.72;
+  opacity: 1;
   font-size: var(--fs-caption);
   font-weight: 650;
   letter-spacing: 0.01em;
@@ -2142,11 +1791,17 @@ pre.yb-sql {
   font-variant-numeric: tabular-nums;
 }
 .yb-stat-summary {
-  padding: 18px;
+  padding: var(--s-5);
   border-top: 0;
   border-radius: var(--r-lg);
-  background: var(--accent-soft);
+  background: var(--elevated);
   color: var(--text);
+}
+/* The primary (current-season) summary fills with the team colour; secondary
+   summaries (career, splits) stay neutral so one brand surface leads. */
+.yb-stat-summary--team {
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 .yb-stat-summary > h2 {
   margin: 0 0 16px;
@@ -2157,7 +1812,7 @@ pre.yb-sql {
 .yb-stat-summary > dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 14px;
+  gap: var(--s-5) var(--s-4);
   margin: 0;
 }
 .yb-stat-summary dd {
@@ -2175,23 +1830,21 @@ pre.yb-sql {
 .yb-stat-summary-meta {
   margin-top: 5px;
   color: inherit;
-  opacity: 0.72;
+  opacity: 1;
   font-size: var(--fs-small);
 }
-.yb-entity-hero .yb-dd-btn,
-.yb-entity-hero .yb-btn.ghost {
+.yb-entity-hero .yb-dd-btn {
   background: var(--accent-deep);
   border-color: transparent;
   color: var(--accent-contrast);
 }
-.yb-entity-hero .yb-dd-btn:hover,
-.yb-entity-hero .yb-btn.ghost:hover:not(:disabled) {
+.yb-entity-hero .yb-dd-btn:hover {
   background: var(--accent-deep);
   border-color: transparent;
 }
 .yb-entity-hero .yb-dd-btn svg {
   color: currentColor;
-  opacity: 0.72;
+  opacity: 1;
 }
 .yb-entity-hero .yb-dd-pop {
   background: var(--accent-deep);
@@ -2202,36 +1855,24 @@ pre.yb-sql {
 }
 .yb-entity-hero .yb-dd-item.hi,
 .yb-entity-hero .yb-dd-item[aria-selected="true"] {
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: none;
+  font-weight: 700;
 }
 .yb-profile-workspace {
   display: grid;
-  grid-template-columns: minmax(250px, 0.78fr) minmax(0, 1.55fr);
-  grid-template-areas:
-    "season main"
-    "career main";
+  grid-template-columns: minmax(250px, 0.82fr) minmax(0, 1.5fr);
   align-items: start;
   gap: 20px;
 }
-.yb-profile-rail,
-.yb-profile-main,
-.yb-profile-career {
+.yb-profile-side,
+.yb-profile-main {
   display: grid;
   min-width: 0;
   gap: 20px;
-}
-.yb-profile-rail {
-  grid-area: season;
-}
-.yb-profile-main {
-  grid-area: main;
+  align-content: start;
 }
 .yb-profile-main > * {
   min-width: 0;
-}
-.yb-profile-career {
-  grid-area: career;
 }
 .yb-player-note {
   margin: 0;
@@ -2242,31 +1883,224 @@ pre.yb-sql {
   font-size: var(--fs-body);
 }
 .yb-profile-section-spaced {
-  margin-top: 28px;
+  margin-top: var(--s-8);
 }
-.yb-team-summary {
-  margin-top: 20px;
+/* Team page: a COMPACT identity header (no card, just a hairline underneath),
+   then the season summary carries the team's primary colour. The rest of the
+   page inherits the team accent (via teamTheme on <main>) as soft tints. */
+.yb-entity-hero.yb-team-hero {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 6px 2px 18px;
+  margin-bottom: 20px;
 }
-.yb-team-summary > dl {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.yb-team-hero .yb-entity-title {
+  font-size: clamp(26px, 4vw, 40px);
 }
-.yb-entity-section {
-  margin-top: 28px;
+/* Division/record on one line, rank/streak on the next. */
+.yb-team-hero .yb-entity-meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  margin-top: 6px;
 }
-.yb-page-title::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 34px;
-  height: 3px;
+
+/* ---- Team dashboard: carded sections, leader strip, standings ---- */
+.yb-team-dash .yb-team-hero {
+  margin-bottom: 0;
+}
+.yb-team-panel {
+  margin-top: 24px;
+  padding: var(--s-6) var(--s-6);
+}
+.yb-team-panel .yb-section-head {
+  margin-bottom: 14px;
+}
+.yb-team-panel .yb-section-head h2 {
+  color: var(--accent-ink);
+}
+.yb-card-action {
+  color: var(--accent-ink);
+  font-size: var(--fs-small);
+  font-weight: 650;
+  white-space: nowrap;
+}
+.yb-card-action:hover {
+  color: var(--accent-hover);
+}
+.yb-card-note {
+  margin: 10px 0 0;
+  font-size: var(--fs-small);
+}
+/* Anchor tabs — quick jumps within the dashboard. */
+.yb-team-tabs {
+  display: flex;
+  gap: 8px;
+  margin: var(--s-3) 0 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.yb-team-tabs::-webkit-scrollbar {
+  display: none;
+}
+/* Apple-style pills, matching the player tabs. */
+.yb-team-tabs a {
+  flex: none;
+  background: var(--bg-soft);
   border-radius: var(--r-pill);
-  background: var(--accent);
-}
-.yb-page-sub {
+  padding: 8px 18px;
   color: var(--muted);
-  margin: 12px 0 0;
-  max-width: 62ch; /* keep the intro line readable on wide screens */
+  font-size: var(--fs-ui);
+  font-weight: 650;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.yb-team-tabs a:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+  text-decoration: none;
+}
+.yb-team-tabs a[aria-current="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 750;
+}
+.yb-team-dash [id="leaders"],
+.yb-team-dash [id="stats"],
+.yb-team-dash [id="schedule"],
+.yb-team-dash [id="roster"] {
+  scroll-margin-top: calc(var(--topbar-h) + 16px);
+}
+/* Leaders: three equal stat-forward tiles. */
+.yb-team-leaders {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+/* Centered stat tile: category, value and player name stacked as text, with a
+   large headshot filling the space below. */
+.yb-team-leader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 16px 14px 0;
+  border-radius: var(--r-lg);
+  background: var(--elevated);
+  color: var(--text);
+  overflow: hidden;
+  transition: background var(--dur) var(--ease);
+}
+.yb-team-leader:hover {
+  background: var(--bg-hover);
+  text-decoration: none;
+}
+.yb-team-leader .cat {
+  color: var(--accent-ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.yb-team-leader .val {
+  font-size: clamp(22px, 3.4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.yb-team-leader .val .unit {
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.yb-team-leader .nm {
+  font-size: var(--fs-body);
+  font-weight: 650;
+  text-wrap: balance;
+}
+/* Headshot anchored to the bottom, sized up to fill the tile. */
+.yb-team-leader .yb-avatar {
+  margin-top: 12px;
+  width: 104px;
+  height: 104px;
+}
+/* Compact standings + recent-games tables — fit mobile, no horizontal scroll. */
+.yb-div-standings {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+}
+.yb-div-standings th {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.yb-div-standings td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.yb-div-standings tr:last-child td {
+  border-bottom: none;
+}
+.yb-div-standings th.num,
+.yb-div-standings td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+.yb-div-standings td.strong {
+  font-weight: 750;
+}
+.yb-div-standings .tm {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  font-weight: 600;
+}
+.yb-div-standings tr.is-current {
+  background: var(--accent-soft);
+}
+.yb-div-standings tr.is-current .tm {
+  color: var(--accent-ink);
+  font-weight: 750;
+}
+.yb-div-standings tbody tr:hover td {
+  background: var(--elevated);
+}
+.yb-div-standings tr.is-current:hover td {
+  background: var(--accent-soft);
+}
+.yb-recent-games .wk {
+  width: 54px;
+  color: var(--faint);
+  font-size: var(--fs-small);
+}
+@media (max-width: 640px) {
+  /* One shared phone padding for every section card. */
+  .yb-card {
+    padding: 16px;
+  }
+  /* Swipeable leader row on phones. */
+  .yb-team-leaders {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 74%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .yb-team-leader {
+    scroll-snap-align: start;
+  }
 }
 .yb-page-actions {
   display: flex;
@@ -2278,12 +2112,21 @@ pre.yb-sql {
 .yb-page-filters {
   margin-top: 16px;
 }
+/* Card headers are left-aligned; the action stays pinned right on one row. */
 .yb-section-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin: 0 0 12px;
+}
+.yb-section-head > div {
+  min-width: 0;
+}
+.yb-section-head .yb-section-action {
+  display: flex;
+  align-items: center;
+  flex: none;
 }
 .yb-section-head h2 {
   font-size: 21px;
@@ -2301,30 +2144,12 @@ pre.yb-sql {
 }
 
 /* ---- Stat tiles (dashboard headline numbers) ---- */
-.yb-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-  gap: 12px;
-  margin: 0 0 20px;
-}
-.yb-tile {
-  background: var(--panel);
-  border-radius: var(--r-lg);
-  padding: 16px 18px;
-}
 .yb-tile-label {
   font-size: var(--fs-small);
   font-weight: 600;
   letter-spacing: 0.01em;
   text-transform: none;
   color: var(--muted);
-}
-.yb-tile-value {
-  font-family: var(--display);
-  font-size: 32px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
 }
 .yb-tile-meta {
   font-size: var(--fs-small);
@@ -2338,10 +2163,23 @@ pre.yb-sql {
   gap: 10px;
 }
 .yb-game-card {
+  position: relative;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+/* A final game card is a link to its box score across its whole surface; the
+   two team names stay clickable above it as their own links. */
+a.yb-game-stretch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.yb-game-card a.yb-game-team {
+  position: relative;
+  z-index: 1;
 }
 .yb-game-card-head {
   display: flex;
@@ -2363,9 +2201,10 @@ pre.yb-sql {
   padding: 0 10px 2px;
   color: var(--faint);
   font-size: var(--fs-caption);
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   text-align: left;
-  text-transform: none;
 }
 .yb-mini-boxscore .num {
   text-align: right;
@@ -2413,7 +2252,7 @@ pre.yb-sql {
   margin-top: 1px;
   color: inherit;
   font-size: var(--fs-caption);
-  opacity: 0.68;
+  opacity: 1;
 }
 .yb-game-score {
   font-variant-numeric: tabular-nums;
@@ -2440,57 +2279,23 @@ pre.yb-sql {
   border-radius: var(--r-pill);
   padding: 2px 9px;
 }
-.yb-week-tabs {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  margin: 0;
-  scrollbar-width: thin;
-  min-width: 0;
-  flex: 1;
-}
-.yb-week-tab {
-  flex: none;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  border-radius: var(--r-md);
-  padding: 7px 12px;
-  font-size: var(--fs-body);
-  font-weight: 600;
-  font-family: inherit;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
-}
-.yb-week-tab:hover {
-  color: var(--text);
+/* Week pager: one week shown at a time — Prev / current week pill / Next.
+   Single-tone pills: only the active item carries a background. */
+.yb-week-current {
+  border-radius: var(--r-pill);
+  padding: 7px 16px;
   background: var(--bg-soft);
-}
-.yb-week-tab[aria-selected="true"] {
-  color: var(--accent-contrast);
-  background: var(--accent);
+  color: var(--text);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .yb-week-rail-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-}
-.yb-score-context {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: -6px 0 18px;
-}
-.yb-score-context span {
-  border-radius: var(--r-sm);
-  padding: 4px 9px;
-  color: var(--muted);
-  background: var(--bg-soft);
-  font-size: var(--fs-small);
-  font-variant-numeric: tabular-nums;
 }
 .yb-score-group {
   margin-bottom: 20px;
@@ -2516,43 +2321,9 @@ pre.yb-sql {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.yb-division {
-  margin-bottom: 18px;
-}
-.yb-division h3 {
-  font-size: var(--fs-ui);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  color: var(--muted);
-  margin: 0 0 8px;
-}
 .yb-conf-title {
   font-size: 23px;
   margin-bottom: 12px;
-}
-tr.yb-div-leader td:first-child {
-  box-shadow: inset 3px 0 0 var(--chart);
-}
-.yb-seed {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 22px;
-  border-radius: var(--r-sm);
-  color: var(--text);
-  background: var(--bg-soft);
-  font-size: var(--fs-small);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-tr.yb-div-leader .yb-seed {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-}
-.yb-standing-team-name {
-  white-space: nowrap;
 }
 /* Monocolor: a win carries the single accent, a loss stays neutral — no red. */
 .yb-streak-w {
@@ -2583,8 +2354,10 @@ tr.yb-div-leader .yb-seed {
   padding: 10px 8px 6px;
   border-bottom: 1px solid var(--border);
   color: var(--faint);
-  font-size: var(--fs-small);
-  font-weight: 700;
+  font-size: var(--fs-caption);
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   text-align: right;
 }
 .yb-div-table thead th.team {
@@ -2705,97 +2478,89 @@ tr.yb-div-leader .yb-seed {
   color: var(--faint);
 }
 
-/* Team colour returns to the dense lists as a soft per-row tint — teamTheme()
-   on the row scopes --accent-soft to that team. Never a side stripe. */
-.yb-mini-table tr.yb-team-row {
-  background: var(--accent-soft);
+/* Home mini-tables keep a plain surface: team colour shows only through the
+   streak (teamTheme still scopes --accent-ink on the row), not a row tint. */
+
+/* Whole-row click target. Each of these rows has a single destination but only
+   its name/team link was clickable; the primary link's hit area is stretched
+   to fill the (relatively positioned) row, so clicking anywhere navigates.
+   One real anchor stays intact for keyboard + screen readers. */
+.yb-mini-table tr.yb-team-row,
+.yb-div-table tbody tr,
+.yb-seed-block {
+  position: relative;
 }
-.yb-team-shortcut {
-  background: var(--accent-soft);
-}
-.yb-team-shortcut:hover {
-  background: var(--accent-soft);
-  filter: brightness(1.25);
+.yb-mini-table tr.yb-team-row a::after,
+.yb-div-table tbody tr td.team a::after,
+.yb-seed-block > .tm::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
-/* League leaders — one compact StatMuse-style card: every category stacked,
-   the #1 value in a single-accent pill, chasers as quiet rows. */
-.yb-lead-groups {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-  gap: 4px 32px;
-}
-.yb-lead-group {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-.yb-lead-cat {
-  display: block;
-  margin-bottom: 7px;
-  font-size: var(--fs-small);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--muted);
-}
-.yb-lead-list {
+/* League leaders — one line per category: label, leader, team, value. Each
+   row is one anchor, tinted by the leader's team. */
+.yb-lead-lines {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
-.yb-lead-row {
+.yb-lead-line {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) auto auto;
+  grid-template-areas: "cat nm tm val";
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
   font-size: var(--fs-ui);
+  transition: background var(--dur) var(--ease);
 }
-.yb-lead-row .nm {
+.yb-lead-line .cat {
+  grid-area: cat;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 650;
+}
+.yb-lead-line .nm {
+  grid-area: nm;
   min-width: 0;
   overflow: hidden;
-  color: var(--text);
-  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.yb-lead-row.is-leader .nm {
-  font-weight: 750;
-}
-.yb-lead-row .nm:hover {
-  color: var(--accent-ink);
-  text-decoration: none;
-}
-.yb-lead-row .tm {
-  font-size: var(--fs-small);
-  color: var(--faint);
-  font-variant-numeric: tabular-nums;
-}
-.yb-lead-val {
-  color: var(--muted);
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
-.yb-lead-pill {
-  justify-self: start;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-size: var(--fs-body);
+.yb-lead-line .tm {
+  grid-area: tm;
+  color: var(--faint);
+  font-size: var(--fs-small);
+}
+.yb-lead-line .val {
+  grid-area: val;
+  color: var(--accent-ink);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* Phones: the category takes its own line so the leader's name never clips. */
+@media (max-width: 640px) {
+  .yb-lead-line {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "cat cat cat"
+      "nm tm val";
+    gap: 3px 12px;
+  }
+}
+.yb-lead-line:last-child {
+  border-bottom: none;
+}
+.yb-lead-line:hover {
+  background: var(--elevated);
+  text-decoration: none;
 }
 
-/* ---- Positions: plain text, pure white, readable — no bubble. ---- */
-.yb-pos {
-  display: inline-block;
-  font-size: var(--fs-body);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #ffffff;
-}
 
 /* ---- Fantasy builder ---- */
 .yb-fantasy-grid {
@@ -2871,6 +2636,13 @@ tr.yb-div-leader .yb-seed {
 .yb-slot-empty {
   color: var(--faint);
   font-size: var(--fs-ui);
+}
+/* Lineup slot label (QB/RB/WR/TE/FLEX) — visible, unlike the retired badge. */
+.yb-slot-label {
+  font-size: var(--fs-caption);
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: var(--muted);
 }
 .yb-x {
   background: transparent;
@@ -3101,7 +2873,7 @@ input.yb-input:focus {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: inherit;
-  opacity: 0.72;
+  opacity: 1;
 }
 .yb-potw-name {
   display: flex;
@@ -3112,21 +2884,16 @@ input.yb-input:focus {
   letter-spacing: -0.01em;
   overflow: hidden;
 }
-/* Wrapped name text — clips with an ellipsis on narrow screens. */
+/* Full names always show — wrap instead of clipping to an ellipsis. */
 .yb-potw-name .t,
 .yb-performer .nm .t {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .yb-potw-line {
   font-size: var(--fs-body);
   color: inherit;
-  opacity: 0.76;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  opacity: 1;
 }
 .yb-potw-pts {
   display: flex;
@@ -3147,7 +2914,7 @@ input.yb-input:focus {
   font-weight: 700;
   letter-spacing: 0.06em;
   color: inherit;
-  opacity: 0.68;
+  opacity: 1;
 }
 .yb-performers {
   list-style: none;
@@ -3178,7 +2945,7 @@ input.yb-input:focus {
   font-size: var(--fs-body);
   font-weight: 700;
   color: inherit;
-  opacity: 0.68;
+  opacity: 1;
   font-variant-numeric: tabular-nums;
   flex: none;
 }
@@ -3194,16 +2961,12 @@ input.yb-input:focus {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
+  min-width: 0;
 }
 .yb-performer .ln {
   font-size: var(--fs-small);
   color: inherit;
-  opacity: 0.72;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  opacity: 1;
 }
 .yb-performer .pts {
   font-size: var(--fs-lead);
@@ -3236,27 +2999,41 @@ input.yb-input:focus {
   background: transparent;
   object-fit: contain;
   object-position: center bottom;
+  /* Dissolve the hard bottom crop of the cutout into the card behind it: fade
+     the bottom ~10% of the image to transparent (mask, so it's background-
+     agnostic — works on any team colour or neutral surface). */
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, #000 11%);
+  mask-image: linear-gradient(to top, transparent 0%, #000 11%);
 }
 
 /* ---- Home dashboard ---- */
 .yb-dash {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 8px 20px 48px;
+  padding: var(--s-2) 20px 48px;
   display: grid;
-  gap: 36px;
+  gap: var(--s-8);
 }
 /* Let overflow-x children (the scores strip) scroll instead of widening the
    grid: grid items default to min-width:auto, which is their content size. */
 .yb-dash > * {
   min-width: 0;
 }
+/* Left-aligned card header; the action sits at the row's right edge. */
 .yb-dash-head {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 8px 12px;
   margin-bottom: 12px;
+}
+.yb-dash-head > a,
+.yb-dash-head > .yb-dash-links {
+  flex: none;
+  margin-left: auto;
+}
+.yb-dash-head .yb-pill-seg {
+  align-self: center;
 }
 .yb-dash-head h2 {
   font-family: var(--display);
@@ -3267,22 +3044,20 @@ input.yb-input:focus {
   line-height: 1.1;
   margin: 0;
 }
+/* Section-action links share the card-action tokens everywhere. */
 .yb-dash-head a {
-  font-size: var(--fs-body);
-  font-weight: 600;
+  color: var(--accent-ink);
+  font-size: var(--fs-small);
+  font-weight: 650;
   white-space: nowrap;
+}
+.yb-dash-head a:hover {
+  color: var(--accent-hover);
 }
 .yb-dash-links {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-}
-.yb-dash-grid {
-  display: grid;
-  /* min(340px, 100%): the 340px floor must yield on narrower phones. */
-  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
-  gap: 20px;
-  align-items: start;
 }
 table.yb-mini-table {
   width: 100%;
@@ -3318,69 +3093,141 @@ table.yb-mini-table {
 }
 .yb-dash-foot {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
   border-top: 1px solid var(--border);
   margin-top: 12px;
-  padding-top: 12px;
+  padding-top: 14px;
 }
 
-/* Featured matchup: one box-score card, centered so it never leaves lopsided
-   dead space on wide screens. */
-.yb-featured {
-  max-width: 640px;
-  margin-inline: auto;
+/* Single-tone pill toggle: resting options are bare text, only the active
+   option carries the soft-accent pill. */
+.yb-pill-seg {
+  display: inline-flex;
+  gap: var(--s-2);
+}
+/* One pill behavior everywhere: every option is a visible card-colour pill;
+   the active one fills with the accent (Apple style, same as content tabs). */
+.yb-pill-seg button {
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 6px 14px;
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--fs-small);
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.yb-pill-seg button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.yb-pill-seg button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 750;
 }
 
-/* Trending questions: reuse the chip token; just let them wrap. */
-.yb-trending-list {
+/* Featured matchup: one bold line, no card chrome. */
+.yb-featured-line {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 10px 24px;
+  color: var(--text);
+}
+.yb-featured-line:hover {
+  text-decoration: none;
+}
+.yb-featured-line .teams {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.yb-featured-line .side {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.yb-featured-line .score {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.yb-featured-line .at {
+  color: var(--faint);
+  font-weight: 600;
+}
+.yb-featured-line .meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.yb-featured-line .status {
+  font-weight: 800;
+}
+.yb-featured-line .date {
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+.yb-featured-line .go {
+  color: var(--accent-ink);
+  font-size: var(--fs-body);
+  font-weight: 650;
+  white-space: nowrap;
+}
+.yb-featured-line:hover .go {
+  color: var(--accent-hover);
+}
+
+/* Trending questions: one card, grouped by category. */
+.yb-trend-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 18px 24px;
+}
+.yb-trend-cat {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+.yb-trending {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yb-trending-q {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  font-size: var(--fs-body);
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.yb-trending-q:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 /* Team shortcuts: dense grid of all 32 teams, each a direct link to its page. */
-.yb-team-shortcuts {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
-  gap: 10px;
-}
-.yb-team-shortcut {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: var(--r-md);
-  background: var(--panel);
-  color: var(--text);
-  transition:
-    background var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
-}
-.yb-team-shortcut:hover {
-  background: var(--elevated);
-  transform: translateY(-1px);
-  text-decoration: none;
-}
-.yb-team-shortcut .who {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.15;
-}
-.yb-team-shortcut .ab {
-  font-weight: 700;
-  font-size: var(--fs-small);
-}
-.yb-team-shortcut .nk {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: var(--fs-small);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* ---- Explore: breadcrumbs, team cards, leader cards, filters ---- */
 .yb-crumbs {
@@ -3425,6 +3272,7 @@ table.yb-table a:hover {
   gap: 12px;
   background: var(--panel);
   border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
   min-height: 86px;
   padding: 12px 14px;
   color: var(--text);
@@ -3515,88 +3363,16 @@ table.yb-table a:hover {
   margin-top: 0;
 }
 
-.yb-leader-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(185px, 100%), 1fr));
-  gap: 12px;
-}
-.yb-leader-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-top: 0;
-  background: var(--accent-soft);
-  border-radius: var(--r-lg);
-  padding: 12px 14px;
-  color: var(--text);
-  transition:
-    background var(--dur) var(--ease),
-    transform var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease);
-}
-.yb-leader-card:hover {
-  background: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
-  text-decoration: none;
-}
-.yb-leader-card .body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.yb-leader-card .lbl {
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  color: inherit;
-  opacity: 0.72;
-}
-.yb-leader-card .nm {
-  font-weight: 600;
-  font-size: var(--fs-ui);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.yb-leader-card .val {
-  font-size: var(--fs-body-lg);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
 
-.yb-filters {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin: 0 0 16px;
-}
-.yb-filters label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-body);
-}
 .yb-leader-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 0 0 12px;
-}
-.yb-leader-controls label {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  font-size: var(--fs-body);
-}
-.yb-leader-scope button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+  flex-wrap: wrap;
+  margin: 4px 0 12px;
 }
 .yb-qualification-note {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
   color: var(--faint);
   font-size: var(--fs-small);
 }
@@ -3648,21 +3424,8 @@ a.yb-game-team:hover {
   cursor: pointer;
   font-size: var(--fs-ui);
 }
-.yb-suggest-item[aria-selected="true"] {
-  background: var(--accent-soft);
-}
-.yb-suggest-item .glyph {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-soft);
-  border-radius: 50%;
-  color: var(--muted);
-  font-size: var(--fs-small);
-  font-weight: 700;
+.yb-suggest-item[aria-selected="true"] .nm {
+  color: var(--accent-ink);
 }
 .yb-suggest-item .who {
   display: flex;
@@ -3681,11 +3444,6 @@ a.yb-game-team:hover {
 }
 .yb-suggest-item.muted {
   cursor: default;
-}
-.yb-suggest-item.question .glyph {
-  background: transparent;
-  color: var(--faint);
-  font-size: var(--fs-ui);
 }
 
 /* Head-to-head comparison: mirrored bars per stat, values at the edges,
@@ -3749,7 +3507,7 @@ a.yb-game-team:hover {
 .yb-cmp-head .nm.b .sub {
   justify-content: flex-end;
 }
-.yb-cmp-head .yb-seg button {
+.yb-cmp-head .yb-pill-seg button {
   padding: 4px 10px;
   font-size: var(--fs-small);
 }
@@ -3836,7 +3594,7 @@ a.yb-game-team:hover {
   .yb-cmp-head {
     grid-template-columns: 1fr 1fr;
   }
-  .yb-cmp-head .yb-seg {
+  .yb-cmp-head .yb-pill-seg {
     order: 3;
     grid-column: 1 / -1;
     justify-self: center;
@@ -3851,13 +3609,13 @@ a.yb-game-team:hover {
   margin: 2px 0 14px;
   padding: 10px 14px;
   border-radius: var(--r-lg);
-  background: var(--elevated);
-  color: var(--text);
-  transition: background var(--dur) var(--ease);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  transition: filter var(--dur) var(--ease);
 }
 .yb-player-mini:hover {
   text-decoration: none;
-  background: var(--bg-hover);
+  filter: brightness(1.06);
 }
 .yb-player-mini .who {
   display: flex;
@@ -3879,81 +3637,16 @@ a.yb-game-team:hover {
   align-items: center;
   gap: 6px;
   font-size: var(--fs-small);
-  color: var(--muted);
+  color: inherit;
 }
 .yb-player-mini .go {
   font-size: var(--fs-body);
   font-weight: 600;
-  color: var(--faint);
+  color: inherit;
   white-space: nowrap;
-  transition: color var(--dur) var(--ease);
-}
-.yb-player-mini:hover .go {
-  color: var(--accent);
 }
 
 /* ---- Player bio strip (profile pages) ---- */
-.yb-bio {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  margin: 0 0 20px;
-  border-radius: var(--r-lg);
-  background: var(--panel);
-  overflow: hidden;
-}
-.yb-bio > div {
-  flex: 1 1 110px;
-  padding: 12px 18px;
-}
-.yb-bio dt {
-  margin: 0;
-  font-size: var(--fs-caption);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  color: var(--faint);
-}
-.yb-bio dd {
-  margin: 1px 0 0;
-  font-size: var(--fs-body-lg);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-@media (max-width: 640px) {
-  .yb-bio > div {
-    flex-basis: 33%;
-  }
-}
-
-/* ---- Segmented mode toggle (Totals / Per game) ---- */
-.yb-seg {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  background: var(--bg-soft);
-  border-radius: var(--r-md);
-}
-.yb-seg button {
-  background: transparent;
-  border: none;
-  border-radius: var(--r-sm);
-  color: var(--muted);
-  font: inherit;
-  font-size: var(--fs-body);
-  font-weight: 600;
-  padding: 5px 13px;
-  cursor: pointer;
-  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
-}
-.yb-seg button:hover:not([aria-pressed="true"]) {
-  color: var(--text);
-}
-.yb-seg button[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
 
 /* ---- Glossary ---- */
 .yb-gloss-controls {
@@ -3995,6 +3688,7 @@ a.yb-game-team:hover {
   background: var(--panel);
   border-radius: var(--r-lg);
   padding: 14px 16px;
+  box-shadow: var(--shadow-card);
   transition: background var(--dur) var(--ease);
 }
 .yb-gloss-item:hover {
@@ -4022,12 +3716,7 @@ a.yb-game-team:hover {
   color: var(--muted);
   font-size: var(--fs-body);
   line-height: 1.55;
-}
-mark.yb-hit {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-radius: 3px;
-  padding: 0 1px;
+  text-wrap: pretty;
 }
 
 /* ---- In-house dropdown (replaces native <select>) ---- */
@@ -4038,93 +3727,129 @@ mark.yb-hit {
 .yb-dd-btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s-2);
   background: var(--bg-soft);
   color: var(--text);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 9px 13px;
+  padding: var(--s-2) var(--s-3);
   font-size: var(--fs-ui);
+  font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
-.yb-dd-btn:hover {
+.yb-dd-btn:hover,
+.yb-dd-btn[aria-expanded="true"] {
   background: var(--bg-hover);
+  /* Accent stroke on interaction, matching the search input's focus ring. */
+  border-color: var(--accent-border);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
 }
 .yb-dd-btn svg {
   color: var(--faint);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.yb-dd-btn[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+  color: var(--text);
 }
 .yb-dd-pop {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + var(--s-2));
   right: 0;
   z-index: var(--z-pop);
   min-width: 100%;
-  max-height: 320px;
+  max-height: 320px; /* ~8 rows before scroll; no size token this large */
   overflow-y: auto;
   margin: 0;
-  padding: 4px;
+  padding: var(--s-1);
   list-style: none;
   background: var(--elevated);
-  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
   box-shadow: var(--shadow-pop);
+  animation: yb-dd-in var(--dur) var(--ease);
+}
+@keyframes yb-dd-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .yb-dd-item {
-  padding: 8px 10px;
+  padding: var(--s-2) var(--s-3);
   border-radius: var(--r-sm);
   font-size: var(--fs-ui);
   white-space: nowrap;
   cursor: pointer;
-  color: var(--muted);
+  color: var(--text);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .yb-dd-item.hi {
-  background: var(--bg-soft);
-  color: var(--text);
+  color: var(--accent-ink);
 }
 .yb-dd-item[aria-selected="true"] {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
 }
 
 /* ---- Player page tabs ---- */
 .yb-player-tabs {
   display: flex;
-  gap: 2px;
-  margin: 4px 0 22px;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  margin: var(--s-3) 0 var(--s-6);
   overflow-x: auto; /* five tabs outgrow a phone; scroll like the nav */
   scrollbar-width: none;
 }
 .yb-player-tabs::-webkit-scrollbar {
   display: none;
 }
+/* Apple-style pills: inactive sits at card colour, the active one fills with
+   the team accent (auto black/white ink). No underline. */
 .yb-player-tabs button {
-  background: none;
+  flex: none;
+  background: var(--bg-soft);
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--r-pill);
   color: var(--muted);
   font: inherit;
   font-size: var(--fs-ui);
-  font-weight: 600;
-  padding: 8px 14px;
+  font-weight: 650;
+  padding: 8px 18px;
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--dur) var(--ease);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .yb-player-tabs button:hover {
   color: var(--text);
+  background: var(--bg-hover);
 }
-.yb-player-tabs button[aria-selected="true"] {
-  color: var(--text);
-  border-bottom-color: var(--accent);
+.yb-player-tabs button[aria-selected="true"],
+.yb-player-tabs button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 750;
+}
+/* Position filter on /leaders: same side-scrolling pill row, tighter to the
+   dropdown controls above it. */
+.yb-position-pills {
+  margin: var(--s-3) 0 var(--s-4);
+}
+/* Offense/Defense side toggle above the splits tables. */
+.yb-split-side {
+  margin: 0 0 var(--s-4);
 }
 
 /* ---- Splits tables ---- */
 .yb-split-group {
   margin: 0 0 26px;
 }
-.yb-split-group h2 {
+.yb-split-group h3 {
   font-size: var(--fs-body);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -4134,27 +3859,28 @@ mark.yb-hit {
 }
 
 /* ---- Leaders page boards ---- */
+/* One cohesive panel: a solid team-colour #1 hero, then calm neutral chaser
+   rows divided by hairlines. No rainbow of full-colour bars. */
 .yb-board {
-  border-radius: var(--r-lg);
-  background: transparent;
+  border-radius: var(--r-xl);
+  background: var(--panel);
+  box-shadow: var(--shadow-card);
   display: grid;
-  gap: 6px;
-  overflow: visible;
+  gap: 0;
+  overflow: hidden;
 }
 .yb-board-top {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 18px;
-  border-top: 0;
-  border-bottom: 0;
-  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  border-radius: 0;
   background: var(--accent);
   color: var(--accent-contrast);
-  transition: background var(--dur) var(--ease);
+  transition: filter var(--dur) var(--ease);
 }
 .yb-board-top:hover {
-  background: var(--accent);
+  filter: brightness(1.06);
   text-decoration: none;
 }
 .yb-board-top .who {
@@ -4175,7 +3901,7 @@ mark.yb-hit {
 .yb-board-top .meta {
   font-size: var(--fs-body);
   color: inherit;
-  opacity: 0.72;
+  opacity: 1;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -4198,18 +3924,14 @@ mark.yb-hit {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 20px;
-  border-left: 0;
-  border-radius: var(--r-md);
-  background: var(--accent);
-  color: var(--accent-contrast);
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
   transition: background var(--dur) var(--ease);
 }
-.yb-board-row:last-child {
-  padding-bottom: 12px;
-}
 .yb-board-row:hover {
-  background: var(--accent);
+  background: var(--bg-soft);
   text-decoration: none;
 }
 .yb-board-row .rk {
@@ -4217,8 +3939,7 @@ mark.yb-hit {
   text-align: center;
   font-size: var(--fs-body);
   font-weight: 700;
-  color: inherit;
-  opacity: 0.68;
+  color: var(--faint);
   font-variant-numeric: tabular-nums;
   flex: none;
 }
@@ -4235,8 +3956,7 @@ mark.yb-hit {
 }
 .yb-board-row .tm {
   font-size: var(--fs-small);
-  color: inherit;
-  opacity: 0.72;
+  color: var(--muted);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -4245,215 +3965,311 @@ mark.yb-hit {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  color: var(--text);
 }
 .yb-board-top .yb-avatar,
 .yb-board-row .yb-avatar,
 .yb-potw .yb-avatar,
-.yb-performer .yb-avatar,
-.yb-leader-card .yb-avatar {
+.yb-performer .yb-avatar {
   box-shadow: none;
   background: transparent;
 }
+/* Phones: the leader value + name + badges don't fit one row. Give the
+   featured value its own line, and drop the redundant unit on compact rows
+   (the category header already names it). */
+@media (max-width: 560px) {
+  .yb-board-top {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .yb-board-top .val {
+    flex-basis: 100%;
+    text-align: right;
+  }
+  .yb-board-row {
+    gap: 10px;
+    padding-inline: 14px;
+  }
+  .yb-board-row .val .yb-lb-unit {
+    display: none;
+  }
+  /* Headshot already carries identity; drop the team badge so the value
+     never gets clipped by the panel edge on narrow screens. */
+  .yb-board-row .tm-team {
+    display: none;
+  }
+}
 
-/* ---- Box score page ---- */
-.yb-boxscore-summary {
-  margin-bottom: 18px;
-}
-.yb-boxscore-summary > header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 4px 8px;
-}
-.yb-boxscore-summary > header strong {
-  font-size: var(--fs-ui);
-}
-.yb-boxscore-summary > header span {
-  color: var(--faint);
-  font-size: var(--fs-small);
-  text-align: right;
-}
-.yb-boxscore-summary table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 6px;
-}
-.yb-boxscore-summary th {
-  padding: 0 16px 2px;
-  color: var(--faint);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  text-align: left;
-}
-.yb-boxscore-summary .num {
-  text-align: right;
-}
-.yb-boxscore-row {
+/* ---- Game screen: score header, summary sections, box score ---- */
+.yb-game-head {
+  margin: 4px 0 14px;
+  padding: 16px 18px 6px;
+  border-radius: var(--r-xl);
   background: var(--panel);
-  color: var(--muted);
+  box-shadow: var(--shadow-card);
 }
-.yb-boxscore-row.winner {
-  background: var(--accent-soft);
-  color: var(--text);
+.yb-game-meta {
+  margin: 0 0 12px;
+  font-size: var(--fs-small);
+  font-weight: 650;
 }
-.yb-boxscore-row td {
-  padding: 14px 16px;
+.yb-game-team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0 14px;
 }
-.yb-boxscore-row td:first-child {
-  border-radius: var(--r-lg) 0 0 var(--r-lg);
+.yb-game-team-row + .yb-game-team-row {
+  border-top: 1px solid var(--border);
 }
-.yb-boxscore-row td:last-child {
-  border-radius: 0 var(--r-lg) var(--r-lg) 0;
-}
-.yb-boxscore-row .tm {
+.yb-game-team-row .tm {
   display: inline-flex;
   align-items: center;
   gap: 14px;
   color: inherit;
 }
-.yb-boxscore-row .tm:hover {
+.yb-game-team-row .tm:hover {
   color: inherit;
   text-decoration: none;
 }
-.yb-boxscore-row .nm {
+.yb-game-team-row .nm {
   display: block;
   font-size: 20px;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: -0.025em;
 }
-.yb-boxscore-row .sub {
+.yb-game-team-row .sub {
   display: block;
   margin-top: 2px;
   font-size: var(--fs-caption);
-  opacity: 0.68;
+  font-weight: 650;
 }
-.yb-boxscore-row .score {
-  font-size: clamp(34px, 29px + 1.3vw, 44px);
-  font-weight: 780;
+.yb-game-team-row .score {
+  font-size: clamp(30px, 26px + 1.2vw, 40px);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
-.yb-team-box {
-  overflow: hidden;
-  border-radius: var(--r-lg);
-  background: var(--panel);
-}
-.yb-team-box-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--accent-soft);
-  color: var(--text);
-}
-.yb-team-box-head h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-}
-.yb-team-box-head span {
-  display: block;
-  margin-top: 2px;
-  font-size: var(--fs-caption);
-  opacity: 0.7;
-}
-.yb-team-box-body {
-  padding: 14px 16px 4px;
-}
-.yb-boxhead {
-  border-radius: var(--r-lg);
-  background: var(--panel);
-  padding: 4px 20px 10px;
-  margin-bottom: 18px;
-}
-.yb-boxhead .side {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 10px 0;
-}
-.yb-boxhead .side + .side {
-  border-top: 1px solid var(--border);
-}
-.yb-boxhead .tm {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text);
-}
-.yb-boxhead .tm:hover {
-  text-decoration: none;
-  color: var(--accent);
-}
-.yb-boxhead .tm .nm {
-  display: block;
-  font-family: var(--display);
-  font-size: 24px;
-  font-weight: 750;
-  text-transform: none;
-  line-height: 1.05;
-}
-.yb-boxhead .tm .sub {
-  font-size: var(--fs-caption);
-  color: var(--faint);
-}
-.yb-boxhead .score {
-  font-family: var(--display);
-  font-size: clamp(32px, 27px + 1.4vw, 40px);
+.yb-game-team-row.winner .nm,
+.yb-game-team-row.winner .score {
   font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  line-height: 1;
 }
-.yb-boxhead .side.won .score {
-  color: var(--accent);
+.yb-game-tabs {
+  margin-bottom: var(--s-4);
 }
-.yb-boxhead .meta {
-  margin: 8px 0 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  font-size: var(--fs-small);
-  color: var(--faint);
+
+/* Summary/overview sections: stacked cards with a shared title style. */
+.yb-game-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-.yb-box-teams {
+.yb-game-sections h2 {
+  margin: 0 0 10px;
+  font-size: var(--fs-ui);
+  font-weight: 750;
+  letter-spacing: 0.01em;
+}
+.yb-game-summary p {
+  margin: 0;
+  font-size: var(--fs-body-lg);
+  line-height: 1.55;
+}
+
+/* Team comparison: away value | stat label | home value. */
+.yb-game-cmp-head,
+.yb-game-cmp-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 1fr minmax(0, 2fr) 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.yb-game-cmp-head {
+  padding: 2px 0 6px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.yb-game-cmp-head span:last-child {
+  text-align: right;
+}
+.yb-game-cmp-row {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.yb-game-cmp-row .lbl {
+  text-align: center;
+  font-size: var(--fs-small);
+  font-weight: 650;
+}
+.yb-game-cmp-row .v {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+.yb-game-cmp-row .v:last-child {
+  text-align: right;
+}
+.yb-game-cmp-row .v.lead {
+  font-weight: 800;
+}
+
+/* Top performers: one column per team. */
+.yb-game-performers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
-/* ---- Compact box score: denser than the default split tables ---- */
-.yb-box-teams > div + div {
-  margin-top: 14px;
+.yb-game-performers-grid h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: var(--fs-small);
+  font-weight: 750;
+}
+.yb-game-performer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+}
+.yb-game-performer + .yb-game-performer {
+  border-top: 1px solid var(--border);
+}
+.yb-game-performer a {
+  font-weight: 700;
+  font-size: var(--fs-ui);
+}
+.yb-game-performer .line {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scoring log: quarter groups of compact event rows. */
+.yb-scoring-note {
+  margin: -4px 0 10px;
+  font-size: var(--fs-small);
+}
+.yb-scoring-log h3 {
+  margin: 14px 0 4px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.yb-scoring-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+}
+.yb-scoring-row + .yb-scoring-row {
+  border-top: 1px solid var(--border);
+}
+.yb-scoring-row .clk {
+  flex: none;
+  min-width: 42px;
+  padding-top: 1px;
+  font-size: var(--fs-small);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.yb-scoring-row .who {
+  display: block;
+  font-weight: 700;
+}
+.yb-scoring-row .kind {
+  font-weight: 650;
+  font-size: var(--fs-small);
+}
+.yb-scoring-row .desc {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+
+/* Game information: label/value pairs. */
+.yb-game-info dl {
+  margin: 0;
+}
+.yb-game-info dl > div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+  padding: 7px 0;
+}
+.yb-game-info dl > div + div {
+  border-top: 1px solid var(--border);
+}
+.yb-game-info dt {
+  font-size: var(--fs-small);
+  font-weight: 650;
+}
+.yb-game-info dd {
+  margin: 0;
+  font-weight: 650;
+}
+
+/* Box score: sticky category pills over one large container of stacked
+   team tables with hairline dividers. */
+.yb-box-subtabs {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 5;
+  margin: 0 -4px var(--s-4);
+  padding: 8px 4px;
+  background: var(--bg);
+}
+.yb-box-subtabs .yb-player-tabs {
+  margin: 0;
+}
+.yb-box-team + .yb-box-team {
+  margin-top: 18px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
 }
-.yb-box-teams > .yb-team-box + .yb-team-box {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+.yb-box-teamhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: var(--fs-ui);
+  font-weight: 750;
 }
-.yb-box-teams .yb-conf-title {
-  font-size: 19px;
-  margin: 6px 0 10px;
-}
-.yb-box-teams .yb-split-group {
-  margin-bottom: 12px;
-}
-/* Box sections use <h3> (nested under the team <h2>); style them like the
-   compact split headers (ui-26 restyled only the <h2> variant). */
-.yb-box-teams .yb-split-group h3 {
-  margin: 0 0 6px;
-  font-size: var(--fs-caption);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  color: var(--muted);
-}
-.yb-box-teams table.yb-table th,
-.yb-box-teams table.yb-table td {
+.yb-box-table th,
+.yb-box-table td {
   padding: 7px 12px;
+}
+.yb-box-table tr.lead td {
+  background: var(--bg-soft);
+  font-weight: 750;
+}
+.yb-box-table tr.lead td:first-child {
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+}
+.yb-box-table tr.lead td:last-child {
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+.yb-box-empty {
+  margin: 0;
+  padding: 8px 0;
+  font-weight: 650;
+}
+
+@media (max-width: 680px) {
+  .yb-game-performers-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .yb-game-cmp-head,
+  .yb-game-cmp-row {
+    grid-template-columns: 1fr minmax(0, 1.4fr) 1fr;
+  }
+  .yb-game-info dl > div {
+    grid-template-columns: 105px minmax(0, 1fr);
+  }
 }
 
 /* ============================================================
@@ -4464,19 +4280,7 @@ mark.yb-hit {
    ADD properties may stay beside their components.)
    ============================================================ */
 @media (min-width: 861px) and (max-width: 1180px) {
-  .yb-player-profile {
-    min-height: 286px;
-    padding-left: 220px;
-  }
-  .yb-player-profile .yb-entity-hero-media {
-    width: 176px;
-  }
-  .yb-player-profile .yb-entity-hero-media .yb-avatar.portrait {
-    width: 176px !important;
-    height: 220px !important;
-  }
   .yb-player-profile .yb-entity-hero-main {
-    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }
   .yb-player-profile .yb-entity-title {
@@ -4486,7 +4290,6 @@ mark.yb-hit {
   }
   .yb-player-profile .yb-entity-utilities {
     grid-column: 1;
-    justify-content: flex-start;
   }
   .yb-player-profile > .yb-info-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4495,10 +4298,6 @@ mark.yb-hit {
   }
   .yb-profile-workspace {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "season"
-      "main"
-      "career";
   }
   .yb-profile-rail .yb-stat-summary > dl,
   .yb-profile-career .yb-stat-summary > dl {
@@ -4507,27 +4306,40 @@ mark.yb-hit {
 }
 
 @media (max-width: 860px) {
+  /* Mobile nav is a sticky two-row bar (brand + search), not the 74px desktop
+     topbar: pin the box-score category tabs just under its real height
+     (102px of content/padding + the safe-area-driven top padding). */
+  .yb-box-subtabs {
+    top: calc(102px + max(10px, env(safe-area-inset-top)));
+  }
   /* Touch targets: 44px minimum (WCAG 2.5.8 / Apple HIG). */
-  .yb-nav-links a,
-  .yb-btn,
-  .yb-tab,
-  .yb-week-tab,
-  .yb-chip,
-  .yb-dd-btn,
-  .yb-lb-name,
-  .yb-input,
-  .yb-x,
-  .yb-seg button,
-  .yb-player-tabs button,
-  .yb-suggest-item {
+.yb-nav-links a,
+.yb-btn,
+.yb-chip,
+.yb-dd-btn,
+.yb-input,
+.yb-x,
+.yb-pill-seg button,
+.yb-player-tabs button,
+.yb-trending-q,
+.yb-suggest-item {
     min-height: 44px;
+  }
+  /* Team tabs are <a>: give them the flex box so min-height applies. */
+  .yb-team-tabs a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .yb-search-icon {
+    width: 44px;
+    height: 44px;
   }
   .yb-x {
     min-width: 44px;
   }
   /* Inline text links: grow the hit area, not the glyphs. */
   .yb-link,
-  .yb-leaders-more,
   .yb-dash-head a {
     padding-block: 12px;
     margin-block: -12px;
@@ -4548,24 +4360,9 @@ mark.yb-hit {
     min-height: 0;
     padding: 18px;
   }
-  .yb-player-profile .yb-entity-hero-main {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-  .yb-player-profile .yb-entity-hero-media {
-    position: static;
-    width: auto;
-    height: auto;
-  }
   .yb-player-profile .yb-entity-hero-media .yb-avatar.portrait {
-    width: 140px !important;
-    height: 176px !important;
-  }
-  .yb-player-profile .yb-entity-hero-copy,
-  .yb-player-profile .yb-entity-utilities {
-    grid-column: auto;
-  }
-  .yb-player-profile .yb-entity-utilities {
-    grid-column: 1 / -1;
+    width: min(240px, 66vw) !important;
+    height: auto !important;
   }
   .yb-player-profile > .yb-info-grid {
     margin-left: 0;
@@ -4576,13 +4373,6 @@ mark.yb-hit {
   }
   .yb-profile-workspace {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "season"
-      "main"
-      "career";
-  }
-  .yb-team-summary > dl {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .yb-page-header {
     margin-bottom: 24px;
@@ -4595,30 +4385,8 @@ mark.yb-hit {
   .yb-result-page-actions {
     justify-content: flex-start;
   }
-  .yb-result-tabs button {
-    min-height: 44px;
-  }
-  .yb-single-answer-core {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .yb-result-methodology dl {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .yb-comparison-game-logs {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .yb-hero {
-    padding: 28px 16px 20px;
-  }
-  .yb-search-utility {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-    margin-top: 12px;
-    padding: 12px;
-    top: 64px;
-  }
-  .yb-search-utility-head {
-    display: none;
   }
   .yb-dash {
     gap: 28px;
@@ -4647,33 +4415,8 @@ mark.yb-hit {
   .yb-player-profile {
     padding: 16px;
   }
-  .yb-player-profile .yb-entity-hero-main {
-    grid-template-columns: minmax(0, 1fr) 116px;
-    grid-template-areas:
-      "copy media"
-      "utilities utilities";
-    align-items: end;
-    column-gap: 10px;
-  }
-  .yb-player-profile .yb-entity-hero-copy {
-    grid-area: copy;
-  }
-  .yb-player-profile .yb-entity-hero-media {
-    grid-area: media;
-    width: 116px;
-    height: 148px;
-    align-items: end;
-  }
-  .yb-player-profile .yb-entity-utilities {
-    grid-area: utilities;
-  }
-  .yb-search-utility-head span {
-    display: none;
-  }
-  .yb-player-profile .yb-entity-hero-media .yb-avatar.portrait {
-    width: 116px !important;
-    height: 148px !important;
-  }
+
+
   .yb-entity-title {
     font-size: 32px;
   }
@@ -4740,19 +4483,18 @@ mark.yb-hit {
   }
   .yb-single-stat-table td.is-query-metric::before {
     color: inherit;
-    opacity: 0.72;
+    opacity: 1;
   }
   .yb-single-context {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
   }
-  .yb-comparison-identities {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .yb-comparison-modes {
     margin-right: -20px;
     padding-right: 20px;
     border-radius: var(--r-lg) 0 0 var(--r-lg);
+    justify-content: flex-start;
+    gap: 0;
   }
   .yb-comparison-matchup {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4791,11 +4533,6 @@ mark.yb-hit {
   .yb-comparison-identity p {
     font-size: var(--fs-small);
   }
-  .yb-comparison-identity .yb-team-logo,
-  .yb-comparison-identity.is-b .yb-team-logo {
-    position: static;
-    margin-top: 6px;
-  }
   .yb-comparison-versus {
     top: 42px;
     width: 36px;
@@ -4815,19 +4552,11 @@ mark.yb-hit {
   .yb-comparison-table td:nth-child(1),
   .yb-comparison-table th:nth-child(3),
   .yb-comparison-table td:nth-child(3) {
-    width: 16%;
+    width: 27%;
   }
   .yb-comparison-table th:nth-child(2),
   .yb-comparison-table td:nth-child(2) {
-    width: 44%;
-  }
-  .yb-comparison-table th:nth-child(4),
-  .yb-comparison-table td:nth-child(4) {
-    width: 24%;
-  }
-  .yb-comparison-modes {
-    justify-content: flex-start;
-    gap: 0;
+    width: 46%;
   }
   .yb-comparison-modes button {
     padding-inline: 9px;

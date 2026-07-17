@@ -1,8 +1,36 @@
 /** SCORING executor: a player's touchdown timeline from scoring_plays —
- * first/last TD, or a most-recent-first list. */
+ * first/last TD, or a most-recent-first list — plus the scoring BOARD:
+ * touchdown counts per player filtered by distance and td_kind. */
 
-import type { ScoringSpec } from "../spec.js";
-import { Params, roundPred } from "./shared.js";
+import type { ScoringBoardSpec, ScoringSpec } from "../spec.js";
+import { gamePreds, Params, roundPred } from "./shared.js";
+
+/** "Most TDs of 50 or more yards" / "from exactly 1 yard out" / "inside the
+ * 5" / defensive-return boards: COUNT(*) per scorer over scoring_plays.
+ * Distance bounds compare s.yards (NULL distance never qualifies); kind
+ * filters compare the exact ingest-time td_kind classification — never the
+ * description text, which miscounts own-fumble recoveries as defensive.
+ * scoring_plays is aliased `s` so the shared gamePreds venue/opponent
+ * predicates (s.team_id vs games) apply unchanged. */
+export function scoringBoardSql(spec: ScoringBoardSpec, p: Params): string {
+  const where = [...gamePreds(spec, p)];
+  if (spec.yardsMin != null) where.push(`s.yards >= ${p.add(spec.yardsMin)}`);
+  if (spec.yardsMax != null) where.push(`s.yards <= ${p.add(spec.yardsMax)}`);
+  if (spec.tdKind === "defense") {
+    where.push("s.td_kind IN ('int_return', 'fumble_return')");
+  } else if (spec.tdKind) {
+    where.push(`s.td_kind = ${p.add(spec.tdKind)}`);
+  }
+  return (
+    "SELECT p.player_id, p.full_name, COUNT(*) AS value " +
+    "FROM scoring_plays s " +
+    "JOIN games g ON g.game_id = s.game_id " +
+    "JOIN players p ON p.player_id = s.player_id " +
+    `WHERE ${where.join(" AND ")} ` +
+    "GROUP BY p.player_id, p.full_name " +
+    `ORDER BY value DESC, p.full_name LIMIT ${p.add(spec.limit)}`
+  );
+}
 
 export function scoringSql(spec: ScoringSpec, p: Params): string {
   if (spec.longest) {

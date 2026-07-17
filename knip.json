@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "workspaces": {
+    "apps/web": {
+      "entry": ["app/**/{page,layout,error,loading,not-found}.tsx", "e2e/**/*.spec.ts"],
+      "project": ["app/**/*.{ts,tsx}", "e2e/**/*.ts"]
+    },
+    "apps/server": {
+      "entry": ["src/cli/*.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"],
+      "ignoreDependencies": ["pino-pretty"]
+    },
+    "packages/types": {
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

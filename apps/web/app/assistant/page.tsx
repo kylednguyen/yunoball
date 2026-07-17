@@ -53,7 +53,7 @@ function AssistantLocked() {
         <h1 className="yb-page-title">Fantasy Assistant</h1>
         <p className="yb-paywall-lede">
           An AI teammate that makes the call, not just the lookup: start/sit verdicts that weigh
-          production, PPR floor, offense environment and touchdown reliance — every number pulled
+          production, PPR floor, offense environment and touchdown reliance. Every number pulled
           live from the warehouse.
         </p>
         <ul className="yb-paywall-list">
@@ -85,12 +85,12 @@ function AssistantChat() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
 
-  const send = async (text: string) => {
+  const sendWith = async (base: Message[], text: string) => {
     const question = text.trim();
     if (!question || busy) return;
     setError(null);
     setInput("");
-    const history: Message[] = [...messages, { role: "user", content: question }];
+    const history: Message[] = [...base, { role: "user", content: question }];
     setMessages(history);
     setBusy(true);
     try {
@@ -103,17 +103,19 @@ function AssistantChat() {
       setBusy(false);
     }
   };
+  const send = (text: string) => sendWith(messages, text);
+  // Retry re-sends the last (failed) user turn without duplicating it.
+  const retry = () => {
+    const last = messages[messages.length - 1];
+    if (busy || !last || last.role !== "user") return;
+    void sendWith(messages.slice(0, -1), last.content);
+  };
 
   return (
     <main id="main" className="yb-page" style={{ maxWidth: 780 }}>
       <div className="yb-page-head">
         <h1 className="yb-page-title">Fantasy Assistant</h1>
       </div>
-      <p className="yb-page-sub">
-        Judgment calls, not just lookups: start/sit verdicts weigh production, PPR floor, offense
-        environment and TD reliance. Every number comes from the warehouse. For basic stat questions,
-        use <Link href="/">Search</Link>.
-      </p>
 
       <div className="yb-chat" aria-live="polite">
         {messages.length === 0 && (
@@ -154,9 +156,12 @@ function AssistantChat() {
       </div>
 
       {error && (
-        <p role="alert" style={{ color: "var(--danger)", fontSize: 14 }}>
-          {friendlyError(error)} Try again.
-        </p>
+        <div className="yb-search-inline-error" role="alert">
+          <span>{friendlyError(error)}</span>
+          <button className="yb-btn sm" type="button" onClick={retry}>
+            Try again
+          </button>
+        </div>
       )}
 
       <form

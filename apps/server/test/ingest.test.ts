@@ -45,16 +45,23 @@ const SCHED_CSV = [
 ];
 
 const ROSTER_CSV = [
-  // Duplicate rows for the same player (two seasons) — latest must win.
-  { gsis_id: "P_MAHOMES", season: "2022", full_name: "Patrick Mahomes", first_name: "Patrick",
-    last_name: "Mahomes", position: "QB", birth_date: "1995-09-17", height: "74", weight: "225", college: "Texas Tech" },
-  { gsis_id: "P_MAHOMES", season: "2023", full_name: "Patrick Mahomes", first_name: "Patrick",
-    last_name: "Mahomes", position: "QB", birth_date: "1995-09-17", height: "74", weight: "227", college: "Texas Tech" },
-  { gsis_id: "P_ADAMS", season: "2023", full_name: "Davante Adams", first_name: "Davante",
-    last_name: "Adams", position: "WR", birth_date: "", height: "73", weight: "215", college: "Fresno St" },
+  // Duplicate rows for the same player (two seasons) — latest must win in the
+  // players dimension; the 2022 row also exercises the rosters season guard
+  // (2022 isn't an ingested season in these tests).
+  { gsis_id: "P_MAHOMES", season: "2022", team: "KC", full_name: "Patrick Mahomes", first_name: "Patrick",
+    last_name: "Mahomes", position: "QB", birth_date: "1995-09-17", height: "74", weight: "225",
+    college: "Texas Tech", jersey_number: "15", status: "ACT" },
+  { gsis_id: "P_MAHOMES", season: "2023", team: "KC", full_name: "Patrick Mahomes", first_name: "Patrick",
+    last_name: "Mahomes", position: "QB", birth_date: "1995-09-17", height: "74", weight: "227",
+    college: "Texas Tech", jersey_number: "15", status: "ACT" },
+  // Historical team abbr — must normalize to the current franchise (LV).
+  { gsis_id: "P_ADAMS", season: "2023", team: "OAK", full_name: "Davante Adams", first_name: "Davante",
+    last_name: "Adams", position: "WR", birth_date: "", height: "73", weight: "215",
+    college: "Fresno St", jersey_number: "17", status: "ACT" },
   // No stable id — must be skipped (and logged), never keyed by name.
-  { gsis_id: "", season: "2023", full_name: "Practice Squad Guy", first_name: "Practice",
-    last_name: "Guy", position: "WR", birth_date: "", height: "", weight: "", college: "" },
+  { gsis_id: "", season: "2023", team: "KC", full_name: "Practice Squad Guy", first_name: "Practice",
+    last_name: "Guy", position: "WR", birth_date: "", height: "", weight: "", college: "",
+    jersey_number: "", status: "DEV" },
 ];
 
 function wk(player_id: string, week: string, team: string, season_type: string, stats: Record<string, string> = {}) {
@@ -81,6 +88,20 @@ const WEEKLY_CSV = [
   wk("P_GHOST", "1", "KC", "REG", { passing_yards: "99" }),
 ];
 
+// Id crosswalk (players release): keyed on gsis_id. One row without a gsis
+// id (skipped), one retired player outside the loaded seasons (kept — the
+// crosswalk has no players FK), one player with no nflverse headshot (espn
+// CDN fallback at runtime).
+const PLAYER_IDS_CSV = [
+  { gsis_id: "P_MAHOMES", esb_id: "ESB_M", pfr_id: "MahoPa00", pff_id: "11765",
+    otc_id: "1889", espn_id: "3139477", headshot: "https://static.www.nfl.com/image/mahomes" },
+  { gsis_id: "P_ADAMS", esb_id: "ESB_A", pfr_id: "AdamDa01", pff_id: "NA",
+    otc_id: "", espn_id: "16800", headshot: "" },
+  { gsis_id: "", esb_id: "ESB_GHOST", pfr_id: "", pff_id: "", otc_id: "", espn_id: "", headshot: "" },
+  { gsis_id: "P_RETIRED", esb_id: "ESB_R", pfr_id: "RetiJo00", pff_id: "",
+    otc_id: "", espn_id: "1428", headshot: "https://static.www.nfl.com/image/retired" },
+];
+
 function seasonRowFx(player_id: string, recent_team: string, stats: Record<string, string> = {}) {
   return {
     player_id, recent_team, games: "16", passing_yards: "0", passing_tds: "0",
@@ -96,15 +117,61 @@ const SEASON_REG_CSV = [
 ];
 const SEASON_POST_CSV = [seasonRowFx("P_MAHOMES", "KC", { passing_yards: "333", games: "1" })];
 
+// Play-by-play TD events, shaped like the pbp release columns the scoring
+// step reads. Covers every td_kind classification and each home of the true
+// TD distance (yards_gained vs return_yards vs fumble_recovery_1_yards).
+function pbp(over: Record<string, string>) {
+  return {
+    game_id: "2023_01_OAK_KC", play_id: "1", season_type: "REG", touchdown: "1",
+    td_player_id: "", td_team: "", posteam: "KC",
+    yards_gained: "0", return_yards: "0", fumble_recovery_1_yards: "",
+    pass_touchdown: "0", rush_touchdown: "0", return_touchdown: "0", interception: "0",
+    qtr: "1", play_type: "run", desc: "", epa: "", success: "", cpoe: "", drive: "",
+    passer_player_id: "", rusher_player_id: "", receiver_player_id: "",
+    ...over,
+  };
+}
+
+const PBP_CSV = [
+  // Offensive scrimmage TDs: distance = yards_gained.
+  pbp({ play_id: "10", td_player_id: "P_MAHOMES", td_team: "KC",
+    rush_touchdown: "1", yards_gained: "1", desc: "P.Mahomes 1 yard run, TOUCHDOWN." }),
+  pbp({ play_id: "20", td_player_id: "P_ADAMS", td_team: "OAK", posteam: "OAK",
+    pass_touchdown: "1", play_type: "pass", yards_gained: "75",
+    desc: "Pass deep to D.Adams for 75 yards, TOUCHDOWN." }),
+  // Pick six: yards_gained is the offense's 0 — distance lives in return_yards.
+  pbp({ play_id: "30", td_player_id: "P_MAHOMES", td_team: "KC", posteam: "OAK",
+    return_touchdown: "1", interception: "1", play_type: "pass", return_yards: "45",
+    desc: "Pass INTERCEPTED by P.Mahomes for 45 yards, TOUCHDOWN." }),
+  // Defensive fumble return: return_yards is 0 too — fumble_recovery_1_yards has it.
+  pbp({ play_id: "40", td_player_id: "P_ADAMS", td_team: "OAK",
+    return_touchdown: "1", yards_gained: "-4", fumble_recovery_1_yards: "30",
+    desc: "FUMBLES, RECOVERED by LV-D.Adams for 30 yards, TOUCHDOWN." }),
+  // Kickoff return: a special-teams RETURN score, never a defensive TD.
+  pbp({ play_id: "50", td_player_id: "P_ADAMS", td_team: "OAK", posteam: "OAK",
+    return_touchdown: "1", play_type: "kickoff", return_yards: "99",
+    desc: "D.Adams 99 yards, TOUCHDOWN." }),
+  // Own-fumble recovery (offense keeps the ball): description matching would
+  // call this FUMBLE + TOUCHDOWN = defensive — td_kind must say "other".
+  pbp({ play_id: "60", td_player_id: "P_MAHOMES", td_team: "KC",
+    yards_gained: "3", fumble_recovery_1_yards: "2",
+    desc: "P.Mahomes FUMBLES, recovered by KC-P.Mahomes, TOUCHDOWN." }),
+  // Scorer not in the players dimension — dropped loudly, no FK violation.
+  pbp({ play_id: "70", td_player_id: "P_GHOST", td_team: "KC",
+    rush_touchdown: "1", yards_gained: "8", desc: "Ghost TD." }),
+];
+
 vi.mock("../src/ingest/providers/nflverse.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("../src/ingest/providers/nflverse.js")>();
   const byUrl = (url: string): Record<string, string>[] => {
     if (url.includes("teams_colors_logos")) return TEAMS_CSV;
     if (url.includes("schedules/games")) return SCHED_CSV;
+    if (url.includes("players/players.csv")) return PLAYER_IDS_CSV;
     if (url.includes("roster_")) return ROSTER_CSV;
     if (url.includes("stats_player_week_")) return WEEKLY_CSV;
     if (url.includes("stats_player_reg_")) return SEASON_REG_CSV;
     if (url.includes("stats_player_post_")) return SEASON_POST_CSV;
+    if (url.includes("pbp/play_by_play_")) return PBP_CSV;
     throw new Error(`no fixture for ${url}`);
   };
   return {
@@ -128,6 +195,8 @@ async function loadAll(ctx: InstanceType<typeof Ctx>) {
     teams: await p.loadTeams(ctx),
     seasons: await p.loadSeasons(ctx, [2023]),
     players: await p.loadPlayers(ctx, [2023]),
+    player_ids: await p.loadPlayerIds(ctx),
+    rosters: await p.loadRosters(ctx, [2023]),
     games: await p.loadGames(ctx, [2023]),
     player_game_stats: await p.loadPlayerGameStats(ctx, [2023]),
     player_season_stats: await p.loadPlayerSeasonStats(ctx, [2023]),
@@ -151,7 +220,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await pool.query(
-    "TRUNCATE team_game_stats, player_season_stats, player_game_stats, games, players, teams, seasons CASCADE",
+    "TRUNCATE scoring_plays, player_game_advanced, team_game_stats, player_season_stats, player_game_stats, games, rosters, player_id_map, players, teams, seasons CASCADE",
   );
 });
 
@@ -236,6 +305,74 @@ describe("messy rows", () => {
     expect(r[0].receiving_yards).toBe(96);
   });
 
+});
+
+describe("id crosswalk", () => {
+  it("keys the crosswalk on gsis id and syncs headshots onto players", async () => {
+    const ctx = new Ctx(pool);
+    await loadAll(ctx);
+    const ids = (await all("SELECT player_id FROM player_id_map ORDER BY player_id")).map(
+      (r) => r.player_id,
+    );
+    expect(ids).toEqual(["P_ADAMS", "P_MAHOMES", "P_RETIRED"]);
+    expect(ctx.skipped.get("player_id_map: crosswalk row without a gsis id")).toBe(1);
+    const mahomes = await all(
+      "SELECT espn_id, headshot_url FROM players WHERE player_id = 'P_MAHOMES'",
+    );
+    expect(mahomes[0]).toEqual({
+      espn_id: "3139477",
+      headshot_url: "https://static.www.nfl.com/image/mahomes",
+    });
+    // No nflverse headshot -> null in the warehouse (runtime falls back to espn_id).
+    const adams = await all(
+      "SELECT espn_id, headshot_url FROM players WHERE player_id = 'P_ADAMS'",
+    );
+    expect(adams[0]).toEqual({ espn_id: "16800", headshot_url: null });
+  });
+
+  it("keeps crosswalk rows for players outside the loaded seasons (no FK)", async () => {
+    await loadAll(new Ctx(pool));
+    expect(await all("SELECT 1 FROM player_id_map WHERE player_id = 'P_RETIRED'")).toHaveLength(1);
+    expect(await all("SELECT 1 FROM players WHERE player_id = 'P_RETIRED'")).toHaveLength(0);
+  });
+});
+
+describe("historical rosters", () => {
+  it("loads per-season rosters with franchise-normalized teams", async () => {
+    const ctx = new Ctx(pool);
+    await loadAll(ctx);
+    const rows = await all(
+      "SELECT player_id, season, team_id, jersey_number, status FROM rosters ORDER BY player_id",
+    );
+    expect(rows).toEqual([
+      { player_id: "P_ADAMS", season: 2023, team_id: "LV", jersey_number: 17, status: "ACT" },
+      { player_id: "P_MAHOMES", season: 2023, team_id: "KC", jersey_number: 15, status: "ACT" },
+    ]);
+    // The 2022 Mahomes row targets a season the run didn't ingest; the
+    // no-gsis row can't join the players dimension. Both drop loudly.
+    expect(ctx.skipped.get("rosters: season not ingested (run seasons first)")).toBe(1);
+    expect(ctx.skipped.get("rosters: roster row without a stable gsis id")).toBe(1);
+  });
+});
+
+describe("scoring plays (pbp distillation)", () => {
+  it("stores the true TD distance and an exact td_kind classification", async () => {
+    const ctx = new Ctx(pool);
+    await loadAll(ctx);
+    await p.loadScoringPlays(ctx, [2023]);
+    const rows = await all(
+      "SELECT play_id, player_id, yards, td_kind FROM scoring_plays ORDER BY play_id",
+    );
+    expect(rows).toEqual([
+      { play_id: "2023_01_OAK_KC_10", player_id: "P_MAHOMES", yards: 1, td_kind: "rush" },
+      { play_id: "2023_01_OAK_KC_20", player_id: "P_ADAMS", yards: 75, td_kind: "pass" },
+      { play_id: "2023_01_OAK_KC_30", player_id: "P_MAHOMES", yards: 45, td_kind: "int_return" },
+      { play_id: "2023_01_OAK_KC_40", player_id: "P_ADAMS", yards: 30, td_kind: "fumble_return" },
+      { play_id: "2023_01_OAK_KC_50", player_id: "P_ADAMS", yards: 99, td_kind: "kick_return" },
+      { play_id: "2023_01_OAK_KC_60", player_id: "P_MAHOMES", yards: 3, td_kind: "other" },
+    ]);
+    expect(ctx.skipped.get("scoring_plays: scorer not in players dimension")).toBe(1);
+  });
 });
 
 describe("run mechanics", () => {

@@ -11,7 +11,8 @@
 import { z } from "zod";
 
 /** Historical abbreviation -> current franchise. The second block covers
- * PFR-style codes used by the nflverse draft dataset (KAN, GNB, ...). */
+ * PFR-style codes used by the nflverse draft dataset (KAN, GNB, ...); the
+ * third covers GSIS codes used by the 2002–2015 roster files (BLT, HST, ...). */
 export const TEAM_MAP: Record<string, string> = {
   OAK: "LV",
   SD: "LAC",
@@ -20,6 +21,7 @@ export const TEAM_MAP: Record<string, string> = {
   JAC: "JAX",
   GNB: "GB", KAN: "KC", LVR: "LV", NOR: "NO", NWE: "NE",
   PHO: "ARI", RAI: "LV", RAM: "LAR", SDG: "LAC", SFO: "SF", TAM: "TB",
+  ARZ: "ARI", BLT: "BAL", CLV: "CLE", HST: "HOU", SL: "LAR",
 };
 
 /** Raw nflverse game/season types -> the two the platform splits on. */
@@ -187,6 +189,25 @@ export const draftPickRow = z.strictObject({
   college: z.string().nullable(),
 });
 
+export const rosterRow = z.strictObject({
+  player_id: id,
+  season: z.number().int(),
+  team_id: id,
+  position: z.string().nullable(),
+  jersey_number: z.number().nullable(),
+  status: z.string().nullable(),
+});
+
+export const playerIdMapRow = z.strictObject({
+  player_id: id,
+  espn_id: z.string().nullable(),
+  pfr_id: z.string().nullable(),
+  pff_id: z.string().nullable(),
+  otc_id: z.string().nullable(),
+  esb_id: z.string().nullable(),
+  headshot_url: z.string().nullable(),
+});
+
 export const scoringPlayRow = z.strictObject({
   play_id: id,
   game_id: id,
@@ -196,6 +217,9 @@ export const scoringPlayRow = z.strictObject({
   play_type: z.string().nullable(),
   description: z.string().nullable(),
   yards: z.number().nullable(),
+  td_kind: z.enum([
+    "pass", "rush", "int_return", "fumble_return", "kick_return", "punt_return", "other",
+  ]).nullable(),
 });
 
 export const playerGameAdvancedRow = z.strictObject({

@@ -7,8 +7,6 @@ import type { AnswerResult, PlayerGameLogRow, PlayerProfile } from "../lib/api";
 import { fetchPlayer } from "../lib/api";
 import { passerRating } from "../lib/rating";
 import { Headshot } from "./Headshot";
-import { ResultMethodology } from "./ResultMethodology";
-import { TeamLogo } from "./TeamLogo";
 import { teamTheme } from "../lib/teamTheme";
 
 type Mode = "rates" | "equal" | "best" | "totals";
@@ -447,7 +445,6 @@ export function PlayerComparisonResult({ result }: { result: AnswerResult }) {
             <div>
               <h2>{profile.name}</h2>
               <p>{profile.position ?? "Player"} · {careerIdentity(profile)}</p>
-              {profile.team && <TeamLogo team={profile.team} size={24} />}
             </div>
           </Link>
         ))}
@@ -487,10 +484,9 @@ export function PlayerComparisonResult({ result }: { result: AnswerResult }) {
         <table className="yb-table">
           <thead>
             <tr>
-              <th className="num" aria-label={a.name}>{shortName(a.name)}</th>
+              <th aria-label={a.name}>{shortName(a.name)}</th>
               <th>Metric</th>
-              <th className="num" aria-label={b.name}>{shortName(b.name)}</th>
-              <th aria-label="Edge or winner">Edge</th>
+              <th aria-label={b.name}>{shortName(b.name)}</th>
             </tr>
           </thead>
           <tbody>
@@ -502,17 +498,18 @@ export function PlayerComparisonResult({ result }: { result: AnswerResult }) {
                 metric.direction === "higher" ? valueA > valueB : metric.direction === "lower" ? valueA < valueB : false
               );
               const bWins = valueA != null && valueB != null && !tied && metric.direction !== "neutral" && !aWins;
-              const edge = valueA == null && valueB == null
-                ? "Not tracked"
-                : metric.direction === "neutral" ? "Context only"
-                  : tied ? "Even" : aWins ? shortName(a.name) : shortName(b.name);
               const format = metric.format ?? oneDecimal;
+              // The leading value wears its team's pill; ties and context-only
+              // metrics stay plain — no row tinting, no separate edge column.
+              const cell = (value: number | null, wins: boolean, team: string | null) =>
+                value == null ? "–" : wins
+                  ? <span className="yb-edge-pill" style={team ? teamTheme(team) : undefined}>{format(value)}</span>
+                  : format(value);
               return (
                 <tr key={metric.label}>
-                  <td className={`num${aWins ? " is-edge" : ""}`} style={aWins ? teamTheme(a.team) : undefined}>{valueA == null ? "-" : format(valueA)}</td>
+                  <td>{cell(valueA, aWins, a.team)}</td>
                   <th scope="row">{metric.label}</th>
-                  <td className={`num${bWins ? " is-edge" : ""}`} style={bWins ? teamTheme(b.team) : undefined}>{valueB == null ? "-" : format(valueB)}</td>
-                  <td className="yb-comparison-edge">{edge}</td>
+                  <td>{cell(valueB, bWins, b.team)}</td>
                 </tr>
               );
             })}
@@ -523,9 +520,9 @@ export function PlayerComparisonResult({ result }: { result: AnswerResult }) {
       <p className="yb-comparison-summary">{modeSummary(mode, a, b, totalsA, totalsB, equalN, category)}</p>
 
       <div className="yb-comparison-actions">
-        <Link href={`/players/${encodeURIComponent(a.player_id)}`} className="yb-btn ghost">View {a.name} profile</Link>
-        <Link href={`/players/${encodeURIComponent(b.player_id)}`} className="yb-btn ghost">View {b.name} profile</Link>
-        <button type="button" className="yb-btn ghost" aria-expanded={showLogs} onClick={() => setShowLogs((shown) => !shown)}>
+        <Link href={`/players/${encodeURIComponent(a.player_id)}`} className="yb-btn">View {a.name} profile</Link>
+        <Link href={`/players/${encodeURIComponent(b.player_id)}`} className="yb-btn">View {b.name} profile</Link>
+        <button type="button" className="yb-btn" aria-expanded={showLogs} onClick={() => setShowLogs((shown) => !shown)}>
           {showLogs ? "Hide game logs" : "Compare game logs"}
         </button>
       </div>
@@ -537,7 +534,6 @@ export function PlayerComparisonResult({ result }: { result: AnswerResult }) {
         </div>
       )}
 
-      <ResultMethodology result={result} />
     </section>
   );
 }

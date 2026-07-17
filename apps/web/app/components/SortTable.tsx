@@ -29,14 +29,18 @@ export function SortTable<T>({
   rowKey,
   rowClass,
   defaultSort,
+  pageSize,
 }: {
   columns: SortColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
   rowClass?: (row: T) => string | undefined;
   defaultSort?: Sort;
+  /** When set, show this many rows per page with a Prev/Next pager. */
+  pageSize?: number;
 }) {
   const [sort, setSort] = useState<Sort | null>(defaultSort ?? null);
+  const [page, setPage] = useState(0);
 
   const sorted = useMemo(() => {
     if (!sort) return rows;
@@ -55,6 +59,7 @@ export function SortTable<T>({
   }, [rows, sort, columns]);
 
   function toggle(col: SortColumn<T>) {
+    setPage(0);
     setSort((s) =>
       s?.key === col.key
         ? { key: col.key, dir: s.dir === "desc" ? "asc" : "desc" }
@@ -62,7 +67,13 @@ export function SortTable<T>({
     );
   }
 
+  // Pagination: clamp the page (rows can shrink on a new result) and slice.
+  const pageCount = pageSize ? Math.max(1, Math.ceil(sorted.length / pageSize)) : 1;
+  const safePage = Math.min(page, pageCount - 1);
+  const visible = pageSize ? sorted.slice(safePage * pageSize, safePage * pageSize + pageSize) : sorted;
+
   return (
+    <>
     <div className="yb-table-scroll">
       <table className="yb-table">
         <thead>
@@ -96,7 +107,7 @@ export function SortTable<T>({
           </tr>
         </thead>
         <tbody>
-          {sorted.map((row) => (
+          {visible.map((row) => (
             <tr key={rowKey(row)} className={rowClass?.(row)}>
               {columns.map((c) => (
                 <td key={c.key} className={[c.numeric ? "num" : "", c.highlight ? "is-metric" : ""].filter(Boolean).join(" ") || undefined}>
@@ -108,5 +119,29 @@ export function SortTable<T>({
         </tbody>
       </table>
     </div>
+    {pageCount > 1 && (
+      <nav className="yb-table-pager" aria-label="Table pages">
+        <button
+          type="button"
+          className="yb-btn sm"
+          disabled={safePage === 0}
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+        >
+          ‹ Prev
+        </button>
+        <span aria-live="polite">
+          Page {safePage + 1} of {pageCount}
+        </span>
+        <button
+          type="button"
+          className="yb-btn sm"
+          disabled={safePage >= pageCount - 1}
+          onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+        >
+          Next ›
+        </button>
+      </nav>
+    )}
+    </>
   );
 }
