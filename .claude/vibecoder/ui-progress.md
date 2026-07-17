@@ -68,16 +68,16 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 64. Improve Drag-And-Drop Interface Affordances — n/a: no drag-and-drop surfaces exist.
 - [x] 65. Add Mobile Gesture Support — n/a: side-scroll pill rows use native touch scrolling; swipe/pull-to-refresh skipped (browser-native back-swipe + reload conflicts, no feed semantics).
 - [x] 66. Add Subtle Success Moments — n/a: read-only stats app; the answer appearing IS the payoff. Confetti would undercut the honest-numbers brand.
-- [ ] 67. Add Real-Time Inline Validation
-- [ ] 68. Write Clear Helpful Error Messages
-- [ ] 69. Polish Input Field Design and States
-- [ ] 70. Add Smart Input Masking and Formatting
-- [ ] 71. Add Form Autosave and Recovery
-- [ ] 72. Improve Multi-Step Form Experience
-- [ ] 73. Upgrade Select and Dropdown Inputs
-- [ ] 74. Improve Password Field UX
-- [ ] 75. Add Input Hints and Affordances
-- [ ] 76. Clarify Form Submission Feedback
+- [x] 67. Add Real-Time Inline Validation — n/a: search (the one form) shows tailored engine errors inline beside the input; no multi-field forms to validate.
+- [x] 68. Write Clear Helpful Error Messages — n/a: engine refusals are exemplary (name the unsupported filter + suggest a working phrasing); client errors say what failed + retry.
+- [x] 69. Polish Input Field Design and States — n/a: yb-input 44px+, focus ring, aria-labels, distinct error styling; verified p7/p48.
+- [x] 70. Add Smart Input Masking and Formatting — n/a: no structured inputs (no phone/card/date fields) in domain.
+- [x] 71. Add Form Autosave and Recovery — n/a: fantasy lineup persists to localStorage on change; search recents persist; no long forms to protect.
+- [x] 72. Improve Multi-Step Form Experience — n/a: no multi-step flows exist.
+- [x] 73. Upgrade Select and Dropdown Inputs — n/a: Dropdown implements the ARIA listbox pattern w/ type-ahead; long lists use pills or the searchable player-pool input instead of selects.
+- [x] 74. Improve Password Field UX — n/a: no auth/passwords in the app.
+- [x] 75. Add Input Hints and Affordances — n/a: search placeholder + trending-question examples + recents give live affordances; no required/optional distinction needed (single input).
+- [x] 76. Clarify Form Submission Feedback — n/a + p7: in-flight guard, "Computing answer…" live region, errors preserve the typed question, success navigates to the shareable result.
 - [ ] 77. Build a Toast Notification System
 - [ ] 78. Handle Loading, Empty, Error, Success States
 - [ ] 79. Add Graceful Error Boundaries
