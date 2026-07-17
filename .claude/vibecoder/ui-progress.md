@@ -7,7 +7,7 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 3. Define a Consistent Spacing Scale — scale existed (--s-* 4px base); snapped ~30 stray off-grid values (5/7/9/11/13/18/22/26/30px) to nearest step. Kept 1–3px hairlines + 46px icon clearance (functional).
 - [x] 4. Create an Elevation Shadow System — n/a: deliberate flat-on-dark doctrine; elevation = surface-brightness ramp (bg→panel→elevated) + tokenized --shadow-card/--shadow-pop (pop is layered ambient+diffuse). All 28 usages tokenized or accent rings.
 - [x] 5. Standardize the Border Radius Scale — tokenized all raw radii (999→--r-pill, 6/4→--r-sm, 16→new --r-2xl for the hero search family); TSX skeletons 14→var(--r-xl). Kept 2px track micro-radii + 50% avatars.
-- [ ] 6. Strengthen Overall Visual Hierarchy
+- [x] 6. Strengthen Overall Visual Hierarchy — verified live: search=hero, score digits dominate matchup, Performers #1 visually tiered, accent only on CTAs. Built deliberately in prior session tasks; no competing emphasis found.
 - [ ] 7. Polish All Button Interaction States
 - [ ] 8. Design Helpful Empty States
 - [ ] 9. Unify the App's Iconography
