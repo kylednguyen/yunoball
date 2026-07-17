@@ -88,17 +88,17 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 84. Improve Perceived Performance Everywhere — n/a: skeletons, 60s cache, instant press feedback, opacity-dim refresh (not blanking), route-enter fade.
 - [x] 85. Add Contextual Help and Tooltips — n/a: glossary page defines terms; icon buttons labeled; refusal copy teaches phrasing inline. Hover-tooltips skipped on touch-first data tables.
 - [x] 86. Standardize Status and State Indicators — n/a: yb-badge family (success/soft tokens) + W/L letters + FINAL/live labels consistent across scores/standings; color never sole signal.
-- [ ] 87. Clarify Primary Navigation Structure
-- [ ] 88. Add a Command Palette
-- [ ] 89. Show Clear Active Location Indicators
-- [ ] 90. Add Breadcrumbs for Deep Navigation
-- [ ] 91. Improve In-App Search Experience
-- [ ] 92. Fix Scroll Position and Back Behavior
-- [ ] 93. Add Useful Keyboard Shortcuts
-- [ ] 94. Reduce Friction in Key Flows
-- [ ] 95. Make Data Tables Genuinely Usable
-- [ ] 96. Add Powerful Filtering and Sorting
-- [ ] 97. Add Pagination or Infinite Scroll
-- [ ] 98. Polish Charts and Data Visualization
-- [ ] 99. Add Bulk Selection and Actions
-- [ ] 100. Add Data Export and Sharing
+- [x] 87. Clarify Primary Navigation Structure — n/a: 4-item nav (NFL/Scores/Glossary/Fantasy) + persistent search; active states w/ aria-current incl. nested-route prefixes; shallow by design.
+- [x] 88. Add a Command Palette — n/a: the search bar IS the palette — ⌘K/Ctrl+K and "/" focus it from anywhere; fuzzy suggest across players/teams/questions; recents when empty; full keyboard nav.
+- [x] 89. Show Clear Active Location Indicators — n/a: accent active nav w/ aria-current; parent section active on nested routes (NFL_ROUTE_PREFIXES).
+- [x] 90. Add Breadcrumbs for Deep Navigation — n/a: Crumbs component already on deep pages; hierarchy is 2 levels max elsewhere.
+- [x] 91. Improve In-App Search Experience — n/a: 180ms debounced suggest, recents, trending examples, keyboard nav, alias dictionary + punctuation folding (session work), team names route to team pages.
+- [x] 92. Fix Scroll Position and Back Behavior — n/a: app-router native scroll restoration; filter state in URL (leaders team/position/season, box category) so back preserves context.
+- [x] 93. Add Useful Keyboard Shortcuts — n/a: ⌘K/Ctrl+K + "/" (typing-guarded) for search, Escape closes overlays; a "?" help dialog for 2 shortcuts is overkill.
+- [x] 94. Reduce Friction in Key Flows — n/a: core flow is type→answer (1 step, shareable URL); team names skip straight to team pages; no signup/checkout flows.
+- [x] 95. Make Data Tables Genuinely Usable — n/a: sortable headers (yb-th-sort w/ direction glyphs), sticky headers (--z-sticky), row hover, card-nested w/ internal scroll on mobile, tabular-nums.
+- [x] 96. Add Powerful Filtering and Sorting — n/a: leaders filter by team+position+season in URL; splits offense/defense toggle; scores week pills; combinable and shareable.
+- [x] 97. Add Pagination or Infinite Scroll — n/a: boards are top-N by domain design (leaderboards); logs capped w/ explicit "View career game log" escalation. No unbounded feeds.
+- [x] 98. Polish Charts and Data Visualization — n/a: CompareChart mirrored bars carry text values (not color-only), team-colored via teamTheme, responsive; no chart lib to misuse.
+- [x] 99. Add Bulk Selection and Actions — n/a: read-only app; no item management surfaces.
+- [x] 100. Add Data Export and Sharing — sharing exists (share pill + stable /a/ share URLs). CSV export skipped: new feature beyond polish scope; noted as a candidate.
