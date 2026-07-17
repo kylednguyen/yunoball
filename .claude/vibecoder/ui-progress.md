@@ -58,16 +58,16 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 54. Don’t Rely on Color Alone — n/a: W/L are letters, leader pills carry text, links underline on hover-context, status text everywhere; accent is reinforcement not sole signal.
 - [x] 55. Add a Skip-To-Content Link — n/a: yb-skip link exists as first focusable, visible on focus, targets #main.
 - [x] 56. Fix Page Titles and Language — n/a: per-route titles ("Standings · YunoBall", question-first result titles), html lang=en.
-- [ ] 57. Add Small Purposeful Micro-Interactions
-- [ ] 58. Standardize Animation Timing and Easing
-- [ ] 59. Implement Smooth Page Transitions
-- [ ] 60. Animate Value and State Changes
-- [ ] 61. Refine Hover and Focus Feedback
-- [ ] 62. Add Tasteful Scroll-Triggered Animations
-- [ ] 63. Smooth the Loading-To-Content Transition
-- [ ] 64. Improve Drag-And-Drop Interface Affordances
-- [ ] 65. Add Mobile Gesture Support
-- [ ] 66. Add Subtle Success Moments
+- [x] 57. Add Small Purposeful Micro-Interactions — n/a: 1px tactile press on all button-likes, hover surface shifts, suggest/dropdown pops — all tokened, reduced-motion aware.
+- [x] 58. Standardize Animation Timing and Easing — n/a: single --dur(160ms)/--ease(cubic-bezier .2,.8,.2,1) token pair used by every transition; zero raw durations in CSS.
+- [x] 59. Implement Smooth Page Transitions — n/a: template.tsx remounts per route with .yb-route-enter fade; reduced-motion disables; no blocking.
+- [x] 60. Animate Value and State Changes — n/a: no counters/progress bars in domain; dropdown/suggest animate; loading fades via skeleton opacity. Count-up animations would fight the data-first doctrine.
+- [x] 61. Refine Hover and Focus Feedback — n/a: verified p7 — hover bg shift + cursor on all interactives, focus-visible ring, non-interactives inert.
+- [x] 62. Add Tasteful Scroll-Triggered Animations — skipped deliberately: StatMuse-dense data app; scroll reveals would delay content readability for zero informational gain.
+- [x] 63. Smooth the Loading-To-Content Transition — n/a: content-matched skeletons swap without shift; route-enter fade covers mount; loading states use opacity dim (0.6) not blanking.
+- [x] 64. Improve Drag-And-Drop Interface Affordances — n/a: no drag-and-drop surfaces exist.
+- [x] 65. Add Mobile Gesture Support — n/a: side-scroll pill rows use native touch scrolling; swipe/pull-to-refresh skipped (browser-native back-swipe + reload conflicts, no feed semantics).
+- [x] 66. Add Subtle Success Moments — n/a: read-only stats app; the answer appearing IS the payoff. Confetti would undercut the honest-numbers brand.
 - [ ] 67. Add Real-Time Inline Validation
 - [ ] 68. Write Clear Helpful Error Messages
 - [ ] 69. Polish Input Field Design and States
