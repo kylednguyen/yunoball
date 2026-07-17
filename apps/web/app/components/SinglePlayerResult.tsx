@@ -254,7 +254,9 @@ export function SinglePlayerResult({ result }: { result: AnswerResult }) {
         <p>
           {leagueRank != null
             ? `${ordinal(leagueRank)} in the NFL for ${context?.metric_label ?? "this metric"} in ${season}.`
-            : `${scopeLabel} production across ${totals.games} game${totals.games === 1 ? "" : "s"}.`}
+            : windowed
+              ? `Totals cover the ${totals.games} game${totals.games === 1 ? "" : "s"} in this split.`
+              : `${scopeLabel} production across ${totals.games} game${totals.games === 1 ? "" : "s"}.`}
         </p>
       </div>
 

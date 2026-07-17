@@ -12,8 +12,8 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 8. Design Helpful Empty States — n/a: every data view has yb-state empty + error branches (verified per-file); search results distinguish no-results; leaderboards is a redirect, glossary static.
 - [x] 9. Unify the App's Iconography — n/a: 6 icons total, all 24-grid stroke style (2 lucide + 4 matching inline), no emoji, every icon-only control aria-labeled. Deliberately icon-light design.
 - [x] 10. Run a Full Consistency Audit — lint battery green repo-wide (eslint+stylelint enforce tokens/spacing); heading casing consistent by role (Title Case sections, sentence-case states); no one-off colors/radii after p1-p5.
-- [ ] 11. Audit Mobile and Tablet Breakpoints
-- [ ] 12. Eliminate Horizontal Scroll on Mobile
+- [x] 11. Audit Mobile and Tablet Breakpoints — tested 360/1440 on home, standings, box score, result: no overflow, layouts reflow. Fixed redundant "6-Game Split production across 6 games" context copy at desktop.
+- [x] 12. Eliminate Horizontal Scroll on Mobile — n/a: scrollWidth === innerWidth at 360px on all heavy pages (home, standings, box score tables, result); box sub-tabs side-scroll internally by design.
 - [ ] 13. Build a Flexible Responsive Grid
 - [ ] 14. Enlarge Mobile Touch Targets
 - [ ] 15. Eliminate Cumulative Layout Shift
