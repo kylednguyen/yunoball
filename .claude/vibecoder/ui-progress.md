@@ -10,7 +10,7 @@ Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <t
 - [x] 6. Strengthen Overall Visual Hierarchy — verified live: search=hero, score digits dominate matchup, Performers #1 visually tiered, accent only on CTAs. Built deliberately in prior session tasks; no competing emphasis found.
 - [x] 7. Polish All Button Interaction States — default/hover/active(1px push)/focus-visible/disabled all present (one deliberate gray-pill family). Added: in-flight guard on search (the app's only async action) to prevent double-submit against the rate-limited endpoint.
 - [x] 8. Design Helpful Empty States — n/a: every data view has yb-state empty + error branches (verified per-file); search results distinguish no-results; leaderboards is a redirect, glossary static.
-- [ ] 9. Unify the App's Iconography
+- [x] 9. Unify the App's Iconography — n/a: 6 icons total, all 24-grid stroke style (2 lucide + 4 matching inline), no emoji, every icon-only control aria-labeled. Deliberately icon-light design.
 - [ ] 10. Run a Full Consistency Audit
 - [ ] 11. Audit Mobile and Tablet Breakpoints
 - [ ] 12. Eliminate Horizontal Scroll on Mobile
