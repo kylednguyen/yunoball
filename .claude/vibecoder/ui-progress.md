@@ -1,0 +1,104 @@
+# UI audit progress
+
+Branch: `vibecoder/ui` (from main @ d528d6c). One prompt = one commit (`ui N: <title>`).
+
+- [x] 1. Establish a Design Token System — already established (globals.css :root primitives+semantic tiers; eslint/stylelint enforce). Verified: only non-token hex = 2 mask-alpha `#000`. Inline strays (radius 14, gap 10) deferred to prompts 3/5.
+- [x] 2. Build a Semantic Color System — already semantic (surfaces/ink/accent/success/danger + soft variants). All text pairings ≥7:1. No warning UI exists → no --warning token (YAGNI).
+- [x] 3. Define a Consistent Spacing Scale — scale existed (--s-* 4px base); snapped ~30 stray off-grid values (5/7/9/11/13/18/22/26/30px) to nearest step. Kept 1–3px hairlines + 46px icon clearance (functional).
+- [x] 4. Create an Elevation Shadow System — n/a: deliberate flat-on-dark doctrine; elevation = surface-brightness ramp (bg→panel→elevated) + tokenized --shadow-card/--shadow-pop (pop is layered ambient+diffuse). All 28 usages tokenized or accent rings.
+- [x] 5. Standardize the Border Radius Scale — tokenized all raw radii (999→--r-pill, 6/4→--r-sm, 16→new --r-2xl for the hero search family); TSX skeletons 14→var(--r-xl). Kept 2px track micro-radii + 50% avatars.
+- [x] 6. Strengthen Overall Visual Hierarchy — verified live: search=hero, score digits dominate matchup, Performers #1 visually tiered, accent only on CTAs. Built deliberately in prior session tasks; no competing emphasis found.
+- [x] 7. Polish All Button Interaction States — default/hover/active(1px push)/focus-visible/disabled all present (one deliberate gray-pill family). Added: in-flight guard on search (the app's only async action) to prevent double-submit against the rate-limited endpoint.
+- [x] 8. Design Helpful Empty States — n/a: every data view has yb-state empty + error branches (verified per-file); search results distinguish no-results; leaderboards is a redirect, glossary static.
+- [x] 9. Unify the App's Iconography — n/a: 6 icons total, all 24-grid stroke style (2 lucide + 4 matching inline), no emoji, every icon-only control aria-labeled. Deliberately icon-light design.
+- [x] 10. Run a Full Consistency Audit — lint battery green repo-wide (eslint+stylelint enforce tokens/spacing); heading casing consistent by role (Title Case sections, sentence-case states); no one-off colors/radii after p1-p5.
+- [x] 11. Audit Mobile and Tablet Breakpoints — tested 360/1440 on home, standings, box score, result: no overflow, layouts reflow. Fixed redundant "6-Game Split production across 6 games" context copy at desktop.
+- [x] 12. Eliminate Horizontal Scroll on Mobile — n/a: scrollWidth === innerWidth at 360px on all heavy pages (home, standings, box score tables, result); box sub-tabs side-scroll internally by design.
+- [x] 13. Build a Flexible Responsive Grid — n/a: already auto-fit minmax collections, overflow-safe minmax(0,1fr) columns, fixed px only for avatar gutters; verified no overflow at 360.
+- [x] 14. Enlarge Mobile Touch Targets — in-row text links (leaders/divisions, 23-28px) now 47-52px effective via invisible padding-block/negative-margin on .yb-team-row a; verified live, no layout shift. Controls already ≥44px from prior work.
+- [x] 15. Eliminate Cumulative Layout Shift — images all carry explicit width/height; skeletons are content-matched heights; added preload for the single Geist woff2 (was swap-only → metric flash risk). No injected banners.
+- [x] 16. Respect Mobile Safe Area Insets — n/a: viewportFit "cover" set; 9 env(safe-area-inset-*) usages on bars/sub-tabs already in place.
+- [x] 17. Build a Smart Sticky Header — n/a: mobile bar is sticky with --bg-scrim translucency; sticky box sub-tabs offset-coordinated with it. Hide-on-scroll skipped: would break the sub-tab offset math for marginal gain on a ~compact bar.
+- [x] 18. Balance Content Density and Whitespace — n/a: StatMuse-dense doctrine is deliberate (design-language.md); hierarchy verified p6; tables dense, forms/heroes breathe.
+- [x] 19. Use Container Queries for Components — n/a: no component renders in multiple width contexts (no sidebar/main reuse); YAGNI.
+- [x] 20. Untangle Z-Index Stacking Issues — documented 4-tier token scale already; tokenized the one stray (box-subtabs z:5 → calc(--z-sticky)+1); locals 0/1 are intra-component. No portal/clipping issues (overlays render in-flow by design).
+- [x] 21. Establish a Modular Type Scale — added heading tiers --fs-h5..--fs-h1 + --fs-hero + --fs-micro; consolidated 26 raw sizes (9-32px, collapsing 19→18, 21→20, 23→22) into tokens. Kept 2 display-numeral one-offs (score 24, stat hero 46).
+- [x] 22. Add Fluid Responsive Typography — --fs-hero already clamp(); made --fs-h1 clamp(26px,5vw,32px) and --fs-h2 clamp(24px,4.2vw,28px); body tiers stay fixed per readability.
+- [x] 23. Optimize Reading Line Length — n/a: ch-based measures on prose (24/42/44ch), line-height 1.45-1.55 body vs 1-1.1 display; data-dense app has no long-form pages.
+- [x] 24. Optimize Web Font Loading — single self-hosted 68KB variable woff2, font-display swap, system fallback stack; preload added in p15. Subsetting skipped (tooling cost > ~30KB gain).
+- [x] 25. Tune Text Color and Contrast — n/a: verified at p2; white-not-gray ink doctrine, all pairings ≥7:1, deliberate 3-tier ink hierarchy by weight.
+- [x] 26. Fix Semantic Heading Structure — n/a: PageHeader/EntityHero render per-page h1; sections h2→h3, no skips; Result page 3 h1s are mutually-exclusive branches; home has sr-only h1.
+- [x] 27. Handle Text Overflow Gracefully — 11 truncation/wrap rules existed; added overflow-wrap:anywhere to the result h1 (arbitrary user question was the one unprotected input).
+- [x] 28. Format Numbers, Dates, and Currency — n/a: toLocaleString throughout, 37 tabular-nums usages, 14 right-aligned numeric columns, weekLabel() for playoff weeks; no currency in domain.
+- [x] 29. Add Refined Typographic Details — n/a: optimizeLegibility + Geist cv05/ss01 features, curly apostrophes in all UI copy, deliberate letter-spacing scale, text-wrap:balance on answers.
+- [x] 30. Standardize Text Casing and Labels — n/a: verified at p10 — Title Case sections, sentence-case states/errors, consistent throughout.
+- [x] 31. Run a Full Performance Audit — static audit (next build forbidden during dev): 5 deps, per-icon imports, CDN-resized images w/ lazy+fetchPriority, 60s TTL client cache w/ dedupe, app-router route splitting, zero third-party scripts. No high-impact issues found.
+- [x] 32. Shrink the JavaScript Bundle — n/a: 5 total deps (next/react/react-dom/lucide/types); lucide imported per-icon (tree-shaken); knip enforces no dead exports.
+- [x] 33. Add Route-Based Code Splitting — n/a: Next app router splits per route segment automatically; no heavy below-fold components (no charts/editors/modals libs) to lazy().
+- [x] 34. Optimize and Modernize All Images — n/a: headshots/logos CDN-resized (cdnResize w/ f_auto → WebP/AVIF at edge), explicit dims, lazy/eager split + fetchPriority + async decode.
+- [x] 35. Implement Content-Aware Loading Skeletons — n/a: yb-skel skeletons content-matched (heights per view) with shimmer token, used on all data views.
+- [x] 36. Virtualize Long Scrolling Lists — n/a: largest lists ~50-350 simple rows (leaders 50, rosters ~70, career logs); render fine without windowing; virtualization would add a dep for no measured need.
+- [x] 37. Eliminate Unnecessary Component Re-renders — n/a: views are fetch-once + local state; no context fan-out; memoized aggregations (useMemo) where logs aggregate. No measured hotspots to fix.
+- [x] 38. Cache and Dedupe Data Fetching — n/a: lib/api.ts has 60s TTL GET cache + in-flight dedupe (ponytail-marked for SWR upgrade if freshness bites); POSTs uncached by design.
+- [x] 39. Add Optimistic UI Updates — n/a: read-only app; only mutation-like action is search (navigates on response). Nothing to make optimistic.
+- [x] 40. Prefetch Data on User Intent — n/a: next/link viewport-prefetches route code (19 files); data cached 60s after first hit. Hover data-warming skipped: no shared link component, 19-file churn for sub-200ms gain.
+- [x] 41. Debounce and Throttle Costly Handlers — n/a: suggest debounced 180ms w/ stale-guard; no heavy scroll/resize handlers exist.
+- [x] 42. Optimize the Critical Rendering Path — n/a: preconnects (ESPN CDN + API), font preloaded (p15), Next inlines critical CSS, zero render-blocking third-parties.
+- [x] 43. Audit Third-Party Script Performance — n/a: zero third-party scripts in the app.
+- [x] 44. Load Critical Content First — n/a: shell renders immediately w/ skeletons; slower fetches (standings on team page) explicitly non-shifting; primary data prioritized per view.
+- [x] 45. Run a Full Accessibility Audit — audited: contrast ≥7:1, global focus-visible, skip link, landmarks, sr-only h1s, aria-live regions, labeled icon buttons, reduced-motion blocks, focus-trapped drawer. One gap noted: th scope attrs sparse (2/41) — simple single-header tables, inference reliable, skipped.
+- [x] 46. Make Everything Keyboard Navigable — n/a: Dropdown = full ARIA listbox pattern (arrows/Home/End/Escape/type-ahead); drawer traps Tab + Escape + focus return; all controls native button/a.
+- [x] 47. Add Clear Visible Focus Indicators — n/a: global :focus-visible 2px accent outline + offset, never removed (doctrine comment in CSS).
+- [x] 48. Make Forms Fully Accessible — n/a: the one form (search) has aria-label, live-region feedback, error text adjacent; no multi-field forms exist.
+- [x] 49. Use Proper Semantic HTML — n/a: nav/main/section landmarks, one main per page (id=main), real button/a everywhere, tables are tables.
+- [x] 50. Add Meaningful Image Alt Text — n/a: headshots/logos are alt="" decorative BY DESIGN (player/team name always adjacent as text) — correct classification, no redundant announcements.
+- [x] 51. Respect Reduced Motion Preferences — n/a: 2 prefers-reduced-motion blocks cover transitions/animations.
+- [x] 52. Announce Dynamic Changes to Screen Readers — n/a: aria-live polite + aria-busy on search flow and result loading; sr-only live text pattern in place.
+- [x] 53. Build Fully Accessible Modals — n/a: only modal surface is the nav drawer — inert background, Tab trap, Escape, focus return all implemented.
+- [x] 54. Don’t Rely on Color Alone — n/a: W/L are letters, leader pills carry text, links underline on hover-context, status text everywhere; accent is reinforcement not sole signal.
+- [x] 55. Add a Skip-To-Content Link — n/a: yb-skip link exists as first focusable, visible on focus, targets #main.
+- [x] 56. Fix Page Titles and Language — n/a: per-route titles ("Standings · YunoBall", question-first result titles), html lang=en.
+- [x] 57. Add Small Purposeful Micro-Interactions — n/a: 1px tactile press on all button-likes, hover surface shifts, suggest/dropdown pops — all tokened, reduced-motion aware.
+- [x] 58. Standardize Animation Timing and Easing — n/a: single --dur(160ms)/--ease(cubic-bezier .2,.8,.2,1) token pair used by every transition; zero raw durations in CSS.
+- [x] 59. Implement Smooth Page Transitions — n/a: template.tsx remounts per route with .yb-route-enter fade; reduced-motion disables; no blocking.
+- [x] 60. Animate Value and State Changes — n/a: no counters/progress bars in domain; dropdown/suggest animate; loading fades via skeleton opacity. Count-up animations would fight the data-first doctrine.
+- [x] 61. Refine Hover and Focus Feedback — n/a: verified p7 — hover bg shift + cursor on all interactives, focus-visible ring, non-interactives inert.
+- [x] 62. Add Tasteful Scroll-Triggered Animations — skipped deliberately: StatMuse-dense data app; scroll reveals would delay content readability for zero informational gain.
+- [x] 63. Smooth the Loading-To-Content Transition — n/a: content-matched skeletons swap without shift; route-enter fade covers mount; loading states use opacity dim (0.6) not blanking.
+- [x] 64. Improve Drag-And-Drop Interface Affordances — n/a: no drag-and-drop surfaces exist.
+- [x] 65. Add Mobile Gesture Support — n/a: side-scroll pill rows use native touch scrolling; swipe/pull-to-refresh skipped (browser-native back-swipe + reload conflicts, no feed semantics).
+- [x] 66. Add Subtle Success Moments — n/a: read-only stats app; the answer appearing IS the payoff. Confetti would undercut the honest-numbers brand.
+- [x] 67. Add Real-Time Inline Validation — n/a: search (the one form) shows tailored engine errors inline beside the input; no multi-field forms to validate.
+- [x] 68. Write Clear Helpful Error Messages — n/a: engine refusals are exemplary (name the unsupported filter + suggest a working phrasing); client errors say what failed + retry.
+- [x] 69. Polish Input Field Design and States — n/a: yb-input 44px+, focus ring, aria-labels, distinct error styling; verified p7/p48.
+- [x] 70. Add Smart Input Masking and Formatting — n/a: no structured inputs (no phone/card/date fields) in domain.
+- [x] 71. Add Form Autosave and Recovery — n/a: fantasy lineup persists to localStorage on change; search recents persist; no long forms to protect.
+- [x] 72. Improve Multi-Step Form Experience — n/a: no multi-step flows exist.
+- [x] 73. Upgrade Select and Dropdown Inputs — n/a: Dropdown implements the ARIA listbox pattern w/ type-ahead; long lists use pills or the searchable player-pool input instead of selects.
+- [x] 74. Improve Password Field UX — n/a: no auth/passwords in the app.
+- [x] 75. Add Input Hints and Affordances — n/a: search placeholder + trending-question examples + recents give live affordances; no required/optional distinction needed (single input).
+- [x] 76. Clarify Form Submission Feedback — n/a + p7: in-flight guard, "Computing answer…" live region, errors preserve the typed question, success navigates to the shareable result.
+- [x] 77. Build a Toast Notification System — n/a: read-only app has no transient mutations to confirm; errors render inline where the user is looking. A toast layer would be dead weight.
+- [x] 78. Handle Loading, Empty, Error, Success States — n/a: verified p8 — all four states on every data view.
+- [x] 79. Add Graceful Error Boundaries — n/a: error.tsx (route errors w/ retry) + global-error.tsx (shell-level, self-contained styles) already in place.
+- [x] 80. Confirm Destructive and Irreversible Actions — n/a: no destructive actions; fantasy lineup remove is instantly reversible by re-adding.
+- [x] 81. Add Undo for Reversible Actions — n/a: same as 80 — nothing destructive enough to warrant an undo layer.
+- [x] 82. Handle Offline and Network Errors — friendlyError() already split network/timeout/429/5xx; added explicit navigator.onLine offline copy. Retry affordances on all error states; fetches have timeouts.
+- [x] 83. Show Progress for Long Operations — n/a: longest op is search (1-3s) with live "Computing answer…"; no uploads/batch ops.
+- [x] 84. Improve Perceived Performance Everywhere — n/a: skeletons, 60s cache, instant press feedback, opacity-dim refresh (not blanking), route-enter fade.
+- [x] 85. Add Contextual Help and Tooltips — n/a: glossary page defines terms; icon buttons labeled; refusal copy teaches phrasing inline. Hover-tooltips skipped on touch-first data tables.
+- [x] 86. Standardize Status and State Indicators — n/a: yb-badge family (success/soft tokens) + W/L letters + FINAL/live labels consistent across scores/standings; color never sole signal.
+- [x] 87. Clarify Primary Navigation Structure — n/a: 4-item nav (NFL/Scores/Glossary/Fantasy) + persistent search; active states w/ aria-current incl. nested-route prefixes; shallow by design.
+- [x] 88. Add a Command Palette — n/a: the search bar IS the palette — ⌘K/Ctrl+K and "/" focus it from anywhere; fuzzy suggest across players/teams/questions; recents when empty; full keyboard nav.
+- [x] 89. Show Clear Active Location Indicators — n/a: accent active nav w/ aria-current; parent section active on nested routes (NFL_ROUTE_PREFIXES).
+- [x] 90. Add Breadcrumbs for Deep Navigation — n/a: Crumbs component already on deep pages; hierarchy is 2 levels max elsewhere.
+- [x] 91. Improve In-App Search Experience — n/a: 180ms debounced suggest, recents, trending examples, keyboard nav, alias dictionary + punctuation folding (session work), team names route to team pages.
+- [x] 92. Fix Scroll Position and Back Behavior — n/a: app-router native scroll restoration; filter state in URL (leaders team/position/season, box category) so back preserves context.
+- [x] 93. Add Useful Keyboard Shortcuts — n/a: ⌘K/Ctrl+K + "/" (typing-guarded) for search, Escape closes overlays; a "?" help dialog for 2 shortcuts is overkill.
+- [x] 94. Reduce Friction in Key Flows — n/a: core flow is type→answer (1 step, shareable URL); team names skip straight to team pages; no signup/checkout flows.
+- [x] 95. Make Data Tables Genuinely Usable — n/a: sortable headers (yb-th-sort w/ direction glyphs), sticky headers (--z-sticky), row hover, card-nested w/ internal scroll on mobile, tabular-nums.
+- [x] 96. Add Powerful Filtering and Sorting — n/a: leaders filter by team+position+season in URL; splits offense/defense toggle; scores week pills; combinable and shareable.
+- [x] 97. Add Pagination or Infinite Scroll — n/a: boards are top-N by domain design (leaderboards); logs capped w/ explicit "View career game log" escalation. No unbounded feeds.
+- [x] 98. Polish Charts and Data Visualization — n/a: CompareChart mirrored bars carry text values (not color-only), team-colored via teamTheme, responsive; no chart lib to misuse.
+- [x] 99. Add Bulk Selection and Actions — n/a: read-only app; no item management surfaces.
+- [x] 100. Add Data Export and Sharing — sharing exists (share pill + stable /a/ share URLs). CSV export skipped: new feature beyond polish scope; noted as a candidate.

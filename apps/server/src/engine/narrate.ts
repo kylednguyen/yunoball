@@ -39,6 +39,23 @@ function fmt(v: unknown): string {
     : Math.trunc(n).toLocaleString("en-US");
 }
 
+/** A tied-for-the-lead top row must name every tied player, or the narration
+ * implies sole possession of a record two+ people share (e.g. two players
+ * tied atop a scoring board). Shared by every "who leads" board. */
+function tiedLeader(rows: Row[], topValue: number, name: string): { leaderName: string; leaderVerb: string } {
+  const tiedNames = rows
+    .filter((row) => Number(row.value) === topValue)
+    .map((row) => String(row.full_name));
+  const leaderName =
+    tiedNames.length <= 1
+      ? name
+      : tiedNames.length === 2
+        ? `${tiedNames[0]} and ${tiedNames[1]}`
+        : `${tiedNames.slice(0, -1).join(", ")}, and ${tiedNames.at(-1)}`;
+  const leaderVerb = tiedNames.length > 1 ? "are tied for the lead" : "leads";
+  return { leaderName, leaderVerb };
+}
+
 /** Human phrasing for the game-level qualifiers on a spec. */
 function qualifiers(spec: FieldedSpec): string {
   const parts: string[] = [];
@@ -56,6 +73,32 @@ function qualifiers(spec: FieldedSpec): string {
   }
   if (spec.primetime) parts.push("in primetime");
   if (spec.tempMax != null) parts.push(`in ${spec.tempMax}°F or colder`);
+  // "one-score losses" collapses to one phrase rather than two redundant
+  // ones ("in losses, in one-score games").
+  if (spec.oneScore && spec.gameResult === "L") {
+    parts.push("in one-score losses");
+  } else {
+    if (spec.gameResult === "L") parts.push("in losses");
+    if (spec.gameResult === "W") parts.push("and still won");
+    if (spec.oneScore) parts.push("in one-score games");
+  }
+  // The as-of simplification (final record, not record at the time of the
+  // game) is disclosed right in the phrase, not just in the report.
+  if (spec.oppWinningRecord) parts.push("against teams that finished with winning records");
+  if (spec.withPlayer) {
+    // pairingApprox: a targeting question answered as the played-together
+    // split — the simplification is disclosed right in the phrase, same
+    // idiom as the oppWinningRecord as-of disclosure above.
+    parts.push(
+      spec.pairingApprox
+        ? `in games with ${spec.withPlayer} (pass-target pairing isn't tracked yet, ` +
+          `so this covers every play in games they both appeared in)`
+        : `in games with ${spec.withPlayer}`,
+    );
+  }
+  if (spec.opponentId) {
+    parts.push(`against the ${spec.opponentName ?? spec.team2Name ?? spec.opponentId}`);
+  }
   return parts.length ? ` ${parts.join(", ")}` : "";
 }
 
@@ -65,7 +108,7 @@ const ROMAN: [number, string][] = [
   [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"],
   [5, "V"], [4, "IV"], [1, "I"],
 ];
-export function roman(n: number): string {
+function roman(n: number): string {
   let out = "";
   for (const [v, sym] of ROMAN) {
     while (n >= v) {
@@ -452,9 +495,9 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
         : `${spec.season != null ? `${spec.season} ` : ""}game log`;
     const n = Number(top.games ?? rows.length);
     const poss = name.endsWith("s") ? `${name}'` : `${name}'s`;
-    const quals = qualifiers({ ...spec, sbOnly: false }); // scope already says it
-    const vsOpp = spec.opponentId ? ` against the ${spec.team2Name ?? spec.opponentId}` : "";
-    return `${poss}${scope} ${window}${vsOpp}: ${n} game${n === 1 ? "" : "s"}${quals}.`;
+    // scope already says sbOnly; qualifiers voices the opponent.
+    const quals = qualifiers({ ...spec, sbOnly: false });
+    return `${poss}${scope} ${window}: ${n} game${n === 1 ? "" : "s"}${quals}.`;
   }
   // sbOnly already says "in the Super Bowl" via qualifiers.
   const post = spec.seasonType === "POST" && !spec.sbOnly ? " postseason" : "";
@@ -520,10 +563,60 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
   if (spec.intent === "game_count") {
     const opText = { ">": "over", ">=": "at least", "<": "under" }[spec.threshold!.op];
     const n = Number(top.qualifying_games ?? rows.length);
-    const scope = spec.season ? `${spec.season}${post}` : `career${post}`;
+    const scope =
+      spec.seasonMin != null
+        ? `${spec.seasonMin}–${spec.seasonMax}${post}`
+        : spec.season ? `${spec.season}${post}` : `career${post}`;
     return (
       `${name} has ${n} ${scope} game${n === 1 ? "" : "s"} with ${opText} ` +
       `${spec.threshold!.value} ${label}${quals}.`
+    );
+  }
+
+  if (spec.intent === "scoring_board") {
+    const n = Number(top.value ?? 0);
+    const kindWord =
+      spec.tdKind === "rush" ? "rushing "
+        : spec.tdKind === "pass" ? "receiving "
+          : spec.tdKind === "defense" ? "defensive "
+            : spec.tdKind === "int_return" ? "interception-return "
+              : spec.tdKind === "fumble_return" ? "fumble-return " : "";
+    const noun = `touchdown${n === 1 ? "" : "s"}`;
+    const what =
+      spec.yardsMin != null && spec.yardsMin === spec.yardsMax
+        ? `${spec.yardsMin}-yard ${kindWord}${noun}`
+        : spec.yardsMin != null
+          ? `${kindWord}${noun} of ${spec.yardsMin} or more yards`
+          : spec.yardsMax != null
+            ? `${kindWord}${noun} from inside the ${spec.yardsMax}-yard line`
+            : `${kindWord}${noun}`;
+    const when =
+      spec.seasonMin != null ? ` from ${spec.seasonMin} to ${spec.seasonMax}`
+        : spec.season != null ? ` in ${spec.season}` : "";
+    const { leaderName, leaderVerb } = tiedLeader(rows, n, name);
+    return `${leaderName} ${leaderVerb} with ${fmt(n)}${post} ${what}${when}${quals}.`;
+  }
+
+  if (spec.intent === "game_count_leaders") {
+    const opText = { ">": "over", ">=": "at least", "<": "under" }[spec.threshold!.op];
+    const n = Number(top.value ?? 0);
+    const posText = spec.position ? ` among ${spec.position}s` : "";
+    const when =
+      spec.seasonMin != null ? ` from ${spec.seasonMin} to ${spec.seasonMax}`
+        : spec.season != null ? ` in ${spec.season}` : "";
+    const age = spec.minAgeYears != null ? ` after turning ${spec.minAgeYears}` : "";
+    const exp = spec.beforeSeasonN != null ? ` before their ${ordinal(spec.beforeSeasonN)} season` : "";
+    // The AND-combined second stat ("games with both a rushing and receiving
+    // touchdown") must be voiced too — never silently drop the half of the
+    // filter that isn't the primary stat/threshold.
+    const andText =
+      spec.andStat != null && spec.andThreshold != null
+        ? ` and ${{ ">": "over", ">=": "at least", "<": "under" }[spec.andThreshold.op]} ` +
+          `${fmt(spec.andThreshold.value)} ${specLabel({ stat: spec.andStat })}`
+        : "";
+    return (
+      `${name} leads${posText} with ${fmt(n)}${post} game${n === 1 ? "" : "s"} with ` +
+      `${opText} ${fmt(spec.threshold!.value)} ${label}${andText}${when}${age}${exp}${quals}.`
     );
   }
 
@@ -561,31 +654,120 @@ export function narrate(spec0: QuerySpec, rows: Row[]): string {
     return `${name} had ${fmt(top.value)}${unit}${post} ${label} in ${top.season}${quals}.`;
   }
   if (spec.intent === "single_game") {
+    // The window scopes what "top mark" ranks over — without voicing it,
+    // "top single-game mark" reads as the all-time best. The vs-opponent
+    // window leads the sentence (the shown game names its own opponent, so
+    // the trailing qualifier form would read as a duplicate).
+    const vsOpp = spec.opponentId
+      ? ` against the ${spec.opponentName ?? spec.opponentId}`
+      : "";
+    const sgQuals = qualifiers({ ...spec, opponentId: null });
     return (
-      `${name} has the top single-game${post} mark with ${top.value} ` +
+      `${name} has the top single-game${post} mark${vsOpp}${sgQuals} with ${top.value} ` +
       `${label}, against ${top.opponent} in Week ${top.week}, ${top.season}.`
     );
   }
   // leaders
+  if (spec.perOpponent) {
+    // Names BOTH halves of the answer — the player and the one opponent the
+    // total came against — never just the player, since "against a single
+    // opponent" is meaningless without naming who. Ascending boards say
+    // "fewest" and voice the pair's games floor, same idiom as the
+    // season-scope ascending branch below.
+    const oppName = String(top.opponent_name ?? "one opponent");
+    const most = spec.dir === "asc" ? "fewest" : "most";
+    const floor = spec.dir === "asc" ? " (min. 8 games)" : "";
+    // A co-occurring game-result/margin/venue/etc. filter is applied in the
+    // SQL via gamePreds same as every other game-grain board — voice it too,
+    // or the narration understates what the number is actually scoped to.
+    // Same for a pinned season or range (gamePreds applies both).
+    const seasonTail =
+      spec.seasonMin != null ? ` from ${spec.seasonMin} to ${spec.seasonMax}`
+        : spec.season != null ? ` in ${spec.season}` : "";
+    return (
+      `${name} has the ${most}${post} ${label} against a single opponent — ` +
+      `${fmt(top.value)}${unit} against the ${oppName}${floor}${seasonTail}${quals}.`
+    );
+  }
   const topValue = Number(top.value);
-  const tied = rows.filter((row) => Number(row.value) === topValue);
-  const tiedNames = tied.map((row) => String(row.full_name));
-  const leaderName =
-    tiedNames.length <= 1
-      ? name
-      : tiedNames.length === 2
-        ? `${tiedNames[0]} and ${tiedNames[1]}`
-        : `${tiedNames.slice(0, -1).join(", ")}, and ${tiedNames.at(-1)}`;
-  const leaderVerb = tiedNames.length > 1 ? "are tied for the lead" : "leads";
+  const { leaderName, leaderVerb } = tiedLeader(rows, topValue, name);
   const forTeam = spec.teamName ? ` the ${spec.teamName}` : "";
   const posText = spec.position ? ` among ${spec.position}s` : "";
   const rate = spec.perGame ? " per game" : "";
   const verb = spec.dir === "asc" ? "has the fewest" : "leads";
+  // Career-window boards (first-N games / before-Nth-season / after-turning-N)
+  // combine as AND filters in the executor, so the narration voices EVERY
+  // window that applied — never just whichever check came first.
+  if (spec.firstN != null || spec.beforeSeasonN != null || spec.minAgeYears != null) {
+    // No starts data on file — "starts" phrasing still counts games, said
+    // loudly rather than silently substituted.
+    const startsNote = spec.startsPhrase ? " (games, not starts — no starts data on file)" : "";
+    const windows = [
+      spec.firstN != null ? `through their first ${spec.firstN}${post} games${startsNote}` : "",
+      spec.beforeSeasonN != null ? `before their ${ordinal(spec.beforeSeasonN)} season` : "",
+      spec.minAgeYears != null ? `after turning ${spec.minAgeYears}` : "",
+    ].filter(Boolean).join(" ");
+    // The postseason scope is already voiced inside the games phrase when
+    // firstN is set ("first 10 postseason games"); otherwise it prefixes the
+    // stat label, same as the plain career branch below.
+    const postLabel = spec.firstN != null ? "" : post;
+    // A co-occurring game-result/venue/week/etc. filter combines with the
+    // window as an AND predicate in the SQL (gamePreds) — voice it too, same
+    // as every other branch below, or the sentence understates the window.
+    // Same for a pinned season or range (gamePreds applies both).
+    const seasonTail =
+      spec.seasonMin != null ? ` from ${spec.seasonMin} to ${spec.seasonMax}`
+        : spec.season != null ? ` in ${spec.season}` : "";
+    return `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam}${posText} with ${fmt(top.value)}${unit}${postLabel} ${label} ${windows}${seasonTail}${quals}.`;
+  }
+  // Task 6: derived-negation boards ("without a Y-yard season", "without
+  // ever leading the league", cross-stat conditions) — always career scope,
+  // no player, so each gets its own qualifier clause rather than falling
+  // into the plain "leads all time with..." branch below and silently
+  // dropping the negation from the sentence.
+  if (spec.withoutSeasonAtLeast != null) {
+    const unitWord = spec.stat === "receptions" ? "catch" : "yard";
+    return (
+      `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam}${posText} ` +
+      `with ${fmt(top.value)}${unit} career${post} ${label} without a ` +
+      `${fmt(spec.withoutSeasonAtLeast)}-${unitWord} season${quals}.`
+    );
+  }
+  if (spec.withoutLeagueLead) {
+    return (
+      `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam}${posText} ` +
+      `with ${fmt(top.value)}${unit} career${post} ${label} without ever leading the league${quals}.`
+    );
+  }
+  if (spec.crossStat != null && spec.crossOp != null && spec.crossValue != null) {
+    const crossLabel = specLabel({ stat: spec.crossStat });
+    const crossClause =
+      spec.crossOp === "="
+        ? `without ever scoring a ${crossLabel.replace(/s$/, "")}`
+        : `with fewer than ${fmt(spec.crossValue)} career ${crossLabel}`;
+    return (
+      `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam}${posText} ` +
+      `with ${fmt(top.value)}${unit} career${post} ${label} ${crossClause}${quals}.`
+    );
+  }
   if (spec.scope === "career" && spec.seasonMin != null) {
-    return `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam} with ${fmt(top.value)}${unit}${post} ${label}${rate}${posText} from ${spec.seasonMin} to ${spec.seasonMax}.`;
+    return `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam} with ${fmt(top.value)}${unit}${post} ${label}${rate}${posText} from ${spec.seasonMin} to ${spec.seasonMax}${quals}.`;
+  }
+  // A season pinned onto a career-shaped board (the cumulative-window parser
+  // shape threads it, and every executor path applies it — gamePreds or the
+  // career branch's own season predicate) means the sum is season-scoped:
+  // "all time"/"career" would be affirmatively false, so voice the year.
+  if (spec.scope === "career" && spec.season != null) {
+    return `${leaderName} ${verb === "leads" ? leaderVerb : "have the fewest"}${forTeam}${posText} with ${fmt(top.value)}${unit}${post} ${label}${rate} in ${spec.season}${quals}.`;
   }
   if (spec.scope === "career") {
-    return `${leaderName} ${verb === "leads" ? `${leaderVerb}${forTeam} all time` : "have the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${rate}${posText}.`;
+    return `${leaderName} ${verb === "leads" ? `${leaderVerb}${forTeam} all time` : "have the fewest all time"} with ${fmt(top.value)}${unit} career${post} ${label}${rate}${posText}${quals}.`;
+  }
+  // Season scope with no season pinned: an all-time single-season record board
+  // ("most receiving yards in a season") — say so instead of naming one year.
+  if (spec.season == null && spec.dir !== "asc") {
+    const bounds = spec.seasonMin != null ? ` (since ${spec.seasonMin})` : "";
+    return `${leaderName} holds the single-season${post} record${forTeam ? ` for${forTeam}` : ""}${posText} with ${fmt(top.value)}${unit} ${label}${rate} in ${top.season}${quals}${bounds}.`;
   }
   const season = top.season ?? spec.season;
   const where = season && post ? ` in the ${season} postseason` : season ? ` in ${season}` : "";

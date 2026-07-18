@@ -24,7 +24,7 @@
 import type { ResolvedEntity } from "@yunoball/types";
 import { STATS } from "./spec.js";
 import type { QuerySpec } from "./spec.js";
-import { isComparableStat } from "./executors/shared.js";
+import { isComparableStat, isSeasonRollupStat } from "./executors/shared.js";
 import type { IndexedPlayer, IndexedTeam } from "./resolve.js";
 
 export interface Refusal {
@@ -79,11 +79,17 @@ const WORD_NUMS: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5,
   six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
 };
-const NUM_ALT = `\\d{1,2}|${Object.keys(WORD_NUMS).join("|")}`;
+const ORD_NUMS: Record<string, number> = {
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5,
+  sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10,
+};
+// \d{1,3}: "first N games/seasons" windows run up to career-length (100+
+// games), past topN/lastN's old 2-digit assumption.
+const NUM_ALT = `\\d{1,3}|${Object.keys(WORD_NUMS).join("|")}`;
 
 // "X versus Y" / "X vs Y" / "X and Y" splits the question into two halves;
 // compare only fires when BOTH halves resolve to (different) players.
-const VS_RE = /\s+(?:versus|vs\.?|and|&)\s+/;
+const VS_RE = /\s+(?:versus|vs\.?|and|&|compared (?:to|with|against))\s+/;
 
 /** Words that don't change a bare-name question's meaning ("show me mahomes
  * stats" is still just "mahomes"). */
@@ -144,6 +150,18 @@ export const RESERVED: Set<string> = (() => {
     "against", "draft", "drafted", "pick", "round", "rounds", "appearance", "appearances",
     "log", "matchup", "matchups", "championship", "afc", "nfc",
     "wild", "card", "divisional", "conference",
+    // English function words that are real surname keys in the warehouse:
+    // "what division ARE the chiefs in" must never resolve Kareem Are, and
+    // "more THAN 300 yards" never Than Merrill. Full names still match.
+    "are", "than",
+    // Filter vocabulary that collides with a nickname key: the fused
+    // "primetime" is the broadcast-window split, never Deion Sanders.
+    "primetime",
+    // Exact-match misfires in the playerHit() fallback: "line" is Zach
+    // Line's surname ("5-yard line"), "still" is Tarheeb/Devon/Bryan
+    // Still's surname ("...and still won") — real words that must never
+    // anchor a bare single-word match.
+    "line", "still",
   ]);
   for (const def of Object.values(STATS)) {
     for (const phrase of def.phrases) {
@@ -224,9 +242,9 @@ function teamHits(qText: string, teams: Map<string, IndexedTeam>, cap = 2): Inde
 /** A four-digit year, or relative phrasings resolved against the newest
  * loaded season ("this season", "last year", "current season"). */
 function detectSeason(qText: string, latestSeason: number | null): number | null {
-  // "since 1999" / "since 2000" expresses all-time coverage, not a single
-  // season — strip it so it isn't misread as a one-year filter.
-  const cleaned = qText.replace(/\bsince\s+(?:19|20)\d{2}\b/g, " ");
+  // "since 1999" / "since 2000" is a range start (seasonRange handles it),
+  // not a single season — strip it so it isn't misread as a one-year filter.
+  const cleaned = qText.replace(/\bsince\s+(?:the\s+)?(?:19|20)\d{2}\b/g, " ");
   // A four-digit run immediately followed by a stat unit is a threshold value
   // ("2000 yard rushers", "1500 receiving yards"), never a season year.
   const m = cleaned.match(
@@ -265,6 +283,206 @@ function topN(qText: string): number | null {
   return Math.min(Math.max(numFrom(m[1]!), 1), 50);
 }
 
+/** 'through/in his first N (career|playoff)? games/starts' — a leaderboard
+ * window over each player's own first N games ("who scored the most
+ * touchdowns through his first 50 career games", "in his first 10 playoff
+ * games"). Requires the games/starts noun so it never collides with a
+ * season window ("in his first three seasons", see seasonWindowN). */
+function firstNGamesWindow(qText: string): { n: number; starts: boolean } | null {
+  const m = qText.match(
+    new RegExp(`\\b(?:through|in) (?:(?:his|her|their)\\s+)?first (${NUM_ALT}) (?:career |playoff )?(games|starts)\\b`),
+  );
+  return m ? { n: numFrom(m[1]!), starts: m[2] === "starts" } : null;
+}
+
+/** 'before his Nth season' or 'in/through his first N seasons' — the
+ * exclusive boundary season number for a career season-window leaderboard
+ * (season < rookie_season + boundary - 1); same semantics as
+ * GameCountLeadersSpec.beforeSeasonN. "First N seasons" (seasons 1..N)
+ * converts to the boundary form (N + 1) so both phrasings share one field. */
+function seasonWindowN(qText: string): number | null {
+  let m = qText.match(
+    /\bbefore (?:(?:his|her|their)\s+)?(?:(\d{1,2})(?:st|nd|rd|th)|(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth))(?:\s+nfl)? seasons?\b/,
+  );
+  if (m) return m[1] ? Number(m[1]) : (ORD_NUMS[m[2]!] ?? null);
+  m = qText.match(
+    new RegExp(`\\b(?:in|through) (?:(?:his|her|their)\\s+)?first (${NUM_ALT})(?:\\s+nfl)? seasons?\\b`),
+  );
+  return m ? numFrom(m[1]!) + 1 : null;
+}
+
+/** Touchdown-distance and TD-kind board filters ("most 1-yard touchdowns",
+ * "touchdowns of 50 or more yards", "inside the 5-yard line", pick sixes,
+ * fumble-return TDs). Null unless the question is a scoring board: a distance
+ * plus touchdown vocabulary, or a defensive-return phrase. */
+function scoringBoardFilters(qText: string): {
+  yardsMin: number | null;
+  yardsMax: number | null;
+  tdKind: "rush" | "pass" | "defense" | "int_return" | "fumble_return" | null;
+} | null {
+  const TD = "(?:touchdowns?|tds?)";
+  const KIND = "(?:(?:rushing|receiving|defensive) )?";
+  let yardsMin: number | null = null;
+  let yardsMax: number | null = null;
+  let m = qText.match(/\bfrom exactly (\d{1,3}) yards?(?: out)?\b/);
+  if (m) yardsMin = yardsMax = Number(m[1]);
+  m = qText.match(new RegExp(`\\b(\\d{1,3})[-\\s]yard ${KIND}${TD}`));
+  if (m && yardsMin == null) yardsMin = yardsMax = Number(m[1]);
+  m = qText.match(new RegExp(`\\b${TD} of (\\d{1,3})(?:\\+| or more) yards?\\b`));
+  if (m) yardsMin = Number(m[1]);
+  m = qText.match(new RegExp(`\\b(\\d{1,3})\\+[-\\s]yard ${KIND}${TD}`));
+  if (m) yardsMin = Number(m[1]);
+  // "inside the 5" / "inside the 5-yard line" — but never "inside the
+  // 2-minute warning", which is a clock split, not a distance.
+  m = qText.match(/\binside the (\d{1,3})(?:[-\s]?(?:yard line|yards?))?\b/);
+  if (m && !/\binside the \d{1,3}[-\s]?minute/.test(qText)) yardsMax = Number(m[1]);
+  // Defensive-return boards. "pick six" next to "threw/thrown" is the
+  // QB-side question (INTs thrown, returned by the OTHER team) — not this.
+  const defKind = /\bdefensive (?:touchdowns?|tds?)\b/.test(qText)
+    ? ("defense" as const)
+    : new RegExp(`\\binterception[-\\s]return ${TD}\\b`).test(qText) ||
+        (/\bpick[-\s]six(?:es)?\b/.test(qText) && !/\b(?:threw|thrown)\b/.test(qText))
+      ? ("int_return" as const)
+      : new RegExp(`\\bfumble[-\\s]return ${TD}\\b`).test(qText)
+        ? ("fumble_return" as const)
+        : null;
+  const hasDistance = yardsMin != null || yardsMax != null;
+  if (!defKind && !(hasDistance && new RegExp(`\\b${TD}\\b`).test(qText))) return null;
+  const tdKind =
+    defKind ??
+    (new RegExp(`\\brushing ${TD}`).test(qText)
+      ? ("rush" as const) // scoring_plays.td_kind: offensive rushing scores
+      : new RegExp(`\\breceiving ${TD}`).test(qText) || /\btouchdown catch(?:es)?\b/.test(qText)
+        ? ("pass" as const) // td_kind "pass" = the receiver scored
+        : null);
+  return { yardsMin, yardsMax, tdKind };
+}
+
+/** Game-result / margin filters: "in games his team lost" (a loss), "and
+ * still won" (a win), "in one-score games/losses" (final margin <= 8).
+ * "One-score losses" sets both — the executor combines them as AND
+ * predicates via gamePreds, same idiom as every other GameWindow filter.
+ * LOCKSTEP: the game-result/one-score vocabulary this function recognizes is
+ * mirrored (independently, not shared code) by the "in games his team lost" /
+ * "one-score" QUALIFIER_RULES entry in audit.ts — that guard's unmet() only
+ * runs once its OWN regex matches, so it's a soft mirror (a narrower audit
+ * regex just skips the refusal, it doesn't misfire), but keep the two
+ * word lists in sync when either changes. */
+function resultFilters(qText: string): { gameResult: "W" | "L" | null; oneScore: boolean } {
+  const oneScore = /\bin (?:a |the )?(?:one-score|close) (?:games|losses)\b/.test(qText);
+  const lostGame = /\bin (?:a |the )?games? (?:his|her|their) team lost\b/.test(qText);
+  const oneScoreLoss = /\bin (?:a |the )?(?:one-score|close) losses\b/.test(qText);
+  let gameResult: "W" | "L" | null = null;
+  if (lostGame || oneScoreLoss) gameResult = "L";
+  if (/\band still won\b/.test(qText)) gameResult = "W";
+  return { gameResult, oneScore };
+}
+
+/** "Against teams with winning records" — the opponent-record board filter
+ * (implemented via the opponent's FINAL season record; see gamePreds). */
+const OPP_RECORD_RE = /\bagainst (?:teams with )?winning records?\b/;
+
+/** "Against a/one single/specific opponent (or team)" — the best-single-
+ * opponent leaderboard (perOpponent). Deliberately excludes "quarterback":
+ * sacks/interceptions are recorded against the opposing TEAM in the
+ * warehouse, never a specific opposing quarterback, so that phrasing stays a
+ * tailored refusal (PER_QB_RE / the audit guard) instead of silently
+ * building a team-level board that doesn't answer what was asked. */
+const PER_OPPONENT_RE = /\bagainst (?:a|one) (?:single|specific) (?:opponent|team)\b/;
+
+/** Compound same-game TD filters: "both a rushing and receiving touchdown",
+ * "at least one passing and one rushing touchdown", or the plain paraphrase
+ * with neither framing word ("a rushing touchdown and a receiving
+ * touchdown") — no single numeric threshold; each named stat implicitly
+ * needs >=1 in the same game. LOCKSTEP: this vocabulary is mirrored
+ * (independently) by the compound-TD QUALIFIER_RULES entry in audit.ts. */
+function compoundTdFilter(qText: string): { stat: string; andStat: string } | null {
+  const KIND = "(rushing|receiving|passing)";
+  let m = qText.match(new RegExp(`\\bboth an? ${KIND} and (?:an? )?${KIND} touchdowns?\\b`));
+  if (!m) m = qText.match(new RegExp(`\\bat least one ${KIND} and one ${KIND} touchdowns?\\b`));
+  if (!m) m = qText.match(new RegExp(`\\ban? ${KIND} touchdown and an? ${KIND} touchdowns?\\b`));
+  if (!m) return null;
+  return { stat: `${m[1]}_tds`, andStat: `${m[2]}_tds` };
+}
+
+// ---- Task 6: derived-negation ("without") boards ----
+
+/** Which unit word ("yard"/"catch") a stat's own season total is measured
+ * in — the withoutSeasonAtLeast() unit-match guard below. Only stats this
+ * negation can legitimately apply to get an entry; anything else (and any
+ * mismatched unit word, "receptions" against "-yard") returns null so the
+ * caller refuses rather than silently ranking against the wrong column
+ * ("most career receptions without a 1,000-YARD season" must never execute
+ * catches < 1000). */
+const SEASON_THRESHOLD_UNIT: Record<string, "yard" | "catch"> = {
+  passing_yards: "yard", rushing_yards: "yard", receiving_yards: "yard", scrimmage_yards: "yard",
+  receptions: "catch",
+};
+
+/** "without a 1,500-yard season" / "without a 100-catch season" — the
+ * career-total board's own stat, excluded whenever a single season ever
+ * reached this value ("most career rushing yards without a 1,500-yard
+ * season"). The threshold is always about the SAME stat already selected
+ * elsewhere in the question — no separate stat lookup needed, but the unit
+ * word MUST match that stat's own family (yards vs. receptions), or the
+ * question named a different stat's threshold than the one it's ranking. */
+function withoutSeasonAtLeast(qText: string, stat: string): number | null {
+  const m = qText.match(/\bwithout an? ([\d,]+)-(yard|catch)s? seasons?\b/);
+  if (!m) return null;
+  if (SEASON_THRESHOLD_UNIT[stat] !== m[2]) return null;
+  return Number(m[1]!.replace(/,/g, ""));
+}
+
+/** "without (ever) leading the league/NFL (in X)" — excludes anyone who was
+ * ever the outright-or-tied season leader in the ranked stat. */
+const WITHOUT_LEAGUE_LEAD_RE = /\bwithout (?:ever )?leading the (?:league|nfl)\b/;
+
+/** Explicit stat → touchdown-side map for "without scoring a touchdown".
+ * Only plain volume stats whose side is unambiguous: never a
+ * string-prefix guess ("receptions" doesn't start with "receiving", and a
+ * rushing default would check SUM(rushing_tds)=0 for a receiver — a wrong
+ * answer, the engine's worst bug class). A stat outside this map returns
+ * null so the audit guard refuses instead. Ratio/formula/advanced stats are
+ * deliberately absent: the executor's cross-stat branch carries no ratio
+ * floor, and player_game_advanced lacks the *_tds columns the condition
+ * reads. */
+const TD_SIDE: Record<string, "rushing" | "receiving" | "passing"> = {
+  carries: "rushing", rushing_yards: "rushing",
+  receptions: "receiving", receiving_yards: "receiving",
+  passing_yards: "passing",
+};
+
+/** "without scoring a touchdown" — a career cross-stat ZERO condition on the
+ * touchdown stat matching the primary stat's side of the ball ("most rushing
+ * attempts without scoring a touchdown" -> SUM(rushing_tds) = 0). Null (→
+ * guard refusal) when the side can't be confidently determined. */
+function withoutTdCrossStat(
+  qText: string, stat: string,
+): { crossStat: string; crossOp: "="; crossValue: number } | null {
+  if (!/\bwithout scoring an? touchdowns?\b/.test(qText)) return null;
+  const side = TD_SIDE[stat];
+  return side ? { crossStat: `${side}_tds`, crossOp: "=", crossValue: 0 } : null;
+}
+
+/** "with fewer than N career <stat>" — a second career-sum bound on a
+ * DIFFERENT stat than the one being ranked ("most rushing touchdowns with
+ * fewer than 1,000 career rushing yards"). No "without" in this phrasing, so
+ * it's a separate trigger from the without-family helpers above. Both halves
+ * must be plain season-rollup columns — the executor sums them in one pass
+ * over player_season_stats.
+ * ponytail: a game-sourced pair (e.g. carries as the bound) would need the
+ * executor's game-log path wired here too — add when a real question needs
+ * it; until then the audit guard refuses honestly. */
+function crossStatBelow(
+  qText: string, stat: string,
+): { crossStat: string; crossOp: "<"; crossValue: number } | null {
+  const m = qText.match(/\bwith fewer than ([\d,]+) career ([a-z][a-z\s]*?)[?.]?$/);
+  if (!m) return null;
+  const crossStat = detectStat(m[2]!.trim());
+  if (!crossStat || !isSeasonRollupStat(stat) || !isSeasonRollupStat(crossStat)) return null;
+  return { crossStat, crossOp: "<", crossValue: Number(m[1]!.replace(/,/g, "")) };
+}
+
 /** Week-range filters: "week 5", "after week 10", "before/through week 8". */
 function weekRange(qText: string): { weekMin?: number; weekMax?: number } {
   let m = qText.match(/\bafter week (\d{1,2})\b/);
@@ -294,23 +512,34 @@ function detectMonth(qText: string): number | null {
   return m ? MONTH_NUMS[m[1]!]! : null;
 }
 
-/** Numeric qualifying-game thresholds: "over 300", "100+", "at least 3",
- * "more than 10", "under 50", "fewer than 2". */
+/** Numeric qualifying-game thresholds: "over 300", "above a 100", "100+",
+ * "at least 3", "at least three", "two or more", "more than 10", "under 50",
+ * "fewer than 2". Word numbers (WORD_NUMS) count as digits do. */
+const TH_NUM = `\\d+|${Object.keys(WORD_NUMS).join("|")}`;
 function threshold(qText: string): { op: ">" | ">=" | "<"; value: number } | null {
-  let m = qText.match(/\b(?:over|more than)\s+(\d+)/);
-  if (m) return { op: ">", value: Number(m[1]) };
-  m = qText.match(/\b(?:at least)\s+(\d+)/);
-  if (m) return { op: ">=", value: Number(m[1]) };
+  let m = qText.match(new RegExp(`\\b(?:over|above|more than)\\s+(?:an?\\s+)?(${TH_NUM})\\b`));
+  if (m) return { op: ">", value: numFrom(m[1]!) };
+  m = qText.match(new RegExp(`\\bat least\\s+(?:an?\\s+)?(${TH_NUM})\\b`));
+  if (m) return { op: ">=", value: numFrom(m[1]!) };
+  m = qText.match(new RegExp(`\\b(${TH_NUM}) or more\\b`));
+  if (m) return { op: ">=", value: numFrom(m[1]!) };
   m = qText.match(/\b(\d+)\s*\+/);
   if (m) return { op: ">=", value: Number(m[1]) };
-  m = qText.match(/\b(?:under|fewer than|less than)\s+(\d+)/);
-  if (m) return { op: "<", value: Number(m[1]) };
+  // "multiple" as a bare qualifier ("games with multiple rushing touchdowns")
+  // means two-plus — same as "two or more" would.
+  if (/\bmultiple\b/.test(qText)) return { op: ">=", value: 2 };
+  m = qText.match(new RegExp(`\\b(?:under|below|fewer than|less than)\\s+(${TH_NUM})\\b`));
+  if (m) return { op: "<", value: numFrom(m[1]!) };
   m = qText.match(/\bgames? with (\d+)\b/);
   if (m) return { op: ">=", value: Number(m[1]) };
   // "300 yard games", "throw for 300 yards", "1000 rushing yards": a count
   // before a yardage unit (optionally through a rushing/passing/receiving
   // adjective) is a threshold. Two-plus digits so a "5 yard" never trips it.
-  m = qText.match(/\b(\d{2,4})[-\s]?(?:(?:rushing|passing|receiving)\s+)?(?:yards?|yds?)\b/);
+  // (?<!,): a digit run immediately after a comma is the TAIL of a larger
+  // comma-grouped number ("1,500-yard" must never read as 500) — this
+  // branch doesn't parse comma grouping at all, so it must refuse rather
+  // than silently match the fragment.
+  m = qText.match(/(?<!,)\b(\d{2,4})[-\s]?(?:(?:rushing|passing|receiving)\s+)?(?:yards?|yds?)\b/);
   if (m) return { op: ">=", value: Number(m[1]) };
   return null;
 }
@@ -357,7 +586,7 @@ function countThreshold(qText: string): { op: ">="; value: number } | null {
 }
 
 /** Inclusive multi-season range: "from 2021 to 2023", "between 2019 and 2022",
- * "2020-2022", "last 3 seasons". */
+ * "2020-2022", "since 2020", "last 3 seasons". */
 function seasonRange(qText: string, latestSeason: number | null): { min: number; max: number } | null {
   let m =
     qText.match(/\bfrom\s+((?:19|20)\d{2})\s+(?:to|through|thru|and)\s+((?:19|20)\d{2})\b/) ??
@@ -367,6 +596,9 @@ function seasonRange(qText: string, latestSeason: number | null): { min: number;
     const a = Number(m[1]), b = Number(m[2]);
     return { min: Math.min(a, b), max: Math.max(a, b) };
   }
+  // "since 2020" runs from that season through the newest loaded one.
+  m = qText.match(/\bsince\s+(?:the\s+)?((?:19|20)\d{2})\b/);
+  if (m && latestSeason != null) return { min: Number(m[1]), max: latestSeason };
   m = qText.match(/\b(?:last|past)\s+(\d{1,2})\s+(?:seasons|years)\b/);
   if (m && latestSeason != null) {
     const n = Math.max(2, Number(m[1]));
@@ -392,7 +624,7 @@ function fromRoman(s: string): number | null {
   return out > 0 && out < 100 ? out : null;
 }
 
-export interface SbRef {
+interface SbRef {
   /** Super Bowl number (SB 50 = 50) when the question named one. */
   number?: number;
   /** NFL season the game concluded (number - 1965, or year rules). */
@@ -404,7 +636,7 @@ export interface SbRef {
 /** Recognize Super Bowl references: numbers, Roman numerals, calendar years
  * ("2024 Super Bowl" = the game played in Feb 2024 = the 2023 season), and
  * season phrasings ("the 2018 season's Super Bowl"). */
-export function sbRef(qText: string): SbRef | null {
+function sbRef(qText: string): SbRef | null {
   if (!/\bsuper ?bowls?\b|\bsb\b/.test(qText)) return null;
   let m = qText.match(/\b(?:super ?bowl|sb) (\d{1,2})\b/);
   if (m) {
@@ -523,6 +755,12 @@ const UNSUPPORTED: [RegExp, string][] = [
     "Only touchdown lengths are stored from play-by-play — try \"longest touchdown of 2023\". Other play distances aren't tracked.",
   ],
   [
+    // Counting touchdowns BY length for a NAMED player isn't wired yet; the
+    // league-wide boards ARE (scoring_board) and parse before this scan.
+    /\b\d{1,3}[-\s]?(?:yard|yd)s? (?:(?:rushing|receiving|defensive) )?(?:touchdowns?|tds?)\b/,
+    "Touchdown counts by play length are only supported league-wide so far — try \"most 1-yard touchdowns\" — or a player's touchdown timeline (\"Ja'Marr Chase first touchdown\").",
+  ],
+  [
     // "youngest/oldest TO <milestone>" needs age-at-game; "fastest to X" IS
     // answered (milestone intent). Bio superlatives are handled earlier.
     /\b(?:youngest|oldest) (?:to|player to|ever to)\b|\bon pace\b/,
@@ -552,6 +790,9 @@ export function parseRules(
     .replace(/\bthe big game\b/g, "the super bowl");
   const season = detectSeason(qText, opts.latestSeason ?? null);
   const isCareer = CAREER_RE.test(qText);
+  // "in a season" / "in a single season" / "in one season": an all-time
+  // single-season record, not the latest season — season scope, every year.
+  const isSeasonRecord = /\bin (?:a|one|any)(?: single)? (?:season|year)\b/.test(qText);
   // "average"/"avg" reads as a per-game rate; ratio stats (yards per carry)
   // are already rates, so the flag is cleared for them at spec construction.
   const perGameCue = /\bper[- ]game\b|\baverages?\b|\bavg\b|\b(?:rolling|moving) average\b/.test(qText);
@@ -647,6 +888,92 @@ export function parseRules(
     player = playerHit(qText, index, opts.teams) ?? (mentioned.length > 0 ? mentioned[0]! : null);
   }
 
+  // ---- Teammate combos ("Josh Allen passer rating with Stefon Diggs") ----
+  // Split on with/alongside; when BOTH halves name distinct players, the
+  // first half's player is the subject (never the more-prominent teammate)
+  // and the second becomes the with-window. Threshold phrasings ("games with
+  // at least 3 TDs") are unaffected — their second half names no player.
+  let withMate: IndexedPlayer | null = null;
+  let pairingApprox = false;
+  // Targeting words — shared by the with-branch (a teammate that rode a
+  // targeting word inside a with-clause still needs the disclosure) and the
+  // standalone targeting branch below.
+  const TO_RE = /\s+(?:targeting|thrown to|throwing to|passes to|to|from)\s+/;
+  {
+    // The teammate rides the LAST with-clause ("games with 3 TDs with Chase"
+    // has a threshold "with" first) — everything before it is the subject.
+    const halves = qText.split(/\s+(?:with|alongside)\s+/);
+    if (halves.length >= 2) {
+      const p2 = playerHit(halves.at(-1)!, index, opts.teams);
+      if (p2) {
+        const p1 = playerHit(halves.slice(0, -1).join(" with "), index, opts.teams);
+        if (p1 && p1.playerId !== p2.playerId) {
+          player = p1;
+          withMate = p2;
+          // "games with 2 passing touchdowns TO chase": the teammate sits
+          // behind a targeting word inside the with-half — that's still a
+          // targeting ask, so the approximation must be disclosed.
+          const tail = halves.at(-1)!.split(TO_RE);
+          if (
+            tail.length >= 2 &&
+            playerHit(tail.slice(1).join(" to "), index, opts.teams)?.playerId === p2.playerId
+          ) {
+            pairingApprox = true;
+          }
+        } else if (!p1) {
+          return {
+            refusal:
+              `Teammate splits only work on a named player's stats so far — ` +
+              `try "Patrick Mahomes passing yards with ${p2.name}".`,
+          };
+        }
+      }
+    }
+    // Targeting phrasings ("Burrow passing yards to Chase", "Chase yards
+    // from Burrow"): true passer→receiver pairing needs play-by-play the
+    // warehouse doesn't carry. Deterministic stand-in: the subject's stats
+    // in games the named partner also appeared in — the same with-window,
+    // with the approximation disclosed in narration via pairingApprox.
+    // ponytail: appeared-together, not target-paired — upgrade to exact
+    // splits when pbp lands.
+    const toHalves = qText.split(TO_RE);
+    if (!withMate && toHalves.length >= 2) {
+      const target = playerHit(toHalves.slice(1).join(" to "), index, opts.teams);
+      const subject = playerHit(toHalves[0]!, index, opts.teams);
+      if (target && subject && target.playerId !== subject.playerId) {
+        player = subject;
+        withMate = target;
+        pairingApprox = true;
+      } else if (target && !subject && /\b(?:who|most|top|leaders?)\b/.test(toHalves[0]!)) {
+        // "Who threw the most touchdowns TO Kelce" — a passer board keyed on
+        // the target. Without pass-target pairing the played-together
+        // stand-in has no subject to attach to, and letting the fallback
+        // make the TARGET the subject answers a different question with a
+        // confident wrong number. Refuse by name instead.
+        return {
+          refusal:
+            `Ranking passers by their production to ${target.name} needs pass-target ` +
+            `pairing the warehouse doesn't carry. Try a named passer instead — ` +
+            `"Patrick Mahomes touchdowns with ${target.name}".`,
+        };
+      }
+    }
+  }
+
+  // ---- Opponent splits ("Mahomes passer rating vs the Bills") ----
+  // The opponent rides a vs/versus/against clause naming a team. The
+  // executor predicate (gamePreds opponentId) predates this; the parser just
+  // never fed it outside game logs. Player-vs-player already returned above
+  // as a compare, so a surviving vs-clause here names a team or nothing.
+  // Lockstep: audit.ts vs-team qualifier rule.
+  let vsOpp: IndexedTeam | null = null;
+  if (player && opts.teams) {
+    const oppHalves = qText.split(/\s+(?:vs\.?|versus|against)\s+/);
+    if (oppHalves.length >= 2) {
+      vsOpp = teamHit(oppHalves.slice(1).join(" "), opts.teams);
+    }
+  }
+
   // ---- Draft questions ("who was the first pick 2025", "when was X drafted",
   // "who did the chiefs draft in round 1") ----
   const draftCue =
@@ -703,9 +1030,24 @@ export function parseRules(
     /\b(game ?log|game[- ]by[- ]game|results|appearances?|history|record|games)\b/.test(qText);
   const gameDate = detectDate(qText);
 
+  // Single-game superlatives ("most passing yards in a game vs the bills")
+  // must not read "game vs" as a game-log ask — hoisted here so the log
+  // branch below can defer to the single_game branch. The "in a … game"
+  // regex allows up to two adjectives ("in a playoff game", "in a road
+  // game") — a literal "in a game" match silently answered career TOTALS
+  // for best-single-game asks. "In a super bowl" is a single game too;
+  // "in THE super bowl" stays a career window (sbOnly).
+  const isSingleGame =
+    (qText.includes("game") &&
+      (qText.includes("single") ||
+        qText.includes("one game") ||
+        /\bin an? (?:[\w-]+ ){0,2}game\b/.test(qText))) ||
+    /\bin a super ?bowl\b/.test(qText);
+
   // Player game log: "mahomes super bowl game log", "jefferson games against
   // green bay". Generic words like "record" never route a player here.
-  if (player && (/\bgame ?log\b/.test(qText) || /\bgames? (?:against|vs\.?)\b/.test(qText))) {
+  if (player && !isSingleGame &&
+      (/\bgame ?log\b/.test(qText) || /\bgames? (?:against|vs\.?)\b/.test(qText))) {
     const opp = teams ? teamHit(qText, teams) : null;
     return {
       intent: "game_log", stat: "total_tds",
@@ -755,9 +1097,38 @@ export function parseRules(
     };
   }
 
+  // ---- Scoring boards over the touchdown log: counts by TD distance
+  // ("most 1-yard touchdowns", "of 50 or more yards", "inside the 5") and
+  // the defensive-return boards (pick sixes, fumble returns). League-wide
+  // only — player-scoped distance counts stay honest refusals, and a team
+  // mention falls through to the team shapes. Must run before the
+  // UNSUPPORTED scan, which still refuses this vocabulary elsewhere. ----
+  if (!player && !(opts.teams && teamHit(qText, opts.teams))) {
+    const board = scoringBoardFilters(qText);
+    if (board) {
+      const range = seasonRange(qText, opts.latestSeason ?? null);
+      return {
+        intent: "scoring_board", stat: "total_tds", ...board,
+        season: range ? null : effSeason,
+        seasonMin: range?.min ?? null, seasonMax: range?.max ?? null,
+        seasonType, sbOnly, round: playerRound, month, primetime, tempMax,
+        venue: filters.venue,
+        weekMin: filters.weekMin ?? null, weekMax: filters.weekMax ?? null,
+        scope: range || effSeason == null ? "career" : "season",
+        limit: topN(qText) ?? 10,
+      };
+    }
+  }
+
   // Vocabulary we recognize but genuinely can't answer — say so, usefully.
+  // A captured vs-team opponent legitimizes "vs the bills defense": the unit
+  // word names the opponent, not a team-unit ranking ask, so it's dropped
+  // from the scan.
+  const scanText = vsOpp
+    ? qText.replace(/\b(?:offense|offensive|defense|defensive)\b/g, " ")
+    : qText;
   for (const [re, message] of UNSUPPORTED) {
-    if (re.test(qText)) return { refusal: message };
+    if (re.test(scanText)) return { refusal: message };
   }
 
   if (!player && teams) {
@@ -883,7 +1254,7 @@ export function parseRules(
         return {
           intent: "leaders", stat: tStat,
           teamId: team.teamId, teamName: team.name,
-          season: tRange ? null : (effSeason ?? (isCareer ? null : (opts.latestSeason ?? null))),
+          season: tRange ? null : (effSeason ?? (isCareer || isSeasonRecord ? null : (opts.latestSeason ?? null))),
           seasonMin: tRange?.min ?? null, seasonMax: tRange?.max ?? null,
           seasonType, sbOnly, month,
           position: detectPosition(qText),
@@ -1000,7 +1371,11 @@ export function parseRules(
   // Any leftover token (a year, "career", "playoffs", a stat word…) falls
   // through to the existing shapes.
   if (stat === null && player) {
-    const nameTokens = new Set(player.name.toLowerCase().split(/\s+/));
+    // Fold punctuation the way users type names: "A.J." matches "aj",
+    // "Amon-Ra St. Brown" matches "amon ra st brown".
+    const nameTokens = new Set(
+      player.name.toLowerCase().replace(/[.'’]/g, "").replace(/-/g, " ").split(/\s+/),
+    );
     const pid = player.playerId;
     const leftover = qText
       .replace(/[^a-z0-9\s]/g, " ")
@@ -1041,9 +1416,6 @@ export function parseRules(
   // pbp-derived stats live in a separate table; threshold/single-game/streak
   // shapes stay off it (their SQL targets player_game_stats).
   const advStat = STATS[stat]?.table === "advanced";
-  const isSingleGame =
-    qText.includes("game") &&
-    (qText.includes("single") || qText.includes("in a game") || qText.includes("one game"));
   const perGame = perGameCue && !STATS[stat]?.ratio;
   const range = seasonRange(qText, opts.latestSeason ?? null);
 
@@ -1116,15 +1488,156 @@ export function parseRules(
     };
   }
 
+  // Qualifying-game count leaderboard: "who has the most games with over 300
+  // passing yards", "which QB had the most games with a passer rating over
+  // 100", "most 100-yard rushing games after turning 30".
+  const ageM = qText.match(/\bafter turning (\d{2})\b/);
+  // Max-age filters ("before turning 25", "before age 25") have no spec
+  // field anywhere — refuse before any shape can silently drop the
+  // qualifier (the audit guard backstops paths that return earlier).
+  if (/\bbefore (?:turning|age) \d{1,2}\b/.test(qText)) {
+    return {
+      refusal:
+        'Maximum-age filters ("before turning 25") aren\'t supported yet — ' +
+        'age splits only work as "after turning N".',
+    };
+  }
+  // Single source for every "before his Nth season" / "first N seasons"
+  // phrasing — consumed by game_count_leaders and the leaders window below.
+  const beforeSeasonN = seasonWindowN(qText);
+  // "and still won" / compound same-game TD filters ride the same
+  // qualifying-games board: a numeric threshold on one stat (th), or an
+  // implicit >=1-each pair from compoundTdFilter (no digit in the question
+  // at all, e.g. "both a rushing and receiving touchdown").
+  const rf = resultFilters(qText);
+  const compoundTd = compoundTdFilter(qText);
+  if (!player && (th || compoundTd) && !advStat && /\bmost\b[^.?]*\bgames\b/.test(qText)) {
+    return {
+      intent: "game_count_leaders",
+      stat: compoundTd?.stat ?? stat,
+      threshold: compoundTd ? { op: ">=", value: 1 } : th!,
+      andStat: compoundTd?.andStat ?? null,
+      andThreshold: compoundTd ? { op: ">=", value: 1 } : null,
+      position,
+      season: range ? null : effSeason,
+      seasonMin: range?.min ?? null,
+      seasonMax: range?.max ?? null,
+      seasonType,
+      sbOnly,
+      month,
+      primetime,
+      tempMax,
+      venue: filters.venue,
+      weekMin: filters.weekMin ?? null,
+      weekMax: filters.weekMax ?? null,
+      minAgeYears: ageM ? Number(ageM[1]) : null,
+      beforeSeasonN,
+      gameResult: rf.gameResult,
+      oneScore: rf.oneScore,
+      scope: isCareer || range || effSeason == null ? "career" : "season",
+      limit: limit ?? 10,
+    };
+  }
+  // Cumulative-window leaderboards, no named player: "who scored the most
+  // touchdowns through his first 50 career games", "most rushing yards in
+  // his first three NFL seasons", "which QB had the most rushing yards in
+  // his first five seasons", "first 10 playoff games", "most rushing yards
+  // after turning 30", "in games his team lost", "in one-score games",
+  // "against teams with winning records", "against a single opponent",
+  // "without a 1,500-yard season", "without ever leading the league",
+  // "without scoring a touchdown", "with fewer than N career X". The windows
+  // combine as AND filters in the executor, so every phrase present lands
+  // on the spec — never first-match-wins. Same forced-career idiom as the
+  // age/season windows: a single-season snapshot isn't what any of these
+  // ask for.
+  const oppWinningRecord = OPP_RECORD_RE.test(qText);
+  const perOpponent = PER_OPPONENT_RE.test(qText);
+  // The season-exclusion negations aggregate player_season_stats directly
+  // (MAX/per-season league max of the stat's own expr), so they only exist
+  // for plain season-rollup stats — for anything else (ratio, formula,
+  // game-only like carries) the field stays null and the audit guard
+  // refuses instead of emitting SQL over a column the rollup doesn't have.
+  const withoutSeason = isSeasonRollupStat(stat) ? withoutSeasonAtLeast(qText, stat) : null;
+  const withoutLead = WITHOUT_LEAGUE_LEAD_RE.test(qText) && isSeasonRollupStat(stat);
+  const cross = withoutTdCrossStat(qText, stat) ?? crossStatBelow(qText, stat);
+  if (!player) {
+    const gamesWin = firstNGamesWindow(qText);
+    if (
+      gamesWin || beforeSeasonN != null || ageM ||
+      rf.gameResult != null || rf.oneScore || oppWinningRecord || perOpponent ||
+      withoutSeason != null || withoutLead || cross != null
+    ) {
+      return {
+        intent: "leaders",
+        stat,
+        firstN: gamesWin?.n ?? null,
+        startsPhrase: gamesWin?.starts ?? false,
+        beforeSeasonN,
+        minAgeYears: ageM ? Number(ageM[1]) : null,
+        gameResult: rf.gameResult,
+        oneScore: rf.oneScore,
+        oppWinningRecord,
+        perOpponent,
+        withoutSeasonAtLeast: withoutSeason,
+        withoutLeagueLead: withoutLead,
+        crossStat: cross?.crossStat ?? null,
+        crossOp: cross?.crossOp ?? null,
+        crossValue: cross?.crossValue ?? null,
+        position,
+        seasonType,
+        sbOnly,
+        // These windows all reach the game log via gamePreds() in the
+        // executor (leadersSql calls it on every branch below the ones this
+        // shape can trigger), so every one of them must land on the spec too
+        // — dropping any here would mean the executor silently narrows the
+        // question further than the narration says ("in 2019" answered
+        // all-time). Same season/range convention as the plain leaders
+        // fallback: a bare range widens to career, a pinned season narrows.
+        season: range ? null : effSeason,
+        seasonMin: range?.min ?? null,
+        seasonMax: range?.max ?? null,
+        month,
+        venue: filters.venue,
+        weekMin: filters.weekMin ?? null,
+        weekMax: filters.weekMax ?? null,
+        primetime,
+        tempMax,
+        dir: ASC_RE.test(qText) ? "asc" : "desc",
+        scope: "career",
+        limit: limit ?? 25,
+      };
+    }
+  }
+
+  // Age/experience splits on a NAMED player's totals aren't wired yet —
+  // refuse rather than silently ignoring the filter (the league-wide
+  // leaderboard and qualifying-game-board forms above are the supported
+  // shapes).
+  if (ageM || beforeSeasonN != null) {
+    return {
+      refusal:
+        'Age and experience splits on a named player\'s totals aren\'t supported yet ' +
+        '— try the leaderboard form instead, like "most rushing yards after turning 30" ' +
+        'or "most 100-yard rushing games after turning 30" (a qualifying-game board).',
+    };
+  }
+
   // Qualifying-game counts: "Lamar games over 300 passing yards",
   // "Derrick Henry 100+ rushing yard games".
   if (player && th && !isSingleGame && !advStat) {
     return {
       intent: "game_count",
       stat,
+      withPlayerId: withMate?.playerId ?? null,
+      withPlayer: withMate?.name ?? null,
+      pairingApprox,
+      opponentId: vsOpp?.teamId ?? null,
+      opponentName: vsOpp?.name ?? null,
       player: player.name,
       playerId: player.playerId,
-      season: effSeason,
+      season: range ? null : effSeason,
+      seasonMin: range?.min ?? null,
+      seasonMax: range?.max ?? null,
       seasonType,
       sbOnly,
       month,
@@ -1134,19 +1647,30 @@ export function parseRules(
       venue: filters.venue,
       weekMin: filters.weekMin ?? null,
       weekMax: filters.weekMax ?? null,
-      scope: isCareer || effSeason === null ? "career" : "season",
+      scope: isCareer || range || effSeason === null ? "career" : "season",
       limit: 25,
     };
   }
 
   if (isSingleGame && !advStat) {
     // Scope to the named player when the question named one ("Derrick Henry
-    // most rushing yards in a game"); otherwise a league-wide single-game board.
+    // most rushing yards in a game"); otherwise a league-wide single-game
+    // board. The executor composes every game window via gamePreds, so the
+    // teammate/opponent/venue filters ride along instead of refusing.
     return {
       intent: "single_game", stat, seasonType, limit: limit ?? 5,
       scope: "season", season: effSeason,
       player: player?.name ?? null,
       playerId: player?.playerId ?? null,
+      withPlayerId: withMate?.playerId ?? null,
+      withPlayer: withMate?.name ?? null,
+      pairingApprox,
+      opponentId: vsOpp?.teamId ?? null,
+      opponentName: vsOpp?.name ?? null,
+      sbOnly, round: playerRound, month, primetime, tempMax,
+      venue: filters.venue,
+      weekMin: filters.weekMin ?? null,
+      weekMax: filters.weekMax ?? null,
     };
   }
 
@@ -1154,6 +1678,11 @@ export function parseRules(
     return {
       intent: "player_total",
       stat,
+      withPlayerId: withMate?.playerId ?? null,
+      withPlayer: withMate?.name ?? null,
+      pairingApprox,
+      opponentId: vsOpp?.teamId ?? null,
+      opponentName: vsOpp?.name ?? null,
       player: player.name,
       playerId: player.playerId,
       season: range ? null : effSeason,
@@ -1173,6 +1702,14 @@ export function parseRules(
       weekMin: filters.weekMin ?? null,
       weekMax: filters.weekMax ?? null,
       rookie: filters.rookie,
+      // A named player's total honors the same result/margin/opponent-record
+      // filters as the league-wide boards — gamePreds and needsGameLog
+      // already consume them, so a question like "Henry rushing yards in
+      // games his team lost" answers, not just the leaderless leaderboard
+      // form (q17-style).
+      gameResult: rf.gameResult,
+      oneScore: rf.oneScore,
+      oppWinningRecord,
       scope:
         range || isCareer || effSeason === null
           ? "career"
@@ -1198,22 +1735,26 @@ export function parseRules(
     seasonMax: range?.max ?? null,
     // Default a leaderboard question to the most recent loaded season, not all
     // of history: "most passing yards" means last season's leader, the same as
-    // "best qb" does. Only "career"/"all-time" (isCareer) or an explicit season
-    // range widens it; a generic name search and a comparison are different
-    // intents (player_seasons / compare) and keep their own career default.
+    // "best qb" does. Only "career"/"all-time" (isCareer), an explicit season
+    // range, or single-season-record phrasing ("in a season", isSeasonRecord —
+    // season scope ranked across every year) widens it; a generic name search
+    // and a comparison are different intents (player_seasons / compare) and
+    // keep their own career default.
     round: playerRound,
     season: range
       ? null
       : isCareer
         ? null
-        : (effSeason ?? (opts.latestSeason ?? null)),
+        : (effSeason ?? (isSeasonRecord ? null : (opts.latestSeason ?? null))),
     seasonType,
-    limit: limit ?? 10,
+    limit: limit ?? 25,
     position,
     dir: ASC_RE.test(qText) ? "asc" : "desc",
     rookie: /\brookies?\b/.test(qText),
-    // A range aggregates across its seasons like a career total does.
-    scope: range || isCareer ? "career" : "season",
+    // A range aggregates across its seasons like a career total does —
+    // unless the question asked for a single-season record ("most rushing
+    // yards in a season since 2015"), which ranks season rows WITHIN the range.
+    scope: (range && !isSeasonRecord) || isCareer ? "career" : "season",
   };
 }
 

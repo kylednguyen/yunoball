@@ -156,7 +156,7 @@ export async function getPerformers(
 
 // ---- Box scores ----------------------------------------------------------- //
 
-import type { BoxScore, BoxScorePlayer } from "@yunoball/types";
+import type { BoxScore, BoxScorePlayer, TeamGameLine } from "@yunoball/types";
 
 const BOX_COLS = `
   COALESCE(s.completions, 0) AS completions,
@@ -172,6 +172,7 @@ const BOX_COLS = `
   COALESCE(s.receptions, 0) AS receptions,
   COALESCE(s.receiving_yards, 0) AS receiving_yards,
   COALESCE(s.receiving_tds, 0) AS receiving_tds,
+  COALESCE(s.fumbles, 0) AS fumbles,
   COALESCE(s.fumbles_lost, 0) AS fumbles_lost,
   COALESCE(s.tackles, 0) AS tackles,
   COALESCE(s.def_sacks, 0) AS def_sacks,
@@ -180,16 +181,26 @@ const BOX_COLS = `
   COALESCE(s.passes_defended, 0) AS passes_defended,
   COALESCE(s.fantasy_points_ppr, 0) AS fantasy_points_ppr`;
 
-/** Everything one game page needs: the final score plus each team's player
- * stat lines, busiest players first. */
+/** '(3:37) 30-C.Hubbard left guard...' -> ["3:37", "30-C.Hubbard left guard..."]. */
+function splitClock(desc: string | null): [string | null, string | null] {
+  const m = desc?.match(/^\((\d{0,2}:\d{2})\)\s*/);
+  return m ? [m[1]!, desc!.slice(m[0].length)] : [null, desc];
+}
+
+/** Everything one game page needs: score header (with each team's record
+ * through this game), team stat lines, the chronological scoring log, and
+ * each team's player stat lines, busiest players first. */
 export async function getBoxScore(gameId: string): Promise<BoxScore> {
   const games = await q<{
     game_id: string; season: number; season_type: string; week: number;
-    game_date: string | null; stadium: string | null;
+    game_date: string | null; stadium: string | null; roof: string | null;
+    surface: string | null; temp: number | null; wind: number | null;
+    gametime: string | null; home_coach: string | null; away_coach: string | null;
     home_team: string; home_name: string; home_nick: string | null; home_score: number | null;
     away_team: string; away_name: string; away_nick: string | null; away_score: number | null;
   }>(
     `SELECT g.game_id, g.season, g.season_type, g.week, g.game_date, g.stadium,
+            g.roof, g.surface, g.temp, g.wind, g.gametime, g.home_coach, g.away_coach,
             g.home_team, ht.name AS home_name, ht.nickname AS home_nick, g.home_score,
             g.away_team, aw.name AS away_name, aw.nickname AS away_nick, g.away_score
      FROM games g
@@ -201,22 +212,62 @@ export async function getBoxScore(gameId: string): Promise<BoxScore> {
   const g = games[0];
   if (!g) throw new ApiError(404, "Game not found.");
 
-  const rows = await q<
-    BoxScorePlayer & { team_id: string }
-  >(
-    `SELECT s.team_id, s.player_id, p.full_name AS name, p.position, ${BOX_COLS}
-     FROM player_game_stats s
-     JOIN players p ON p.player_id = s.player_id
-     WHERE s.game_id = $1
-     ORDER BY s.fantasy_points_ppr DESC NULLS LAST, p.full_name`,
-    [gameId],
-  );
+  const [rows, recordRows, scoringRows, lineRows] = await Promise.all([
+    q<BoxScorePlayer & { team_id: string }>(
+      `SELECT s.team_id, s.player_id, p.full_name AS name, p.position, ${BOX_COLS}
+       FROM player_game_stats s
+       JOIN players p ON p.player_id = s.player_id
+       WHERE s.game_id = $1
+       ORDER BY s.fantasy_points_ppr DESC NULLS LAST, p.full_name`,
+      [gameId],
+    ),
+    // Each team's W-L(-T) across the season through this game (both phases).
+    q<{ team_id: string; w: number; l: number; t: number }>(
+      `SELECT t.team_id,
+              COUNT(*) FILTER (WHERE (g2.home_team = t.team_id AND g2.home_score > g2.away_score)
+                                  OR (g2.away_team = t.team_id AND g2.away_score > g2.home_score))::int AS w,
+              COUNT(*) FILTER (WHERE (g2.home_team = t.team_id AND g2.home_score < g2.away_score)
+                                  OR (g2.away_team = t.team_id AND g2.away_score < g2.home_score))::int AS l,
+              COUNT(*) FILTER (WHERE g2.home_score = g2.away_score)::int AS t
+       FROM (VALUES ($2::varchar), ($3::varchar)) AS t (team_id)
+       JOIN games g2
+         ON g2.season = $4 AND g2.home_score IS NOT NULL
+        AND (g2.home_team = t.team_id OR g2.away_team = t.team_id)
+        AND (g2.game_date <= (SELECT game_date FROM games WHERE game_id = $1))
+       GROUP BY t.team_id`,
+      [gameId, g.home_team, g.away_team, g.season],
+    ),
+    q<{ qtr: number | null; team_id: string; player_id: string | null; player: string | null;
+        play_type: string | null; yards: number | null; description: string | null }>(
+      `SELECT sp.qtr, sp.team_id, sp.player_id, p.full_name AS player,
+              sp.play_type, sp.yards, sp.description
+       FROM scoring_plays sp
+       LEFT JOIN players p ON p.player_id = sp.player_id
+       WHERE sp.game_id = $1
+       ORDER BY sp.play_id`,
+      [gameId],
+    ),
+    q<TeamGameLine & { team_id: string }>(
+      `SELECT team_id, total_yards, passing_yards, rushing_yards, turnovers,
+              time_of_possession_sec, drives
+       FROM team_game_stats WHERE game_id = $1`,
+      [gameId],
+    ),
+  ]);
+
+  const record = (team: string): string | null => {
+    const r = recordRows.find((row) => row.team_id === team);
+    if (!r) return null;
+    return `${r.w}-${r.l}${r.t ? `-${r.t}` : ""}`;
+  };
 
   const side = (team: string, name: string, nick: string | null, score: number | null) => ({
     team_id: team,
     name,
     nickname: nick,
     score,
+    record: record(team),
+    line: lineRows.find((row) => row.team_id === team) ?? null,
     players: rows
       .filter((r) => r.team_id === team)
       .map(({ team_id: _t, ...player }) => ({
@@ -233,6 +284,17 @@ export async function getBoxScore(gameId: string): Promise<BoxScore> {
     week: g.week,
     date: g.game_date,
     stadium: g.stadium,
+    roof: g.roof,
+    surface: g.surface,
+    temp: g.temp,
+    wind: g.wind,
+    gametime: g.gametime,
+    home_coach: g.home_coach,
+    away_coach: g.away_coach,
+    scoring: scoringRows.map((s) => {
+      const [clock, description] = splitClock(s.description);
+      return { ...s, clock, description };
+    }),
     home: side(g.home_team, g.home_name, g.home_nick, g.home_score),
     away: side(g.away_team, g.away_name, g.away_nick, g.away_score),
   };

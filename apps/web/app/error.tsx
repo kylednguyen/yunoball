@@ -21,12 +21,12 @@ export default function RouteError({
     <main id="main" className="yb-page">
       <div className="yb-state error" role="alert">
         <h2>Something broke on this page</h2>
-        <p>The rest of the app is fine — you can retry this view or head home.</p>
+        <p>The rest of the app is fine. Retry this view or head home.</p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
           <button className="yb-btn" onClick={reset}>
             Try again
           </button>
-          <Link className="yb-btn ghost" href="/">
+          <Link className="yb-btn" href="/">
             Go home
           </Link>
         </div>

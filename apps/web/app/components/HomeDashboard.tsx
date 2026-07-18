@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { GameCard } from "./GameCard";
 import { Headshot } from "./Headshot";
 import { Performers } from "./Performers";
 import { TeamLogo } from "./TeamLogo";
@@ -15,6 +14,7 @@ import {
   fetchPerformers,
   fetchStandings,
   type ConferenceStandings,
+  type ExampleQuestion,
   type FantasyPlayersResponse,
   type GameRow,
   type GamesResponse,
@@ -22,15 +22,14 @@ import {
   type PerformersResponse,
   type StandingsResponse,
 } from "../lib/api";
-import { formatRecord, formatStatValue } from "../lib/format";
+import { divisionShortName, formatGameDate, formatRecord, formatStatValue, weekLabel } from "../lib/format";
 import { seedConference } from "../lib/playoff";
-import { NFL_TEAM_NAMES, teamTheme } from "../lib/teamTheme";
+import { teamTheme } from "../lib/teamTheme";
 
 /** The NFL homepage below the search bar and score ticker. One data pass feeds
- *  every panel in the recommended order: featured matchup, performers, division
- *  leaders, league leaders, fantasy leaders, playoff picture, trending questions
- *  and team shortcuts. Each panel is a doorway into its full route, and every
- *  player, team and game is clickable. Panels render independently, so one dead
+ *  every card: featured matchup, performers, division leaders, league leaders,
+ *  fantasy leaders, playoff picture and trending questions. Each card is a
+ *  doorway into its full route; panels render independently so one dead
  *  endpoint never blanks the rest of the page. */
 export function HomeDashboard() {
   const [games, setGames] = useState<GamesResponse | null>(null);
@@ -38,7 +37,11 @@ export function HomeDashboard() {
   const [standings, setStandings] = useState<StandingsResponse | null>(null);
   const [fantasy, setFantasy] = useState<FantasyPlayersResponse | null>(null);
   const [boards, setBoards] = useState<LeaderboardsResponse | null>(null);
-  const [examples, setExamples] = useState<string[] | null>(null);
+  const [examples, setExamples] = useState<ExampleQuestion[] | null>(null);
+  // A failed fetch must degrade to an error line, never an eternal skeleton.
+  const [failed, setFailed] = useState<Record<string, boolean>>({});
+  const [divConf, setDivConf] = useState("AFC");
+  const [playoffConf, setPlayoffConf] = useState("AFC");
 
   useEffect(() => {
     let active = true;
@@ -48,7 +51,9 @@ export function HomeDashboard() {
       fetchStandings(),
       fetchFantasyPlayers(),
       fetchLeaderboards(undefined, 5),
-      fetchExamples(8),
+      // A balanced sample (server round-robins across categories); the card
+      // shows up to 4 per group, so this budget comfortably covers every group.
+      fetchExamples(40),
     ]).then(([g, p, s, f, b, e]) => {
       if (!active) return;
       if (g.status === "fulfilled") setGames(g.value);
@@ -57,105 +62,130 @@ export function HomeDashboard() {
       if (f.status === "fulfilled") setFantasy(f.value);
       if (b.status === "fulfilled") setBoards(b.value);
       setExamples(e.status === "fulfilled" ? e.value : []);
+      setFailed({
+        games: g.status === "rejected",
+        performers: p.status === "rejected",
+        standings: s.status === "rejected",
+        fantasy: f.status === "rejected",
+        boards: b.status === "rejected",
+      });
     });
     return () => {
       active = false;
     };
   }, []);
 
+  const cardError = (what: string) => (
+    <p className="yb-muted" role="alert">
+      Couldn’t load {what}. Refresh to try again.
+    </p>
+  );
+
   const featured = games ? pickFeatured(games.games) : null;
+  const divisionConf = standings?.conferences.find((c) => c.conference === divConf) ?? standings?.conferences[0];
+  const playoffConfData =
+    standings?.conferences.find((c) => c.conference === playoffConf) ?? standings?.conferences[0];
 
   return (
     <div className="yb-dash">
-      {/* 4 — Featured matchup: a live game if any, else the week's headline final. */}
-      {featured && (
-        <section aria-label="Featured matchup">
-          <div className="yb-dash-head">
-            <h2>Featured matchup</h2>
-            <Link href="/scores">All scores →</Link>
-          </div>
-          <div className="yb-featured">
-            <GameCard game={featured} />
-          </div>
-        </section>
-      )}
-
-      {/* 5 — Performers of the week */}
-      <section aria-label="Performers of the week">
+      {/* Featured matchup: bold score line, no card chrome. */}
+      <section aria-label="Featured Matchup">
         <div className="yb-dash-head">
-          <h2>Performers of the week</h2>
-          <Link href="/scores">Full board →</Link>
+          <h2>Featured Matchup</h2>
         </div>
-        <Performers performers={performers?.performers ?? null} loading={!performers} count={4} />
+        {failed.games ? (
+          cardError("scores")
+        ) : !games ? (
+          <div className="yb-skel" style={{ height: 64, borderRadius: "var(--r-lg)" }} />
+        ) : featured ? (
+          <FeaturedMatchup game={featured} />
+        ) : (
+          <p className="yb-muted">No games at this time</p>
+        )}
       </section>
 
-      {/* 6 — Division leaders, split by conference */}
-      <section aria-label="Division leaders">
+      {/* Performers of the week */}
+      <section className="yb-card" aria-label="Performers of the Week">
         <div className="yb-dash-head">
-          <h2>Division leaders</h2>
+          <h2>Performers of the Week</h2>
+          <Link href="/scores#performers">Full board →</Link>
+        </div>
+        {failed.performers ? (
+          cardError("performers")
+        ) : (
+          <Performers performers={performers?.performers ?? null} loading={!performers} count={4} />
+        )}
+      </section>
+
+      {/* Division leaders: one card, conference picked by pill */}
+      <section className="yb-card" aria-label="Division Leaders">
+        <div className="yb-dash-head">
+          <h2>Division Leaders</h2>
           <span className="yb-dash-links">
-            <Link href="/standings">Standings</Link>
-            <Link href="/teams">All teams →</Link>
+            {standings && (
+              <ConfPills
+                label="Division leaders conference"
+                value={divConf}
+                onChange={setDivConf}
+                options={standings.conferences.map((c) => c.conference)}
+              />
+            )}
+            <Link href="/standings">Full standings →</Link>
           </span>
         </div>
-        {standings ? (
-          <div className="yb-dash-grid">
-            {standings.conferences.map((conf) => (
-              <DivisionTable key={conf.conference} conf={conf} />
-            ))}
+        {failed.standings ? (
+          cardError("standings")
+        ) : divisionConf ? (
+          <DivisionTable conf={divisionConf} />
+        ) : (
+          <div className="yb-skel" style={{ height: 220 }} />
+        )}
+      </section>
+
+      {/* League leaders: one line per category */}
+      <section className="yb-card" aria-label="League Leaders">
+        <div className="yb-dash-head">
+          <h2>League Leaders</h2>
+          <Link href="/leaders">View all leaders →</Link>
+        </div>
+        {failed.boards ? (
+          cardError("league leaders")
+        ) : boards ? (
+          <div className="yb-lead-lines">
+            {boards.boards
+              .filter((b) => b.rows.length > 0)
+              .slice(0, 6)
+              .map((b) => {
+                const r = b.rows[0]!;
+                return (
+                  <Link
+                    key={b.key}
+                    className="yb-lead-line"
+                    href={`/players/${encodeURIComponent(r.player_id)}?season=${boards.season}`}
+                    style={teamTheme(r.team)}
+                  >
+                    <span className="cat">{b.label}</span>
+                    <span className="nm">{r.name}</span>
+                    <span className="tm">{r.team}</span>
+                    <span className="val">{formatStatValue(r.value)}</span>
+                  </Link>
+                );
+              })}
           </div>
         ) : (
           <div className="yb-skel" style={{ height: 220 }} />
         )}
       </section>
 
-      {/* 7 — League leaders: one compact card, every category, #1 in an accent pill */}
-      <section className="yb-card" aria-label="League leaders">
+      {/* Fantasy leaders */}
+      <section className="yb-card" aria-label="Fantasy Leaders">
         <div className="yb-dash-head">
-          <h2>League leaders</h2>
-          <Link href="/leaders">Live leaderboards →</Link>
-        </div>
-        {boards ? (
-          <div className="yb-lead-groups">
-            {boards.boards
-              .filter((b) => b.rows.length > 0)
-              .slice(0, 6)
-              .map((b) => (
-                <div key={b.key} className="yb-lead-group">
-                  <span className="yb-lead-cat">{b.label}</span>
-                  <ol className="yb-lead-list">
-                    {b.rows.slice(0, 3).map((r, i) => (
-                      <li key={r.player_id} className={`yb-lead-row${i === 0 ? " is-leader" : ""}`} style={i === 0 ? teamTheme(r.team) : undefined}>
-                        {i === 0 ? (
-                          <span className="yb-lead-pill">{formatStatValue(r.value)}</span>
-                        ) : (
-                          <span className="yb-lead-val">{formatStatValue(r.value)}</span>
-                        )}
-                        <Link
-                          className="nm"
-                          href={`/players/${encodeURIComponent(r.player_id)}?season=${boards.season}`}
-                        >
-                          {r.name}
-                        </Link>
-                        <span className="tm">{r.team}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ))}
-          </div>
-        ) : (
-          <div className="yb-skel" style={{ height: 260 }} />
-        )}
-      </section>
-
-      {/* 8 — Fantasy leaders */}
-      <section className="yb-card" aria-label="Top fantasy performers">
-        <div className="yb-dash-head">
-          <h2>Fantasy leaders</h2>
+          <h2>Fantasy Leaders</h2>
           <Link href="/fantasy">Build a lineup →</Link>
         </div>
-        {fantasy ? (
+        {failed.fantasy ? (
+          cardError("fantasy leaders")
+        ) : fantasy ? (
           <div className="yb-scroll-x">
             <table className="yb-mini-table">
               <tbody>
@@ -173,9 +203,6 @@ export function HomeDashboard() {
                         {p.name}
                       </Link>
                     </td>
-                    <td>
-                      <span className={`yb-pos ${p.position ?? ""}`}>{p.position}</span>
-                    </td>
                     <td className="num strong">{p.points_per_game.toFixed(1)}</td>
                     <td className="dim num">pts/gm</td>
                   </tr>
@@ -187,72 +214,103 @@ export function HomeDashboard() {
           <div className="yb-skel" style={{ height: 300 }} />
         )}
         <div className="yb-dash-foot">
-          <span className="yb-muted" style={{ fontSize: 13 }}>
-            Not sure who to start?
-          </span>
-          <Link className="yb-btn sm" href="/assistant">
+          <Link className="yb-btn" href="/assistant">
             Ask the Fantasy Assistant
           </Link>
         </div>
       </section>
 
-      {/* 9 — Playoff picture, seeded per conference */}
-      <section aria-label="Playoff picture">
+      {/* Playoff picture: same one-card pill system as the standings */}
+      <section className="yb-card" aria-label="Playoff Picture">
         <div className="yb-dash-head">
-          <h2>Playoff picture</h2>
-          <Link href="/standings">Full standings →</Link>
+          <h2>Playoff Picture</h2>
+          <span className="yb-dash-links">
+            {standings && (
+              <ConfPills
+                label="Playoff picture conference"
+                value={playoffConf}
+                onChange={setPlayoffConf}
+                options={standings.conferences.map((c) => c.conference)}
+              />
+            )}
+            <Link href="/standings">Full standings →</Link>
+          </span>
         </div>
-        {standings ? (
-          <div className="yb-dash-grid">
-            {standings.conferences.map((conf) => (
-              <PlayoffColumn key={conf.conference} conf={conf} />
-            ))}
-          </div>
+        {failed.standings ? (
+          cardError("the playoff picture")
+        ) : playoffConfData ? (
+          <PlayoffTable conf={playoffConfData} />
         ) : (
           <div className="yb-skel" style={{ height: 220 }} />
         )}
       </section>
 
-      {/* 10 — Trending questions: tap to run the question in the search above */}
+      {/* Trending questions, grouped by what they ask about */}
       {examples && examples.length > 0 && (
-        <section aria-label="Trending questions">
+        <section className="yb-card" aria-label="Trending Questions">
           <div className="yb-dash-head">
-            <h2>Trending questions</h2>
+            <h2>Trending Questions</h2>
           </div>
-          <div className="yb-trending-list">
-            {examples.map((q) => (
-              <button
-                key={q}
-                type="button"
-                className="yb-chip"
-                onClick={() => window.dispatchEvent(new CustomEvent("yb:ask", { detail: q }))}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+          <TrendingQuestions items={examples} />
         </section>
       )}
-
-      {/* 11 — Browse teams: all 32, straight to each team page */}
-      <section aria-label="Browse teams">
-        <div className="yb-dash-head">
-          <h2>Browse teams</h2>
-          <Link href="/teams">All teams →</Link>
-        </div>
-        <div className="yb-team-shortcuts">
-          {Object.entries(NFL_TEAM_NAMES).map(([id, name]) => (
-            <Link key={id} className="yb-team-shortcut" href={`/teams/${id}`} style={teamTheme(id)}>
-              <TeamLogo team={id} size={30} />
-              <span className="who">
-                <span className="ab">{id}</span>
-                <span className="nk">{name}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
     </div>
+  );
+}
+
+/** AFC/NFC pill toggle shared by the standings-flavored cards. */
+function ConfPills({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="yb-pill-seg" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o} type="button" aria-pressed={o === value} onClick={() => onChange(o)}>
+          {o}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Featured game as one bold line: teams and score, status, date, box score. */
+function FeaturedMatchup({ game }: { game: GameRow }) {
+  const hasScore = game.home.score !== null || game.away.score !== null;
+  const status = game.final ? "Final" : hasScore ? "Live" : "Scheduled";
+  return (
+    <Link
+      className="yb-featured-line"
+      href={game.final ? `/games/${encodeURIComponent(game.game_id)}` : "/scores"}
+    >
+      <span className="teams">
+        <span className="side">
+          <TeamLogo team={game.away.team_id} size={26} />
+          <span className="abbr">{game.away.team_id}</span>
+          <strong className="score">{game.away.score ?? "-"}</strong>
+        </span>
+        <span className="at">@</span>
+        <span className="side">
+          <TeamLogo team={game.home.team_id} size={26} />
+          <span className="abbr">{game.home.team_id}</span>
+          <strong className="score">{game.home.score ?? "-"}</strong>
+        </span>
+      </span>
+      <span className="meta">
+        <strong className="status">{status}</strong>
+        <span className="date">
+          {formatGameDate(game.date)} · {weekLabel(game.week, game.season)}
+        </span>
+        {game.final && <span className="go">Full box score →</span>}
+      </span>
+    </Link>
   );
 }
 
@@ -273,57 +331,18 @@ function pickFeatured(games: GameRow[]): GameRow | null {
   return games[0]!;
 }
 
-/** One conference's four division leaders. */
+/** One conference's four division leaders. The conference is already picked by
+ *  the pill above, so rows carry just the division: East, North, South, West. */
 function DivisionTable({ conf }: { conf: ConferenceStandings }) {
   return (
-    <div className="yb-card">
-      <div className="yb-dash-head">
-        <h2 style={{ fontSize: 15 }}>{conf.conference}</h2>
-      </div>
-      <table className="yb-mini-table">
-        <tbody>
-          {conf.divisions.map((d) => {
-            const team = d.teams[0]!;
-            return (
-              <tr key={d.division} className="yb-team-row" style={teamTheme(team.team_id)}>
-                <td className="dim">{d.division}</td>
-                <td>
-                  <Link
-                    href={`/teams/${team.team_id}`}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-                  >
-                    <TeamLogo team={team.team_id} size={22} />
-                    {team.nickname ?? team.name}
-                  </Link>
-                </td>
-                <td className="num">{formatRecord(team.wins, team.losses, team.ties)}</td>
-                <td className={`num ${streakClass(team.streak)}`}>{team.streak}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/** One conference's projected seven-team playoff field (see lib/playoff). */
-function PlayoffColumn({ conf }: { conf: ConferenceStandings }) {
-  return (
-    <div className="yb-card">
-      <div className="yb-dash-head">
-        <h2 style={{ fontSize: 15 }}>{conf.conference}</h2>
-        <span className="yb-muted" style={{ fontSize: 12 }}>
-          projected
-        </span>
-      </div>
-      <table className="yb-mini-table">
-        <tbody>
-          {seedConference(conf).map(({ team, seed, kind }) => (
-            <tr key={team.team_id} className="yb-team-row" style={teamTheme(team.team_id)}>
-              <td className="dim num" style={{ width: 20 }}>
-                {seed}
-              </td>
+    <div className="yb-scroll-x">
+    <table className="yb-mini-table">
+      <tbody>
+        {conf.divisions.map((d) => {
+          const team = d.teams[0]!;
+          return (
+            <tr key={d.division} className="yb-team-row" style={teamTheme(team.team_id)}>
+              <td className="dim">{divisionShortName(d.division)}</td>
               <td>
                 <Link
                   href={`/teams/${team.team_id}`}
@@ -333,12 +352,97 @@ function PlayoffColumn({ conf }: { conf: ConferenceStandings }) {
                   {team.nickname ?? team.name}
                 </Link>
               </td>
-              <td className="dim">{kind === "wc" ? "WC" : "Div"}</td>
               <td className="num">{formatRecord(team.wins, team.losses, team.ties)}</td>
+              <td className={`num ${streakClass(team.streak)}`}>{team.streak}</td>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          );
+        })}
+      </tbody>
+    </table>
+    </div>
+  );
+}
+
+/** One conference's projected seven-team playoff field (see lib/playoff). */
+function PlayoffTable({ conf }: { conf: ConferenceStandings }) {
+  return (
+    <div className="yb-scroll-x">
+    <table className="yb-mini-table">
+      <tbody>
+        {seedConference(conf).map(({ team, seed, kind }) => (
+          <tr key={team.team_id} className="yb-team-row" style={teamTheme(team.team_id)}>
+            <td className="dim num" style={{ width: 20 }}>
+              {seed}
+            </td>
+            <td>
+              <Link
+                href={`/teams/${team.team_id}`}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+              >
+                <TeamLogo team={team.team_id} size={22} />
+                {team.nickname ?? team.name}
+              </Link>
+            </td>
+            <td className="dim">{kind === "wc" ? "Wild Card" : "Division"}</td>
+            <td className="num">{formatRecord(team.wins, team.losses, team.ties)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    </div>
+  );
+}
+
+// Category -> display label, in reading order. The category itself is derived
+// server-side from the engine's own taxonomy (see common_questions.json), so
+// there is no client-side re-classification of question text.
+const CATEGORY_LABELS: [string, string][] = [
+  ["passing", "Passing"],
+  ["rushing", "Rushing"],
+  ["receiving", "Receiving"],
+  ["defense", "Defense"],
+  ["head_to_head", "Head to Head"],
+  ["playoffs", "Playoffs"],
+  ["fantasy", "Fantasy"],
+  ["other", "More"],
+];
+
+function groupExamples(items: ExampleQuestion[]): { name: string; questions: string[] }[] {
+  const buckets = new Map<string, string[]>();
+  for (const { question, category } of items) {
+    let bucket = buckets.get(category);
+    if (!bucket) buckets.set(category, (bucket = []));
+    bucket.push(question);
+  }
+  return CATEGORY_LABELS.flatMap(([key, label]) => {
+    const qs = buckets.get(key);
+    return qs && qs.length > 0 ? [{ name: label, questions: qs.slice(0, 4) }] : [];
+  });
+}
+
+/** Trending questions as one card of tap-to-run groups. */
+function TrendingQuestions({ items }: { items: ExampleQuestion[] }) {
+  const groups = groupExamples(items);
+  return (
+    <div className="yb-trend-groups">
+      {groups.map((g) => (
+        <div key={g.name} className="yb-trend-group">
+          <span className="yb-trend-cat">{g.name}</span>
+          <ul className="yb-trending">
+            {g.questions.map((q) => (
+              <li key={q}>
+                <button
+                  type="button"
+                  className="yb-trending-q"
+                  onClick={() => window.dispatchEvent(new CustomEvent("yb:ask", { detail: q }))}
+                >
+                  {q}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

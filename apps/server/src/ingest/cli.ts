@@ -24,8 +24,9 @@ import { setCachePolicy } from "./providers/nflverse.js";
 const FIRST_SEASON = 1999;
 
 const STEPS = [
-  "teams", "seasons", "players", "games", "player_game_stats",
-  "player_season_stats", "team_game_stats", "scoring_plays", "draft_picks",
+  "teams", "seasons", "players", "player_ids", "rosters", "games",
+  "player_game_stats", "player_season_stats", "team_game_stats",
+  "scoring_plays", "draft_picks",
 ] as const;
 type Step = (typeof STEPS)[number];
 
@@ -98,6 +99,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     teams: () => p.loadTeams(ctx),
     seasons: () => p.loadSeasons(ctx, years),
     players: () => p.loadPlayers(ctx, years),
+    player_ids: () => p.loadPlayerIds(ctx),
+    rosters: () => p.loadRosters(ctx, years),
     games: () => p.loadGames(ctx, years),
     player_game_stats: () => p.loadPlayerGameStats(ctx, years),
     player_season_stats: () => p.loadPlayerSeasonStats(ctx, years),

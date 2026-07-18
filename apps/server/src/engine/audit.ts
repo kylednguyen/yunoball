@@ -11,10 +11,10 @@
 import type { ResolvedEntity } from "@yunoball/types";
 import { pool, q } from "../db/pool.js";
 import { sbName } from "./build.js";
-import { fields } from "./spec.js";
-import type { QuerySpec } from "./spec.js";
+import { fields, STATS } from "./spec.js";
+import type { FieldedSpec, QuerySpec } from "./spec.js";
 
-export type AuditStatus =
+type AuditStatus =
   | "validated"
   | "validated_with_warnings"
   | "needs_clarification"
@@ -47,7 +47,7 @@ export interface AuditCtx {
 }
 
 /** Warehouse stats coverage starts here (draft history reaches back further). */
-export const STATS_MIN_SEASON = 1999;
+const STATS_MIN_SEASON = 1999;
 const DRAFT_MIN_SEASON = 1980;
 
 // Cheap probes cached for the process lifetime of a few minutes.
@@ -139,6 +139,245 @@ async function surnameCandidates(surname: string): Promise<SurnameCandidate[]> {
 
 const PLAYER_INTENTS = new Set(["player_total", "player_seasons", "game_log", "game_count", "scoring"]);
 
+// ---- Unconsumed-qualifier guardrail ----
+//
+// The parser sometimes recognizes a question's SHAPE (a leaderboard, a
+// player total) but has no field yet for one of its qualifiers — and
+// silently drops it instead of refusing. That is the engine's worst bug
+// class: "touchdowns from inside the 5-yard line" quietly became a plain
+// touchdown leaderboard, "in games his team lost" a plain career total.
+// Never a wrong number — so every qualifier phrase below is paired with the
+// spec field that proves the engine actually honored it. `unmet` returns
+// true (refuse) when the phrase is present but nothing consumed it; once a
+// later task teaches an executor to fill that field, `unmet` stops firing on
+// its own and the refusal retires without touching this table again.
+interface QualifierRule {
+  re: RegExp;
+  unmet: (spec: FieldedSpec, qText: string) => boolean;
+  message: string;
+}
+
+const always = () => true;
+
+const QUALIFIER_RULES: QualifierRule[] = [
+  {
+    re: /\bthrough (?:(?:his|her|their)\s+)?first (?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten) (?:career )?(?:games|starts)\b/,
+    unmet: (spec) => spec.firstN == null,
+    message:
+      'First-N-games windows are only supported on a named player\'s totals so far — ' +
+      'try "Patrick Mahomes passing yards through his first 50 games".',
+  },
+  {
+    // "before beginning his fifth season" / "in his first three seasons" /
+    // "before his fifth season" (the last already works on qualifying-game
+    // boards — beforeSeasonN set there — so this only fires when unconsumed).
+    re: /\b(?:before|in) (?:(?:his|her|their)\s+)?first (?:\w+|\d+) seasons?\b|\bbefore beginning\b/,
+    unmet: (spec) => spec.beforeSeasonN == null,
+    message:
+      'Season-window splits ("his first N seasons") are only supported on qualifying-game ' +
+      'boards so far — try "most 100-yard rushing games before his fifth season".',
+  },
+  {
+    // "before turning/age N" (a max-age filter) has no spec field anywhere,
+    // so minAgeYears is never set for it and this rule always refuses it;
+    // "after turning/age N" retires wherever minAgeYears gets consumed.
+    re: /\b(?:after|before) (?:turning|age) \d+\b/,
+    unmet: (spec) => spec.minAgeYears == null,
+    message:
+      'Age splits ("after turning 30") are only supported on qualifying-game boards so far ' +
+      '— try "most 100-yard rushing games after turning 30".',
+  },
+  {
+    // "without a 1,500-yard season" / "without a 100-catch season" — the
+    // Task 6 season-threshold negation. Retires once the SAME-stat season
+    // exclusion landed on the spec (withoutSeasonAtLeast — the parser only
+    // sets it for plain season-rollup stats; anything else refuses here).
+    re: /\bwithout an? [\d,]+-(?:yard|catch)s? seasons?\b/,
+    unmet: (spec) => spec.withoutSeasonAtLeast == null,
+    message:
+      '"Without a [N]-yard/catch season" negations are only supported when the threshold ' +
+      'names the SAME stat being ranked — try the plain career leaderboard for that stat.',
+  },
+  {
+    // "without (ever) leading the league/NFL (in X)" — Task 6's
+    // ever-led-the-league negation. Retires once withoutLeagueLead landed
+    // (season-rollup stats only, same parser gate as above).
+    re: /\bwithout (?:ever )?leading the (?:league|nfl)\b/,
+    unmet: (spec) => !spec.withoutLeagueLead,
+    message:
+      'League-leadership negations ("without ever leading the league") aren\'t supported for ' +
+      'every stat yet — try the plain career leaderboard for that stat.',
+  },
+  {
+    // "without scoring a touchdown" — Task 6's cross-stat zero condition
+    // ("most rushing attempts without scoring a touchdown"). Retires once
+    // crossStat landed; stats whose TD side isn't confidently mappable
+    // (tackles, fantasy points...) never set it and refuse here.
+    re: /\bwithout scoring an? touchdowns?\b/,
+    unmet: (spec) => spec.crossStat == null,
+    message: '"...without scoring a touchdown" boards aren\'t supported for every stat yet.',
+  },
+  {
+    // "with fewer than N career X" — Task 6's cross-stat bound ("most
+    // rushing touchdowns with fewer than 1,000 career rushing yards"). No
+    // "without" in this phrasing, so it's a separate rule from the
+    // without-family above; still retires on the same crossStat field.
+    re: /\bwith fewer than [\d,]+ career [a-z]+(?: [a-z]+)*\b/,
+    unmet: (spec) => spec.crossStat == null,
+    message: '"...with fewer than N career X" boards aren\'t supported for every stat combination yet.',
+  },
+  {
+    // Catch-all: ANY "without" the three specific rules above didn't claim
+    // — awards-dependent negations (MVP, playoff win, conference
+    // championship, Super Bowl; Pro Bowl already refuses earlier via the
+    // UNSUPPORTED scan in parseRules) and anything else this table doesn't
+    // yet name a field for. It strips the CLAIMED phrasings (each strip
+    // regex is exactly its specific rule's vocabulary, kept in lockstep)
+    // and refuses if any "without" remains — spec state alone can't do
+    // this: a COMPOUND negation ("without a 1,500-yard season and without
+    // winning a playoff game") sets one field and would sail through a
+    // fields-only check while the executor silently ignores the other
+    // clause.
+    re: /\bwithout\b/,
+    unmet: (_spec, qText) =>
+      /\bwithout\b/.test(
+        qText
+          .replace(/\bwithout an? [\d,]+-(?:yard|catch)s? seasons?\b/g, "")
+          .replace(/\bwithout (?:ever )?leading the (?:league|nfl)\b/g, "")
+          .replace(/\bwithout scoring an? touchdowns?\b/g, ""),
+      ),
+    message:
+      '"Without" boards (a career total minus some condition) aren\'t supported yet — try ' +
+      'the plain career leaderboard for that stat instead.',
+  },
+  {
+    // LOCKSTEP: mirrors (independently — not shared code) the vocabulary in
+    // parseRules.ts's resultFilters(); keep the two word lists in sync.
+    re: /\bin (?:a |the )?games? (?:his|her|their) team lost\b|\bin (?:one-score|close) (?:games|losses)\b/,
+    // The phrase is either a result split (team lost) or a margin split
+    // (one-score) — refuse only when NEITHER field the parser can set for it
+    // ended up on the spec.
+    unmet: (spec) => spec.gameResult == null && !spec.oneScore,
+    message:
+      'Filtering by game result (wins/losses, margin) isn\'t supported yet — try the plain ' +
+      'career or season leaderboard for that stat.',
+  },
+  {
+    re: /\bagainst (?:teams with )?winning records?\b/,
+    unmet: (spec) => !spec.oppWinningRecord,
+    message: 'Opponent-record filters ("against teams with winning records") aren\'t supported yet.',
+  },
+  {
+    // "vs/against the <team>" — retires wherever opponentId (player shapes)
+    // or team2Id (team matchup shapes) got consumed. The nickname list is a
+    // static snapshot of the 32 franchises (nicknames are stable; audit has
+    // no team index). LOCKSTEP: parseRules.ts vs-opponent capture.
+    re: /\b(?:vs\.?|versus|against)\s+(?:the\s+)?(?:bills|dolphins|patriots|jets|ravens|bengals|browns|steelers|texans|colts|jaguars|titans|broncos|chiefs|raiders|chargers|cowboys|giants|eagles|commanders|redskins|bears|lions|packers|vikings|falcons|panthers|saints|buccaneers|bucs|cardinals|rams|niners|49ers|seahawks)\b/,
+    unmet: (spec) => spec.opponentId == null && spec.team2Id == null,
+    message:
+      'Opponent splits ("vs the Bills") are supported on a player\'s season or career ' +
+      'totals, qualifying-game counts, single-game bests and game logs — try ' +
+      '"Patrick Mahomes passing yards vs the Bills".',
+  },
+  {
+    // Distance phrasing alone is too generic ("100-yard rushing games" is a
+    // real qualifying-game board) — both lookaheads must hold, so only a
+    // touchdown-distance question (not a plain yardage threshold) refuses.
+    // Retired wherever a scoring_board spec consumed the distance bounds.
+    re: /(?=.*\b(?:touchdowns?|tds?)\b)(?=.*\b(?:inside the \d+|from exactly \d+ yards?|of \d+ or more yards|\d+[-\s]?yard line)\b)/,
+    unmet: (spec) => spec.yardsMin == null && spec.yardsMax == null,
+    message:
+      'Touchdown-distance filters are only supported on league-wide scoring boards so far — ' +
+      'try "most touchdowns of 50 or more yards", or a player\'s touchdown timeline.',
+  },
+  {
+    // A season the QUESTION names consumed the phrase's intent ("most
+    // touchdowns in 2015, Peyton Manning's final NFL season" IS answerable
+    // as 2015) — only the unanchored per-player split refuses. Checking
+    // spec.season alone is not enough: the parser defaults bare
+    // leaderboards to the latest season, so the bare split would sail
+    // through with a defaulted season and answer the wrong question.
+    re: /\bfinal (?:nfl )?season\b/,
+    unmet: (spec, qText) =>
+      spec.season == null ||
+      !/\b(?:19|20)\d{2}\b|\b(?:this|current|last) (?:season|year)\b/.test(qText),
+    message:
+      'Final-season splits aren\'t supported yet — try the player\'s full career or a ' +
+      'specific season.',
+  },
+  {
+    // NOT "led the league in X in <year>" alone — that's already a plain
+    // single-season leaders lookup (the top of that year's board IS the
+    // league leader) and must keep answering. "Without leading the league"
+    // is the actually-unsupported career negation, and is already caught by
+    // the "without" rule above. Plurals included: "most Pro Bowls" /
+    // "most rushing titles" are the count-the-honor phrasings.
+    re: /\bpro bowls?\b|\brushing titles?\b/,
+    unmet: always,
+    message: 'Award-based filters ("Pro Bowl", "rushing title") aren\'t supported yet.',
+  },
+  {
+    re: /\bagainst (?:a|one) (?:single|specific) (?:opponent|team)\b/,
+    unmet: (spec) => spec.opponentId == null && !spec.perOpponent,
+    message:
+      'Best-single-opponent boards ("against a single opponent") aren\'t supported yet — ' +
+      'name the opponent instead, e.g. "Mahomes passing yards vs the Broncos".',
+  },
+  {
+    // Sacks/interceptions are recorded against the OPPOSING TEAM, never a
+    // specific opposing quarterback — there's no per-opponent-QB attribution
+    // to compute even with one named, unlike the team-level board above.
+    // Never retires: this capability is deliberately not implemented.
+    re: /\bagainst (?:a|one) (?:single|specific) quarterback\b/,
+    unmet: always,
+    message:
+      'Stats aren\'t attributed to a specific opposing quarterback in the warehouse — only to ' +
+      'the opposing team. Try "against a single opponent" for the team-level version instead.',
+  },
+  {
+    re: /\band still won\b/,
+    unmet: (spec) => spec.gameResult !== "W",
+    message: 'Result-conditioned filters ("...and still won") aren\'t supported yet.',
+  },
+  {
+    // "both a rushing and receiving touchdown" / "at least one passing and
+    // one rushing touchdown" / the plain "a rushing touchdown and a
+    // receiving touchdown" paraphrase — a compound same-game AND-list
+    // threshold. LOCKSTEP: mirrors (independently) compoundTdFilter() in
+    // parseRules.ts; keep the two word lists in sync.
+    re: /\b(?:both (?:an? )?[a-z]+ and [a-z]+|at least one [a-z]+ and one [a-z]+|an? [a-z]+ touchdown and an? [a-z]+) touchdowns?\b/,
+    unmet: (spec) => spec.andStat == null,
+    message:
+      'Compound same-game filters ("both a rushing and receiving touchdown") aren\'t ' +
+      'supported yet — try one stat\'s qualifying-game count instead.',
+  },
+  {
+    // A "percentage" question the parser routed to a plain (non-percentage)
+    // leaderboard: the percentage stats we DO compute (completion %, catch
+    // rate) already carry "percentage"/"pct" in their own vocabulary, so
+    // they select themselves and never hit this rule.
+    re: /\bpercentage\b/,
+    unmet: (spec) =>
+      spec.intent === "leaders" &&
+      !(STATS[spec.stat]?.phrases.some((p) => p.includes("percent") || p.includes("pct")) ?? false),
+    message:
+      'Percentage-of-career splits ("what percentage of his yards came after age 30") ' +
+      'aren\'t supported yet — the percentage stats I can answer are completion ' +
+      'percentage and catch rate.',
+  },
+];
+
+/** Scan the question for qualifier vocabulary the built spec didn't consume.
+ * Returns the first matching refusal, or null when every recognized
+ * qualifier is either absent or already reflected in the spec. */
+function qualifierGuard(question: string, spec: FieldedSpec): string | null {
+  const qText = question.toLowerCase();
+  for (const rule of QUALIFIER_RULES) {
+    if (rule.re.test(qText) && rule.unmet(spec, qText)) return rule.message;
+  }
+  return null;
+}
+
 export async function audit(spec0: QuerySpec, ctx: AuditCtx): Promise<AuditOutcome> {
   // The auditor legitimately validates fields across every intent, so it uses
   // the fields() reader view (same object; executors keep the narrow types).
@@ -158,6 +397,14 @@ export async function audit(spec0: QuerySpec, ctx: AuditCtx): Promise<AuditOutco
     return { status, spec: spec0, warnings, confidence, ...extra };
   };
 
+  // ---- Unconsumed qualifiers: the question named a filter the built spec
+  // has no field for — refuse by name rather than silently answer a
+  // different, narrower question. ----
+  const qualifierMsg = qualifierGuard(ctx.question, spec);
+  if (qualifierMsg) {
+    return done("invalid", { reason: qualifierMsg });
+  }
+
   // ---- Contradictions: reject before any SQL exists ----
   if (spec.weekMin != null && spec.weekMax != null && spec.weekMin > spec.weekMax) {
     return done("invalid", {
@@ -170,6 +417,64 @@ export async function audit(spec0: QuerySpec, ctx: AuditCtx): Promise<AuditOutco
   if (spec.firstN && spec.lastN) {
     return done("invalid", {
       reason: "First-N and last-N game windows can't combine; pick one.",
+    });
+  }
+  // The negation executor branches are first-match-wins — two set fields
+  // would silently drop one from the SQL and the narration, so a compound
+  // negation refuses here instead (mirrors the firstN/lastN check above).
+  if (
+    [spec.withoutSeasonAtLeast != null, Boolean(spec.withoutLeagueLead), spec.crossStat != null]
+      .filter(Boolean).length > 1
+  ) {
+    return done("invalid", {
+      reason: 'Multiple "without" conditions can\'t combine yet; pick one.',
+    });
+  }
+  // Every leaders() branch below the top is first-match-wins too, checked in
+  // a fixed order (firstN/minAgeYears/beforeSeasonN, then gameResult/
+  // oneScore/oppWinningRecord/perOpponent, then the negation fields) — a
+  // question that sets fields from two different branches silently answers
+  // whichever branch the executor happens to check first, dropping the
+  // other qualifier from both the SQL and the narration. Refuse instead of
+  // guessing which one the user meant honored.
+  const isNegation = spec.withoutSeasonAtLeast != null || Boolean(spec.withoutLeagueLead) || spec.crossStat != null;
+  const isWindow = spec.firstN != null || spec.beforeSeasonN != null || spec.minAgeYears != null;
+  if (isNegation && (isWindow || spec.gameResult != null || spec.oneScore || spec.oppWinningRecord || spec.perOpponent)) {
+    return done("invalid", {
+      reason:
+        'A "without" condition can\'t combine with an age window, season window, game-result ' +
+        'filter, or single-opponent board yet; pick one.',
+    });
+  }
+  // perOpponent's own branch composes gameResult/oneScore/oppWinningRecord
+  // genuinely (it builds its WHERE from the same gamePreds() call as every
+  // other game-grain board), so those three are deliberately NOT refused
+  // here — only the window fields, which perOpponent's branch is never
+  // reached for (firstN/minAgeYears/beforeSeasonN short-circuit first).
+  if (spec.perOpponent && isWindow) {
+    return done("invalid", {
+      reason: 'A single-opponent board can\'t combine with an age or season window yet; pick one.',
+    });
+  }
+  // The season-rollup negation branches never call gamePreds() — a
+  // co-occurring season/venue/month/week/primetime/weather/SB filter would
+  // be silently dropped from the SQL while the question (and narration)
+  // implies it applied. spec.season alone can't gate the season clause: the
+  // parser defaults bare leaderboards to the latest season, so require the
+  // question to have actually named a year — same idiom as the
+  // final-season qualifier rule above.
+  if (
+    isNegation &&
+    (spec.seasonMin != null || spec.seasonMax != null || spec.month != null ||
+      spec.venue != null || spec.weekMin != null || spec.weekMax != null ||
+      Boolean(spec.primetime) || spec.tempMax != null || Boolean(spec.sbOnly) ||
+      (spec.season != null &&
+        /\b(?:19|20)\d{2}\b|\b(?:this|current|last) (?:season|year)\b/.test(ctx.question.toLowerCase())))
+  ) {
+    return done("invalid", {
+      reason:
+        '"Without" boards are career-wide only so far — they can\'t combine with a season, ' +
+        'venue, month, week, primetime, weather, or Super Bowl filter yet.',
     });
   }
   if (spec.threshold && spec.threshold.value < 0) {
@@ -231,13 +536,21 @@ export async function audit(spec0: QuerySpec, ctx: AuditCtx): Promise<AuditOutco
 
   // ---- Surname-only mentions: clarify or auto-disambiguate ----
   if (spec.playerId && spec.player && PLAYER_INTENTS.has(spec.intent)) {
-    const qLower = ctx.question.toLowerCase();
-    const parts = spec.player.toLowerCase().split(" ");
+    // Compare punctuation-folded tokens ("A.J." -> "aj", "Amon-Ra" ->
+    // "amon ra") against the folded question, on word boundaries — users type
+    // names without punctuation, and "aj brown" names the player fully.
+    const fold = (s: string) => s.toLowerCase().replace(/[.'’]/g, "").replace(/-/g, " ");
+    const qLower = fold(ctx.question);
+    const parts = fold(spec.player).split(/\s+/);
     const surname = parts.at(-1)!;
     const namedMoreThanSurname = parts
       .slice(0, -1)
-      .some((tok) => tok.length >= 3 && qLower.includes(tok));
-    if (!namedMoreThanSurname && parts.length > 1) {
+      .some((tok) => tok.length >= 2 && new RegExp(`\\b${tok}\\b`).test(qLower));
+    // The guard only applies to a literal bare-surname mention. A player
+    // reached through an alias ("jjettas", "cj2k") never typed the surname,
+    // so there is nothing to disambiguate.
+    const surnameTyped = new RegExp(`\\b${surname}\\b`).test(qLower);
+    if (!namedMoreThanSurname && surnameTyped && parts.length > 1) {
       try {
         const cands = await surnameCandidates(surname);
         const posFilter = STAT_POSITIONS[spec.stat];

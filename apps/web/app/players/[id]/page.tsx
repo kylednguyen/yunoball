@@ -9,11 +9,12 @@ import { useState } from "react";
 import { Crumbs } from "../../components/Crumbs";
 import { Dropdown } from "../../components/Dropdown";
 import { Headshot } from "../../components/Headshot";
-import { SeasonSelect } from "../../components/SeasonSelect";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
 import { EntityHero, InfoGrid, SectionHeader, StatSummary } from "../../components/ui";
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
+import { weekLabel } from "../../lib/format";
+import { teamTheme } from "../../lib/teamTheme";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
 import type { PlayerProfile, PlayerSeasonLine, SplitRow } from "../../lib/api";
@@ -26,10 +27,13 @@ type Tab = (typeof TABS)[number];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** '2016-10-27' -> 'Oct 27, 2016' — string math, no timezone surprises. */
-function fmtDate(d: string | null): string | null {
+/** '2016-10-27' -> 'Oct 27, 2016' ('Oct 27' with withYear=false, for dense
+ * game-log rows) — string math, no timezone surprises. */
+function fmtDate(d: string | null, withYear = true): string | null {
   const m = d?.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${MONTHS[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}` : null;
+  if (!m) return null;
+  const base = `${MONTHS[Number(m[2]) - 1]} ${Number(m[3])}`;
+  return withYear ? `${base}, ${m[1]}` : base;
 }
 
 function fmtHeight(inches: number | null): string | null {
@@ -54,6 +58,15 @@ const TD_KIND: Record<string, string> = {
   kickoff: "Kick return",
   punt: "Punt return",
 };
+
+/** Turnover-return scores outrank the play type: an intercepted pass returned
+ * for a touchdown is a pick six, not a "Receiving" TD. */
+function tdKind(t: { play_type: string | null; description: string | null }): string {
+  const d = t.description ?? "";
+  if (/INTERCEPT/i.test(d)) return "Pick six";
+  if (/FUMBLE/i.test(d)) return "Fumble return";
+  return TD_KIND[t.play_type ?? ""] ?? t.play_type ?? "-";
+}
 
 /** Position decides which stat family leads the tiles and tables. */
 function tiles(
@@ -325,10 +338,9 @@ function GameLogTable({ rows, position }: { rows: GameRow[]; position: string | 
             <Link
               href={`/games/${encodeURIComponent(g.game_id)}`}
               title="Open box score"
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
             >
-              {fmtDate(g.date) ?? `${g.season} Wk ${g.week}`} {g.home ? "vs" : "@"}
-              <TeamLogo team={g.opponent} size={16} /> {g.opponent}
+              {fmtDate(g.date, false) ?? weekLabel(g.week, g.season, true)} {g.home ? "vs" : "@"} {g.opponent}
             </Link>
           ),
         },
@@ -352,47 +364,85 @@ function GameLogTable({ rows, position }: { rows: GameRow[]; position: string | 
   );
 }
 
+type SplitSide = "offense" | "defense";
+
+const splitHasOffense = (rows: SplitRow[]) =>
+  rows.some((r) => r.attempts || r.carries || r.receptions);
+const splitHasDefense = (rows: SplitRow[]) =>
+  rows.some(
+    (r) => r.tackles || r.def_sacks || r.def_interceptions || r.forced_fumbles || r.passes_defended,
+  );
+
+interface SplitCol {
+  label: string;
+  value: (r: SplitRow, per: (v: number, gp: number) => string) => string | number;
+}
+
+/** Column family per side of the ball and position. */
+function splitColumns(position: string | null, side: SplitSide): SplitCol[] {
+  const fmt = (n: number) => n.toLocaleString();
+  if (side === "defense") {
+    return [
+      { label: "TKL", value: (r) => fmt(r.tackles) },
+      { label: "SCK", value: (r) => r.def_sacks },
+      { label: "INT", value: (r) => r.def_interceptions },
+      { label: "FF", value: (r) => r.forced_fumbles },
+      { label: "PD", value: (r) => r.passes_defended },
+    ];
+  }
+  if (position === "QB") {
+    return [
+      { label: "CMP", value: (r) => fmt(r.completions) },
+      { label: "ATT", value: (r) => fmt(r.attempts) },
+      { label: "PCT", value: (r) => (r.attempts ? ((r.completions / r.attempts) * 100).toFixed(1) : "-") },
+      { label: "Pass yds", value: (r) => fmt(r.passing_yards) },
+      { label: "Yds/G", value: (r, per) => per(r.passing_yards, r.gp) },
+      { label: "TD", value: (r) => r.passing_tds },
+      { label: "INT", value: (r) => r.interceptions },
+      { label: "Rush yds", value: (r) => fmt(r.rushing_yards) },
+      { label: "Rush TD", value: (r) => r.rushing_tds },
+    ];
+  }
+  return [
+    { label: "Rush yds", value: (r) => fmt(r.rushing_yards) },
+    { label: "Rush TD", value: (r) => r.rushing_tds },
+    { label: "Rec", value: (r) => r.receptions },
+    { label: "Rec yds", value: (r) => fmt(r.receiving_yards) },
+    {
+      label: "Yds/G",
+      value: (r, per) => per(position === "RB" ? r.rushing_yards : r.receiving_yards, r.gp),
+    },
+    { label: "Rec TD", value: (r) => r.receiving_tds },
+  ];
+}
+
 /** One splits group as a table with derived PCT / yds-per-game columns. */
-function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[]; position: string | null }) {
+function SplitsGroup({
+  title,
+  rows,
+  position,
+  side,
+}: {
+  title: string;
+  rows: SplitRow[];
+  position: string | null;
+  side: SplitSide;
+}) {
   const per = (v: number, gp: number) => (gp ? (v / gp).toFixed(1) : "-");
-  const isQB = position === "QB";
+  const cols = splitColumns(position, side);
   return (
-    <section className="yb-split-group">
-      <h2>{title}</h2>
+    // No visible heading: the table's lead column already names the split.
+    <section className="yb-split-group yb-card yb-team-panel" aria-label={title}>
       <div className="yb-table-scroll">
         <table className="yb-table">
           <thead>
             <tr>
               <th>{title === "Overall" ? "Season" : title}</th>
               <th className="num">GP</th>
-              {isQB && (
-                <>
-                  <th className="num">CMP</th>
-                  <th className="num">ATT</th>
-                  <th className="num">PCT</th>
-                  <th className="num">Pass yds</th>
-                  <th className="num">Yds/G</th>
-                  <th className="num">TD</th>
-                  <th className="num">INT</th>
-                </>
-              )}
-              {!isQB && (
-                <>
-                  <th className="num">Rush yds</th>
-                  <th className="num">Rush TD</th>
-                  <th className="num">Rec</th>
-                  <th className="num">Rec yds</th>
-                  <th className="num">Yds/G</th>
-                  <th className="num">Rec TD</th>
-                </>
-              )}
-              {isQB && (
-                <>
-                  <th className="num">Rush yds</th>
-                  <th className="num">Rush TD</th>
-                </>
-              )}
-              <th className="num">PPG</th>
+              {cols.map((c) => (
+                <th key={c.label} className="num">{c.label}</th>
+              ))}
+              {side === "offense" && <th className="num">PPG</th>}
             </tr>
           </thead>
           <tbody>
@@ -400,43 +450,14 @@ function SplitsGroup({ title, rows, position }: { title: string; rows: SplitRow[
               <tr key={r.label}>
                 <td>{r.label}</td>
                 <td className="num">{r.gp}</td>
-                {isQB && (
-                  <>
-                    <td className="num">{r.completions.toLocaleString()}</td>
-                    <td className="num">{r.attempts.toLocaleString()}</td>
-                    <td className="num">
-                      {r.attempts ? ((r.completions / r.attempts) * 100).toFixed(1) : "-"}
-                    </td>
-                    <td className="num">{r.passing_yards.toLocaleString()}</td>
-                    <td className="num">{per(r.passing_yards, r.gp)}</td>
-                    <td className="num">{r.passing_tds}</td>
-                    <td className="num">{r.interceptions}</td>
-                  </>
+                {cols.map((c) => (
+                  <td key={c.label} className="num">{c.value(r, per)}</td>
+                ))}
+                {side === "offense" && (
+                  <td className="num" style={{ fontWeight: 700 }}>
+                    {per(r.fantasy_points_ppr, r.gp)}
+                  </td>
                 )}
-                {!isQB && (
-                  <>
-                    <td className="num">{r.rushing_yards.toLocaleString()}</td>
-                    <td className="num">{r.rushing_tds}</td>
-                    <td className="num">{r.receptions}</td>
-                    <td className="num">{r.receiving_yards.toLocaleString()}</td>
-                    <td className="num">
-                      {per(
-                        position === "RB" ? r.rushing_yards : r.receiving_yards,
-                        r.gp,
-                      )}
-                    </td>
-                    <td className="num">{r.receiving_tds}</td>
-                  </>
-                )}
-                {isQB && (
-                  <>
-                    <td className="num">{r.rushing_yards.toLocaleString()}</td>
-                    <td className="num">{r.rushing_tds}</td>
-                  </>
-                )}
-                <td className="num" style={{ fontWeight: 700 }}>
-                  {per(r.fantasy_points_ppr, r.gp)}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -452,9 +473,10 @@ export default function PlayerPage() {
   const [season, setSeason] = useSeasonParam();
   const [tab, setTab] = useState<Tab>("Overview");
   const [perGame, setPerGame] = useState(false);
+  const [splitSideChoice, setSplitSideChoice] = useState<SplitSide | null>(null);
   const { data: profile, error, loading } = usePlayer(playerId);
   useTitle(profile?.name);
-  const { data: splits, loading: splitsLoading } = usePlayerSplits(
+  const { data: splits, loading: splitsLoading, error: splitsError } = usePlayerSplits(
     playerId,
     season,
     tab === "Splits",
@@ -490,14 +512,16 @@ export default function PlayerPage() {
       ].filter((item): item is { label: string; value: string } => Boolean(item.value))
     : [];
 
+  const theme = profile ? teamTheme(profile.team) : undefined;
+
   return (
     <>
-      <main id="main" className="yb-page yb-entity-page">
+      <main id="main" className="yb-page yb-entity-page" style={theme}>
         {loading && (
           <>
-            <div className="yb-skel" style={{ height: 60, width: 380, marginBottom: 20 }} />
-            <div className="yb-skel" style={{ height: 110, borderRadius: 14, marginBottom: 20 }} />
-            <div className="yb-skel" style={{ height: 300, borderRadius: 14 }} />
+            <div className="yb-skel" style={{ height: 60, width: "min(380px, 100%)", marginBottom: 20 }} />
+            <div className="yb-skel" style={{ height: 110, borderRadius: "var(--r-xl)", marginBottom: 20 }} />
+            <div className="yb-skel" style={{ height: 300, borderRadius: "var(--r-xl)" }} />
           </>
         )}
 
@@ -522,13 +546,13 @@ export default function PlayerPage() {
           <>
             <Crumbs
               items={[
-                { label: "NFL", href: "/" },
                 ...(profile.team ? [{ label: profile.team, href: `/teams/${profile.team}` }] : []),
                 { label: profile.name },
               ]}
             />
             <EntityHero
               className="yb-player-profile"
+              style={theme}
               label={`${profile.name} profile`}
               media={
                 <Headshot
@@ -538,53 +562,27 @@ export default function PlayerPage() {
                   priority
                 />
               }
-              eyebrow={profile.position ? `${profile.position} profile` : "Player profile"}
               title={profile.name}
               meta={
                 <>
                   {profile.team ? (
                     <Link className="yb-link" href={`/teams/${profile.team}`}>
-                      <TeamLogo team={profile.team} size={18} />
                       {profile.team_name ?? profile.team}
                     </Link>
                   ) : (
                     <span>Free agent</span>
                   )}
-                  <span>
-                    {profile.career.seasons} season
-                    {profile.career.seasons === 1 ? "" : "s"} / {profile.career.games_played} games
-                  </span>
                   {latest?.position_rank && profile.position ? (
                     <span>
-                      {profile.position} #{latest.position_rank} of {latest.position_players} in{" "}
-                      {latest.season} PPR
+                      {profile.position} #{latest.position_rank} of {latest.position_players}
                     </span>
                   ) : null}
                 </>
               }
-              utilities={
-                <>
-                  {latest && (
-                    <SeasonSelect
-                      seasons={profile.seasons.map((row) => row.season)}
-                      value={latest.season}
-                      onChange={setSeason}
-                    />
-                  )}
-                  <button
-                    className="yb-btn ghost"
-                    onClick={() =>
-                      (window.location.href = `/?q=${encodeURIComponent(
-                        `${profile.name} career stats`,
-                      )}`)
-                    }
-                  >
-                    Ask about {profile.name.split(" ").pop()} →
-                  </button>
-                </>
-              }
-              details={<InfoGrid items={bioItems} />}
             />
+
+            {/* Bio sits below the identity card, not crammed inside it. */}
+            <InfoGrid items={bioItems} className="yb-player-bio" />
 
             <div className="yb-player-tabs" role="tablist" aria-label="Player views" onKeyDown={tablistKeys}>
               {TABS.filter((t) => t !== "Playoffs" || hasPlayoffs).map((t) => (
@@ -601,20 +599,28 @@ export default function PlayerPage() {
 
             {tab === "Overview" && (
               <div className="yb-profile-workspace">
-                <aside className="yb-profile-rail" aria-label="Current season summary">
-                  {latest && (
+                <div className="yb-profile-side">
+                  <aside className="yb-profile-rail" aria-label="Current season summary">
+                    {latest && (
+                      <StatSummary
+                        className="yb-stat-summary--team"
+                        title={`${latest.season} Season Summary`}
+                        items={tiles(profile, latest, `${latest.games_played} games`)}
+                      />
+                    )}
+                  </aside>
+                  <aside className="yb-profile-career" aria-label="Career statistics">
                     <StatSummary
-                      title={`${latest.season} season summary`}
-                      items={tiles(profile, latest, `${latest.games_played} games`)}
+                      title="Career Summary"
+                      items={tiles(profile, profile.career, "career")}
                     />
-                  )}
-                </aside>
+                  </aside>
+                </div>
                 <div className="yb-profile-main">
                   {regLog.length > 0 && (
-                    <section id="game-log" aria-label="Recent games">
+                    <section id="game-log" aria-label="Recent games" className="yb-card yb-team-panel">
                       <SectionHeader
-                        title="Recent games"
-                        meta="Latest five regular-season appearances"
+                        title="Recent Games"
                       />
                       <GameLogTable rows={regLog.slice(0, 5)} position={profile.position} />
                     </section>
@@ -629,12 +635,6 @@ export default function PlayerPage() {
                     </p>
                   )}
                 </div>
-                <aside className="yb-profile-career" aria-label="Career statistics">
-                  <StatSummary
-                    title="Career summary"
-                    items={tiles(profile, profile.career, "career")}
-                  />
-                </aside>
               </div>
             )}
 
@@ -642,55 +642,81 @@ export default function PlayerPage() {
               <>
                 <SectionHeader
                   title="Splits"
-                  meta="Performance by situation"
                   action={
                     splits ? (
-                    <Dropdown
-                      ariaLabel="Splits season"
-                      value={String(splits.season)}
-                      onChange={(v) => setSeason(Number(v))}
-                      options={splits.seasons.map((s) => ({
-                        value: String(s),
-                        label: `${s} season`,
-                      }))}
-                    />
+                      <Dropdown
+                        ariaLabel="Splits season"
+                        value={String(splits.season)}
+                        onChange={(v) => setSeason(Number(v))}
+                        options={splits.seasons.map((s) => ({
+                          value: String(s),
+                          label: `${s} season`,
+                        }))}
+                      />
                     ) : undefined
                   }
                 />
-                {splitsLoading && <div className="yb-skel" style={{ height: 260, borderRadius: 14 }} />}
-                {!splitsLoading && splits === null && (
+                {splitsLoading && <div className="yb-skel" style={{ height: 260, borderRadius: "var(--r-xl)" }} />}
+                {!splitsLoading && splitsError && (
+                  <div className="yb-state error" role="alert">
+                    <h2>Couldn’t load splits</h2>
+                    <p>{friendlyError(splitsError)}</p>
+                  </div>
+                )}
+                {!splitsLoading && !splitsError && splits === null && (
                   <div className="yb-state">
                     <h2>No splits available</h2>
                     <p>No per-game data for this player yet.</p>
                   </div>
                 )}
-                {!splitsLoading &&
-                  splits?.groups.map((g) => (
-                    <SplitsGroup
-                      key={g.title}
-                      title={g.title}
-                      rows={g.rows}
-                      position={profile.position}
-                    />
-                  ))}
+                {!splitsLoading && splits && (() => {
+                  const allRows = splits.groups.flatMap((g) => g.rows);
+                  const hasOff = splitHasOffense(allRows);
+                  const hasDef = splitHasDefense(allRows);
+                  const side: SplitSide =
+                    splitSideChoice ??
+                    (hasDef && (!hasOff || DEFENSIVE.has(profile.position ?? "")) ? "defense" : "offense");
+                  return (
+                    <>
+                      {hasOff && hasDef && (
+                        <div className="yb-pill-seg yb-split-side" role="group" aria-label="Side of the ball">
+                          <button aria-pressed={side === "offense"} onClick={() => setSplitSideChoice("offense")}>
+                            Offense
+                          </button>
+                          <button aria-pressed={side === "defense"} onClick={() => setSplitSideChoice("defense")}>
+                            Defense
+                          </button>
+                        </div>
+                      )}
+                      {splits.groups.map((g) => (
+                        <SplitsGroup
+                          key={g.title}
+                          title={g.title}
+                          rows={g.rows}
+                          position={profile.position}
+                          side={side}
+                        />
+                      ))}
+                    </>
+                  );
+                })()}
               </>
             )}
 
             {tab === "Game Log" && (
-              <>
+              <section className="yb-card yb-team-panel">
                 <SectionHeader
-                  title="Game log"
-                  meta={season ? `${season} regular season` : "All regular seasons"}
+                  title="Game Log"
                   action={
-                  <Dropdown
-                    ariaLabel="Filter game log by season"
-                    value={season ? String(season) : "all"}
-                    onChange={(v) => setSeason(v === "all" ? undefined : Number(v))}
-                    options={[
-                      { value: "all", label: "All seasons" },
-                      ...logSeasons.map((s) => ({ value: String(s), label: `${s} season` })),
-                    ]}
-                  />
+                    <Dropdown
+                      ariaLabel="Filter game log by season"
+                      value={season ? String(season) : "all"}
+                      onChange={(v) => setSeason(v === "all" ? undefined : Number(v))}
+                      options={[
+                        { value: "all", label: "All seasons" },
+                        ...logSeasons.map((s) => ({ value: String(s), label: `${s} season` })),
+                      ]}
+                    />
                   }
                 />
                 {gameLog.length === 0 ? (
@@ -701,36 +727,36 @@ export default function PlayerPage() {
                 ) : (
                   <GameLogTable rows={gameLog} position={profile.position} />
                 )}
-              </>
+              </section>
             )}
 
             {tab === "Career" && (
               <>
-                <SectionHeader
-                  title="Season by season"
-                  meta={`${profile.seasons.length} regular seasons`}
-                  action={
-                    <div className="yb-seg" role="group" aria-label="Stat display mode">
-                      <button aria-pressed={!perGame} onClick={() => setPerGame(false)}>
-                        Totals
-                      </button>
-                      <button aria-pressed={perGame} onClick={() => setPerGame(true)}>
-                        Per game
-                      </button>
-                    </div>
-                  }
-                />
-                <SeasonTable
-                  rows={profile.seasons}
-                  position={profile.position}
-                  perGame={perGame}
-                  showRank
-                />
+                <section className="yb-card yb-team-panel">
+                  <SectionHeader
+                    title="Season by Season"
+                    action={
+                      <div className="yb-pill-seg" role="group" aria-label="Stat display mode">
+                        <button aria-pressed={!perGame} onClick={() => setPerGame(false)}>
+                          Totals
+                        </button>
+                        <button aria-pressed={perGame} onClick={() => setPerGame(true)}>
+                          Per game
+                        </button>
+                      </div>
+                    }
+                  />
+                  <SeasonTable
+                    rows={profile.seasons}
+                    position={profile.position}
+                    perGame={perGame}
+                    showRank
+                  />
+                </section>
                 {profile.scoring_plays.length > 0 && (
-                  <section className="yb-profile-section-spaced">
+                  <section className="yb-profile-section-spaced yb-card yb-team-panel">
                     <SectionHeader
-                      title="Touchdown log"
-                      meta={`${profile.scoring_plays.length} recorded scoring plays`}
+                      title="Touchdown Log"
                     />
                     <SortTable
                       rows={profile.scoring_plays}
@@ -754,8 +780,8 @@ export default function PlayerPage() {
                         {
                           key: "kind",
                           label: "Type",
-                          value: (t) => TD_KIND[t.play_type ?? ""] ?? t.play_type,
-                          render: (t) => <>{TD_KIND[t.play_type ?? ""] ?? t.play_type ?? "-"}</>,
+                          value: (t) => tdKind(t),
+                          render: (t) => <>{tdKind(t)}</>,
                         },
                         { key: "qtr", label: "Qtr", numeric: true, value: (t) => t.qtr },
                         {
@@ -789,10 +815,9 @@ export default function PlayerPage() {
             {tab === "Playoffs" && (
               <>
                 {profile.postseasons.length > 0 && (
-                  <section>
+                  <section className="yb-card yb-team-panel">
                     <SectionHeader
-                      title="Postseason, year by year"
-                      meta={`${profile.postseasons.length} playoff seasons`}
+                      title="Postseason, Year by Year"
                     />
                     <SeasonTable
                       rows={profile.postseasons}
@@ -803,8 +828,8 @@ export default function PlayerPage() {
                   </section>
                 )}
                 {postLog.length > 0 && (
-                  <section className="yb-profile-section-spaced">
-                    <SectionHeader title="Playoff game log" meta={`${postLog.length} games`} />
+                  <section className="yb-profile-section-spaced yb-card yb-team-panel">
+                    <SectionHeader title="Playoff Game Log" />
                     <GameLogTable rows={postLog} position={profile.position} />
                   </section>
                 )}

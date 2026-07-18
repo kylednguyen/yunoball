@@ -20,7 +20,7 @@ export function Performers({
     return (
       <ol className="yb-performers">
         {Array.from({ length: count }, (_, i) => (
-          <li key={i} className="yb-skel" style={{ height: 64, borderRadius: 14 }} />
+          <li key={i} className="yb-skel" style={{ height: 64, borderRadius: "var(--r-xl)" }} />
         ))}
       </ol>
     );
@@ -45,14 +45,11 @@ export function Performers({
       >
         <Headshot src={top.headshot_url} name={top.name} scale="feature" />
         <div className="yb-potw-body">
-          <span className="yb-potw-tag">Player of the week</span>
+          <span className="yb-potw-tag">Player of the Week</span>
           <span className="yb-potw-name">
             <span className="t">{top.name}</span>
-            <span className={`yb-pos ${top.position ?? ""}`}>{top.position}</span>
           </span>
-          <span className="yb-potw-line">
-            {top.team} vs {top.opponent} · {top.stat_line}
-          </span>
+          <span className="yb-potw-line">{top.stat_line}</span>
         </div>
         <div className="yb-potw-pts">
           <span className="n">{top.fantasy_points_ppr.toFixed(1)}</span>
@@ -73,11 +70,8 @@ export function Performers({
               <span className="who">
                 <span className="nm">
                   <span className="t">{p.name}</span>
-                  <span className={`yb-pos ${p.position ?? ""}`}>{p.position}</span>
                 </span>
-                <span className="ln">
-                  vs {p.opponent} · {p.stat_line}
-                </span>
+                <span className="ln">{p.stat_line}</span>
               </span>
               <span className="pts">{p.fantasy_points_ppr.toFixed(1)}</span>
             </Link>

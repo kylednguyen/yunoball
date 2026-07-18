@@ -6,9 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { AnswerResult, PlayerGameLogRow, PlayerProfile } from "../lib/api";
 import { fetchLeaderboards, fetchPlayer } from "../lib/api";
 import { passerRating } from "../lib/rating";
-import { NFL_TEAM_NAMES } from "../lib/teamTheme";
+import { NFL_TEAM_NAMES, teamTheme } from "../lib/teamTheme";
 import { Headshot } from "./Headshot";
-import { ResultMethodology } from "./ResultMethodology";
 import { TeamLogo } from "./TeamLogo";
 
 type Totals = {
@@ -62,20 +61,6 @@ function aggregate(logs: PlayerGameLogRow[]): Totals {
   };
 }
 
-function answerValue(result: AnswerResult): number | string {
-  if (result.answer_value != null) return result.answer_value;
-  const rowValue = result.rows[0]?.value ?? result.rows[0]?.total;
-  if (typeof rowValue === "number" || typeof rowValue === "string") return rowValue;
-  const narrated = result.narration.match(/(?:had|has|totaled)\s+([\d,.]+)/i)?.[1];
-  return narrated ? Number(narrated.replace(/,/g, "")) : "—";
-}
-
-function displayValue(value: number | string): string {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return String(value);
-  return Number.isInteger(number) ? integer(number) : decimal(number);
-}
-
 function ordinal(value: number): string {
   const mod100 = value % 100;
   if (mod100 >= 11 && mod100 <= 13) return `${value}th`;
@@ -126,12 +111,18 @@ export function SinglePlayerResult({ result }: { result: AnswerResult }) {
     : null;
   const team = seasonLine?.team ?? profile?.team ?? result.player_card?.team ?? null;
   const teamName = team ? NFL_TEAM_NAMES[team] ?? result.player_card?.team_name ?? team : "NFL";
-  const isGame = Boolean(result.rows[0]?.game_id);
+  // Game-grain windows (vs an opponent, with a teammate, venue/month splits)
+  // return per-game rows under a player_total — only a one-game window is
+  // actually a single game.
+  const isGame = result.rows.length === 1 && Boolean(result.rows[0]?.game_id);
+  const windowed = !isGame && Boolean(result.rows[0]?.game_id);
   const scopeLabel = isGame
     ? "Single game"
-    : season != null
-      ? `${season} ${context?.season_type === "POST" ? "Postseason" : "Regular Season"}`
-      : "Career";
+    : windowed && season == null
+      ? `${result.rows.length}-Game Split`
+      : season != null
+        ? `${season} ${context?.season_type === "POST" ? "Postseason" : "Regular Season"}`
+        : "Career";
   const rating = passerRating(
     totals.completions,
     totals.attempts,
@@ -183,18 +174,14 @@ export function SinglePlayerResult({ result }: { result: AnswerResult }) {
               { key: "points-per-game", label: "Pts/game", value: ratio(totals.fantasy_points_ppr, totals.games), metricKeys: ["fantasy_points_per_game"] },
             ];
   const name = profile?.name ?? result.player_card?.name ?? "Player";
-  const metricLabel = context?.metric_label?.toLowerCase() ?? "the requested stat";
-  const responseScope = isGame
-    ? "in this game"
-    : season != null
-      ? `in the ${season} ${context?.season_type === "POST" ? "postseason" : "regular season"}`
-      : "over the requested career span";
-  const response = `${name} had ${displayValue(answerValue(result))} ${metricLabel} ${responseScope}.`;
+  // The server narration already voices every window qualifier (opponent,
+  // teammate, venue, playoffs…) — a client-rebuilt sentence always lags it.
+  const response = result.narration;
   const categoryLabel = category === "passing" ? "Passing"
     : category === "rushing" ? "Rushing"
       : category === "receiving" ? "Receiving"
         : category === "defense" ? "Defensive" : "Fantasy";
-  const statsTitle = `${season ?? (isGame ? "Game" : "Career")} ${categoryLabel} stats`;
+  const statsTitle = `${season ?? (isGame ? "Game" : windowed ? "Split" : "Career")} ${categoryLabel} Stats`;
   const searchedMetric = context?.metric;
   const gameLogLabel = isGame
     ? "View game box score"
@@ -206,7 +193,7 @@ export function SinglePlayerResult({ result }: { result: AnswerResult }) {
     : `/players/${encodeURIComponent(playerId)}${season != null ? `?season=${season}` : ""}#game-log`;
 
   return (
-    <section className="yb-single-player-answer yb-enter">
+    <section className="yb-single-player-answer yb-enter" style={teamTheme(team)}>
       <div className="yb-single-response-block">
         <span className="yb-single-response-label">Response</span>
         <p className="yb-single-response">{response}</p>
@@ -226,7 +213,7 @@ export function SinglePlayerResult({ result }: { result: AnswerResult }) {
           </p>
           <span>{scopeLabel.toLowerCase()}</span>
         </div>
-        <Link href={`/players/${encodeURIComponent(playerId)}`} className="yb-btn ghost">View profile</Link>
+        <Link href={`/players/${encodeURIComponent(playerId)}`} className="yb-btn">View profile →</Link>
       </article>
 
       <section className="yb-single-stat-section">
@@ -267,14 +254,15 @@ export function SinglePlayerResult({ result }: { result: AnswerResult }) {
         <p>
           {leagueRank != null
             ? `${ordinal(leagueRank)} in the NFL for ${context?.metric_label ?? "this metric"} in ${season}.`
-            : `${scopeLabel} production across ${totals.games} game${totals.games === 1 ? "" : "s"}.`}
+            : windowed
+              ? `Totals cover the ${totals.games} game${totals.games === 1 ? "" : "s"} in this split.`
+              : `${scopeLabel} production across ${totals.games} game${totals.games === 1 ? "" : "s"}.`}
         </p>
       </div>
 
       <div className="yb-single-links">
-        <Link href={gameLogHref} className="yb-btn ghost">{gameLogLabel}</Link>
+        <Link href={gameLogHref} className="yb-btn">{gameLogLabel}</Link>
       </div>
-      <ResultMethodology result={result} />
     </section>
   );
 }
