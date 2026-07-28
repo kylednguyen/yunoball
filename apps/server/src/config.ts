@@ -49,5 +49,10 @@ export const config = {
   // Requests per client IP per minute on POST /api/search and /api/agent
   // (0 disables).
   rateLimitPerMinute: int(process.env.RATE_LIMIT_PER_MINUTE, 30),
+  // Separate, more generous bucket for the GET data endpoints — the homepage
+  // alone fires several on load, so a page-load budget, not a query budget
+  // (0 disables). Kept distinct from the write limit above so reads and writes
+  // never starve each other's bucket.
+  readRateLimitPerMinute: int(process.env.READ_RATE_LIMIT_PER_MINUTE, 120),
   logLevel: process.env.LOG_LEVEL ?? "info",
 };

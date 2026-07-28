@@ -1,8 +1,7 @@
 /** Small, static, well-known NFL facts that no nflverse file carries:
  * marquee award winners, franchise founding years, and relocations/renames.
- * Curated and checked in — the same pattern as data/espn_ids.json. Only
- * facts with unambiguous public records belong here; anything uncertain
- * stays a refusal rather than a guess. */
+ * Curated and checked in. Only facts with unambiguous public records belong
+ * here; anything uncertain stays a refusal rather than a guess. */
 
 /** AP MVP and Super Bowl MVP by SEASON (the SB is played the next February). */
 export const AWARDS: { season: number; award: "MVP" | "SBMVP"; player: string }[] = [

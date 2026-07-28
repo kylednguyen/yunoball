@@ -346,6 +346,8 @@ interface SplitGameRow {
   passing_yards: number; passing_tds: number; interceptions: number;
   carries: number; rushing_yards: number; rushing_tds: number;
   receptions: number; receiving_yards: number; receiving_tds: number;
+  tackles: number; def_sacks: number; def_interceptions: number;
+  forced_fumbles: number; passes_defended: number;
   fantasy_points_ppr: number;
 }
 
@@ -368,6 +370,11 @@ function sumRows(label: string, rows: SplitGameRow[]): SplitRow {
     receptions: sum((r) => r.receptions),
     receiving_yards: sum((r) => r.receiving_yards),
     receiving_tds: sum((r) => r.receiving_tds),
+    tackles: sum((r) => r.tackles),
+    def_sacks: round(sum((r) => r.def_sacks), 1),
+    def_interceptions: sum((r) => r.def_interceptions),
+    forced_fumbles: sum((r) => r.forced_fumbles),
+    passes_defended: sum((r) => r.passes_defended),
     fantasy_points_ppr: round(sum((r) => r.fantasy_points_ppr), 1),
   };
 }
@@ -428,6 +435,11 @@ export async function getPlayerSplits(
             COALESCE(s.receptions, 0) AS receptions,
             COALESCE(s.receiving_yards, 0) AS receiving_yards,
             COALESCE(s.receiving_tds, 0) AS receiving_tds,
+            COALESCE(s.tackles, 0) AS tackles,
+            COALESCE(s.def_sacks, 0) AS def_sacks,
+            COALESCE(s.def_interceptions, 0) AS def_interceptions,
+            COALESCE(s.forced_fumbles, 0) AS forced_fumbles,
+            COALESCE(s.passes_defended, 0) AS passes_defended,
             COALESCE(s.fantasy_points_ppr, 0) AS fantasy_points_ppr
      FROM player_game_stats s
      JOIN games g ON g.game_id = s.game_id

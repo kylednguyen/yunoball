@@ -20,9 +20,10 @@ export function clientIp(req: Request): string {
   return req.ip ?? req.socket.remoteAddress ?? "unknown";
 }
 
-/** Returns null to allow, or seconds until the window resets when over limit. */
-export function retryAfter(ip: string): number | null {
-  const limit = config.rateLimitPerMinute;
+/** Returns null to allow, or seconds until the window resets when over limit.
+ * `key` should namespace the tier (e.g. "w:<ip>" vs "r:<ip>") so read and write
+ * tiers count in separate buckets; `limit` defaults to the write limit. */
+export function retryAfter(key: string, limit = config.rateLimitPerMinute): number | null {
   if (limit <= 0) return null;
   const now = Math.floor(Date.now() / 1000);
   const window = Math.floor(now / WINDOW_SECONDS);
@@ -30,10 +31,10 @@ export function retryAfter(ip: string): number | null {
     counts.clear();
     currentWindow = window;
   }
-  const n = (counts.get(ip) ?? 0) + 1;
+  const n = (counts.get(key) ?? 0) + 1;
   // Stop tracking new keys once the map is saturated within a window; existing
   // keys keep counting so real clients are still limited.
-  if (counts.has(ip) || counts.size < MAX_KEYS) counts.set(ip, n);
+  if (counts.has(key) || counts.size < MAX_KEYS) counts.set(key, n);
   if (n > limit) return WINDOW_SECONDS - (now % WINDOW_SECONDS);
   return null;
 }

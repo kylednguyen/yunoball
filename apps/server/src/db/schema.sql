@@ -253,6 +253,49 @@ CREATE INDEX IF NOT EXISTS pga_game_idx ON player_game_advanced (game_id);
 ALTER TABLE scoring_plays ADD COLUMN IF NOT EXISTS yards smallint;
 ALTER TABLE team_game_stats ADD COLUMN IF NOT EXISTS drives smallint;
 
+-- How the touchdown was scored, classified at ingest from the pbp's own
+-- discriminator columns (pass_touchdown / rush_touchdown / return_touchdown /
+-- interception + possession): pass | rush | int_return | fumble_return |
+-- kick_return | punt_return | other. int_return + fumble_return ARE the
+-- defensive touchdowns; "other" catches own-fumble recoveries and blocked-kick
+-- recoveries, which description matching would miscount as defensive.
+ALTER TABLE scoring_plays ADD COLUMN IF NOT EXISTS td_kind varchar;
+
+-- Cross-source player id crosswalk (nflverse players release): gsis id to
+-- every other provider's id, plus the nflverse headshot URL. Full snapshot,
+-- no FK — it covers players beyond the loaded 1999+ seasons and is the dedup
+-- backbone for any future second source (join on ids, never on names).
+CREATE TABLE IF NOT EXISTS player_id_map (
+    player_id    varchar PRIMARY KEY,  -- gsis id, joins players when present
+    espn_id      varchar,
+    pfr_id       varchar,
+    pff_id       varchar,
+    otc_id       varchar,
+    esb_id       varchar,
+    headshot_url varchar
+);
+
+-- Headshot columns on the dimension the API reads (synced from player_id_map
+-- by the player_ids ingest step): nflverse headshot_url preferred, espn_id
+-- constructs the ESPN CDN URL as fallback.
+ALTER TABLE players
+    ADD COLUMN IF NOT EXISTS espn_id varchar,
+    ADD COLUMN IF NOT EXISTS headshot_url varchar;
+
+-- Full historical rosters: which team a player was on each season, with
+-- jersey number and roster status. One row per (player, season, team) —
+-- a mid-season move produces a row per team.
+CREATE TABLE IF NOT EXISTS rosters (
+    player_id     varchar NOT NULL REFERENCES players (player_id),
+    season        integer NOT NULL REFERENCES seasons (season),
+    team_id       varchar NOT NULL REFERENCES teams (team_id),
+    "position"    varchar,
+    jersey_number smallint,
+    status        varchar,
+    PRIMARY KEY (player_id, season, team_id)
+);
+CREATE INDEX IF NOT EXISTS rosters_team_season_idx ON rosters (team_id, season);
+
 -- Query-shape indexes. Leaderboards filter (season, season_type); "players on
 -- team X in year Y" filters team_id; REG/POST game scans filter season_type.
 CREATE INDEX IF NOT EXISTS pss_season_type_idx

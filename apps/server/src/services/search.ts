@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SuggestResponse } from "@yunoball/types";
+import type { ExampleQuestion, SuggestResponse } from "@yunoball/types";
 import { q } from "../db/pool.js";
 import { headshotUrl } from "../lib/espn.js";
 
@@ -44,6 +44,7 @@ export async function suggest(query: string, limit = 6): Promise<SuggestResponse
 
   const terms = needle.split(/\s+/).filter(Boolean);
   const questions = (await supportedQuestions())
+    .map((q) => q.question)
     .filter((question) => {
       const words = question.toLowerCase().split(/\s+/);
       return (
@@ -74,14 +75,16 @@ export async function suggest(query: string, limit = 6): Promise<SuggestResponse
   };
 }
 
-let questionsCache: string[] | null = null;
+let questionsCache: ExampleQuestion[] | null = null;
 
-function commonQuestions(): string[] {
+/** The answerable-question corpus, each tagged with the coarse category the
+ * ingest derived from the engine (see common_questions.json). */
+function commonQuestions(): ExampleQuestion[] {
   if (questionsCache === null) {
     const here = path.dirname(fileURLToPath(import.meta.url));
     const raw = readFileSync(path.resolve(here, "../../data/common_questions.json"), "utf-8");
-    const data = JSON.parse(raw) as { questions: { question: string }[] };
-    questionsCache = data.questions.map((r) => r.question);
+    const data = JSON.parse(raw) as { questions: ExampleQuestion[] };
+    questionsCache = data.questions;
   }
   return questionsCache;
 }
@@ -103,9 +106,9 @@ async function loadedSeasonRange(): Promise<{ min: number; max: number } | null>
   return seasonRange;
 }
 
-async function supportedQuestions(): Promise<string[]> {
+async function supportedQuestions(): Promise<ExampleQuestion[]> {
   const range = await loadedSeasonRange();
-  return commonQuestions().filter((question) => {
+  return commonQuestions().filter(({ question }) => {
     const years = question.match(/\b(?:19|20)\d{2}\b/g);
     if (!years) return true;
     if (!range) return false;
@@ -113,15 +116,37 @@ async function supportedQuestions(): Promise<string[]> {
   });
 }
 
-/** A random sample from the question corpus — powers the example chips.
+/** In-place Fisher-Yates shuffle. */
+function shuffle<T>(xs: T[]): T[] {
+  for (let i = xs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [xs[i], xs[j]] = [xs[j]!, xs[i]!];
+  }
+  return xs;
+}
+
+/** A balanced sample from the question corpus — powers the example chips and
+ * the home trending card. Round-robin across categories so even a small n
+ * spans every group, and the client groups off the tagged category instead of
+ * re-deriving it (and no longer over-fetches the whole corpus to do so).
  * Only questions the warehouse can actually answer are offered: any year a
  * question names must fall inside the loaded season window (year-less
  * questions — careers, single-game records — are always fair game). */
-export async function examples(n: number): Promise<string[]> {
-  const qs = await supportedQuestions();
-  const out: string[] = [];
-  while (out.length < Math.min(n, qs.length)) {
-    out.push(...qs.splice(Math.floor(Math.random() * qs.length), 1));
+export async function examples(n: number): Promise<ExampleQuestion[]> {
+  const byCategory = new Map<string, ExampleQuestion[]>();
+  for (const q of shuffle([...(await supportedQuestions())])) {
+    const list = byCategory.get(q.category);
+    if (list) list.push(q);
+    else byCategory.set(q.category, [q]);
+  }
+  const queues = [...byCategory.values()];
+  const out: ExampleQuestion[] = [];
+  while (out.length < n && queues.some((queue) => queue.length > 0)) {
+    for (const queue of queues) {
+      if (out.length >= n) break;
+      const q = queue.shift();
+      if (q) out.push(q);
+    }
   }
   return out;
 }

@@ -17,7 +17,7 @@ interface Group {
 
 const GROUPS: Group[] = [
   {
-    title: "Football basics",
+    title: "Football Basics",
     blurb: "Start here. The vocabulary every other term builds on.",
     terms: [
       {
@@ -96,7 +96,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Passing stats",
+    title: "Passing Stats",
     blurb: "Everything a quarterback question can ask about.",
     terms: [
       {
@@ -125,7 +125,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Rushing & receiving stats",
+    title: "Rushing & Receiving Stats",
     blurb: "The ground game and the catch game.",
     terms: [
       {
@@ -167,7 +167,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Fantasy football",
+    title: "Fantasy Football",
     blurb: "The scoring language behind the Fantasy page and the assistant's start/sit calls.",
     terms: [
       {
@@ -177,7 +177,7 @@ const GROUPS: Group[] = [
       },
       {
         term: "Fantasy points",
-        def: "A player's real stats converted to a single score: roughly 1 point per 10 rushing/receiving yards, 1 per 25 passing yards, 4–6 per touchdown, minus turnovers. Plus receptions in PPR.",
+        def: "A player's real stats converted to a single score: roughly 1 point per 10 rushing/receiving yards, 1 per 25 passing yards, 4-6 per touchdown, minus turnovers. Plus receptions in PPR.",
       },
       {
         term: "Points per game",
@@ -203,7 +203,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Seasons & games",
+    title: "Seasons & Games",
     blurb: "How the NFL calendar is sliced everywhere on this site.",
     terms: [
       {
@@ -223,7 +223,7 @@ const GROUPS: Group[] = [
       },
       {
         term: "Week",
-        def: "One slate of games. Regular-season weeks run 1–18; postseason rounds continue the numbering, which is why a Super Bowl can appear as week 21 or 22.",
+        def: "One slate of games. Regular-season weeks run 1-18; postseason rounds continue the numbering, which is why a Super Bowl can appear as week 21 or 22.",
       },
       {
         term: "Bye week",
@@ -246,7 +246,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "Players & careers",
+    title: "Players & Careers",
     blurb: "How players enter the league and earn their roles.",
     terms: [
       {
@@ -273,7 +273,7 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: "League structure",
+    title: "League Structure",
     blurb: "How 32 teams organize into the standings you see.",
     terms: [
       {
@@ -356,7 +356,6 @@ export function Glossary() {
               {g.terms.map((t) => (
                 <div key={t.term} className="yb-gloss-item">
                   <dt>
-                    {t.pos && <span className={`yb-pos ${t.pos}`}>{t.pos}</span>}
                     <Highlight text={t.term} needle={needle} />
                     {t.abbr && <span className="abbr">{t.abbr}</span>}
                   </dt>

@@ -1,0 +1,16 @@
+{
+  "plugins": ["stylelint-value-no-unknown-custom-properties"],
+  "rules": {
+    "block-no-empty": true,
+    "color-no-invalid-hex": true,
+    "declaration-block-no-duplicate-properties": [
+      true,
+      { "ignore": ["consecutive-duplicates-with-different-values"] }
+    ],
+    "no-duplicate-selectors": true,
+    "property-no-unknown": true,
+    "unit-no-unknown": true,
+    "function-calc-no-unspaced-operator": true,
+    "csstools/value-no-unknown-custom-properties": true
+  }
+}

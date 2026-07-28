@@ -10,7 +10,7 @@ import { ResultDrilldown } from "./ResultDrilldown";
 import { SinglePlayerResult } from "./SinglePlayerResult";
 import { SortTable } from "./SortTable";
 import { TeamLogo } from "./TeamLogo";
-import { Badge, Surface } from "./ui";
+import { Surface } from "./ui";
 import { teamTheme } from "../lib/teamTheme";
 
 /** A column is numeric if every non-empty cell parses as a number. */
@@ -117,7 +117,6 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
               <span className="who">
                 <span>
                   {String(p.full_name)}
-                  {card?.position && <span className="yb-pos">{card.position}</span>}
                 </span>
                 {card?.team && (
                   <span className="sub">
@@ -133,7 +132,7 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
               // Toggle sits between the two players, in DOM order too.
               <span key="a-and-toggle" style={{ display: "contents" }}>
                 {side}
-                <div className="yb-seg" role="group" aria-label="Value mode">
+                <div className="yb-pill-seg" role="group" aria-label="Value mode">
                   {(["Totals", "Per game"] as const).map((m) => (
                     <button
                       key={m}
@@ -179,8 +178,6 @@ function CompareChart({ rows, cards }: { rows: AnswerResult["rows"]; cards: Mini
 }
 
 export function AnswerCard({ result }: { result: AnswerResult }) {
-  const [showSql, setShowSql] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   if (result.intent === "player_total" && result.player_card) {
     return <SinglePlayerResult result={result} />;
@@ -203,30 +200,6 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   // The queried metric = first real numeric column (not a season/week/rank id).
   const metricCol = columns.find((c) => numericCols.has(c) && !NO_GROUPING.has(c) && c !== "rank");
 
-  function downloadCsv() {
-    const esc = (v: unknown) => {
-      const t = String(v ?? "");
-      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
-    };
-    const csv = [
-      columns.join(","),
-      ...result.rows.map((r) => columns.map((c) => esc(r[c])).join(",")),
-    ].join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = `yunoball-${(result.question || "answer").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  async function copyShareLink() {
-    if (!result.share_id) return;
-    const url = `${window.location.origin}/a/${result.share_id}`;
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   const cards = [result.player_card, result.player_card2].filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
   );
@@ -245,15 +218,10 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
   const chips = (result.entities ?? []).filter(
     (e) => !(e.entity_type === "player" && cards.some((c) => c.player_id === e.canonical_id)),
   );
-  const interpretation = [
-    result.intent ? result.intent.replace(/_/g, " ") : null,
-    ...result.entities.map((e) => `${e.entity_type}: ${e.display_name}`),
-    result.rows.length ? `${result.rows.length.toLocaleString()} row${result.rows.length === 1 ? "" : "s"}` : null,
-    result.audit?.status ? `audit: ${result.audit.status}` : null,
-  ].filter(Boolean) as string[];
 
   const leaderboard = (
     <SortTable
+      pageSize={10}
       rows={result.rows.map((row, i) => ({ row, i }))}
       rowKey={({ i }) => String(i)}
       columns={[
@@ -295,43 +263,15 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
             return <>{numericCols.has(c) ? fmtCell(c, v) : String(v)}</>;
           },
         })),
-        ...(isPlayerLeaderboard
-          ? [{
-              key: "__profile",
-              label: "Profile",
-              value: () => "",
-              render: ({ row }: { row: AnswerResult["rows"][number]; i: number }) => (
-                <Link
-                  className="yb-table-profile-link"
-                  href={`/players/${encodeURIComponent(String(row.player_id))}`}
-                >
-                  View full profile
-                </Link>
-              ),
-            }]
-          : []),
       ]}
     />
   );
 
   return (
-    <Surface as="section" variant="standard" className="yb-query-result yb-enter" style={theme}>
+    <Surface as="section" className="yb-query-result yb-enter" style={theme}>
       <div className="yb-query-result-head">
         <div>
-          <span className="yb-result-kicker">Result</span>
           <p className="yb-answer">{result.narration}</p>
-        </div>
-        {result.cached && <Badge>Cached</Badge>}
-      </div>
-
-      <div className="yb-query-interpretation" aria-label="Query interpretation">
-        <span>Query interpretation</span>
-        <div>
-          {interpretation.map((item) => (
-            <Badge key={item} tone={item.startsWith("audit:") ? "accent" : "neutral"}>
-              {item}
-            </Badge>
-          ))}
         </div>
       </div>
 
@@ -347,7 +287,6 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
               <span className="who">
                 <span className="nm">
                   {card.name}
-                  {card.position && <span className="yb-pos">{card.position}</span>}
                 </span>
                 <span className="sub">
                   {card.team && <TeamLogo team={card.team} size={14} />}
@@ -397,27 +336,6 @@ export function AnswerCard({ result }: { result: AnswerResult }) {
         </div>
       )}
 
-      <div className="yb-result-actions" data-export-exclude="true">
-        <button onClick={() => setShowSql((s) => !s)} className="yb-link">
-          {showSql ? "Hide query" : "Show query"}
-        </button>
-        {result.rows.length > 0 && (
-          <button onClick={downloadCsv} className="yb-link">
-            Download CSV
-          </button>
-        )}
-        {result.share_id && (
-          <button onClick={copyShareLink} className="yb-link">
-            {copied ? "Link copied" : "Share"}
-            <span role="status" className="yb-sr-only">
-              {copied ? "Share link copied to clipboard" : ""}
-            </span>
-          </button>
-        )}
-      </div>
-
-      {showSql && <pre className="yb-sql" style={{ marginTop: 12 }}>{result.sql}</pre>}
-      <p className="yb-source-note">Data source: YunoBall warehouse, computed from nflverse data.</p>
     </Surface>
   );
 }

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Headshot } from "../components/Headshot";
-import { SeasonSelect } from "../components/SeasonSelect";
 import { PageHeader } from "../components/ui";
 import {
   friendlyError, fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
@@ -51,7 +50,7 @@ function statLine(p: FantasyPlayer): string {
 export default function FantasyPage() {
   useTitle("Fantasy lineup builder");
   const [data, setData] = useState<FantasyPlayersResponse | null>(null);
-  const [season, setSeason] = useSeasonParam();
+  const [season] = useSeasonParam();
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");
   const [query, setQuery] = useState("");
   const [lineup, setLineup] = useState<Lineup>({});
@@ -155,12 +154,6 @@ export default function FantasyPage() {
       <main id="main" className="yb-page">
         <PageHeader
           title="Fantasy Lineup Builder"
-          description="Build a PPR lineup from real season production. Your picks save locally."
-          controls={
-            data && (
-              <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />
-            )
-          }
           action={<div className="yb-format-lock" aria-label="Scoring format">PPR scoring</div>}
         />
 
@@ -173,8 +166,8 @@ export default function FantasyPage() {
 
         {loading && !data && (
           <div className="yb-fantasy-grid">
-            <div className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
-            <div className="yb-skel" style={{ height: 480, borderRadius: 14 }} />
+            <div className="yb-skel" style={{ height: 480, borderRadius: "var(--r-xl)" }} />
+            <div className="yb-skel" style={{ height: 480, borderRadius: "var(--r-xl)" }} />
           </div>
         )}
 
@@ -202,7 +195,7 @@ export default function FantasyPage() {
                 const p = picks[i];
                 return (
                   <div key={s.id} className={`yb-slot${p ? " filled" : ""}`}>
-                    <span className={`yb-pos ${p?.position ?? s.label}`}>{s.label}</span>
+                    <span className="yb-slot-label">{s.label}</span>
                     {p ? (
                       <>
                         <span className="yb-slot-name">
@@ -241,7 +234,7 @@ export default function FantasyPage() {
                   Optimize by PPR average
                 </button>
                 <button
-                  className="yb-btn ghost"
+                  className="yb-btn"
                   onClick={() => {
                     setUndoLineup(lineup);
                     setLineup({});
@@ -265,14 +258,14 @@ export default function FantasyPage() {
               </div>
             </section>
 
-            <section aria-label="Player pool" className="yb-player-pool">
+            <section aria-label="Player pool" className="yb-player-pool yb-card">
               <div className="yb-pool-controls">
-                <div className="yb-tabs" style={{ marginBottom: 0 }}>
+                <div className="yb-pill-seg" role="group" aria-label="Position filter">
                   {POSITIONS.map((pos) => (
                     <button
                       key={pos}
-                      className="yb-tab"
-                      aria-selected={position === pos}
+                      type="button"
+                      aria-pressed={position === pos}
                       onClick={() => setPosition(pos)}
                     >
                       {pos}
@@ -319,16 +312,14 @@ export default function FantasyPage() {
                                   </Link>
                                 </div>
                                 <div
-                                  style={{ fontSize: 12, color: "var(--faint)", fontWeight: 400 }}
+                                  style={{ fontSize: "var(--fs-caption)", color: "var(--faint)", fontWeight: 400 }}
                                 >
                                   {p.team} · {statLine(p)}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td>
-                            <span className={`yb-pos ${p.position ?? ""}`}>{p.position}</span>
-                          </td>
+                          <td>{p.position}</td>
                           <td className="num">{p.fantasy_points_ppr.toFixed(1)}</td>
                           <td className="num">{p.points_per_game.toFixed(1)}</td>
                           <td className="num">
@@ -336,7 +327,7 @@ export default function FantasyPage() {
                               <span className="yb-chip-static">In lineup</span>
                             ) : (
                               <button
-                                className="yb-btn sm ghost"
+                                className="yb-btn sm"
                                 disabled={!slot}
                                 title={slot ? `Add to ${slot}` : "No open slot"}
                                 onClick={() => add(p)}

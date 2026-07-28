@@ -16,6 +16,9 @@ const LEADER_CATEGORIES: [string, string, string][] = [
   ["receiving_yards", "Receiving yards", "yds"],
   ["receptions", "Receptions", "rec"],
   ["fantasy_points_ppr", "Fantasy (PPR)", "pts"],
+  ["def_sacks", "Sacks", "sacks"],
+  ["tackles", "Tackles", "tkl"],
+  ["def_interceptions", "Interceptions", "int"],
 ];
 
 function rank(values: Map<string, number>, team: string, bestIsHigh = true): number {
@@ -63,12 +66,18 @@ export async function getTeamProfile(teamId: string, season?: number): Promise<T
     [target],
   );
 
+  // The true season roster (ingested nflverse rosters), stats joined on where
+  // they exist — linemen and zero-stat players stay on the list.
   const rosterRows = await q<{
-    player_id: string; name: string; position: string | null; gp: number;
+    player_id: string; name: string; position: string | null;
+    jersey_number: number | null; gp: number;
     pass_yds: number; rush_yds: number; rec: number; rec_yds: number;
     pass_tds: number; rush_tds: number; rec_tds: number; fp: number;
+    sacks: number; tkl: number; def_int: number;
   }>(
-    `SELECT s.player_id, p.full_name AS name, p.position,
+    `SELECT r.player_id, p.full_name AS name,
+            COALESCE(r.position, p.position) AS position,
+            r.jersey_number,
             COALESCE(s.games_played, 0) AS gp,
             COALESCE(s.passing_yards, 0) AS pass_yds,
             COALESCE(s.rushing_yards, 0) AS rush_yds,
@@ -77,10 +86,17 @@ export async function getTeamProfile(teamId: string, season?: number): Promise<T
             COALESCE(s.passing_tds, 0) AS pass_tds,
             COALESCE(s.rushing_tds, 0) AS rush_tds,
             COALESCE(s.receiving_tds, 0) AS rec_tds,
-            COALESCE(s.fantasy_points_ppr, 0) AS fp
-     FROM player_season_stats s JOIN players p USING (player_id)
-     WHERE s.team_id = $1 AND s.season = $2 AND s.season_type = 'REG'
-     ORDER BY s.fantasy_points_ppr DESC, p.full_name`,
+            COALESCE(s.fantasy_points_ppr, 0) AS fp,
+            COALESCE(s.def_sacks, 0) AS sacks,
+            COALESCE(s.tackles, 0) AS tkl,
+            COALESCE(s.def_interceptions, 0) AS def_int
+     FROM rosters r
+     JOIN players p USING (player_id)
+     LEFT JOIN player_season_stats s
+       ON s.player_id = r.player_id AND s.team_id = r.team_id
+      AND s.season = r.season AND s.season_type = 'REG'
+     WHERE r.team_id = $1 AND r.season = $2
+     ORDER BY COALESCE(s.fantasy_points_ppr, 0) DESC, p.full_name`,
     [tid, target],
   );
 
@@ -174,6 +190,9 @@ export async function getTeamProfile(teamId: string, season?: number): Promise<T
     receiving_yards: "rec_yds",
     receptions: "rec",
     fantasy_points_ppr: "fp",
+    def_sacks: "sacks",
+    tackles: "tkl",
+    def_interceptions: "def_int",
   };
   const leaders = [];
   for (const [key, label, unit] of LEADER_CATEGORIES) {
@@ -195,10 +214,12 @@ export async function getTeamProfile(teamId: string, season?: number): Promise<T
     });
   }
 
-  const keyPlayers = rosterRows.slice(0, 12).map((r) => ({
+  // The whole roster, best producers first — the web table paginates.
+  const keyPlayers = rosterRows.map((r) => ({
     player_id: r.player_id,
     name: r.name,
     position: r.position,
+    jersey_number: r.jersey_number,
     headshot_url: headshotUrl(r.player_id),
     games_played: r.gp,
     passing_yards: r.pass_yds,

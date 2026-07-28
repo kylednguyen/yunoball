@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YunoBall — Engineering Plan</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
+  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
+h3 { font-size: 16px; margin: 28px 0 8px; }
+a { color: #34d399; text-decoration: none; }
+a:hover { text-decoration: underline; }
+p, ul, ol { margin: 12px 0; }
+li { margin: 4px 0; }
+blockquote {
+  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
+  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+}
+blockquote p { margin: 4px 0; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+}
+pre {
+  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:hover td { background: #121417; }
+hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
+.docnav a { margin-right: 12px; }
+.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<nav class="docnav"><a href="PRD.html">PRD</a><a href="TDD.html">TDD</a><a href="APP_FLOW.html">APP_FLOW</a><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><span class="here">ENGINEERING_PLAN</span><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
+<h1>YunoBall — Engineering Plan</h1>
+<blockquote>
+<p>Where the product goes next and in what order. Baseline: the shipped
+prototype described in <a href="PRD.html">PRD.md</a> / <a href="TDD.html">TDD.md</a> — deterministic
+query engine, 1999–present warehouse, hub surfaces, share pages, deployed
+topology (Vercel / Render / Supabase).
+Written 2026-07-17. The 2026 NFL season kicks off in early September —
+that date anchors Track B.</p>
+</blockquote>
+<h2>0. Baseline (done)</h2>
+<ul>
+<li>Query engine: 21 intents, ~30 allowlisted stats, scope grammar (rounds,
+venues, months, primetime, weather, ranges), two-tier cache + durable
+shares, structured audit log, zero LLM calls.</li>
+<li>Warehouse: full nflverse ingest with validation, idempotent upserts, pbp
+distillation (scoring plays, EPA aggregates); Supabase prod instance loaded
+and RLS-enabled.</li>
+<li>Product: home dashboard, scores/standings/leaderboards, player/team/box
+score pages, fantasy pool, demo-mode assistant, <code>/a/</code> share pages.</li>
+<li>Delivery: CI with real-ingest e2e, Docker/Render blueprint, Vercel web.</li>
+</ul>
+<h2>Track A — Query coverage expansion</h2>
+<p><strong>Goal:</strong> raise the answer rate — the % of real questions that parse and
+return a correct answer (measured from <code>query_audit</code>).</p>
+<ol>
+<li><strong>Team-stat unlock (highest-leverage).</strong> <code>team_game_stats</code> is loaded but
+barely queried: total/passing/rushing yards, turnovers, time of
+possession, drives are refused today outside points questions. Extend
+<code>team_stat</code> executors + parser vocabulary to cover them (totals, per-game,
+per-drive, leaders among teams, season ranges).</li>
+<li><strong>Archetype-driven backlog.</strong> Work through the query-space archetype map
+(the ~289-archetype grammar documented on the <code>query-dev</code> branch —
+<code>docs/query-space.md</code>; land that doc on main). Prioritize by (a) data
+already loaded, (b) frequency in <code>query_audit</code> misses.</li>
+<li><strong>Splits depth.</strong> The <code>GameWindow</code> grammar already carries month,
+primetime, weather, venue, opponent — audit which stat × window
+combinations refuse and close the gaps; add division/conference windows.</li>
+<li><strong>Awards &amp; milestones maturity.</strong> Broaden <code>award</code> beyond MVP/SBMVP as
+data allows; more milestone races (&quot;fastest to N&quot;).</li>
+<li><strong>Measurement loop.</strong> A small answer-rate report over <code>query_audit</code>
+(parse rate, refusal reasons, top unanswered phrasings) — the tracker for
+this whole track.</li>
+</ol>
+<p><strong>Exit criteria:</strong> team-stat questions answer correctly; answer rate visibly
+climbing month over month; query-space doc merged to main.</p>
+<h2>Track B — Live/current-season data (deadline: 2026 kickoff)</h2>
+<p><strong>Goal:</strong> the 2026 season shows up in YunoBall within hours of games ending,
+without manual runs.</p>
+<ol>
+<li><strong>Standalone ingestion worker.</strong> Promote ingest from a hand-run CLI to a
+worker app (<code>pnpm worker</code>) with <strong>run/source tracking</strong> (which dataset,
+which season, when, row counts, outcome — persisted) and <strong>resumable
+backfills</strong>. Builds on the existing pipeline; never replaces it. Stays on
+license-safe sources (nflverse spine; ESPN/Wikidata only where nflverse
+lacks coverage).</li>
+<li><strong>In-season cadence.</strong> Scheduled refresh matched to nflverse release
+timing (stats land within ~24h of games): current-week schedules, scores,
+player/team game stats, rollup recompute, cache invalidation for affected
+answers.</li>
+<li><strong>Freshness surfacing.</strong> &quot;Data through Week N&quot; indicator; leaderboards
+and standings default to the in-progress season once Week 1 loads.</li>
+<li><strong>Roster/headshot refresh.</strong> Automate the ESPN-id fetch for rookies and
+movers as part of the worker.</li>
+</ol>
+<p><strong>Exit criteria:</strong> worker deployed and scheduled before Week 1; a full season
+runs with zero manual ingest commands.</p>
+<h2>Track C — Product polish &amp; UX</h2>
+<p><strong>Goal:</strong> the answer experience feels like the product, not a demo.</p>
+<ol>
+<li><strong>Dedicated result page</strong> (the <code>search-results-audit.md</code> refactor):
+submit navigates to <code>/a/&lt;share_id&gt;</code> (persistence already awaits before
+returning); homepage stays a discovery surface; <code>/a/</code> gets loading /
+not-found / retry states and a route-level action bar. <code>AnswerCard</code>
+remains the single renderer.</li>
+<li><strong>PNG export</strong> of the rendered answer card (clean capture target around
+the existing markup — no duplicate rendering path).</li>
+<li><strong>Team-color rollout.</strong> Extend <code>teamTheme</code> re-tinting to every
+single-team context (answers, box scores, fantasy rows) with its
+contrast-checked ink guarantees; solid team-color player cards everywhere
+player identity leads.</li>
+<li><strong>Mobile pass.</strong> Dense tables under horizontal containment, nav/search
+ergonomics, ticker behavior.</li>
+<li><strong>Assistant v2.</strong> Wire the agent beyond demo mode over the same trusted
+endpoints — multi-step answers with visible tool steps; still zero
+free-generated numbers.</li>
+</ol>
+<p><strong>Exit criteria:</strong> shared links render a first-class page worth screenshotting;
+mobile answer flow is comfortable; assistant answers compound questions.</p>
+<h2>Track D — Production hardening</h2>
+<p><strong>Goal:</strong> boring reliability at near-zero cost.</p>
+<ol>
+<li><strong>Observability.</strong> Structured pino logs shipped somewhere queryable; an
+answer-rate + latency dashboard fed by <code>query_audit</code>; alert on readiness
+failures and worker-run failures.</li>
+<li><strong>Deploy posture.</strong> Move the API off Render&#39;s free tier before launch
+traffic (free sleeps after ~15 min → ~50s cold starts); keep <code>/ready</code> as
+the health gate; document rollback (redeploy previous image).</li>
+<li><strong>SEO &amp; sharing.</strong> <code>/a/</code> pages get real titles/meta/OG images (pairs with
+Track C&#39;s PNG export); sitemap for player/team pages.</li>
+<li><strong>Security posture.</strong> Keep RLS + read policies on Supabase; rate-limit
+review once traffic exists; dependency audit in CI.</li>
+<li><strong>Data safety.</strong> The warehouse is rebuildable from nflverse, so backups
+are cheap insurance for the app tables (<code>answer_cache</code>, <code>query_audit</code>) —
+confirm Supabase PITR settings and document restore.</li>
+</ol>
+<p><strong>Exit criteria:</strong> a bad deploy or a failed ingest pages a human; share pages
+unfurl properly in social/chat apps.</p>
+<h2>Sequencing</h2>
+<pre><code>Now ──► M1 (≈2 wks): Track A.1 team-stat unlock + A.5 answer-rate report
+              Track C.1 dedicated result page
+        M2 (≈4 wks): Track B.1 worker + run tracking; C.2 PNG export;
+              D.3 share-page SEO
+        M3 (by 2026 kickoff, early Sept): B.2–B.4 in-season automation;
+              D.1–D.2 observability + paid dyno — LAUNCH BAR
+        M4 (in-season): A.2–A.4 archetype grind; C.3–C.5 polish; D.4–D.5
+</code></pre>
+<p>Rationale: A.1 + C.1 are the highest user-visible leverage per effort and
+de-risk nothing later; the worker must exist well before kickoff so September
+is automation-tuning, not a rewrite; the archetype grind is steady-state work
+that benefits from the measurement loop existing first.</p>
+<h2>Risks</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>nflverse release timing/format drift in-season</td>
+<td>Provider isolation + zod validation already quarantine bad rows; worker run-tracking makes drift visible the day it happens</td>
+</tr>
+<tr>
+<td>Coverage grind produces wrong answers under pressure to say <em>something</em></td>
+<td>Keep the honesty rule absolute; every new archetype ships with golden cases in <code>engine.test.ts</code></td>
+</tr>
+<tr>
+<td>Render/Supabase free-tier limits under real traffic</td>
+<td>D.2 upgrade before launch; API is portable to any Node host by design</td>
+</tr>
+<tr>
+<td>Scope creep toward accounts/predictions</td>
+<td>Out of scope per <a href="PRD.html">PRD.md</a> §6 until the four tracks land</td>
+</tr>
+</tbody></table>
+
+</main>
+</body>
+</html>

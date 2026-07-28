@@ -9,6 +9,7 @@
 
 import { q } from "../db/pool.js";
 import type { ResolvedEntity } from "@yunoball/types";
+import { NFL_PLAYER_ALIASES } from "./aliases.js";
 import { RESERVED } from "./parseRules.js";
 import { ratio, quickRatio } from "./similarity.js";
 
@@ -25,6 +26,23 @@ const STOP = new Set([
   "quarterback", "quarterbacks", "cornerback", "linebacker",
   "defense", "offense", "defensive", "offensive",
   "player", "players", "rookie", "rookies",
+  // Threshold / filter vocabulary: "two or more" must never fuzzy-match
+  // "Moore", "winning" never "Manning", "turning" never "Turner". The fused
+  // "primetime" is the broadcast-window filter, never Deion Sanders (his
+  // "prime time" nickname, spaced, still resolves).
+  "or", "more", "less", "fewer", "least", "above", "below", "turning",
+  "winning", "losing", "streak", "streaks", "primetime",
+  // Team-question vocabulary: "roster" -> Royster, "drive" -> Driver,
+  // "division" -> Davison were real fuzzy-match misfires.
+  "roster", "drive", "drives", "division", "conference", "colors", "color",
+  // Unconsumed-qualifier vocabulary: real fuzzy/exact misfires surfaced by
+  // the 100-question benchmark. "line" -> Zach Line ("5-yard line"),
+  // "beginning" -> Benning Potoa'e ("before beginning his fifth season"),
+  // "player's" -> Scott Player ("a player's final season"), "team" -> Tam
+  // Hopkins ("his team lost"), "come" -> Michael Coe ("...come after age
+  // 30"), "still" -> Tarheeb/Devon/Bryan Still ("...and still won"), "both"
+  // -> Andrew Booth ("both a rushing and receiving touchdown").
+  "line", "beginning", "player's", "team", "come", "still", "both",
 ]);
 // The parser's reserved question vocabulary is also off-limits here, so
 // "in week 22" can never fuzzy-match a player named Weeks.
@@ -51,6 +69,16 @@ const NICKNAMES: Record<string, string[]> = {
   megatron: ["calvin johnson"],
 };
 
+// Generational suffix on a full name ("Kenneth Walker III", "Marvin Harrison
+// Jr."). Stripped for search keys so the player resolves by their plain name
+// and the real surname indexes (not "iii" / "jr.").
+const NAME_SUFFIX = /\s+(?:jr|sr|ii|iii|iv|v)\.?$/i;
+
+/** Lowercased name with any generational suffix removed. */
+function stripSuffix(name: string): string {
+  return name.replace(NAME_SUFFIX, "").trim();
+}
+
 let indexCache: Map<string, IndexedPlayer> | null = null;
 
 /** Lowercased match target (full name AND last name) -> player.
@@ -63,37 +91,84 @@ export async function loadIndex(): Promise<Map<string, IndexedPlayer>> {
   // Prominence blends fantasy production with defensive production, so a
   // shared name goes to the star on either side of the ball (T.J. Watt must
   // own "watt", not the fullback).
-  const rows = await q<{ player_id: string; full_name: string; position: string | null }>(
-    `SELECT p.player_id, p.full_name, p.position
+  const rows = await q<{
+    player_id: string; full_name: string; position: string | null; last_season: number | null;
+  }>(
+    `SELECT p.player_id, p.full_name, p.position, prod.last_season
      FROM players p
      LEFT JOIN (
        SELECT player_id,
-              SUM(fantasy_points_ppr + tackles + 6 * def_sacks) AS fp
+              SUM(fantasy_points_ppr + tackles + 6 * def_sacks) AS fp,
+              MAX(season) AS last_season
        FROM player_season_stats GROUP BY player_id
      ) prod USING (player_id)
      ORDER BY COALESCE(prod.fp, 0) DESC`,
   );
   const index = new Map<string, IndexedPlayer>();
+  const lastSeason = new Map<string, number>();
+  const byId = new Map<string, IndexedPlayer>();
+  const add = (key: string, p: IndexedPlayer) => {
+    if (key && !index.has(key)) index.set(key, p);
+  };
   for (const r of rows) {
     const p = { playerId: r.player_id, name: r.full_name, position: r.position };
+    byId.set(r.player_id, p);
+    lastSeason.set(r.player_id, Number(r.last_season ?? 0));
     const full = r.full_name.toLowerCase();
-    if (!index.has(full)) index.set(full, p);
-    // Initialed names also resolve without punctuation: "tj watt", "aj brown".
-    const plain = full.replace(/\./g, "");
-    if (plain !== full && !index.has(plain)) index.set(plain, p);
+    // Suffix-stripped base ("kenneth walker iii" -> "kenneth walker"). Search
+    // keys derive from the base so the player resolves by their plain name and
+    // the real surname ("walker") indexes instead of the suffix ("iii").
+    const base = stripSuffix(full);
+    add(full, p);
+    add(base, p);
+    // Users type names without punctuation: "aj brown" (periods), "jamarr
+    // chase" (apostrophes), "amon ra st brown" (hyphens, both spaced and
+    // fused). Index every folded variant of the full and base names.
+    for (const key of [full, base]) {
+      const noPunct = key.replace(/[.'’]/g, "");
+      add(noPunct, p);
+      add(noPunct.replace(/-/g, " "), p);
+      add(noPunct.replace(/-/g, ""), p);
+    }
     // First and last names resolve alone ("Lamar", "Mahomes") — the
     // most-productive player owns a shared name (rows arrive ordered).
-    const parts = full.split(" ");
-    const last = parts.at(-1)!;
-    if (!index.has(last)) index.set(last, p);
-    const first = parts[0]!;
-    if (parts.length > 1 && first.length >= 3 && !index.has(first)) {
-      index.set(first, p);
+    // Split the punctuation-folded base so "Amon-Ra" also owns "amon" and
+    // "Ja'Marr" owns "jamarr" — AND the raw tokens, so a typed "amon-ra"
+    // still hits an exact key instead of losing a tie to a bare surname.
+    const rawParts = base.split(" ");
+    const parts = base.replace(/[.'’]/g, "").replace(/-/g, " ").split(" ");
+    for (const split of [rawParts, parts]) {
+      add(split.at(-1)!, p);
+      const first = split[0]!;
+      if (split.length > 1 && first.length >= 3) add(first, p);
+    }
+  }
+  // A still-active player claims their full/base name over a retired same-name
+  // ancestor — whether the newer one carries a suffix ("Marvin Harrison" ->
+  // Harrison Jr., 2024) or not ("Michael Pittman" -> the WR, not the retired
+  // FB). Only full-name keys are reassigned (never bare surnames), and only on
+  // a strictly-later final season, so production still decides among peers.
+  for (const r of rows) {
+    const base = stripSuffix(r.full_name.toLowerCase());
+    const holder = index.get(base);
+    if (
+      holder &&
+      holder.playerId !== r.player_id &&
+      (lastSeason.get(r.player_id) ?? 0) > (lastSeason.get(holder.playerId) ?? 0)
+    ) {
+      index.set(base, { playerId: r.player_id, name: r.full_name, position: r.position });
     }
   }
   for (const [nick, fulls] of Object.entries(NICKNAMES)) {
     const hit = fulls.map((f) => index.get(f)).find(Boolean);
     if (hit && !index.has(nick)) index.set(nick, hit);
+  }
+  // The researched alias dictionary (aliases.ts): unambiguous, id-verified
+  // entries only. Ambiguous aliases (jj, ad, fitz) stay out of the index —
+  // their candidate metadata is for a clarification flow, never auto-resolve.
+  for (const [alias, cands] of Object.entries(NFL_PLAYER_ALIASES)) {
+    const hit = cands.length === 1 ? byId.get(cands[0]!.playerId) : undefined;
+    if (hit && !index.has(alias)) index.set(alias, hit);
   }
   indexCache = index;
   return index;

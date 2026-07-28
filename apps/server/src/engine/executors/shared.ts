@@ -88,6 +88,18 @@ export function ratioRowExpr(def: StatDef): string {
   );
 }
 
+/** Whether two players can be compared head-to-head on this stat. */
+export function isComparableStat(stat: string): boolean {
+  return compareValueExpr({ stat }) !== null;
+}
+
+/** One game's value for a stat: rating formula, per-game rate, or raw column. */
+export function perGameValueExpr(def: StatDef): string {
+  return def.formula === "passer_rating"
+    ? passerRatingExpr(false)
+    : def.ratio ? ratioRowExpr(def) : def.expr;
+}
+
 /** Aggregate SELECT expression for a stat over the game log: plain SUM, or
  * the summed ratio for ratio stats (completion %, yards per carry). */
 export function aggExpr(spec: { stat: string }): string {
@@ -112,7 +124,7 @@ export function sumValueExpr(def: StatDef): string {
 }
 
 /** Window-aggregated ratio over already-scoped rows (see playerGameRowsSql). */
-export function ratioWindowExpr(def: StatDef): string {
+function ratioWindowExpr(def: StatDef): string {
   return `ROUND(SUM(ts._num) OVER ()::numeric / NULLIF(SUM(ts._den) OVER (), 0)${pctFactor(def)}, 1)`;
 }
 
@@ -128,14 +140,19 @@ export function needsGameLog(spec: PlayerTotalSpec): boolean {
       spec.tempMax != null ||
       spec.firstN ||
       spec.lastN ||
-      spec.sbOnly,
+      spec.sbOnly ||
+      spec.gameResult != null ||
+      spec.oneScore ||
+      spec.oppWinningRecord ||
+      spec.withPlayerId != null ||
+      spec.opponentId != null,
   );
 }
 
 /** Playoff rounds are identified by ranking each postseason's weeks from the
  * end: the Super Bowl is the max week, the conference championships one week
  * earlier, and so on. Robust across every era's week numbering. */
-export const POST_MAX_WEEK =
+const POST_MAX_WEEK =
   "(SELECT MAX(g2.week) FROM games g2 " +
   "WHERE g2.season = g.season AND g2.season_type = 'POST')";
 const ROUND_OFFSET: Record<string, number> = { SB: 0, CON: 1, DIV: 2, WC: 3 };
@@ -154,6 +171,13 @@ export const ROUND_NAME_SQL =
 
 /** Any node that can be scoped to the game grain. */
 export type GameScoped = GameWindow & { seasonType: string; season?: number | null };
+
+/** The opponent's team_id for a stat row: the OTHER side of the joined
+ * game. Same expression as the game-context `opponent` column (below),
+ * reusable in predicates and per-opponent GROUP BYs. */
+export const OPP_TEAM_EXPR = "CASE WHEN s.team_id = g.home_team THEN g.away_team ELSE g.home_team END";
+const TEAM_SCORE_EXPR = "CASE WHEN s.team_id = g.home_team THEN g.home_score ELSE g.away_score END";
+const OPP_SCORE_EXPR = "CASE WHEN s.team_id = g.home_team THEN g.away_score ELSE g.home_score END";
 
 /** Shared game-log predicates (bound params). */
 export function gamePreds(spec: GameScoped, p: Params): string[] {
@@ -182,7 +206,52 @@ export function gamePreds(spec: GameScoped, p: Params): string[] {
     const opp = p.add(spec.opponentId);
     preds.push(`(g.home_team = ${opp} OR g.away_team = ${opp}) AND s.team_id <> ${opp}`);
   }
+  if (spec.gameResult === "W") preds.push(`${TEAM_SCORE_EXPR} > ${OPP_SCORE_EXPR}`);
+  if (spec.gameResult === "L") preds.push(`${TEAM_SCORE_EXPR} < ${OPP_SCORE_EXPR}`);
+  if (spec.oneScore) preds.push("ABS(g.home_score - g.away_score) <= 8");
+  if (spec.withPlayerId) {
+    // "Played together" = the teammate has a stat row in the same game for
+    // the same team. ponytail: appeared-in-game, not snaps-overlapped —
+    // snap-level overlap needs data the warehouse doesn't carry.
+    preds.push(
+      `EXISTS (SELECT 1 FROM player_game_stats w WHERE w.game_id = s.game_id ` +
+      `AND w.team_id = s.team_id AND w.player_id = ${p.add(spec.withPlayerId)})`,
+    );
+  }
+  if (spec.oppWinningRecord) {
+    // Deliberately an UNCORRELATED (team_id, season) IN-subquery, not a
+    // per-outer-row correlated scalar subquery: the inner SELECT names no
+    // outer column, so Postgres computes the small (~team-seasons) winning-
+    // record set ONCE and hash-probes it per row, instead of re-scanning
+    // team_game_stats/games for every game in the outer (up to ~475k-row)
+    // game log — the earlier correlated version measurably timed out at
+    // that scale. Same team_game_stats.result-based "final season record"
+    // simplification named in the field's doc comment either way.
+    preds.push(
+      `(${OPP_TEAM_EXPR}, g.season) IN (` +
+      "SELECT tgs.team_id, g2.season FROM team_game_stats tgs " +
+      "JOIN games g2 ON g2.game_id = tgs.game_id " +
+      "WHERE g2.season_type = 'REG' " +
+      "GROUP BY tgs.team_id, g2.season " +
+      "HAVING SUM(CASE WHEN tgs.result = 'W' THEN 1 WHEN tgs.result = 'T' THEN 0.5 ELSE 0 END) / " +
+      "NULLIF(COUNT(*), 0) > 0.5)",
+    );
+  }
   return preds;
+}
+
+/** Games on/after the player's Nth birthday ("after turning 30").
+ * ponytail: players with no birth_date on file (~15%) are excluded, not
+ * guessed — an honest smaller board beats a wrong one. */
+export function minAgePred(minAgeYears: number, p: Params): string {
+  return `p.birth_date IS NOT NULL AND g.game_date >= p.birth_date + ${p.add(minAgeYears)} * INTERVAL '1 year'`;
+}
+
+/** Games before the player's Nth season ("before their fifth season" =
+ * seasons 1..4; rookie_season is season 1). Players with no rookie_season
+ * on file are excluded — same honest-smaller-board call as minAgePred. */
+export function beforeSeasonPred(beforeSeasonN: number, p: Params): string {
+  return `p.rookie_season IS NOT NULL AND g.season < p.rookie_season + ${p.add(beforeSeasonN - 1)}`;
 }
 
 /** Season-rollup stat block by position — the season-by-season view shows the
@@ -215,7 +284,7 @@ export const ROOKIE_PRED =
 
 /** Per-game stat block by position — a game log shows the whole line, not
  * one number. Column names double as display labels. */
-export function gameLogStatCols(position: string | null | undefined): string[] {
+function gameLogStatCols(position: string | null | undefined): string[] {
   if (position === "QB") {
     return [
       "s.completions AS cmp", "s.attempts AS att", "s.passing_yards AS pass_yds",
@@ -236,7 +305,7 @@ export function gameLogStatCols(position: string | null | undefined): string[] {
 }
 
 /** Game context columns shared by every game-shaped row. */
-export const GAME_CTX_COLS =
+const GAME_CTX_COLS =
   "g.game_id, g.season, g.week, g.game_date, " +
   "CASE WHEN s.team_id = g.home_team THEN g.away_team ELSE g.home_team END AS opponent, " +
   "CASE WHEN s.team_id = g.home_team THEN g.home_score ELSE g.away_score END AS team_score, " +
@@ -326,10 +395,6 @@ export function compareValueExpr(spec: { stat: string }): string | null {
   return def.expr.replace(/\bs\./g, "agg.");
 }
 
-/** Whether two players can be compared head-to-head on this stat. */
-export function isComparableStat(stat: string): boolean {
-  return compareValueExpr({ stat }) !== null;
-}
 
 // ---- Capability: which stats each grain of storage can compute ----
 //
@@ -357,7 +422,7 @@ const ADVANCED_COLS = new Set([
 
 /** Every stat column a StatDef references (ratio num/den, passer-rating inputs,
  * or the `s.<col>` columns in its expr). */
-function statColumns(def: StatDef): string[] {
+export function statColumns(def: StatDef): string[] {
   if (def.formula === "passer_rating") {
     return ["completions", "attempts", "passing_yards", "passing_tds", "interceptions"];
   }
@@ -369,6 +434,18 @@ function statColumns(def: StatDef): string[] {
 
 function isAdvancedStat(def: StatDef): boolean {
   return def.table === "advanced" || statColumns(def).some((c) => ADVANCED_COLS.has(c));
+}
+
+/** Plain season-rollup stats: a non-empty single expression over
+ * player_season_stats columns. The Task-6 negation fields
+ * (withoutSeasonAtLeast / withoutLeagueLead / crossStatBelow pairs) may only
+ * name these — ratio/formula stats have no per-row expr to MAX(), and
+ * game-only columns (carries, air yards, EPA) don't exist in the season
+ * rollup at all, so an ungated stat here is a live 500, not a wrong number. */
+export function isSeasonRollupStat(stat: string): boolean {
+  const def = STATS[stat];
+  if (!def || def.ratio || def.formula || def.source === "game") return false;
+  return statColumns(def).every((c) => SEASON_COLS.has(c));
 }
 
 /** Whether the executor for `intent` can compute `stat` from its storage grain.
@@ -389,6 +466,7 @@ export function statComputableFor(intent: string, stat: string): boolean {
       return inSeason || advanced;
     case "team_stat":
     case "game_count":
+    case "game_count_leaders":
     case "single_game":
       return inGame && !advanced;
     case "player_streak":

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YunoBall — Product Requirements Document</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
+  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
+h3 { font-size: 16px; margin: 28px 0 8px; }
+a { color: #34d399; text-decoration: none; }
+a:hover { text-decoration: underline; }
+p, ul, ol { margin: 12px 0; }
+li { margin: 4px 0; }
+blockquote {
+  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
+  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+}
+blockquote p { margin: 4px 0; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+}
+pre {
+  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:hover td { background: #121417; }
+hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
+.docnav a { margin-right: 12px; }
+.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<nav class="docnav"><span class="here">PRD</span><a href="TDD.html">TDD</a><a href="APP_FLOW.html">APP_FLOW</a><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
+<h1>YunoBall — Product Requirements Document</h1>
+<blockquote>
+<p>Status: current product + roadmap · Last updated 2026-07-17
+Companion docs: <a href="TDD.html">TDD.md</a> · <a href="APP_FLOW.html">APP_FLOW.md</a> · <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a> · <a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA.md</a> · <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a></p>
+</blockquote>
+<h2>1. Product summary</h2>
+<p>YunoBall is <strong>the all-in-one NFL platform where every number is computed from
+real data</strong> — an improved take on StatMuse, NFL-first. Users ask questions in
+plain English and get exact, sourced answers; around that core sit scores,
+standings, leaderboards, player/team profiles, a fantasy lineup surface, and a
+tool-routing assistant — all served from one authoritative warehouse
+(nflverse, 1999–present).</p>
+<p><strong>Core thesis:</strong> a stats product lives or dies on accuracy. Free-form LLM
+generation hallucinates numbers, so YunoBall never generates a number. A
+deterministic parser translates a question into a typed <code>QuerySpec</code>; a
+template builder writes safe SQL; Postgres is the source of truth. Every
+answer can show the exact SQL and rows behind it.</p>
+<h2>2. Target users</h2>
+<table>
+<thead>
+<tr>
+<th>Persona</th>
+<th>Need</th>
+<th>What they use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>The stats-curious fan</td>
+<td>&quot;Who led the league in rushing in 2003?&quot; answered instantly, correctly</td>
+<td>Search, answer pages</td>
+</tr>
+<tr>
+<td>The debate settler</td>
+<td>Proof to win an argument — a number <em>with receipts</em></td>
+<td>Search, SQL disclosure, share links</td>
+</tr>
+<tr>
+<td>The fantasy player</td>
+<td>Season production, per-game rates, weekly performers, lineup ideas</td>
+<td>Fantasy, leaderboards, performers, player pages</td>
+</tr>
+<tr>
+<td>The browser</td>
+<td>Scores, standings, and leaders without asking anything</td>
+<td>Hub pages (<code>/scores</code>, <code>/standings</code>, <code>/leaderboards</code>)</td>
+</tr>
+</tbody></table>
+<h2>3. Problems we solve</h2>
+<ol>
+<li><strong>LLM sports answers can&#39;t be trusted</strong> — chatbots hallucinate stats.
+YunoBall computes every number from warehouse facts; zero LLM calls in the
+answer path.</li>
+<li><strong>StatMuse is a black box</strong> — you get a number, not the query behind it.
+YunoBall exposes the SQL, the resolved entities, the interpretation, and
+the source rows for every answer.</li>
+<li><strong>Stats sites fragment the experience</strong> — scores here, splits there,
+fantasy elsewhere. YunoBall serves them all from one warehouse with one
+design language.</li>
+</ol>
+<h2>4. Feature requirements (shipped)</h2>
+<h3>4.1 Natural-language search (the core)</h3>
+<ul>
+<li>Free-text question box with autocomplete (players, teams, supported questions).</li>
+<li>Deterministic answer pipeline: fuzzy entity resolution → rule-based parse to
+a typed <code>QuerySpec</code> (21 intents: leaders, player totals, comparisons, game
+logs, streaks, milestones, drafts, team stats, bios, awards…) → allowlisted
+SQL → templated narration. See <a href="TDD.html">TDD.md</a> §4.</li>
+<li>Scope grammar: seasons and ranges, REG/POST, playoff rounds, Super Bowl
+only, home/away, weeks, months, opponent, primetime, weather, rookie
+seasons, first/last-N games, per-game and median rates.</li>
+<li><strong>Honesty rule:</strong> questions that don&#39;t parse get &quot;can&#39;t answer that yet&quot; —
+never a guess. A second-layer auditor records status, warnings, and
+confidence for every question.</li>
+<li>Every answer carries: narration, sortable result table, player identity
+card(s), query interpretation, SQL disclosure, CSV export, share action.</li>
+</ul>
+<h3>4.2 Shareable answers</h3>
+<ul>
+<li>Every parsed answer gets a deterministic <code>share_id</code>; <code>/a/&lt;share_id&gt;</code> serves
+the persisted answer permanently (Postgres-backed).</li>
+</ul>
+<h3>4.3 Hub surfaces</h3>
+<ul>
+<li><strong>Scores</strong> (<code>/scores</code>) — week-by-week finals with box scores per game.</li>
+<li><strong>Standings</strong> (<code>/standings</code>) — W-L-T, pct, PF/PA, diff, streak; computed
+live from game results; conference → division structure.</li>
+<li><strong>Leaderboards</strong> (<code>/leaderboards</code>) — season stat leaders as dense tables;
+defaults to the most recent loaded season.</li>
+<li><strong>Top performers</strong> — weekly fantasy-point leaders with stat lines.</li>
+</ul>
+<h3>4.4 Profiles</h3>
+<ul>
+<li><strong>Player pages</strong> (<code>/players/[id]</code>) — bio, career totals, season-by-season
+(REG + POST tabs), full game log with EPA columns, touchdown log, splits
+(home/road, wins/losses, month, conference, division, opponent), headshots.</li>
+<li><strong>Team pages</strong> (<code>/teams/[id]</code>) — record and division rank, offense/defense
+stat ranks, team leaders, key players, season schedule/results; team-color
+themed.</li>
+<li><strong>Box scores</strong> (<code>/games/[id]</code>) — full player stat lines for both teams.</li>
+</ul>
+<h3>4.5 Fantasy</h3>
+<ul>
+<li><code>/fantasy</code> — build a PPR lineup from real season production; sortable player
+pool with per-game rates.</li>
+</ul>
+<h3>4.6 Assistant</h3>
+<ul>
+<li><code>/assistant</code> — a tool-routing agent over the same trusted endpoints
+(currently demo mode; steps are surfaced to the user).</li>
+</ul>
+<h2>5. Non-functional requirements</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Bar</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Accuracy</strong></td>
+<td>A wrong number is worse than no answer. Ambiguous vocabulary is deliberately excluded from the parser (e.g. &quot;pick&quot; ≠ interception).</td>
+</tr>
+<tr>
+<td><strong>Transparency</strong></td>
+<td>Every answer must expose its SQL, entities, and interpretation.</td>
+</tr>
+<tr>
+<td><strong>Latency</strong></td>
+<td>Cached answers instant (two-tier cache); cold answers a single indexed query. No LLM in the loop.</td>
+</tr>
+<tr>
+<td><strong>Cost</strong></td>
+<td>Zero inference cost; one small Postgres + one Node service + static frontend.</td>
+</tr>
+<tr>
+<td><strong>Safety</strong></td>
+<td>SQL injection impossible by construction (allowlists + bound params); reads run under a read-only role; per-IP rate limiting on search/agent.</td>
+</tr>
+</tbody></table>
+<h2>6. Non-goals (current)</h2>
+<ul>
+<li>Live in-progress game scores (data is release-file based; see roadmap).</li>
+<li>Betting/odds, projections, or ML predictions.</li>
+<li>User accounts, saved lineups, personalization.</li>
+<li>Sports beyond the NFL (the architecture allows it; the product doesn&#39;t yet).</li>
+<li>Full play-by-play storage (only touchdown events and per-game advanced
+aggregates are distilled from pbp).</li>
+</ul>
+<h2>7. Success metrics</h2>
+<ul>
+<li><strong>Answer rate</strong> — % of asked questions that parse and return an answer
+(measured via <code>query_audit</code>).</li>
+<li><strong>Correctness</strong> — golden-case engine suite stays green; zero known-wrong
+answers ship.</li>
+<li><strong>Engagement</strong> — share-link creation and <code>/a/</code> page visits; repeat
+questions served from cache.</li>
+<li><strong>Coverage</strong> — supported question archetypes (see the query-space map),
+growing per <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a> Track A.</li>
+</ul>
+<h2>8. Roadmap summary</h2>
+<p>Four tracks, detailed in <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>:</p>
+<ol>
+<li><strong>Query coverage expansion</strong> — grow the answerable question space
+(team-stat questions over loaded-but-unused data, more splits, awards).</li>
+<li><strong>Live/current-season data</strong> — standalone ingestion worker with run
+tracking and resumable backfills; in-season freshness for the 2026 season.</li>
+<li><strong>Product polish &amp; UX</strong> — dedicated <code>/a/</code> result experience with PNG
+export, team-color rollout, mobile, assistant beyond demo mode.</li>
+<li><strong>Production hardening</strong> — observability, SEO for share pages, deploy
+reliability, cost posture.</li>
+</ol>
+
+</main>
+</body>
+</html>

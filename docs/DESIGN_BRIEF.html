@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YunoBall — Design Brief</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
+  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
+h3 { font-size: 16px; margin: 28px 0 8px; }
+a { color: #34d399; text-decoration: none; }
+a:hover { text-decoration: underline; }
+p, ul, ol { margin: 12px 0; }
+li { margin: 4px 0; }
+blockquote {
+  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
+  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+}
+blockquote p { margin: 4px 0; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+}
+pre {
+  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:hover td { background: #121417; }
+hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
+.docnav a { margin-right: 12px; }
+.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<nav class="docnav"><a href="PRD.html">PRD</a><a href="TDD.html">TDD</a><a href="APP_FLOW.html">APP_FLOW</a><span class="here">DESIGN_BRIEF</span><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
+<h1>YunoBall — Design Brief</h1>
+<blockquote>
+<p>The design language: principles, tokens, and component rules.
+Runtime source of truth: <code>apps/web/app/globals.css</code> (tokens) and
+<code>apps/web/app/lib/teamTheme.ts</code> (team theming).</p>
+</blockquote>
+<h2>1. Personality &amp; principles</h2>
+<p><strong>Quiet, dense, authoritative.</strong> A dark, StatMuse-inspired stats surface that
+feels like a professional tool, not a fan site — until a team enters the
+frame, at which point the interface takes on that team&#39;s colors.</p>
+<ol>
+<li><strong>Content over chrome.</strong> Hierarchy comes from spacing, background
+contrast, and typography — not borders. Borders are rare by design
+(<code>--border</code> is a 5% white whisper).</li>
+<li><strong>Neutral dominates; accent is earned.</strong> The emerald brand accent appears
+only where it means something: search, selection, CTAs, links, positive
+metrics. Everything else stays neutral.</li>
+<li><strong>Team color is context, not decoration.</strong> When the active context is one
+team (team page, player profile, single-team answer), the accent family
+re-tints to that team&#39;s branding. Backgrounds and neutrals never recolor.</li>
+<li><strong>Dense but legible.</strong> Stat tables are the product. Small type sizes
+(11–16px scale) with strict contrast floors, not big type with thin data.</li>
+<li><strong>Honest states.</strong> Skeletons while loading, plain-language refusals,
+visible interpretations. The UI never pretends to know something.</li>
+</ol>
+<h2>2. Color system</h2>
+<h3>Neutral ramp (surfaces — depth = background contrast, not lines)</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--bg</code></td>
+<td><code>#0c0d0f</code></td>
+<td>page background</td>
+</tr>
+<tr>
+<td><code>--panel</code></td>
+<td><code>#121417</code></td>
+<td>primary surface</td>
+</tr>
+<tr>
+<td><code>--elevated</code></td>
+<td><code>#181b20</code></td>
+<td>raised surface (popovers, hovers)</td>
+</tr>
+<tr>
+<td><code>--bg-soft</code></td>
+<td><code>#1f2328</code></td>
+<td>inset wells, chips</td>
+</tr>
+<tr>
+<td><code>--bg-hover</code></td>
+<td><code>#262b31</code></td>
+<td>hover tier for soft surfaces</td>
+</tr>
+<tr>
+<td><code>--border</code> / <code>--border-strong</code></td>
+<td>5% / 10% white</td>
+<td>the few places that need a line</td>
+</tr>
+</tbody></table>
+<h3>Ink</h3>
+<p><code>--text #f5f5f5</code> · <code>--muted #a1a1aa</code> · <code>--faint #95959f</code> (tertiary — chosen to
+clear 4.5:1 on every surface <em>including</em> the hover tier).</p>
+<h3>Brand accent (emerald, used sparingly)</h3>
+<p><code>--accent #10b981</code> with a full derived family: <code>--accent-hover</code>,
+<code>--accent-soft</code> (12% fill), <code>--accent-contrast</code> (ink on solid accent),
+<code>--accent-ink #34d399</code> (accent-colored <em>text</em> needs the lighter tone),
+<code>--accent-border</code> (40%). Data marks use <code>--chart</code>/<code>--chart-strong</code> — never raw
+accent.</p>
+<h3>Semantic</h3>
+<p><code>--success #4ade80</code> · <code>--warning #facc15</code> · <code>--danger #f87171</code> (+ soft/text/
+border variants).</p>
+<h2>3. Team theming (<code>teamTheme.ts</code>)</h2>
+<p>The signature move. <code>teamTheme(teamId)</code> returns CSS-variable overrides scoped
+to a container — spreading it re-tints <strong>only the accent family</strong> to the
+team&#39;s primary color:</p>
+<ul>
+<li><code>--accent</code> ← team primary; <code>--accent-deep</code> (−22%), <code>--accent-hover</code>
+(+12%), <code>--accent-ink</code> (+28% toward white), <code>--accent-soft</code> (14% alpha),
+<code>--accent-border</code> (40% alpha), <code>--chart</code>/<code>--chart-strong</code>.</li>
+<li><code>--accent-contrast</code> (ink on solid team surfaces) is <strong>contrast-checked</strong>:
+prefer the team&#39;s secondary, then accent color, requiring WCAG ≥ 4.5:1
+against the primary; otherwise fall back to near-black or white — so player
+cards render as solid team color with guaranteed-readable black/white ink.</li>
+<li>All 32 team palettes (primary/secondary/accent) live in <code>NFL_TEAM_COLORS</code>.</li>
+</ul>
+<p>Rules: only accent-driven UI changes (buttons, active tabs, links, chart
+marks, stat highlights). Never re-tint backgrounds, neutrals, or semantic
+colors. Unknown team → no override (emerald stays).</p>
+<h2>4. Typography</h2>
+<ul>
+<li><strong>One face:</strong> Geist Variable (bundled woff2, weights 100–900, no runtime
+font request). System-stack fallback. Mono for SQL: <code>ui-monospace</code> stack.</li>
+<li><strong>Text scale:</strong> caption 11 / small 12 / body 13 / ui 14 / body-lg 15 /
+lead 16. Display sizes are per-context in the same face (<code>--display</code>).</li>
+<li>Numbers-first design: tabular data uses tight, consistent sizing;
+narration reads at body sizes.</li>
+</ul>
+<h2>5. Space, shape, elevation, motion</h2>
+<ul>
+<li><strong>Spacing:</strong> 4px base scale (<code>--s-1: 4px</code> … <code>--s-20: 80px</code>).</li>
+<li><strong>Radii:</strong> 6 / 8 / 12 / 14px + pill. Default <code>--radius: 12px</code>.</li>
+<li><strong>Elevation:</strong> flat by philosophy — shadows are subtle dark-on-dark
+(<code>--shadow-sm/card/pop</code>); borders and background steps do the work.</li>
+<li><strong>Z-scale:</strong> one documented ladder — sticky(1) &lt; nav(10) &lt; popover(40) &lt;
+skip-link(100). Overlays render in-flow; no portals.</li>
+<li><strong>Motion:</strong> <code>--ease: cubic-bezier(0.2, 0.8, 0.2, 1)</code>; fast 120ms / base
+160ms / slow 240ms; data draw-ins (bars) 700ms. Motion supports
+comprehension (draw-ins, shimmer), never decoration.</li>
+</ul>
+<h2>6. Component inventory (<code>apps/web/app/components/</code>)</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>AnswerCard</code></td>
+<td>The flagship: narration, entities, player card(s), comparison chart, sortable table, query interpretation, SQL disclosure, CSV, share</td>
+</tr>
+<tr>
+<td><code>SinglePlayerResult</code> / <code>PlayerComparisonResult</code></td>
+<td>Answer layouts per intent shape</td>
+</tr>
+<tr>
+<td><code>ResultDrilldown</code> / <code>ResultMethodology</code></td>
+<td>Row drill-downs and &quot;how was this computed&quot;</td>
+</tr>
+<tr>
+<td><code>SortTable</code></td>
+<td>Dense sortable stat table; horizontal containment on mobile</td>
+</tr>
+<tr>
+<td><code>SearchSuggest</code></td>
+<td>Debounced autocomplete: players (headshots), teams, questions</td>
+</tr>
+<tr>
+<td><code>ScoreTicker</code> / <code>GameCard</code> / <code>Performers</code> / <code>Leaders</code> / <code>HomeDashboard</code></td>
+<td>Home/dashboard surfaces</td>
+</tr>
+<tr>
+<td><code>Headshot</code> / <code>TeamLogo</code> / <code>Badge</code> (ui.tsx)</td>
+<td>Identity primitives</td>
+</tr>
+<tr>
+<td><code>Nav</code> / <code>Crumbs</code> / <code>Dropdown</code> / <code>SeasonSelect</code> / <code>tablist</code></td>
+<td>Chrome &amp; controls</td>
+</tr>
+<tr>
+<td><code>Skeleton</code></td>
+<td>Shimmer loading states</td>
+</tr>
+</tbody></table>
+<h2>7. Data-visualization rules</h2>
+<ul>
+<li>Marks use <code>--chart</code> tokens (team-tinted in team context), validated for the
+dark surface.</li>
+<li>Comparison charts accompany head-to-head answers; bars draw in over 700ms.</li>
+<li>Tables are the primary viz: every chart has its numbers adjacent; CSV
+export always available.</li>
+</ul>
+<h2>8. Accessibility bars</h2>
+<ul>
+<li>Text contrast ≥ 4.5:1 on <strong>every</strong> surface tier it can sit on (tokens are
+chosen and documented against the brightest tier).</li>
+<li>Team-tinted ink is programmatically contrast-checked (WCAG relative
+luminance) before use; falls back to black/white.</li>
+<li>Visible 2px accent focus outlines; skip-link at the top of the z-scale;
+color-scheme: dark declared for native form rendering.</li>
+</ul>
+
+</main>
+</body>
+</html>

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Nav } from "./components/Nav";
-import { Search } from "./search";
 
 /* One variable face across copy, headings, controls and data keeps the
    information-dense interface coherent while retaining distinct weights. */
@@ -13,7 +12,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "YunoBall — the all-in-one NFL platform",
+    default: "YunoBall, the all-in-one NFL platform",
     template: "%s · YunoBall",
   },
   description:
@@ -33,6 +32,15 @@ export default function RootLayout({
             warm both connections before first use. */}
         <link rel="preconnect" href="https://a.espncdn.com" />
         <link rel="preconnect" href={api} crossOrigin="anonymous" />
+        {/* The one interface font — preload so the swap window is a frame,
+            not a flash (Geist carries every glyph on screen). */}
+        <link
+          rel="preload"
+          href="/fonts/Geist-Variable.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>
         <a href="#main" className="yb-skip">
@@ -42,17 +50,6 @@ export default function RootLayout({
             fixed sidebar keeps a viewport containing block and never re-animates
             on navigation. */}
         <Nav />
-        <section className="yb-search-utility" aria-label="Search the NFL stats warehouse">
-          <div className="yb-search-utility-head">
-            <div>
-              <strong>Search the stats warehouse</strong>
-              <span>Players, teams, seasons, and records</span>
-            </div>
-          </div>
-          <div className="yb-search-shell">
-            <Search />
-          </div>
-        </section>
         {children}
       </body>
     </html>

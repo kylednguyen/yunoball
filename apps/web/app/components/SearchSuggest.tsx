@@ -10,31 +10,17 @@ import {
   type RefObject,
 } from "react";
 
-import { Headshot } from "./Headshot";
-import { TeamLogo } from "./TeamLogo";
 import { fetchSuggest, type SuggestResponse } from "../lib/api";
 
 type Item =
   | { kind: "search"; label: string }
   | { kind: "question"; label: string }
   | { kind: "team"; id: string; label: string; sub: string }
-  | { kind: "player"; id: string; label: string; sub: string; headshot: string | null };
+  | { kind: "player"; id: string; label: string; sub: string };
 
 /** Search input with entity typeahead: teams and players jump straight to
- *  their pages, anything else runs as a stats question. ARIA combobox. */
-/** First case-insensitive match of the query inside a label -> <mark>. */
-function Hit({ text, q }: { text: string; q: string }) {
-  const i = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
-  if (i < 0) return <>{text}</>;
-  return (
-    <>
-      {text.slice(0, i)}
-      <mark className="yb-hit">{text.slice(i, i + q.length)}</mark>
-      {text.slice(i + q.length)}
-    </>
-  );
-}
-
+ *  their pages, anything else runs as a stats question. ARIA combobox.
+ *  Plain suggestions — no inline autofill, no match highlighting, no icons. */
 export function SearchSuggest({
   value,
   onValueChange,
@@ -115,7 +101,6 @@ export function SearchSuggest({
         id: p.player_id,
         label: p.name,
         sub: [p.position, p.team].filter(Boolean).join(" · ") || "Player page",
-        headshot: p.headshot_url,
       });
     }
   }
@@ -135,18 +120,7 @@ export function SearchSuggest({
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    const selected = items[hi];
-    const acceptingCompletion =
-      selected?.kind === "question" &&
-      selected.label.toLowerCase() !== q.toLowerCase() &&
-      (e.key === "Tab" ||
-        (e.key === "ArrowRight" && inputRef.current?.selectionStart === value.length));
-    if (acceptingCompletion) {
-      e.preventDefault();
-      onValueChange(selected.label);
-      setHi(-1);
-      setOpen(true);
-    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       if (!show) {
         setOpen(true);
@@ -221,45 +195,15 @@ export function SearchSuggest({
               }}
               onMouseEnter={() => setHi(i)}
             >
-              {item.kind === "search" && (
-                <>
-                  <span className="glyph" aria-hidden="true">
-                    ?
-                  </span>
-                  <span className="who">
-                    <span className="nm">Ask: &ldquo;{item.label}&rdquo;</span>
-                    <span className="sub">Answer from the stats warehouse</span>
-                  </span>
-                </>
-              )}
-              {item.kind === "question" && (
-                <>
-                  <span className="glyph" aria-hidden="true">
-                    ↗
-                  </span>
-                  <span className="who">
-                    <span className="nm"><Hit text={item.label} q={value} /></span>
-                    <span className="sub">Suggested from the supported question bank</span>
-                  </span>
-                </>
-              )}
-              {item.kind === "team" && (
-                <>
-                  <TeamLogo team={item.id} size={24} />
-                  <span className="who">
-                    <span className="nm"><Hit text={item.label} q={value} /></span>
-                    <span className="sub">{item.sub}</span>
-                  </span>
-                </>
-              )}
-              {item.kind === "player" && (
-                <>
-                  <Headshot src={item.headshot} name={item.label} scale="compact" />
-                  <span className="who">
-                    <span className="nm"><Hit text={item.label} q={value} /></span>
-                    <span className="sub">{item.sub}</span>
-                  </span>
-                </>
+              {item.kind === "search" ? (
+                <span className="who">
+                  <span className="nm">Ask: &ldquo;{item.label}&rdquo;</span>
+                </span>
+              ) : (
+                <span className="who">
+                  <span className="nm">{item.label}</span>
+                  {"sub" in item && <span className="sub">{item.sub}</span>}
+                </span>
               )}
             </li>
           ))}

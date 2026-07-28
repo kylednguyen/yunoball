@@ -45,6 +45,11 @@ function metricCategory(
 }
 
 async function finalize(response: AnswerResult, sKey: string | null): Promise<AnswerResult> {
+  // Full result (sql/audit included) is kept server-side for the cache, the
+  // durable share store, and internal tools (e.g. the searchAudit CLI, which
+  // calls this pipeline directly). Internals are stripped at the HTTP boundary
+  // instead — see redactAnswer() in the controllers — so nothing crosses the
+  // wire while server-internal callers still see everything.
   cacheSet(textKey(response.question), response);
   if (sKey !== null) cacheSet(sKey, response);
   // The result route opens immediately after this response. Await the

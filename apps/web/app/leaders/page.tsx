@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 
 import { Dropdown } from "../components/Dropdown";
 import { Headshot } from "../components/Headshot";
-import { SeasonSelect } from "../components/SeasonSelect";
 import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
@@ -25,7 +24,7 @@ const TEAM_TAB = "team_rankings";
  */
 export default function LeadersPage() {
   useTitle("League leaders");
-  const [season, setSeason] = useSeasonParam();
+  const [season] = useSeasonParam();
   const [activeKey, setActiveKey] = useState<string | null>(null);
   // Filters live in the URL — shareable and stable across back-navigation.
   const [team, setTeam] = useStrParam("team", "ALL");
@@ -64,13 +63,10 @@ export default function LeadersPage() {
       <main id="main" className="yb-page" style={{ maxWidth: 980 }}>
         <PageHeader
           crumbs={[
-            { label: "NFL", href: "/" },
             ...(data ? [{ label: String(data.season) }] : []),
             { label: "Leaders" },
           ]}
           title="League Leaders"
-          description="Ranked player and team leaderboards for the selected season."
-          controls={data && <SeasonSelect seasons={data.seasons} value={data.season} onChange={setSeason} />}
         />
 
         {error && (
@@ -81,70 +77,58 @@ export default function LeadersPage() {
         )}
 
         {loading && !data && (
-          <div className="yb-card">
+          /* Same surface as the loaded board, so nothing jumps when data lands. */
+          <div className="yb-board">
             <BoardSkeleton />
           </div>
         )}
 
-        {data && (
+        {data && !error && (
           <>
-            <div className="yb-leader-controls">
-              <label>
-                <span className="yb-muted">Category</span>
+            <div className="yb-leader-controls" role="group" aria-label="Leaderboard filters">
+              <Dropdown
+                ariaLabel="Select leaderboard category"
+                value={categoryValue}
+                onChange={(v) => setActiveKey(v)}
+                options={[
+                  ...boards.map((b) => ({ value: b.key, label: b.label })),
+                  { value: TEAM_TAB, label: "Team rankings" },
+                ]}
+              />
+              {!teamTab && (
                 <Dropdown
-                  ariaLabel="Select leaderboard category"
-                  value={categoryValue}
-                  onChange={(v) => setActiveKey(v)}
+                  ariaLabel="Filter by team"
+                  value={team}
+                  onChange={setTeam}
                   options={[
-                    ...boards.map((b) => ({ value: b.key, label: b.label })),
-                    { value: TEAM_TAB, label: "Team rankings" },
+                    { value: "ALL", label: "All teams" },
+                    ...allTeams.map((t) => ({
+                      value: t.team_id,
+                      label: `${t.team_id} · ${t.nickname ?? t.name}`,
+                    })),
                   ]}
                 />
-              </label>
-              {!teamTab && (
-                <label>
-                  <span className="yb-muted">Team</span>
-                  <Dropdown
-                    ariaLabel="Filter by team"
-                    value={team}
-                    onChange={setTeam}
-                    options={[
-                      { value: "ALL", label: "All teams" },
-                      ...allTeams.map((t) => ({
-                        value: t.team_id,
-                        label: `${t.team_id} · ${t.nickname ?? t.name}`,
-                      })),
-                    ]}
-                  />
-                </label>
-              )}
-              {!teamTab && (
-                <label>
-                  <span className="yb-muted">Position</span>
-                  <Dropdown
-                    ariaLabel="Filter by position"
-                    value={position}
-                    onChange={setPosition}
-                    options={POSITIONS.map((p) => ({
-                      value: p,
-                      label: p === "ALL" ? "All positions" : p,
-                    }))}
-                  />
-                </label>
-              )}
-              {!teamTab && (
-                <div className="yb-seg yb-leader-scope" role="group" aria-label="Stat scope">
-                  <button type="button" aria-pressed="true">Totals</button>
-                  <button type="button" disabled title="Per-game leaderboards need games-played data in this endpoint">
-                    Per game
-                  </button>
-                </div>
               )}
             </div>
 
             {!teamTab && (
+              <div className="yb-player-tabs yb-position-pills" role="group" aria-label="Filter by position">
+                {POSITIONS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    aria-pressed={position === p}
+                    onClick={() => setPosition(p)}
+                  >
+                    {p === "ALL" ? "All positions" : p}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!teamTab && (
               <p className="yb-qualification-note">
-                Minimum qualification follows the current warehouse leaderboard rules. Values are regular-season totals.
+                Regular-season totals. Qualification follows the warehouse leaderboard rules.
               </p>
             )}
 
@@ -169,7 +153,6 @@ export default function LeadersPage() {
                       <span className="who">
                         <span className="nm">
                           {r.name}
-                          {r.position && <span className="yb-pos">{r.position}</span>}
                         </span>
                         <span className="meta">
                           {r.team && <TeamLogo team={r.team} size={14} />}
@@ -187,17 +170,13 @@ export default function LeadersPage() {
                       key={r.player_id}
                       className="yb-board-row"
                       href={`/players/${encodeURIComponent(r.player_id)}?season=${data.season}`}
-                      style={teamTheme(r.team)}
                     >
                       <span className="rk">{r.rank}</span>
                       <Headshot src={r.headshot_url} name={r.name} scale="row" />
                       <span className="nm">
                         {r.name}
-                        {r.position && (
-                          <span className="tm">{r.position}</span>
-                        )}
                         {r.team && (
-                          <span className="tm">
+                          <span className="tm tm-team">
                             <TeamLogo team={r.team} size={13} />
                             {r.team}
                           </span>
@@ -220,6 +199,7 @@ export default function LeadersPage() {
                     <BoardSkeleton />
                   </div>
                 ) : (
+                  <div className="yb-card">
                   <SortTable<StandingRow>
                     rows={leagueTable}
                     rowKey={(t) => t.team_id}
@@ -274,6 +254,7 @@ export default function LeadersPage() {
                       },
                     ]}
                   />
+                  </div>
                 )}
               </div>
             )}

@@ -3,8 +3,8 @@ import { ScoreTicker } from "./components/ScoreTicker";
 
 /** NFL hub. Search is the persistent bar in the layout (1); the ticker is the
  *  current week's scores (3); everything else — featured matchup, performers,
- *  division & league leaders, fantasy, playoff picture, trending questions and
- *  team shortcuts — lives in the dashboard below (4–11). */
+ *  division & league leaders, fantasy, playoff picture and trending questions —
+ *  lives in the dashboard below. */
 export default function Home() {
   return (
     <main id="main" className="yb-home">

@@ -50,7 +50,7 @@ const answers = new LruTtl<AnswerResult>();
 
 /** Lowercase and strip punctuation so "...touchdowns?" and "...touchdowns"
  * share a cache entry. */
-export function normalizeQuestion(q: string): string {
+function normalizeQuestion(q: string): string {
   return q.toLowerCase().replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
 }
 

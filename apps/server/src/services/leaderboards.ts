@@ -7,7 +7,7 @@ import { headshotUrl } from "../lib/espn.js";
 import { loadedSeasons } from "../repositories/seasons.js";
 
 // key -> [label, unit]. Column name == key (allowlisted, safe to interpolate).
-export const PLAYER_CATEGORIES: [string, string, string][] = [
+const PLAYER_CATEGORIES: [string, string, string][] = [
   ["passing_yards", "Passing yards", "yds"],
   ["passing_tds", "Passing TDs", "TD"],
   ["rushing_yards", "Rushing yards", "yds"],
@@ -15,6 +15,11 @@ export const PLAYER_CATEGORIES: [string, string, string][] = [
   ["receiving_yards", "Receiving yards", "yds"],
   ["receptions", "Receptions", "rec"],
   ["receiving_tds", "Receiving TDs", "TD"],
+  ["def_sacks", "Sacks", "sck"],
+  ["tackles", "Tackles", "tkl"],
+  ["def_interceptions", "Interceptions", "INT"],
+  ["forced_fumbles", "Forced fumbles", "FF"],
+  ["passes_defended", "Passes defended", "PD"],
   ["fantasy_points_ppr", "Fantasy PPG (PPR)", "ppg"],
 ];
 const ALLOWED = new Set(PLAYER_CATEGORIES.map(([k]) => k));
@@ -86,10 +91,13 @@ export async function getLeaderboards(opts: {
     selected = PLAYER_CATEGORIES.filter(([k]) => k === opts.category);
   }
 
-  const boards = await Promise.all(
+  // allSettled, not all: one board's query failing drops just that board
+  // instead of 500-ing the whole endpoint (which blanks the home leaders card).
+  const settled = await Promise.allSettled(
     selected.map(([col, label, unit]) =>
       playerBoard(col, label, unit, target, opts.limit, opts.team, opts.position),
     ),
   );
+  const boards = settled.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
   return { season: target, seasons, boards };
 }

@@ -71,7 +71,7 @@ export function pool(): pg.Pool {
   return (rw ??= makePool(config.databaseUrl, "rw", config.dbWriteStatementTimeoutMs));
 }
 
-export function roPool(): pg.Pool {
+function roPool(): pg.Pool {
   if (config.readonlyDatabaseUrl === config.databaseUrl) return pool();
   // Dedicated RO pool: user-facing reads get the tight cap so a runaway query
   // can't wedge a client.

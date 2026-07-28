@@ -21,8 +21,9 @@ The Next.js app lives in `apps/web` (pnpm monorepo).
 ## 2. API → Render (persistent Node service)
 
 The API keeps a warm connection pool and an in-process answer cache, so a
-**persistent Node service** is the right shape (not serverless functions, not a
-container — Render's native `node` runtime runs it straight from `render.yaml`).
+**persistent service** is the right shape (not serverless functions). Render
+builds the root `Dockerfile` (`runtime: docker` in `render.yaml`) and runs the
+container.
 
 The code already handles the two things hosts need: it binds Render's injected
 `$PORT`, and it enables TLS automatically for any non-localhost database host.
@@ -39,9 +40,9 @@ The code already handles the two things hosts need: it binds Render's injected
      (recommended; leave blank to fall back to `DATABASE_URL`).
    - `CORS_ORIGINS` → your Vercel origin, e.g. `https://<project>.vercel.app`
      (comma-separate to allow more, e.g. a custom domain).
-4. **Apply** → first build runs `pnpm install --frozen-lockfile`, start runs
-   `pnpm --filter @yunoball/server start`. Watch **Logs** for
-   `YunoBall API up on :<port>`; the `/health` check must go green.
+4. **Apply** → Render builds the root `Dockerfile` and starts the container.
+   Watch **Logs** for `YunoBall API up on :<port>`; the `/ready` check must go
+   green (it verifies Postgres is reachable).
 5. Copy the service URL (`https://yunoball-api.onrender.com`) — it's the
    `NEXT_PUBLIC_API_URL` for Vercel (step 1) and must appear in `CORS_ORIGINS`.
 

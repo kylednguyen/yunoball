@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YunoBall — Backend Schema</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
+  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
+h3 { font-size: 16px; margin: 28px 0 8px; }
+a { color: #34d399; text-decoration: none; }
+a:hover { text-decoration: underline; }
+p, ul, ol { margin: 12px 0; }
+li { margin: 4px 0; }
+blockquote {
+  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
+  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+}
+blockquote p { margin: 4px 0; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+}
+pre {
+  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:hover td { background: #121417; }
+hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
+.docnav a { margin-right: 12px; }
+.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<nav class="docnav"><a href="PRD.html">PRD</a><a href="TDD.html">TDD</a><a href="APP_FLOW.html">APP_FLOW</a><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><span class="here">BACKEND_SCHEMA</span><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
+<h1>YunoBall — Backend Schema</h1>
+<blockquote>
+<p>The Postgres warehouse: a star model over nflverse data.
+Source of truth: <code>apps/server/src/db/schema.sql</code> (idempotent —
+<code>pnpm db:migrate</code> is safe on a fresh or existing database).</p>
+</blockquote>
+<h2>1. Shape</h2>
+<pre><code>seasons ◄────────── games ──────────► teams
+   ▲                  ▲                 ▲
+player_season_stats   ├── player_game_stats    (player × game)
+   │                  ├── player_game_advanced (pbp aggregates)
+   ▼                  ├── team_game_stats      (team × game)
+players ◄─────────────┴── scoring_plays        (touchdown events)
+
+app tables: answer_cache · query_audit        history: draft_picks
+</code></pre>
+<ul>
+<li><strong>Dimensions:</strong> <code>seasons</code>, <code>teams</code>, <code>players</code>, <code>games</code></li>
+<li><strong>Facts:</strong> <code>player_game_stats</code>, <code>team_game_stats</code>, <code>player_game_advanced</code>,
+<code>scoring_plays</code></li>
+<li><strong>Rollups:</strong> <code>player_season_stats</code></li>
+<li><strong>App:</strong> <code>answer_cache</code> (durable shareable answers), <code>query_audit</code>
+(per-question audit log)</li>
+<li><strong>History:</strong> <code>draft_picks</code> (1980+, deliberately no season FK)</li>
+</ul>
+<h2>2. Conventions</h2>
+<ul>
+<li><strong>Idempotent DDL.</strong> <code>CREATE TABLE IF NOT EXISTS</code> everywhere; later columns
+are added with <code>ADD COLUMN IF NOT EXISTS</code> widening blocks at the bottom of
+<code>schema.sql</code>. Twelve tables — this beats a migration framework.</li>
+<li><strong>Stable identifiers.</strong> <code>players.player_id</code> = nflverse gsis id;
+<code>games.game_id</code> = canonical nflverse schedule id; <code>teams.team_id</code> =
+<em>current-franchise</em> abbreviation with relocations folded forward (e.g. the
+2015 St. Louis Rams live under <code>LAR</code>).</li>
+<li><strong>Season typing.</strong> <code>season_type</code> is <code>REG | POST</code>; playoff rounds are
+collapsed to <code>POST</code> at ingest, with rounds recovered at query time by
+ranking weeks within a postseason.</li>
+<li><strong>NULL means unplayed.</strong> Postponed/unplayed games keep NULL scores rather
+than being dropped.</li>
+<li><strong>Reads run least-privilege</strong> when <code>READONLY_DATABASE_URL</code> is configured.</li>
+</ul>
+<h2>3. Table reference</h2>
+<h3>seasons</h3>
+<p><code>season int PK</code>, <code>start_date</code>, <code>end_date</code>. One row per loaded season
+(1999–present).</p>
+<h3>teams</h3>
+<p><code>team_id varchar PK</code> (current franchise abbr), <code>name</code>, <code>nickname</code>,
+<code>conference</code> (AFC|NFC), <code>division</code>, <code>color</code>, <code>color2</code> (brand hexes).</p>
+<h3>players</h3>
+<p><code>player_id varchar PK</code> (gsis), <code>full_name</code> (indexed), <code>first_name</code>,
+<code>last_name</code>, <code>position</code>, <code>birth_date</code>, <code>height_inches</code>, <code>weight_lbs</code>,
+<code>college</code>, <code>rookie_season</code>, <code>jersey_number</code>.</p>
+<h3>games</h3>
+<p><code>game_id varchar PK</code>, <code>season → seasons</code>, <code>week</code>, <code>season_type</code> (REG|POST),
+<code>game_date</code>, <code>home_team → teams</code>, <code>away_team → teams</code>, <code>home_score</code> /
+<code>away_score</code> (NULL until played), <code>stadium</code>, <code>roof</code>, <code>surface</code>, plus split
+metadata: <code>weekday</code>, <code>gametime</code>, <code>temp</code>, <code>wind</code>, <code>home_coach</code>, <code>away_coach</code>.
+Indexes: <code>(season, week)</code>, <code>(season, season_type)</code>, <code>home_team</code>, <code>away_team</code>.</p>
+<h3>player_game_stats — PK (player_id, game_id)</h3>
+<p>One row per player per game, <code>team_id</code> for that game. Offense: completions,
+attempts, passing_yards/tds, interceptions, sacks (taken) + sack_yards,
+carries, rushing_yards/tds, targets, receptions, receiving_yards/tds,
+fumbles(+lost), passing/receiving_air_yards, fantasy_points_ppr. Defense:
+tackles (solo+assist), def_sacks, def_interceptions, forced_fumbles,
+passes_defended. Indexes: game_id, team_id.</p>
+<h3>player_season_stats — PK (player_id, season, season_type)</h3>
+<p>The REG/POST season rollup of the same stat set plus <code>games_played</code> and
+<code>team_id</code>. Indexes: season, <code>(season, season_type)</code>, <code>(team_id, season)</code> —
+these carry leaderboards and &quot;players on team X in year Y&quot;.</p>
+<h3>team_game_stats — PK (team_id, game_id)</h3>
+<p>Per-team-game: <code>is_home</code>, points_for/against, total/passing/rushing_yards,
+turnovers, time_of_possession_sec, <code>drives</code>, <code>result</code> (W|L|T). Powers
+standings, team stat ranks, and points/per-drive questions.</p>
+<h3>player_game_advanced — PK (player_id, game_id)</h3>
+<p>Play-by-play distilled to per-player-game aggregates, split by role:
+pass/rush/recv <code>_plays</code>, <code>_epa</code>, <code>_success</code> counts, plus <code>cpoe_sum</code>/<code>cpoe_n</code>.
+Powers EPA, success-rate, and CPOE stats without storing full pbp.</p>
+<h3>scoring_plays — PK play_id (game_id + play number)</h3>
+<p>Touchdown events only (~1.4k rows/season vs ~50k pbp rows): <code>game_id</code>,
+<code>player_id</code> (the scorer), <code>team_id</code>, <code>qtr</code>, <code>play_type</code>, <code>description</code>,
+<code>yards</code>. Powers first/last-TD questions, longest-TD lookups, and the
+player-page touchdown log. Indexed by player and game.</p>
+<h3>draft_picks — PK (season, pick)</h3>
+<p>nflverse draft history 1980+: round, pick, <code>team_id</code> (normalized to current
+franchise), <code>player_id</code> (gsis when available — joins <code>players</code>),
+<code>player_name</code>, position, college. <strong>No season FK on purpose:</strong> the draft runs
+ahead of/behind the loaded stats seasons.</p>
+<h3>query_audit</h3>
+<p>Append-only auditor log — one structured record per answered question:
+<code>asked_at</code>, <code>question</code>, <code>spec jsonb</code>, <code>status</code>, <code>warnings jsonb</code>,
+<code>confidence jsonb</code>, <code>row_count</code>, <code>duration_ms</code>. Stores decisions, never
+free-form reasoning. This is the measurement substrate for answer-rate
+metrics.</p>
+<h3>answer_cache</h3>
+<p>Durable shareable answers behind <code>/a/&lt;share_id&gt;</code>: <code>share_id</code> (unique,
+deterministic 32-char SHA-256 prefix of the normalized question),
+<code>question</code>, <code>normalized_question</code> (unique), <code>sql</code>, <code>answer_json</code>, <code>hits</code>,
+<code>created_at</code>. Fronted by the in-process cache; TTL via
+<code>ANSWER_CACHE_TTL_SECONDS</code>.</p>
+<h2>4. Index strategy</h2>
+<p>Indexes exist for the query shapes the engine actually emits:</p>
+<table>
+<thead>
+<tr>
+<th>Shape</th>
+<th>Index</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Leaderboards: season + type filter, sort by stat</td>
+<td><code>pss_season_type_idx (season, season_type)</code></td>
+</tr>
+<tr>
+<td>Roster/team-season: &quot;players on X in Y&quot;</td>
+<td><code>pss_team_season_idx (team_id, season)</code></td>
+</tr>
+<tr>
+<td>Week slate / REG-POST scans</td>
+<td><code>games_season_week_idx</code>, <code>games_season_type_idx</code></td>
+</tr>
+<tr>
+<td>Game-log joins</td>
+<td><code>pgs_game_idx</code>, <code>pga_game_idx</code>, <code>tgs_game_idx</code></td>
+</tr>
+<tr>
+<td>Name lookup fallback</td>
+<td><code>players_full_name_idx</code></td>
+</tr>
+<tr>
+<td>TD timeline per player/game</td>
+<td><code>scoring_plays_player_idx</code>, <code>scoring_plays_game_idx</code></td>
+</tr>
+</tbody></table>
+<h2>5. Ingestion → schema mapping</h2>
+<p><code>pnpm ingest:nfl --season N | --all | --years … [--season-type REG] [--dry-run]</code></p>
+<ul>
+<li>nflverse release CSVs → normalize (stable ids, relocation folding,
+REG/POST collapse) → zod-validate (skip + log malformed rows, end-of-run
+tally) → <strong>batched idempotent upserts</strong> in transactions with per-dataset
+failure isolation.</li>
+<li>Play-by-play is distilled at ingest into <code>scoring_plays</code> (TD events),
+<code>player_game_advanced</code> (EPA/success/CPOE), TD <code>yards</code>, and per-game
+<code>drives</code> — full pbp is never stored.</li>
+<li>ESPN headshot ids come from a separate standalone CLI
+(<code>apps/server/src/cli/fetchEspnIds.ts</code>) into <code>apps/server/data/espn_ids.json</code>.</li>
+</ul>
+<h2>6. Environments</h2>
+<ul>
+<li><strong>Local:</strong> Docker Postgres (<code>docker-compose.yml</code>; host port 5433 in the
+standard local setup). Schema + data via <code>pnpm db:migrate</code> + <code>pnpm ingest:nfl</code>.</li>
+<li><strong>Production:</strong> Supabase Postgres, connected through the <strong>session pooler</strong>
+(port 5432 — never the 6543 transaction pooler; the API is a persistent
+server). RLS enabled with read policies; the API connects with its own
+role, with a read-only role for engine-executed SQL.</li>
+</ul>
+<h2>7. Planned schema work</h2>
+<p>See <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>. Highlights: ingestion
+run/source tracking tables for the standalone worker (Track B); wider splits
+metadata as query coverage grows (Track A); no destructive changes — the
+widening-ALTER convention continues.</p>
+
+</main>
+</body>
+</html>

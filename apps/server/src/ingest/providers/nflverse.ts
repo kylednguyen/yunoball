@@ -24,6 +24,7 @@ export const assets = {
     `${RELEASES}/stats_player/stats_player_${level}_${year}.csv`,
   pbp: (year: number) => `${RELEASES}/pbp/play_by_play_${year}.csv.gz`,
   draftPicks: () => `${RELEASES}/draft_picks/draft_picks.csv`, // all drafts, one file
+  playerIds: () => `${RELEASES}/players/players.csv`, // id crosswalk, one file
 };
 
 const CACHE_DIR =

@@ -59,3 +59,4 @@ search-audit-results.json
 # README.md is tracked.
 /PROJECT_AUDIT.md
 /docs/
+.superpowers/

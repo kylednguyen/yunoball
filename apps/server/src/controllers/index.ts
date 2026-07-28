@@ -2,7 +2,9 @@
  * No business logic here — that lives in services/. */
 
 import type { Request, Response } from "express";
+import type { AnswerResult } from "@yunoball/types";
 import { z } from "zod";
+import { config } from "../config.js";
 import { runQueryPipeline } from "../engine/pipeline.js";
 import { ApiError } from "../lib/errors.js";
 import { clientIp, retryAfter } from "../lib/rateLimit.js";
@@ -32,8 +34,8 @@ function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> {
   return res.data;
 }
 
-function limited(req: Request): void {
-  const wait = retryAfter(clientIp(req));
+function throttle(req: Request, tier: "w" | "r", limit: number): void {
+  const wait = retryAfter(`${tier}:${clientIp(req)}`, limit);
   if (wait !== null) {
     throw new ApiError(429, "Too many requests. Please slow down.", {
       "Retry-After": String(wait),
@@ -41,7 +43,27 @@ function limited(req: Request): void {
   }
 }
 
+/** Write tier — search/agent (expensive: query engine + LLM). */
+function limited(req: Request): void {
+  throttle(req, "w", config.rateLimitPerMinute);
+}
+
+/** Read tier — GET data endpoints. Separate, more generous bucket so normal
+ * browsing (each page load fires several) never trips it, while a scraper
+ * hammering e.g. the 13-board leaderboards path still gets capped. */
+function limitedRead(req: Request): void {
+  throttle(req, "r", config.readRateLimitPerMinute);
+}
+
 // ---- search ----
+
+/** Strip server internals before an answer crosses the wire: the executed SQL
+ * and the audit verdict are for logs/tools only (design language forbids
+ * exposing SQL / query interpretation / audit status to the client). */
+function redactAnswer(answer: AnswerResult): AnswerResult {
+  const { audit: _audit, ...rest } = answer;
+  return { ...rest, sql: "" };
+}
 
 const searchBody = z.object({
   question: z.string().min(2).max(500),
@@ -50,7 +72,7 @@ const searchBody = z.object({
 export async function search(req: Request, res: Response): Promise<void> {
   limited(req);
   const body = parse(searchBody, req.body);
-  res.json(await runQueryPipeline(body.question));
+  res.json(redactAnswer(await runQueryPipeline(body.question)));
 }
 
 const suggestQuery = z.object({
@@ -64,19 +86,23 @@ export async function searchSuggest(req: Request, res: Response): Promise<void> 
 }
 
 export async function searchExamples(req: Request, res: Response): Promise<void> {
-  const n = parse(z.coerce.number().int().min(1).max(12).default(4), req.query.n);
+  // n is a balanced budget: examples() round-robins across categories, so the
+  // homepage trending card asks for a display-sized set (not the whole corpus)
+  // and groups off each item's server-provided category.
+  const n = parse(z.coerce.number().int().min(1).max(100).default(4), req.query.n);
   res.json({ examples: await examples(n) });
 }
 
 export async function sharedAnswer(req: Request, res: Response): Promise<void> {
   const payload = await getAnswerByShareId(String(req.params.shareId));
   if (payload === null) throw new ApiError(404, "Answer not found.");
-  res.json({ ...payload, cached: true });
+  res.json(redactAnswer({ ...payload, cached: true }));
 }
 
 // ---- platform ----
 
 export async function leaderboards(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   const query = parse(
     z.object({
       season: intParam(1),
@@ -91,6 +117,7 @@ export async function leaderboards(req: Request, res: Response): Promise<void> {
 }
 
 export async function games(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   const query = parse(
     z.object({ season: intParam(1), week: intParam(1, 22) }),
     req.query,
@@ -99,6 +126,7 @@ export async function games(req: Request, res: Response): Promise<void> {
 }
 
 export async function performers(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   const query = parse(
     z.object({
       season: intParam(1),
@@ -111,15 +139,18 @@ export async function performers(req: Request, res: Response): Promise<void> {
 }
 
 export async function boxScore(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   res.json(await getBoxScore(parse(idParam, req.params.gameId)));
 }
 
 export async function standings(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   const query = parse(z.object({ season: intParam(1) }), req.query);
   res.json(await getStandings(query.season));
 }
 
 export async function fantasyPlayers(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   const query = parse(
     z.object({
       season: intParam(1),
@@ -133,15 +164,18 @@ export async function fantasyPlayers(req: Request, res: Response): Promise<void>
 }
 
 export async function playerProfile(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   res.json(await getPlayerProfile(parse(idParam, req.params.playerId)));
 }
 
 export async function playerSplits(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   const query = parse(z.object({ season: intParam(1) }), req.query);
   res.json(await getPlayerSplits(parse(idParam, req.params.playerId), query.season));
 }
 
 export async function teamProfile(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
   const query = parse(z.object({ season: intParam(1) }), req.query);
   res.json(await getTeamProfile(parse(idParam, req.params.teamId), query.season));
 }

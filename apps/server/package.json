@@ -5,14 +5,13 @@
   "description": "YunoBall Express backend — REST APIs + NFLverse ingestion over the Postgres warehouse.",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --ignore '../../node_modules/**' src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "db:migrate": "tsx src/db/migrate.ts",
-    "ingest": "tsx src/ingest/cli.ts",
-    "fetch-espn-ids": "tsx src/cli/fetchEspnIds.ts"
+    "ingest": "tsx src/ingest/cli.ts"
   },
   "dependencies": {
     "@yunoball/types": "workspace:*",

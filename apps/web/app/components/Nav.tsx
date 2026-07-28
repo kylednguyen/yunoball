@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { Search } from "../search";
+
 /** Stroke-only 24px icons (no fills, no glows) — rendered at 16px. */
 const ICONS: Record<string, React.ReactNode> = {
   search: (
@@ -67,7 +69,7 @@ const LINKS = [
   { href: "/", label: "NFL", icon: "nfl", group: "Sports" },
   { href: "/scores", label: "Scores", icon: "scores" },
   { href: "/glossary", label: "Glossary", icon: "glossary" },
-  { href: "/fantasy", label: "Fantasy Builder AI", icon: "fantasy" },
+  { href: "/fantasy", label: "Fantasy Builder", icon: "fantasy" },
 ];
 
 const NFL_ROUTE_PREFIXES = ["/teams", "/standings", "/leaders", "/leaderboards", "/players", "/a/"];
@@ -227,6 +229,9 @@ export function Nav() {
         <Link href="/" className="yb-brand" onClick={close}>
           Yuno<span>Ball</span>
         </Link>
+        <div className="yb-nav-search-inline">
+          <Search />
+        </div>
         <button
           ref={toggleRef}
           type="button"
@@ -245,7 +250,7 @@ export function Nav() {
           and inert. */}
       {offline && (
         <p className="yb-offline" role="status">
-          Offline — data may be stale
+          Offline, data may be stale
         </p>
       )}
 

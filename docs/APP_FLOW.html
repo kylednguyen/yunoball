@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YunoBall — App Flow</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
+  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+h1 { font-size: 28px; margin: 0 0 8px; }
+h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
+h3 { font-size: 16px; margin: 28px 0 8px; }
+a { color: #34d399; text-decoration: none; }
+a:hover { text-decoration: underline; }
+p, ul, ol { margin: 12px 0; }
+li { margin: 4px 0; }
+blockquote {
+  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
+  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+}
+blockquote p { margin: 4px 0; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+}
+pre {
+  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:hover td { background: #121417; }
+hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
+.docnav a { margin-right: 12px; }
+.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+</style>
+</head>
+<body>
+<main>
+<nav class="docnav"><a href="PRD.html">PRD</a><a href="TDD.html">TDD</a><span class="here">APP_FLOW</span><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
+<h1>YunoBall — App Flow</h1>
+<blockquote>
+<p>How a user moves through the product: routes, journeys, and states.
+Companion docs: <a href="PRD.html">PRD.md</a> · <a href="TDD.html">TDD.md</a> · <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a></p>
+</blockquote>
+<h2>1. Route map</h2>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Surface</th>
+<th>Data source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/</code></td>
+<td>Home: search box + dashboard (score ticker, top performers, standings snapshot, leaders)</td>
+<td><code>/api/games</code>, <code>/api/games/performers</code>, <code>/api/standings</code>, <code>/api/leaderboards</code></td>
+</tr>
+<tr>
+<td><code>/a/[shareId]</code></td>
+<td>Persisted answer page (the shareable result)</td>
+<td><code>GET /api/search/answer/:shareId</code></td>
+</tr>
+<tr>
+<td><code>/scores</code></td>
+<td>Week-by-week finals with season/week pickers</td>
+<td><code>/api/games</code></td>
+</tr>
+<tr>
+<td><code>/games/[gameId]</code></td>
+<td>Box score — both teams&#39; player stat lines</td>
+<td><code>/api/games/:gameId/boxscore</code></td>
+</tr>
+<tr>
+<td><code>/standings</code></td>
+<td>Conference → division standings, season picker</td>
+<td><code>/api/standings</code></td>
+</tr>
+<tr>
+<td><code>/leaderboards</code></td>
+<td>Season stat leader boards (dense tables)</td>
+<td><code>/api/leaderboards</code></td>
+</tr>
+<tr>
+<td><code>/leaders</code></td>
+<td>Leaders overview</td>
+<td><code>/api/leaderboards</code></td>
+</tr>
+<tr>
+<td><code>/players/[playerId]</code></td>
+<td>Player profile: bio, career, seasons (REG/POST), game log, TD log, splits</td>
+<td><code>/api/players/:id</code>, <code>/api/players/:id/splits</code></td>
+</tr>
+<tr>
+<td><code>/teams/[teamId]</code></td>
+<td>Team profile: record, ranks, leaders, key players, schedule</td>
+<td><code>/api/teams/:id</code></td>
+</tr>
+<tr>
+<td><code>/fantasy</code></td>
+<td>PPR lineup builder over season production</td>
+<td><code>/api/fantasy/players</code></td>
+</tr>
+<tr>
+<td><code>/assistant</code></td>
+<td>Chat-style tool-routing assistant (demo mode)</td>
+<td><code>POST /api/agent</code></td>
+</tr>
+<tr>
+<td><code>/glossary</code></td>
+<td>Stat definitions</td>
+<td>static</td>
+</tr>
+</tbody></table>
+<p>Global navigation: top bar with primary sections and the search entry point
+(search lives in the nav, not buried in a page). Breadcrumbs (<code>Crumbs</code>) on
+drill-down pages.</p>
+<h2>2. The core journey: question → answer</h2>
+<pre><code class="language-text">User types in the search box
+  → GET /api/search/suggest (debounced)
+      autocomplete: matching players (headshots), teams, supported questions
+  → user submits (or picks a suggestion / example question)
+  → POST /api/search { question }
+      engine: L1 cache → resolve → parse → L2 cache → build → execute → narrate
+  → AnswerResult
+      ├─ parsed &amp; answered → AnswerCard
+      │    narration · player card(s) · sortable table · comparison chart
+      │    (head-to-head) · query interpretation · SQL disclosure ·
+      │    CSV export · share (copies /a/&lt;share_id&gt;)
+      └─ didn&#39;t parse → honest &quot;can&#39;t answer that yet&quot; + example questions
+</code></pre>
+<ul>
+<li>Every parsed answer is durably persisted under a deterministic <code>share_id</code>
+(SHA-256 prefix of the normalized question) before the user ever shares it.</li>
+<li><strong>Current behavior:</strong> the answer renders inline on the homepage below the
+search field. <strong>Target behavior</strong> (per <code>search-results-audit.md</code>): submit
+navigates to <code>/a/&lt;share_id&gt;</code>, which owns the full result experience
+(loading, retry, export); the homepage stays a discovery surface.</li>
+</ul>
+<h3>Answer drill-downs</h3>
+<p>Result rows link onward: player names → <code>/players/[id]</code>, teams →
+<code>/teams/[id]</code>, single games → <code>/games/[gameId]</code>. Answers about one
+player/team re-tint the accent system to that team&#39;s colors (see
+<a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a> §3).</p>
+<h2>3. Browse journeys</h2>
+<p><strong>Scoreboard loop</strong> — <code>/</code> ticker or <code>/scores</code> → pick season/week → game card
+→ <code>/games/[id]</code> box score → tap a stat line → <code>/players/[id]</code>.</p>
+<p><strong>Standings loop</strong> — <code>/standings</code> → season picker → division tables → team →
+<code>/teams/[id]</code> → schedule row → box score.</p>
+<p><strong>Leaders loop</strong> — <code>/leaderboards</code> (defaults to latest loaded season) → board
+row → player profile → splits/game-log tabs → questions about that player via
+search.</p>
+<p><strong>Fantasy loop</strong> — <code>/fantasy</code> → sort/filter player pool (position, per-game
+rates) → fill lineup slots → player links for due diligence.</p>
+<h2>4. Assistant flow</h2>
+<pre><code class="language-text">/assistant chat input
+  → POST /api/agent { message, history }
+  → intent routing over the same services (search, standings, leaderboards…)
+  → reply + visible tool steps (mode: &quot;demo&quot;)
+</code></pre>
+<p>The assistant never free-generates numbers — it routes to the same trusted
+endpoints and reports which tools it used.</p>
+<h2>5. Share flow</h2>
+<ol>
+<li>Any answer → &quot;share&quot; copies <code>https://&lt;host&gt;/a/&lt;share_id&gt;</code>.</li>
+<li>Recipient opens <code>/a/&lt;share_id&gt;</code> → server fetches the persisted
+<code>AnswerResult</code> → same AnswerCard experience, no recomputation.</li>
+<li>Planned: route-level action bar and clean PNG export of the rendered card
+(Track C in <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>).</li>
+</ol>
+<h2>6. States &amp; edge behavior</h2>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Loading</td>
+<td>Skeleton components (shimmer), per-surface</td>
+</tr>
+<tr>
+<td>Unparseable question</td>
+<td>Honest refusal narration + supported-question examples; never a guess</td>
+</tr>
+<tr>
+<td>Ambiguous entity</td>
+<td>Fuzzy resolver picks best match above confidence floor; resolved entities are always displayed so the interpretation is visible</td>
+</tr>
+<tr>
+<td>Empty result (parsed, zero rows)</td>
+<td>Honest &quot;no qualifying rows&quot; narration</td>
+</tr>
+<tr>
+<td>API error</td>
+<td>Friendly error copy + retry (kept on the requesting surface)</td>
+</tr>
+<tr>
+<td>Unplayed/postponed game</td>
+<td>Stored with NULL scores; rendered as not-final</td>
+</tr>
+<tr>
+<td>Rate limit (30/min/IP default)</td>
+<td>429 on <code>/api/search</code> and <code>/api/agent</code></td>
+</tr>
+<tr>
+<td>Share id not found</td>
+<td><code>/a/</code> not-found state with a path back to search</td>
+</tr>
+</tbody></table>
+
+</main>
+</body>
+</html>

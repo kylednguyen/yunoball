@@ -1,35 +1,38 @@
-/** ESPN media integration — headshots via ESPN's public CDN.
+/** Player headshots — served from the warehouse (nflverse id crosswalk).
  *
- * The warehouse stays the system of record for every number; ESPN supplies
- * media only. The player-id -> ESPN-id mapping lives in data/espn_ids.json,
- * regenerated with `pnpm --filter @yunoball/server fetch-espn-ids`. Until the
- * mapping covers a player, the frontend renders an initials avatar.
+ * The players table carries headshot_url + espn_id, keyed on gsis id by the
+ * player_ids ingest step (never name-matched). loadHeadshots() builds the
+ * in-memory map once at boot; headshotUrl() stays a sync lookup so the
+ * row-mapping hot paths (search, leaderboards, players, fantasy, games,
+ * teams, engine pipeline) are unchanged. nflverse's headshot_url wins;
+ * espn_id constructs the ESPN CDN URL as fallback.
  */
 
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { q } from "../db/pool.js";
+import { logger } from "./logger.js";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-export const ESPN_IDS_PATH = path.resolve(here, "../../data/espn_ids.json");
+const urls = new Map<string, string>();
 
-let ids: Record<string, number> = {};
-try {
-  ids = JSON.parse(readFileSync(ESPN_IDS_PATH, "utf-8"));
-} catch {
-  ids = {}; // generated file not present yet — headshots degrade gracefully
+export async function loadHeadshots(): Promise<void> {
+  try {
+    const rows = await q<{ player_id: string; espn_id: string | null; headshot_url: string | null }>(
+      `SELECT player_id, espn_id, headshot_url FROM players
+       WHERE headshot_url IS NOT NULL OR espn_id IS NOT NULL`,
+    );
+    urls.clear();
+    for (const r of rows) {
+      urls.set(
+        r.player_id,
+        r.headshot_url ?? `https://a.espncdn.com/i/headshots/nfl/players/full/${r.espn_id}.png`,
+      );
+    }
+    logger.info({ players: urls.size }, "headshot map loaded from warehouse");
+  } catch (err) {
+    // Missing columns / unreachable DB degrade to initials avatars, not a crash.
+    logger.warn({ err: String(err) }, "headshot map load failed — initials avatars until restart");
+  }
 }
 
-// Retired stars are outside the active-roster sync window but still appear in
-// historical queries and comparisons. Keep the small verified legacy bridge
-// here so those answer templates receive the same real headshots as active
-// players without changing any stats source.
-const LEGACY_ESPN_IDS: Record<string, number> = {
-  "00-0010346": 1428, // Peyton Manning
-  "00-0019596": 2330, // Tom Brady
-};
-
 export function headshotUrl(playerId: string): string | null {
-  const espnId = ids[playerId] ?? LEGACY_ESPN_IDS[playerId];
-  return espnId ? `https://a.espncdn.com/i/headshots/nfl/players/full/${espnId}.png` : null;
+  return urls.get(playerId) ?? null;
 }
