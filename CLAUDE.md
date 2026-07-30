@@ -21,6 +21,7 @@ same commit. A canonical doc that drifts is worse than no doc.
 | Component inventory | [docs/FRONTEND_SPEC.md](docs/FRONTEND_SPEC.md) |
 | Roadmap, sequencing | [docs/ENGINEERING_PLAN.md](docs/ENGINEERING_PLAN.md) |
 | Product scope | [docs/PRD.md](docs/PRD.md), [docs/PRD_MOBILE.md](docs/PRD_MOBILE.md) |
+| Convex user-space (hybrid) | [docs/CONVEX_INTEGRATION.md](docs/CONVEX_INTEGRATION.md) |
 
 `apps/web/app/globals.css` wins on token *values*; the design docs give intent.
 

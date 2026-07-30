@@ -103,7 +103,11 @@ server-side (exposing them in-product is an open decision — see §4.1).
 
 - Live in-progress game scores (data is release-file based; see roadmap).
 - Betting/odds, projections, or ML predictions.
-- User accounts, saved lineups, personalization.
+- User accounts, saved lineups, personalization — *being reversed for the
+  mobile track*: user-space (accounts, saved questions, favorites, lineups)
+  is in preparation on Convex per [PRD_MOBILE.md](PRD_MOBILE.md) §3 and
+  [CONVEX_INTEGRATION.md](CONVEX_INTEGRATION.md); still out of scope for the
+  web product until that lands.
 - Sports beyond the NFL (the architecture allows it; the product doesn't yet).
 - Full play-by-play storage (only touchdown events and per-game advanced
   aggregates are distilled from pbp).

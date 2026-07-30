@@ -1,0 +1,20 @@
+{
+  "name": "@yunoball/convex",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Convex functions for YunoBall user-space — saved questions, favorites, lineups, freshness. Scaffold only; no deployment exists yet.",
+  "type": "module",
+  "scripts": {
+    "dev": "convex dev",
+    "codegen": "convex codegen",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ignore-pattern 'convex/_generated/**'"
+  },
+  "dependencies": {
+    "convex": "^1.42.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
+  }
+}

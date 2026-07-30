@@ -73,6 +73,18 @@ One language, one runtime — TypeScript end to end:
 | Provider modules under `ingest/providers` | New sources (ESPN, SportsDataIO, live scoring, injuries...) are independent modules; the public API never changes. |
 | Read-only role for reads | Engine-executed SQL and API reads run least-privilege when `READONLY_DATABASE_URL` is set. |
 
+## Planned: hybrid user-space backend
+
+One structural addition is designed but not built: a **Convex deployment
+alongside Postgres**, owning only what the warehouse has no home for —
+accounts/auth, saved questions, favorites, lineups, a data-freshness signal,
+and (later) live-game state. Nothing above moves. Postgres stays authoritative
+for every number and for "current season"; no stat is ever stored in Convex;
+the 14 `/api` routes stay anonymous and unchanged. The boundary, schema, auth
+choice, phasing and non-goals are canonical in
+[CONVEX_INTEGRATION.md](CONVEX_INTEGRATION.md) — read it before touching
+`apps/convex/`.
+
 ## Query pipeline
 
 The common path is deterministic end to end:

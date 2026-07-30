@@ -1,0 +1,7 @@
+{
+  "$schema": "https://raw.githubusercontent.com/get-convex/convex-js/main/schemas/convex.schema.json",
+  "functions": "convex/",
+  "codegen": {
+    "fileType": "ts"
+  }
+}
