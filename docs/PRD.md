@@ -1,7 +1,7 @@
 # YunoBall — Product Requirements Document
 
 > Status: current product + roadmap · Last updated 2026-07-17
-> Companion docs: [TDD.md](TDD.md) · [APP_FLOW.md](APP_FLOW.md) · [DESIGN_BRIEF.md](DESIGN_BRIEF.md) · [BACKEND_SCHEMA.md](BACKEND_SCHEMA.md) · [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md)
+> Companion docs: [TDD.md](TDD.md) · [APP_FLOW.md](APP_FLOW.md) · [DESIGN_BRIEF.md](DESIGN_BRIEF.md) · [BACKEND_SCHEMA.md](BACKEND_SCHEMA.md) · [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md) · [PRD_MOBILE.md](PRD_MOBILE.md)
 
 ## 1. Product summary
 
