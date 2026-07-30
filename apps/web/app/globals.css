@@ -1,5 +1,5 @@
 /* ============================================================
-   YunoBall design system — quiet dark theme, emerald accent.
+   YunoBall design system — quiet dark theme, lime accent.
    Soft neutral surfaces, content-over-chrome; hierarchy comes
    from spacing, background contrast and typography — not borders.
    Tokens here are the runtime source of truth for the app.
@@ -84,8 +84,8 @@
   --display: var(--font);
 
   /* Type scale — text tiers (display sizes stay per-context in the
-     display face). caption 11 / small 12 / body 13 / ui 14 / body-lg 15 /
-     lead 16. */
+     display face). caption 12 / small 13 / body 14 / ui 15 / body-lg 16 /
+     lead 17. */
   --fs-caption: 12px;
   --fs-small: 13px;
   --fs-body: 14px;

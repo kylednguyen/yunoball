@@ -1,5 +1,6 @@
 /** Ingestion CLI.
  *
+ *    pnpm ingest:nfl                             # the current season (default)
  *    pnpm ingest:nfl --season 2024               # one season (--years works too)
  *    pnpm ingest:nfl --years 2022 2023 2024      # specific seasons
  *    pnpm ingest:nfl --all                       # every season since 1999
@@ -30,11 +31,27 @@ const STEPS = [
 ] as const;
 type Step = (typeof STEPS)[number];
 
-function allSeasons(): number[] {
-  // Through the season that has started by today (NFL season year = its Sept).
-  const today = new Date();
-  const last = today.getMonth() + 1 >= 9 ? today.getFullYear() : today.getFullYear() - 1;
+/** The season that has started by today (NFL season year = its Sept), so the
+ * label rolls forward in September and stays put the rest of the year. */
+export function currentSeason(today = new Date()): number {
+  return today.getMonth() + 1 >= 9 ? today.getFullYear() : today.getFullYear() - 1;
+}
+
+function allSeasons(today = new Date()): number[] {
+  const last = currentSeason(today);
   return Array.from({ length: last - FIRST_SEASON + 1 }, (_, i) => FIRST_SEASON + i);
+}
+
+/** Seasons a run covers. No selector means the season in progress — the
+ * weekly scheduled ingest runs bare, and refreshing 1999– every Tuesday
+ * would be neither what it wants nor cheap. */
+export function selectSeasons(
+  opts: { all?: boolean; years?: number[] },
+  today = new Date(),
+): number[] {
+  if (opts.all) return allSeasons(today);
+  const years = opts.years ?? [];
+  return years.length > 0 ? [...new Set(years)].sort() : [currentSeason(today)];
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
@@ -63,10 +80,6 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     ...(values.season ?? []),
     ...positionals,
   ].map(Number);
-  if (!values.all && yearArgs.length === 0) {
-    logger.error("specify --season <year>, --years <y...>, or --all");
-    return 2;
-  }
   if (yearArgs.some((y) => !Number.isInteger(y))) {
     logger.error({ yearArgs }, "seasons must be integers");
     return 2;
@@ -83,7 +96,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     }
   }
 
-  const years = values.all ? allSeasons() : [...new Set(yearArgs)].sort();
+  const years = selectSeasons({ all: values.all, years: yearArgs });
   if (!config.databaseUrl && !values["dry-run"]) {
     logger.error("DATABASE_URL is required (dry runs work without one only for validation)");
     return 2;

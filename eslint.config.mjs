@@ -62,7 +62,7 @@ export default tseslint.config(
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs["core-web-vitals"].rules,
       ...reactHooks.configs.recommended.rules,
-      // Design-language rule (docs/design-language.md §1): components never
+      // Design-language rule (docs/DESIGN_BRIEF.md): components never
       // carry raw colors — tokens and yb-* classes only. teamTheme() is the
       // sole sanctioned color source, and it returns var() strings.
       "no-restricted-syntax": [
@@ -71,13 +71,13 @@ export default tseslint.config(
           selector:
             'JSXAttribute[name.name="style"] Literal[value=/#[0-9a-fA-F]{3}|rgba?\\(/]',
           message:
-            "Raw colors are banned in components (design-language.md §1) — use a CSS token (var(--…)) or a yb-* class.",
+            "Raw colors are banned in components (DESIGN_BRIEF.md) — use a CSS token (var(--…)) or a yb-* class.",
         },
         {
           selector:
             'JSXAttribute[name.name="style"] Property[key.name="fontSize"] Literal[value=/px$/]',
           message:
-            "Raw px font sizes are banned in components (design-language.md §1) — use var(--fs-*).",
+            "Raw px font sizes are banned in components (DESIGN_BRIEF.md) — use var(--fs-*).",
         },
       ],
     },

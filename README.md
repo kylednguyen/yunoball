@@ -50,7 +50,7 @@ packages/
   types/      shared API types (web <-> server)
 docs/
   ARCHITECTURE.md
-docker-compose.yml   local Postgres + Redis
+docker-compose.yml   local Postgres (pgvector)
 ```
 
 ## Quick start
@@ -93,7 +93,7 @@ pnpm e2e
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of it on every push and pull request,
-including a real one-season ingest against a service Postgres.
+including a real three-season ingest (2022–2024) against a service Postgres.
 
 ## Status
 

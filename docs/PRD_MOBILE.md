@@ -152,11 +152,11 @@ Store rationale:
 
 ### 6.1 Fix now, independent of mobile
 
-1. **The scheduled ingest is broken.** `.github/workflows/ingest.yml` passes
-   no `--season` on cron fires; `ingest/cli.ts` exits 2. Every scheduled run
-   since creation has failed — the only automated freshness mechanism does
-   nothing. Implement the "(default: current)" the workflow input already
-   promises.
+1. **The scheduled ingest was broken** — cron fires passed no `--season` and
+   `ingest/cli.ts` exited 2, so every scheduled run since creation had
+   failed. **Fixed on this branch:** a bare run now ingests the current
+   season (pure `currentSeason()` + unit tests), matching the workflow
+   input's "(default: current)" promise.
 2. **Doc drift** — see §10.
 
 ### 6.2 Before App Store submission (roughly priority-ordered)
@@ -242,10 +242,10 @@ Store rationale:
   `apps/web/app/lib/api.ts` patterns — TTL cache (raise 60s → ~24h),
   in-flight dedupe, 15s GET / 30s POST timeouts, 404-means-null,
   friendly error copy, honor `Retry-After` on 429.
-- **Design tokens: `apps/web/app/globals.css:15-116` is the only source of
-  truth** — DESIGN_BRIEF.md has fully drifted (documents emerald; the app
-  ships lime `--accent: #89f336`; every surface/ink/type/spacing value
-  differs). 5 surface steps, 3 near-white ink tiers (hierarchy by weight,
+- **Design tokens: `apps/web/app/globals.css` is the source of truth for
+  values** — DESIGN_BRIEF.md was retokenized from it on this branch (the app
+  ships lime `--accent: #89f336`); if the two ever disagree again, the CSS
+  wins. 5 surface steps, 3 near-white ink tiers (hierarchy by weight,
   not grey), 6-token accent family, 4px spacing scale, 6 radii, one ease +
   two durations. Dark-only (`color-scheme: dark`; no light ramp exists).
 - **Port `teamTheme()` verbatim** (`apps/web/app/lib/teamTheme.ts`, 137
@@ -297,10 +297,11 @@ Store rationale:
 8. **Accounts:** is the "no accounts" non-goal permanent? If yes, mobile
    retention must be designed around anonymous on-device state only (no
    push, no favorites, no sync).
-9. **Freshness contract:** data is weekly at best (and the cron is broken
-   today). What does the app promise on a Sunday afternoon?
+9. **Freshness contract:** data is weekly at best (the scheduled ingest now
+   works — fixed on this branch). What does the app promise on a Sunday
+   afternoon?
 
-## 10. Doc drift found during this audit (fix alongside)
+## 10. Doc drift found during this audit — fixed on this branch (2026-07-30) except where noted
 
 - CLAUDE.md routes all work through `docs/ENGINEERING.md`,
   `design-language.md`, `components.md` — none exist, in tree or history.
@@ -313,14 +314,16 @@ Store rationale:
 - Advertised answer-card features (SQL disclosure, CSV export, query
   interpretation, source note) don't exist in the shipping web component.
 - `.gitignore` ends with `/docs/` ("kept locally, never published") while
-  the docs tree is tracked — new docs files are silently skipped by
-  `git add` (this file was force-added). Remove the stale rule.
+  the docs tree is tracked — new docs files were silently skipped by
+  `git add` (this file was force-added). Rule since removed.
 - README claims a Redis container; docker-compose defines only Postgres.
   CLAUDE.md says local Postgres on :5433; compose publishes 5432 (the 5433
   remap lives in a gitignored override).
 - RLS + read-only role are claimed in docs but applied only by hand in the
   Supabase console — absent from `schema.sql`, so no second environment can
-  be provisioned reproducibly.
+  be provisioned reproducibly. (Still open: docs now say so honestly, but
+  the policies belong in `schema.sql`. The stale `docs/*.html` twins also
+  remain — they still carry every pre-fix value; regenerate or delete them.)
 
 ## 11. Milestones
 
@@ -328,8 +331,9 @@ Mobile is a net-new track; ENGINEERING_PLAN's four tracks don't include it,
 and its M3 "LAUNCH BAR" (early-September kickoff) must not slip for it.
 Sequencing that respects that:
 
-- **M-0 (this week, tiny):** fix the ingest cron default-season bug; start
-  the doc-drift cleanup; decide §9 questions 1–4.
+- **M-0 (done on this branch, except the decisions):** ingest cron
+  default-season bug fixed; doc-drift cleanup landed; remaining: decide §9
+  questions 1–4.
 - **M-A (overlaps Track D, pre-kickoff):** §6.2 items 1–3 (versioned
   routes, paid plan + domain, rate-limit rework) — all but versioning are
   already launch-bar items for the *web* product.

@@ -25,6 +25,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # No season input (every scheduled run) = bare CLI = the current season.
       - run: pnpm ingest:nfl ${{ inputs.season && format('--season {0}', inputs.season) || '' }}
         env:
           DATABASE_URL: ${{ secrets.INGEST_DATABASE_URL }}

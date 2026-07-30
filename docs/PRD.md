@@ -16,16 +16,17 @@ tool-routing assistant — all served from one authoritative warehouse
 generation hallucinates numbers, so YunoBall never generates a number. A
 deterministic parser translates a question into a typed `QuerySpec`; a
 template builder writes safe SQL; Postgres is the source of truth. Every
-answer can show the exact SQL and rows behind it.
+answer is backed by the exact SQL and rows that produced it, recorded
+server-side (exposing them in-product is an open decision — see §4.1).
 
 ## 2. Target users
 
 | Persona | Need | What they use |
 |---|---|---|
 | The stats-curious fan | "Who led the league in rushing in 2003?" answered instantly, correctly | Search, answer pages |
-| The debate settler | Proof to win an argument — a number *with receipts* | Search, SQL disclosure, share links |
+| The debate settler | Proof to win an argument — a number *with receipts* | Search, share links (SQL disclosure planned) |
 | The fantasy player | Season production, per-game rates, weekly performers, lineup ideas | Fantasy, leaderboards, performers, player pages |
-| The browser | Scores, standings, and leaders without asking anything | Hub pages (`/scores`, `/standings`, `/leaderboards`) |
+| The browser | Scores, standings, and leaders without asking anything | Hub pages (`/scores`, `/standings`, `/leaders`) |
 
 ## 3. Problems we solve
 
@@ -33,8 +34,9 @@ answer can show the exact SQL and rows behind it.
    YunoBall computes every number from warehouse facts; zero LLM calls in the
    answer path.
 2. **StatMuse is a black box** — you get a number, not the query behind it.
-   YunoBall exposes the SQL, the resolved entities, the interpretation, and
-   the source rows for every answer.
+   YunoBall resolves entities in the open and records the SQL, interpretation,
+   and source rows behind every answer; surfacing them in-product is planned
+   (today they stay server-side — see §4.1).
 3. **Stats sites fragment the experience** — scores here, splits there,
    fantasy elsewhere. YunoBall serves them all from one warehouse with one
    design language.
@@ -44,7 +46,7 @@ answer can show the exact SQL and rows behind it.
 ### 4.1 Natural-language search (the core)
 - Free-text question box with autocomplete (players, teams, supported questions).
 - Deterministic answer pipeline: fuzzy entity resolution → rule-based parse to
-  a typed `QuerySpec` (21 intents: leaders, player totals, comparisons, game
+  a typed `QuerySpec` (23 intents: leaders, player totals, comparisons, game
   logs, streaks, milestones, drafts, team stats, bios, awards…) → allowlisted
   SQL → templated narration. See [TDD.md](TDD.md) §4.
 - Scope grammar: seasons and ranges, REG/POST, playoff rounds, Super Bowl
@@ -54,7 +56,9 @@ answer can show the exact SQL and rows behind it.
   never a guess. A second-layer auditor records status, warnings, and
   confidence for every question.
 - Every answer carries: narration, sortable result table, player identity
-  card(s), query interpretation, SQL disclosure, CSV export, share action.
+  card(s), share action. Query interpretation, SQL disclosure, and CSV export
+  are planned, not yet built: the server records SQL per answer but redacts
+  it at the API boundary (`redactAnswer()`).
 
 ### 4.2 Shareable answers
 - Every parsed answer gets a deterministic `share_id`; `/a/<share_id>` serves
@@ -90,7 +94,7 @@ answer can show the exact SQL and rows behind it.
 | Requirement | Bar |
 |---|---|
 | **Accuracy** | A wrong number is worse than no answer. Ambiguous vocabulary is deliberately excluded from the parser (e.g. "pick" ≠ interception). |
-| **Transparency** | Every answer must expose its SQL, entities, and interpretation. |
+| **Traceability** | Every answer's SQL, entities, and interpretation are recorded server-side (`query_audit`, `answer_cache`); exposing them to clients is an open product decision. |
 | **Latency** | Cached answers instant (two-tier cache); cold answers a single indexed query. No LLM in the loop. |
 | **Cost** | Zero inference cost; one small Postgres + one Node service + static frontend. |
 | **Safety** | SQL injection impossible by construction (allowlists + bound params); reads run under a read-only role; per-IP rate limiting on search/agent. |

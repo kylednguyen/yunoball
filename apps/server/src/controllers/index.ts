@@ -2,7 +2,7 @@
  * No business logic here — that lives in services/. */
 
 import type { Request, Response } from "express";
-import type { AnswerResult } from "@yunoball/types";
+import type { AgentResponse, AnswerResult } from "@yunoball/types";
 import { z } from "zod";
 import { config } from "../config.js";
 import { runQueryPipeline } from "../engine/pipeline.js";
@@ -193,5 +193,7 @@ export async function agent(req: Request, res: Response): Promise<void> {
   limited(req);
   const body = parse(agentBody, req.body);
   const { reply, steps } = await runAgent(body.messages);
-  res.json({ reply, steps, mode: "demo" });
+  // Typed so drift from the wire contract fails typecheck, not the frontend.
+  const payload: AgentResponse = { reply, steps, mode: "demo" };
+  res.json(payload);
 }

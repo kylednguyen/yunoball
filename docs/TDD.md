@@ -41,8 +41,8 @@ apps/server/src
                     executors/, narrate, audit, similarity, pipeline, facts)
   ingest/           providers/ (nflverse), normalize, upsert, pipelines, cli
   db/               pool, schema.sql, migrate
-  cli/              fetchEspnIds (ESPN headshot ids)
-  lib/              cross-cutting helpers (espn, rateLimit, …)
+  cli/              searchAudit (question-corpus diagnostic over the pipeline)
+  lib/              cross-cutting helpers (espn headshots, cache, rateLimit, …)
 packages/types      the API wire contract (snake_case = JSON format)
 ```
 
@@ -73,6 +73,14 @@ Response shapes are exactly the interfaces in `packages/types/src/index.ts`
 (`AnswerResult`, `LeaderboardsResponse`, `StandingsResponse`, `PlayerProfile`,
 `TeamProfile`, `BoxScore`, …).
 
+`AnswerResult` carries `sql` and `audit`, but `redactAnswer()` in
+`controllers/index.ts` blanks `sql` and drops `audit` from both the search
+response and the share lookup, so neither crosses the wire today and no web
+surface renders them. Both stay populated server-side — in the in-process
+cache, in `answer_cache.sql`, in `query_audit`, and for in-process callers
+like the `searchAudit` CLI. Whether to expose the SQL to clients is an open
+product decision ([PRD_MOBILE.md](PRD_MOBILE.md) §9).
+
 ## 4. The query engine (the core subsystem)
 
 ### 4.1 Pipeline — deterministic end to end, zero LLM calls
@@ -94,12 +102,12 @@ navigation to `/a/<id>` can't race the write.
 
 ### 4.2 QuerySpec — a typed AST, not SQL
 
-`engine/spec.ts` defines a **discriminated union on `intent`** — 21 intents:
+`engine/spec.ts` defines a **discriminated union on `intent`** — 23 intents:
 `leaders`, `player_total`, `player_seasons`, `single_game`, `compare`,
-`scoring`, `game_count`, `qualifying_count`, `player_rank`, `player_bio`,
-`game_log`, `team_game_log`, `game_result`, `draft_pick`, `team_bio`,
-`team_stat`, `team_roster`, `player_streak`, `team_streak`, `milestone`,
-`award`.
+`scoring`, `scoring_board`, `game_count`, `game_count_leaders`,
+`qualifying_count`, `player_rank`, `player_bio`, `game_log`, `team_game_log`,
+`game_result`, `draft_pick`, `team_bio`, `team_stat`, `team_roster`,
+`player_streak`, `team_streak`, `milestone`, `award`.
 
 Each intent's node carries **only the fields its executor consumes** — "the
 parser set a field the executor silently ignores" (the engine's worst
@@ -113,7 +121,7 @@ opponent, season range, month, primetime, temperature ceiling), and
 
 ### 4.3 The stat allowlist
 
-`STATS` maps ~30 stat keys to `StatDef`s: an SQL expression over alias `s`
+`STATS` maps 33 stat keys to `StatDef`s: an SQL expression over alias `s`
 (**allowlisted here, never taken from free text**), a narration label, and
 matching vocabulary (substring `phrases` + whole-word `words`, ordered most
 specific first so rate stats match before the volume stats they embed).
@@ -145,9 +153,13 @@ Machinery:
 - **L2:** `specCacheKey(spec)` — different phrasings of the same intent share
   one answer. The key enumerates every executor-relevant field (notably
   `playerId`, since display names collide).
+- **TTL:** `ANSWER_CACHE_TTL_SECONDS` (24h default) bounds *only* the
+  in-process LRU in `lib/cache.ts` — both tiers, one process, gone on restart.
 - **Durable:** `answer_cache` persists every answer under its `share_id`
-  (deterministic SHA-256 prefix), TTL `ANSWER_CACHE_TTL_SECONDS` (24h
-  default), powering permanent `/a/` share pages.
+  (deterministic SHA-256 prefix), powering permanent `/a/` share pages.
+  Despite the shared name, the TTL above never reaches it: rows are written
+  with no expiry and no job sweeps them, so the table grows one row per
+  distinct normalized question (repeats bump `hits`).
 
 ### 4.6 Entity resolution
 
@@ -175,8 +187,13 @@ assistant routes intents to these same services and reports its tool steps
   logged reason and an end-of-run tally (never silently dropped, never fatal).
 - **Upsert:** batched idempotent upserts in transactions; per-dataset failure
   isolation (one bad dataset doesn't kill the run).
-- **CLI:** `pnpm ingest:nfl --season 2024 | --all | --years … [--season-type]
-  [--dry-run]`; re-runs are safe.
+- **CLI:** `pnpm ingest:nfl [--season 2024 | --all | --years …]
+  [--season-type] [--dry-run] [--no-cache]`; with no season selector it
+  ingests the season in progress. Re-runs are safe.
+- **Cadence:** a GitHub Actions cron (`.github/workflows/ingest.yml`) runs the
+  bare CLI — i.e. the current season — every Tuesday at 10:00 UTC, once
+  Monday-night stats have landed. `workflow_dispatch` takes an optional
+  `season` input for backfills.
 - **Pbp distillation:** scoring plays (TD events), per-player-game advanced
   aggregates, TD yards, drive counts — full play-by-play is never stored.
 
@@ -188,7 +205,7 @@ assistant routes intents to these same services and reports its tool steps
 | `READONLY_DATABASE_URL` | read-only role for engine SQL | falls back to `DATABASE_URL` |
 | `CORS_ORIGINS` | allowed browser origins | localhost dev ports |
 | `RATE_LIMIT_PER_MINUTE` | per-IP cap on `/api/search` + `/api/agent` (0 = off) | 30 |
-| `ANSWER_CACHE_TTL_SECONDS` | durable answer TTL | 86400 |
+| `ANSWER_CACHE_TTL_SECONDS` | in-process answer-cache TTL (not the durable `answer_cache` table) | 86400 |
 | `LOG_LEVEL` | pino level | info |
 | `NEXT_PUBLIC_API_URL` | (web) API origin | — |
 
@@ -210,8 +227,9 @@ serverless.
 |---|---|
 | `apps/server/test/engine.test.ts` | Parser/builder/narration golden cases; similarity port matches CPython difflib |
 | `apps/server/test/ingest.test.ts` | Messy-data suite against a scratch Postgres: relocations, duplicate ids, postponed games, orphan stats, dry-run, idempotency, schema drift |
+| `apps/server/test/` (battery, audit, sweep, espn, ingestCli) | 100-question battery, auditor verdicts, SQL-plan sweep, headshot resolution, ingest CLI season selection |
 | `apps/web/e2e` (Playwright) | Real browser flows over both servers (reuses running dev servers or boots its own) |
-| CI (`.github/workflows/ci.yml`) | Lint, typecheck, both server suites, plus a real one-season ingest into a service Postgres before e2e |
+| CI (`.github/workflows/ci.yml`) | Lint, typecheck, the server vitest suites, plus a real three-season ingest (2022–2024) into a service Postgres before e2e |
 
 Run: `pnpm --filter @yunoball/server test` · `pnpm typecheck` · `pnpm e2e`.
 
@@ -223,7 +241,7 @@ Run: `pnpm --filter @yunoball/server test` · `pnpm typecheck` · `pnpm e2e`.
 | Discriminated union per intent | Parser/executor field drift becomes a compile error |
 | Numbers from facts, not RAG/LLM | Accuracy is the product; zero inference cost and latency |
 | Express + shared types package | One language; the wire contract can't drift between web and server |
-| Plain-SQL schema + idempotent migrate | ~11 tables; `IF NOT EXISTS` beats a migration framework at this size |
+| Plain-SQL schema + idempotent migrate | 14 tables; `IF NOT EXISTS` beats a migration framework at this size |
 | nflverse release CSVs | Free, open, 1999–present; no scraping/ToS risk |
 | Provider modules for new data sources | Public API stays stable as sources are added |
 | Persistent Node API (not serverless) | Warm pool, in-process cache, session-pooler compatibility |

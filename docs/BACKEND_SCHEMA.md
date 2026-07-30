@@ -13,14 +13,20 @@ player_season_stats   ├── player_game_stats    (player × game)
    │                  ├── player_game_advanced (pbp aggregates)
    ▼                  ├── team_game_stats      (team × game)
 players ◄─────────────┴── scoring_plays        (touchdown events)
+   ▲
+   └── rosters                                 (player × season × team)
 
 app tables: answer_cache · query_audit        history: draft_picks
+crosswalk:  player_id_map (gsis → espn/pfr/pff/otc/esb ids + headshot, no FK)
 ```
+
+Fourteen tables in all:
 
 - **Dimensions:** `seasons`, `teams`, `players`, `games`
 - **Facts:** `player_game_stats`, `team_game_stats`, `player_game_advanced`,
-  `scoring_plays`
+  `scoring_plays`, `rosters`
 - **Rollups:** `player_season_stats`
+- **Crosswalk:** `player_id_map` (cross-source ids + nflverse headshot URL)
 - **App:** `answer_cache` (durable shareable answers), `query_audit`
   (per-question audit log)
 - **History:** `draft_picks` (1980+, deliberately no season FK)
@@ -29,7 +35,7 @@ app tables: answer_cache · query_audit        history: draft_picks
 
 - **Idempotent DDL.** `CREATE TABLE IF NOT EXISTS` everywhere; later columns
   are added with `ADD COLUMN IF NOT EXISTS` widening blocks at the bottom of
-  `schema.sql`. Twelve tables — this beats a migration framework.
+  `schema.sql`. Fourteen tables — this beats a migration framework.
 - **Stable identifiers.** `players.player_id` = nflverse gsis id;
   `games.game_id` = canonical nflverse schedule id; `teams.team_id` =
   *current-franchise* abbreviation with relocations folded forward (e.g. the
@@ -54,7 +60,9 @@ app tables: answer_cache · query_audit        history: draft_picks
 ### players
 `player_id varchar PK` (gsis), `full_name` (indexed), `first_name`,
 `last_name`, `position`, `birth_date`, `height_inches`, `weight_lbs`,
-`college`, `rookie_season`, `jersey_number`.
+`college`, `rookie_season`, `jersey_number`, plus `espn_id` and
+`headshot_url` — synced from `player_id_map` by the `player_ids` ingest step
+and the source the API serves headshots from.
 
 ### games
 `game_id varchar PK`, `season → seasons`, `week`, `season_type` (REG|POST),
@@ -92,6 +100,21 @@ Touchdown events only (~1.4k rows/season vs ~50k pbp rows): `game_id`,
 `yards`. Powers first/last-TD questions, longest-TD lookups, and the
 player-page touchdown log. Indexed by player and game.
 
+### rosters — PK (player_id, season, team_id)
+Which team a player was on each season, with `position`, `jersey_number`,
+`status`. A mid-season move produces one row per team. Index:
+`rosters_team_season_idx (team_id, season)`. Powers "who wore #18 for the
+Colts in 2004" — the per-season history `players` deliberately flattens away
+(that dimension keeps only the latest snapshot per player).
+
+### player_id_map — PK player_id (gsis)
+Cross-source id crosswalk from the nflverse players release: `espn_id`,
+`pfr_id`, `pff_id`, `otc_id`, `esb_id`, `headshot_url`. A full snapshot with
+**no FK** — it covers players outside the loaded 1999+ seasons and is the
+dedup backbone for any future second source (join on ids, never on names).
+The `player_ids` ingest step syncs `espn_id` + `headshot_url` forward onto
+`players`.
+
 ### draft_picks — PK (season, pick)
 nflverse draft history 1980+: round, pick, `team_id` (normalized to current
 franchise), `player_id` (gsis when available — joins `players`),
@@ -109,8 +132,12 @@ metrics.
 Durable shareable answers behind `/a/<share_id>`: `share_id` (unique,
 deterministic 32-char SHA-256 prefix of the normalized question),
 `question`, `normalized_question` (unique), `sql`, `answer_json`, `hits`,
-`created_at`. Fronted by the in-process cache; TTL via
-`ANSWER_CACHE_TTL_SECONDS`.
+`created_at`. Fronted by the in-process cache. **No TTL:** rows are inserted
+without an expiry and nothing sweeps them —
+`ANSWER_CACHE_TTL_SECONDS` bounds only the in-process LRU in
+`apps/server/src/lib/cache.ts`, despite the shared name. The table grows one
+row per distinct normalized question; repeats bump `hits`. The stored `sql`
+is server-side only: `redactAnswer()` blanks it before any HTTP response.
 
 ## 4. Index strategy
 
@@ -124,11 +151,16 @@ Indexes exist for the query shapes the engine actually emits:
 | Game-log joins | `pgs_game_idx`, `pga_game_idx`, `tgs_game_idx` |
 | Name lookup fallback | `players_full_name_idx` |
 | TD timeline per player/game | `scoring_plays_player_idx`, `scoring_plays_game_idx` |
+| Roster/jersey by team-season | `rosters_team_season_idx (team_id, season)` |
 
 ## 5. Ingestion → schema mapping
 
-`pnpm ingest:nfl --season N | --all | --years … [--season-type REG] [--dry-run]`
+`pnpm ingest:nfl [--season N | --all | --years …] [--season-type REG] [--dry-run] [--no-cache]`
 
+- With no season selector the CLI ingests the season in progress. A GitHub
+  Actions cron (`.github/workflows/ingest.yml`) runs it bare — i.e. the
+  current season — every Tuesday at 10:00 UTC, once Monday-night stats have
+  landed; `workflow_dispatch` takes an optional `season` input for backfills.
 - nflverse release CSVs → normalize (stable ids, relocation folding,
   REG/POST collapse) → zod-validate (skip + log malformed rows, end-of-run
   tally) → **batched idempotent upserts** in transactions with per-dataset
@@ -136,17 +168,30 @@ Indexes exist for the query shapes the engine actually emits:
 - Play-by-play is distilled at ingest into `scoring_plays` (TD events),
   `player_game_advanced` (EPA/success/CPOE), TD `yards`, and per-game
   `drives` — full pbp is never stored.
-- ESPN headshot ids come from a separate standalone CLI
-  (`apps/server/src/cli/fetchEspnIds.ts`) into `apps/server/data/espn_ids.json`.
+- Headshots are warehouse data, not a side file: the `player_ids` step loads
+  the nflverse crosswalk into `player_id_map` and syncs `espn_id` +
+  `headshot_url` onto `players`. At boot `apps/server/src/lib/espn.ts` reads
+  those two columns into an in-memory map, preferring nflverse's
+  `headshot_url` and falling back to an ESPN CDN URL built from `espn_id`;
+  players with neither degrade to initials avatars.
 
 ## 6. Environments
 
-- **Local:** Docker Postgres (`docker-compose.yml`; host port 5433 in the
-  standard local setup). Schema + data via `pnpm db:migrate` + `pnpm ingest:nfl`.
+- **Local:** Docker Postgres (`docker-compose.yml` publishes host port
+  **5432**; the 5433 remap some setups use lives in a gitignored
+  `docker-compose.override.yml`). Schema + data via `pnpm db:migrate` +
+  `pnpm ingest:nfl`.
 - **Production:** Supabase Postgres, connected through the **session pooler**
   (port 5432 — never the 6543 transaction pooler; the API is a persistent
-  server). RLS enabled with read policies; the API connects with its own
-  role, with a read-only role for engine-executed SQL.
+  server).
+- **Access control is not in this repo.** `schema.sql` contains no
+  `ROW LEVEL SECURITY`, `CREATE POLICY`, or `GRANT` statements. The intended
+  posture — RLS on with read-only policies, the API on its own role, and a
+  separate read-only role behind `READONLY_DATABASE_URL` for engine-executed
+  SQL — is applied by hand in the Supabase console. Only the
+  `READONLY_DATABASE_URL` half is reproducible from the repo (it is just an
+  env var); the RLS and grant half is not, so `pnpm db:migrate` against a
+  fresh database gives you the tables and none of the policies.
 
 ## 7. Planned schema work
 

@@ -9,7 +9,7 @@
 
 ## 0. Baseline (done)
 
-- Query engine: 21 intents, ~30 allowlisted stats, scope grammar (rounds,
+- Query engine: 23 intents, 33 allowlisted stats, scope grammar (rounds,
   venues, months, primetime, weather, ranges), two-tier cache + durable
   shares, structured audit log, zero LLM calls.
 - Warehouse: full nflverse ingest with validation, idempotent upserts, pbp
