@@ -42,6 +42,7 @@ One language, one runtime — TypeScript end to end:
             │    narrate    (templated from spec + rows)                          │
             │                                                                     │
             │  agent (POST /api/agent): intent routing over the same services     │
+            │  facts (GET /api/facts/*): single-row reads of mined stat_facts     │
             └──────────────────────────────────┬──────────────────────────────────┘
                                                │
             ┌───────────────────────── Postgres warehouse ────────────────────────┐
@@ -49,6 +50,7 @@ One language, one runtime — TypeScript end to end:
             │              player_game_stats · team_game_stats                    │
             │              player_season_stats (rollup)   answer_cache (shares)   │
             │              draft_picks · query_audit                              │
+            │              stat_facts · fact_of_the_day  (see docs/FACTS.md)     │
             │  (schema.sql + `pnpm db:migrate`, idempotent)                       │
             └──────────────────────────────────▲──────────────────────────────────┘
                                                │  batched idempotent upserts
@@ -99,6 +101,13 @@ rounds collapsed to `POST`, postponed games kept with `NULL` scores.
 rows/season instead of ~50k), powering first/last-TD questions and the
 player-page touchdown log without storing full pbp.
 
+The nflverse `stats_player` files carry 145 columns; the mapping consumes the
+special-teams, situational and extended-defensive blocks alongside the original
+box score, so kicking, punting, returns, first downs, YAC and penalties are all
+queryable without an extra fetch. Team box scores come from the `stats_team`
+release, fetched best-effort — if it is unavailable a team-game row still
+carries its result, as it always did.
+
 Table relationships:
 
 ```
@@ -111,6 +120,17 @@ players ◄── player_game_stats.player_id / scoring_plays.player_id
 
 (plus draft_picks and query_audit)
 ```
+
+## Notable facts
+
+A scheduled miner (`pnpm facts:mine`) runs a registry of reviewed SQL **probes**
+over the warehouse and stores the rare lines they find in `stat_facts`, one of
+which is published per day. Same invariant as the query engine: the SQL is
+checked in, the headline comes from the probe's own template, and every fact
+carries the query and peer rows that prove it. A model contributes probe source
+at design time only — nothing generative runs in a request. Coverage floors are
+derived from the warehouse so no fact can claim to see further back than the
+data does. See [FACTS.md](FACTS.md).
 
 ## What makes it "more advanced" than StatMuse
 

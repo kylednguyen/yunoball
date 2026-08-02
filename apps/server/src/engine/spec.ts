@@ -316,6 +316,160 @@ export const STATS: Record<string, StatDef> = {
     ratio: { num: "completions", den: "attempts", pct: true, floorSeason: 150, floorCareer: 1000 },
     unit: "%",
   },
+  // ---- Special teams and situational ----
+  //
+  // These columns arrived with the widened nflverse mapping (see
+  // ingest/pipelines.ts). They live in BOTH the game log and the season
+  // rollup, so they need no `source: "game"`.
+  //
+  // Deliberately absent: fg_long and punt_long. Every executor here SUMs a
+  // stat over the scoped rows, and a summed "longest" is meaningless — those
+  // two need a MAX-shaped intent that doesn't exist yet, and a wrong number is
+  // worse than a missing one.
+  //
+  // Rate stats first: their phrases embed the volume stats' words.
+  field_goal_pct: {
+    expr: "",
+    label: "field goal percentage",
+    phrases: ["field goal percentage", "field goal pct", "field goal rate", "kicking percentage"],
+    words: [],
+    ratio: { num: "fg_made", den: "fg_att", pct: true, floorSeason: 15, floorCareer: 100 },
+    unit: "%",
+  },
+  yards_per_punt: {
+    expr: "",
+    label: "yards per punt",
+    phrases: ["yards per punt", "punting average", "punt average"],
+    words: [],
+    ratio: { num: "punt_yards", den: "punts", floorSeason: 20, floorCareer: 150 },
+  },
+  // Within this block the more specific phrase must be declared first: the
+  // parser takes the first match, and "field goals attempted" contains
+  // "field goals", "punt yards" contains "punt", and so on.
+  field_goal_attempts: {
+    expr: "s.fg_att",
+    label: "field goal attempts",
+    phrases: ["field goal attempts", "field goals attempted", "field goal tries"],
+    words: [],
+  },
+  field_goals_50_plus: {
+    expr: "s.fg_made_50_plus",
+    label: "field goals from 50+ yards",
+    phrases: ["50 yard field goals", "50+ yard field goals", "long field goals"],
+    words: [],
+  },
+  game_winning_field_goals: {
+    expr: "s.gwfg_made",
+    label: "game-winning field goals",
+    phrases: [
+      "game winning field goals", "game-winning field goals",
+      "game winning kicks", "game-winning kicks",
+    ],
+    words: [],
+  },
+  field_goals_made: {
+    expr: "s.fg_made",
+    label: "field goals made",
+    phrases: ["field goals made", "field goal made", "made field goals", "field goals", "field goal"],
+    words: ["fg", "fgs"],
+  },
+  extra_points_made: {
+    expr: "s.pat_made",
+    label: "extra points made",
+    phrases: ["extra points", "extra point", "pat made"],
+    words: [],
+  },
+  punt_return_yards: {
+    expr: "s.punt_return_yards",
+    label: "punt return yards",
+    phrases: ["punt return yards"],
+    words: [],
+  },
+  kick_return_yards: {
+    expr: "s.kick_return_yards",
+    label: "kick return yards",
+    phrases: ["kick return yards", "kickoff return yards"],
+    words: [],
+  },
+  punts_inside_20: {
+    expr: "s.punts_inside_20",
+    label: "punts inside the 20",
+    phrases: ["punts inside the 20", "punts inside 20", "coffin corner"],
+    words: [],
+  },
+  punt_yards: {
+    expr: "s.punt_yards",
+    label: "punt yards",
+    phrases: ["punt yards", "punting yards"],
+    words: [],
+  },
+  punts: {
+    expr: "s.punts",
+    label: "punts",
+    phrases: ["punts", "punt"],
+    words: [],
+  },
+  special_teams_tds: {
+    expr: "s.special_teams_tds",
+    label: "special teams touchdowns",
+    phrases: ["special teams touchdowns", "return touchdowns", "kick return touchdowns"],
+    words: [],
+  },
+  passing_first_downs: {
+    expr: "s.passing_first_downs",
+    label: "passing first downs",
+    phrases: ["passing first downs", "first downs passing"],
+    words: [],
+  },
+  rushing_first_downs: {
+    expr: "s.rushing_first_downs",
+    label: "rushing first downs",
+    phrases: ["rushing first downs", "first downs rushing"],
+    words: [],
+  },
+  receiving_first_downs: {
+    expr: "s.receiving_first_downs",
+    label: "receiving first downs",
+    phrases: ["receiving first downs", "first downs receiving"],
+    words: [],
+  },
+  receiving_yards_after_catch: {
+    expr: "s.receiving_yards_after_catch",
+    label: "yards after catch",
+    phrases: ["yards after catch", "yards after the catch"],
+    words: ["yac"],
+  },
+  def_tackles_for_loss: {
+    expr: "s.def_tackles_for_loss",
+    label: "tackles for loss",
+    phrases: ["tackles for loss", "tackle for loss", "tackles for a loss"],
+    words: ["tfl", "tfls"],
+  },
+  def_qb_hits: {
+    expr: "s.def_qb_hits",
+    label: "QB hits",
+    phrases: ["qb hits", "quarterback hits"],
+    words: [],
+  },
+  def_tds: {
+    expr: "s.def_tds",
+    label: "defensive touchdowns",
+    phrases: ["defensive touchdowns", "defensive touchdown", "pick six", "pick sixes"],
+    words: [],
+  },
+  penalty_yards: {
+    expr: "s.penalty_yards",
+    label: "penalty yards",
+    phrases: ["penalty yards"],
+    words: [],
+  },
+  penalties: {
+    expr: "s.penalties",
+    label: "penalties",
+    phrases: ["penalties", "penalty"],
+    words: [],
+  },
+
   // ---- Computed stats (parser-selected for generic questions) ----
   total_tds: {
     expr: `${n("passing_tds")} + ${n("rushing_tds")} + ${n("receiving_tds")}`,

@@ -23,6 +23,10 @@ that drifts is worse than no doc.
 - **Never a wrong number**: the engine refuses what it can't answer precisely
   (see the engine rules in ENGINEERING.md before touching `src/engine/`).
 - **nflverse only** for data; never scrape Pro-Football-Reference.
+- **Facts are mined, never generated** — the fact of the day comes from
+  reviewed SQL probes and templated headlines, and no claim may reach past its
+  derived coverage floor (see [docs/FACTS.md](docs/FACTS.md) before touching
+  `src/facts/`).
 - Wire-format changes touch server + `packages/types` + web **together**.
 - Style only with tokens/`yb-*` classes; team colors only via `teamTheme()`.
 

@@ -549,6 +549,51 @@ export interface TeamProfile {
   games: TeamGame[];
 }
 
+// ---- Notable facts (fact of the day) ----
+
+/** One mined statistical fact. `headline` is rendered by the probe's own
+ * template, never generated. */
+export interface StatFact {
+  fact_id: string;
+  probe_id: string;
+  family: string;
+  subject_kind: string;
+  subject_id: string | null;
+  subject_name: string;
+  season: number | null;
+  week: number | null;
+  season_type: string;
+  headline: string;
+  metric: string | null;
+  value: number | null;
+  /** How many times this has happened in the scanned era. */
+  population: number;
+  /** The previous occurrence; null when there wasn't one on record. */
+  prior_season: number | null;
+  /** Earliest season the probe could see. No claim reaches past it. */
+  coverage_floor: number;
+  surprise: number;
+  question: string | null;
+  computed_at: string;
+}
+
+/** The detail view adds the peer rows behind the claim — the every-occurrence
+ * list the probe returned, which is what lets a reader check the rarity for
+ * themselves. The probe's SQL is stored server-side but redacted at the HTTP
+ * boundary, same as an answer's query (see redactAnswer in the controllers). */
+export interface StatFactDetail extends StatFact {
+  evidence: Record<string, unknown>[];
+}
+
+export interface FactOfTheDayResponse {
+  day: string;
+  fact: StatFact | null;
+}
+
+export interface FactsResponse {
+  facts: StatFact[];
+}
+
 // ---- AI assistant ----
 
 export interface ChatTurn {

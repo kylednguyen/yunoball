@@ -296,6 +296,94 @@ CREATE TABLE IF NOT EXISTS rosters (
 );
 CREATE INDEX IF NOT EXISTS rosters_team_season_idx ON rosters (team_id, season);
 
+-- Special teams, situational and extended defensive columns. Every one of
+-- these already ships in the nflverse stats_player files the ingest downloads
+-- (145 columns; the original mapping consumed 24), so widening here costs no
+-- extra fetch — see docs/FACTS.md and ingest/pipelines.ts. Kicking and punting
+-- in particular were previously absent from the warehouse entirely, which put
+-- every kicker and punter question out of reach.
+ALTER TABLE player_game_stats
+    ADD COLUMN IF NOT EXISTS fg_made smallint,
+    ADD COLUMN IF NOT EXISTS fg_att smallint,
+    ADD COLUMN IF NOT EXISTS fg_long smallint,
+    ADD COLUMN IF NOT EXISTS fg_made_50_plus smallint,  -- 50_59 + 60_ buckets
+    ADD COLUMN IF NOT EXISTS gwfg_made smallint,        -- game-winning FGs
+    ADD COLUMN IF NOT EXISTS gwfg_att smallint,
+    ADD COLUMN IF NOT EXISTS pat_made smallint,
+    ADD COLUMN IF NOT EXISTS pat_att smallint,
+    ADD COLUMN IF NOT EXISTS punts smallint,
+    ADD COLUMN IF NOT EXISTS punt_yards integer,
+    ADD COLUMN IF NOT EXISTS punt_long smallint,
+    ADD COLUMN IF NOT EXISTS punt_net_yards integer,
+    ADD COLUMN IF NOT EXISTS punts_inside_20 smallint,
+    ADD COLUMN IF NOT EXISTS punts_blocked smallint,
+    ADD COLUMN IF NOT EXISTS punt_returns smallint,
+    ADD COLUMN IF NOT EXISTS punt_return_yards integer,
+    ADD COLUMN IF NOT EXISTS kick_returns smallint,
+    ADD COLUMN IF NOT EXISTS kick_return_yards integer,
+    ADD COLUMN IF NOT EXISTS special_teams_tds smallint,
+    ADD COLUMN IF NOT EXISTS passing_first_downs smallint,
+    ADD COLUMN IF NOT EXISTS rushing_first_downs smallint,
+    ADD COLUMN IF NOT EXISTS receiving_first_downs smallint,
+    ADD COLUMN IF NOT EXISTS passing_yards_after_catch integer,
+    ADD COLUMN IF NOT EXISTS receiving_yards_after_catch integer,
+    ADD COLUMN IF NOT EXISTS def_tackles_for_loss smallint,
+    ADD COLUMN IF NOT EXISTS def_qb_hits smallint,
+    ADD COLUMN IF NOT EXISTS def_interception_yards integer,
+    ADD COLUMN IF NOT EXISTS def_tds smallint,
+    ADD COLUMN IF NOT EXISTS def_safeties smallint,
+    ADD COLUMN IF NOT EXISTS penalties smallint,
+    ADD COLUMN IF NOT EXISTS penalty_yards integer;
+ALTER TABLE player_season_stats
+    ADD COLUMN IF NOT EXISTS fg_made smallint,
+    ADD COLUMN IF NOT EXISTS fg_att smallint,
+    ADD COLUMN IF NOT EXISTS fg_long smallint,
+    ADD COLUMN IF NOT EXISTS fg_made_50_plus smallint,
+    ADD COLUMN IF NOT EXISTS gwfg_made smallint,
+    ADD COLUMN IF NOT EXISTS gwfg_att smallint,
+    ADD COLUMN IF NOT EXISTS pat_made smallint,
+    ADD COLUMN IF NOT EXISTS pat_att smallint,
+    ADD COLUMN IF NOT EXISTS punts smallint,
+    ADD COLUMN IF NOT EXISTS punt_yards integer,
+    ADD COLUMN IF NOT EXISTS punt_long smallint,
+    ADD COLUMN IF NOT EXISTS punt_net_yards integer,
+    ADD COLUMN IF NOT EXISTS punts_inside_20 smallint,
+    ADD COLUMN IF NOT EXISTS punts_blocked smallint,
+    ADD COLUMN IF NOT EXISTS punt_returns smallint,
+    ADD COLUMN IF NOT EXISTS punt_return_yards integer,
+    ADD COLUMN IF NOT EXISTS kick_returns smallint,
+    ADD COLUMN IF NOT EXISTS kick_return_yards integer,
+    ADD COLUMN IF NOT EXISTS special_teams_tds smallint,
+    ADD COLUMN IF NOT EXISTS passing_first_downs smallint,
+    ADD COLUMN IF NOT EXISTS rushing_first_downs smallint,
+    ADD COLUMN IF NOT EXISTS receiving_first_downs smallint,
+    ADD COLUMN IF NOT EXISTS passing_yards_after_catch integer,
+    ADD COLUMN IF NOT EXISTS receiving_yards_after_catch integer,
+    ADD COLUMN IF NOT EXISTS def_tackles_for_loss smallint,
+    ADD COLUMN IF NOT EXISTS def_qb_hits smallint,
+    ADD COLUMN IF NOT EXISTS def_interception_yards integer,
+    ADD COLUMN IF NOT EXISTS def_tds smallint,
+    ADD COLUMN IF NOT EXISTS def_safeties smallint,
+    ADD COLUMN IF NOT EXISTS penalties smallint,
+    ADD COLUMN IF NOT EXISTS penalty_yards integer;
+
+-- Team box-score columns from the nflverse stats_team release. total_yards,
+-- passing_yards, rushing_yards and turnovers were declared when this table was
+-- created but never written — loadTeamGameStats built rows from the schedule
+-- alone, so they were NULL in every row. stats_team fills them.
+-- time_of_possession_sec stays unpopulated: nflverse does not publish it in
+-- stats_team (it is derivable from play-by-play drive timing — future work).
+ALTER TABLE team_game_stats
+    ADD COLUMN IF NOT EXISTS first_downs smallint,
+    ADD COLUMN IF NOT EXISTS penalties smallint,
+    ADD COLUMN IF NOT EXISTS penalty_yards integer,
+    ADD COLUMN IF NOT EXISTS sacks_taken smallint,
+    ADD COLUMN IF NOT EXISTS def_sacks double precision,
+    ADD COLUMN IF NOT EXISTS fg_made smallint,
+    ADD COLUMN IF NOT EXISTS fg_att smallint,
+    ADD COLUMN IF NOT EXISTS passing_epa real,
+    ADD COLUMN IF NOT EXISTS rushing_epa real;
+
 -- Query-shape indexes. Leaderboards filter (season, season_type); "players on
 -- team X in year Y" filters team_id; REG/POST game scans filter season_type.
 CREATE INDEX IF NOT EXISTS pss_season_type_idx
@@ -304,3 +392,47 @@ CREATE INDEX IF NOT EXISTS pss_team_season_idx
     ON player_season_stats (team_id, season);
 CREATE INDEX IF NOT EXISTS games_season_type_idx
     ON games (season, season_type);
+
+-- Notable statistical facts mined from the warehouse by the probe registry
+-- (src/facts). Every row is produced by a reviewed, checked-in SQL probe and
+-- carries the SQL and the peer rows that prove it — a fact that can't show its
+-- work doesn't ship. No free-form text ever lands here: `headline` is rendered
+-- by the probe's own template. See docs/FACTS.md.
+CREATE TABLE IF NOT EXISTS stat_facts (
+    fact_id      varchar PRIMARY KEY,  -- hash(probe_id, params, subject) — re-mining upserts
+    probe_id     varchar NOT NULL,
+    family       varchar NOT NULL,     -- threshold | drought | streak | pace | conjunction | anti
+    subject_kind varchar NOT NULL,     -- player | team
+    subject_id   varchar,              -- player_id or team_id (no FK: subjects can age out)
+    subject_name varchar NOT NULL,
+    season       integer,
+    week         smallint,
+    season_type  varchar NOT NULL DEFAULT 'REG',
+    headline     text NOT NULL,        -- templated by the probe, never generated
+    metric       varchar,
+    value        numeric,
+    population   integer NOT NULL,     -- how many times this has happened in the scanned era
+    prior_season integer,              -- previous occurrence; NULL = never before
+    -- Earliest season the probe could actually see, derived from its source
+    -- datasets at mine time. A claim may never reach past this: see
+    -- assertCoverage() in facts/claim.ts.
+    coverage_floor integer NOT NULL,
+    rarity       real NOT NULL,
+    surprise     real NOT NULL,
+    sql          text NOT NULL,
+    evidence     jsonb NOT NULL,       -- the peer rows behind the claim
+    question     text,                 -- deep link into /search
+    computed_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS stat_facts_surprise_idx ON stat_facts (surprise DESC);
+CREATE INDEX IF NOT EXISTS stat_facts_season_idx ON stat_facts (season DESC, week DESC);
+CREATE INDEX IF NOT EXISTS stat_facts_subject_idx ON stat_facts (subject_kind, subject_id);
+
+-- One published fact per day. Selection is a pure function of the date over
+-- the ranked backlog, so the cron job and the API compute the same answer and
+-- a missed run self-heals on the next read.
+CREATE TABLE IF NOT EXISTS fact_of_the_day (
+    day          date PRIMARY KEY,
+    fact_id      varchar NOT NULL REFERENCES stat_facts (fact_id) ON DELETE CASCADE,
+    selected_at  timestamptz NOT NULL DEFAULT now()
+);

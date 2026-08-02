@@ -64,6 +64,28 @@ export function float(v: string | undefined): number | null {
 // exist in these schemas, so schema drift fails loudly instead of silently.
 
 const id = z.string().min(1);
+const num = () => z.number().nullable();
+
+/** Column blocks shared by the player game log and the season rollup — both
+ * come from the same nflverse stats_player files, so one definition keeps the
+ * two row schemas from drifting apart. */
+const specialTeamsCols = {
+  fg_made: num(), fg_att: num(), fg_long: num(), fg_made_50_plus: num(),
+  gwfg_made: num(), gwfg_att: num(), pat_made: num(), pat_att: num(),
+  punts: num(), punt_yards: num(), punt_long: num(), punt_net_yards: num(),
+  punts_inside_20: num(), punts_blocked: num(),
+  punt_returns: num(), punt_return_yards: num(),
+  kick_returns: num(), kick_return_yards: num(), special_teams_tds: num(),
+};
+const situationalCols = {
+  passing_first_downs: num(), rushing_first_downs: num(), receiving_first_downs: num(),
+  passing_yards_after_catch: num(), receiving_yards_after_catch: num(),
+  penalties: num(), penalty_yards: num(),
+};
+const extendedDefenseCols = {
+  def_tackles_for_loss: num(), def_qb_hits: num(), def_interception_yards: num(),
+  def_tds: num(), def_safeties: num(),
+};
 
 export const teamRow = z.strictObject({
   team_id: id,
@@ -139,6 +161,9 @@ export const playerGameStatsRow = z.strictObject({
   passes_defended: z.number().nullable(),
   passing_air_yards: z.number().nullable(),
   receiving_air_yards: z.number().nullable(),
+  ...specialTeamsCols,
+  ...situationalCols,
+  ...extendedDefenseCols,
 });
 
 export const playerSeasonStatsRow = z.strictObject({
@@ -167,8 +192,15 @@ export const playerSeasonStatsRow = z.strictObject({
   def_interceptions: z.number().nullable(),
   forced_fumbles: z.number().nullable(),
   passes_defended: z.number().nullable(),
+  ...specialTeamsCols,
+  ...situationalCols,
+  ...extendedDefenseCols,
 });
 
+/** A team's row for one game: the win/loss record from the schedule, widened
+ * with the box score from the nflverse stats_team release. The box-score
+ * columns are nullable because stats_team is fetched best-effort — if it is
+ * unavailable the row still carries the result, as it always did. */
 export const teamGameStatsRow = z.strictObject({
   team_id: id,
   game_id: id,
@@ -176,6 +208,19 @@ export const teamGameStatsRow = z.strictObject({
   points_for: z.number(),
   points_against: z.number(),
   result: z.enum(["W", "L", "T"]),
+  total_yards: z.number().nullable(),
+  passing_yards: z.number().nullable(),
+  rushing_yards: z.number().nullable(),
+  turnovers: z.number().nullable(),
+  first_downs: z.number().nullable(),
+  penalties: z.number().nullable(),
+  penalty_yards: z.number().nullable(),
+  sacks_taken: z.number().nullable(),
+  def_sacks: z.number().nullable(),
+  fg_made: z.number().nullable(),
+  fg_att: z.number().nullable(),
+  passing_epa: z.number().nullable(),
+  rushing_epa: z.number().nullable(),
 });
 
 export const draftPickRow = z.strictObject({

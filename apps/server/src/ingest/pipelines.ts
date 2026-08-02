@@ -50,6 +50,64 @@ export function checkColumns(
   }
 }
 
+/** Special-teams, situational and extended-defensive columns, mapped from a
+ * stats_player row. The weekly and season release files use identical column
+ * names for all of these, so one mapper serves both grains.
+ *
+ * These 31 columns ship in the very same files the ingest already downloads —
+ * nflverse publishes 145 and the original mapping consumed 24, leaving every
+ * kicker and punter unrepresented in the warehouse. Nothing here costs an
+ * extra fetch. */
+function specialTeamsAndSituational(r: CsvRow) {
+  return {
+    fg_made: int(r.fg_made),
+    fg_att: int(r.fg_att),
+    fg_long: int(r.fg_long),
+    // nflverse buckets makes by distance; "50+" is the two longest buckets.
+    fg_made_50_plus: (int(r.fg_made_50_59) ?? 0) + (int(r.fg_made_60_) ?? 0),
+    gwfg_made: int(r.gwfg_made),
+    gwfg_att: int(r.gwfg_att),
+    pat_made: int(r.pat_made),
+    pat_att: int(r.pat_att),
+    punts: int(r.pt_att),
+    punt_yards: int(r.pt_yards),
+    punt_long: int(r.pt_long),
+    punt_net_yards: int(r.pt_net_yards),
+    punts_inside_20: int(r.pt_inside_20),
+    punts_blocked: int(r.pt_blocked),
+    punt_returns: int(r.punt_returns),
+    punt_return_yards: int(r.punt_return_yards),
+    kick_returns: int(r.kickoff_returns),
+    kick_return_yards: int(r.kickoff_return_yards),
+    special_teams_tds: int(r.special_teams_tds),
+    passing_first_downs: int(r.passing_first_downs),
+    rushing_first_downs: int(r.rushing_first_downs),
+    receiving_first_downs: int(r.receiving_first_downs),
+    passing_yards_after_catch: int(r.passing_yards_after_catch),
+    receiving_yards_after_catch: int(r.receiving_yards_after_catch),
+    penalties: int(r.penalties),
+    penalty_yards: int(r.penalty_yards),
+    def_tackles_for_loss: int(r.def_tackles_for_loss),
+    def_qb_hits: int(r.def_qb_hits),
+    def_interception_yards: int(r.def_interception_yards),
+    def_tds: int(r.def_tds),
+    def_safeties: int(r.def_safeties),
+  };
+}
+
+/** The stat columns of the widened mapping, for checkColumns' drift warning.
+ * Listed explicitly (not derived) so a rename upstream is caught by name. */
+const WIDENED_STAT_COLS = [
+  "fg_made", "fg_att", "fg_long", "fg_made_50_59", "fg_made_60_",
+  "gwfg_made", "gwfg_att", "pat_made", "pat_att",
+  "pt_att", "pt_yards", "pt_long", "pt_net_yards", "pt_inside_20", "pt_blocked",
+  "punt_returns", "punt_return_yards", "kickoff_returns", "kickoff_return_yards",
+  "special_teams_tds", "passing_first_downs", "rushing_first_downs",
+  "receiving_first_downs", "passing_yards_after_catch", "receiving_yards_after_catch",
+  "penalties", "penalty_yards", "def_tackles_for_loss", "def_qb_hits",
+  "def_interception_yards", "def_tds", "def_safeties",
+];
+
 export async function loadTeams(ctx: Ctx): Promise<number> {
   const raw = await allRows(assets.teams());
   let rows = raw.map((r) => ({
@@ -244,6 +302,7 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
       "carries", "rushing_yards", "rushing_tds", "targets", "receptions",
       "receiving_yards", "receiving_tds", "fantasy_points_ppr",
       "def_tackles_solo", "def_sacks", "def_interceptions",
+      ...WIDENED_STAT_COLS,
     ],
   );
 
@@ -288,6 +347,7 @@ export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<nu
         passes_defended: int(r.def_pass_defended),
         passing_air_yards: int(r.passing_air_yards),
         receiving_air_yards: int(r.receiving_air_yards),
+        ...specialTeamsAndSituational(r),
       };
     });
 
@@ -315,6 +375,7 @@ export async function loadPlayerSeasonStats(ctx: Ctx, years: number[]): Promise<
   for (const year of years) {
     for (const level of levels) {
       const raw = await allRows(assets.seasonStats(year, level));
+      checkColumns(raw[0], "stats_player_season", ["player_id", "season"], WIDENED_STAT_COLS);
       rows.push(
         ...raw.map((r) => ({
           player_id: r.player_id ?? "",
@@ -346,6 +407,7 @@ export async function loadPlayerSeasonStats(ctx: Ctx, years: number[]): Promise<
           def_interceptions: int(r.def_interceptions),
           forced_fumbles: int(r.def_fumbles_forced),
           passes_defended: int(r.def_pass_defended),
+          ...specialTeamsAndSituational(r),
         })),
       );
     }
@@ -359,6 +421,75 @@ export async function loadPlayerSeasonStats(ctx: Ctx, years: number[]): Promise<
     ctx, "player_season_stats", rows, ["player_id", "season", "season_type"],
     playerSeasonStatsRow,
   );
+}
+
+/** Box-score columns for a team-game, all null. Used when stats_team has no
+ * row for a game (or the release couldn't be fetched) so every row carries the
+ * same column set — upsert() derives its column list from the first row. */
+const EMPTY_BOX = {
+  total_yards: null, passing_yards: null, rushing_yards: null, turnovers: null,
+  first_downs: null, penalties: null, penalty_yards: null, sacks_taken: null,
+  def_sacks: null, fg_made: null, fg_att: null, passing_epa: null, rushing_epa: null,
+} as const;
+
+type TeamBox = Record<keyof typeof EMPTY_BOX, number | null>;
+
+/** The nflverse stats_team release, keyed `game_id|team_id`.
+ *
+ * These columns (total_yards, passing_yards, rushing_yards, turnovers) were
+ * declared on team_game_stats from the start but never written — the table was
+ * built from the schedule alone, so they were NULL in every row in production.
+ *
+ * Best-effort: a stats_team fetch failure degrades to schedule-only rows with a
+ * warning rather than failing the whole team_game_stats step, matching the
+ * per-dataset failure isolation the rest of the ingest guarantees. */
+async function teamBoxScores(ctx: Ctx, years: number[]): Promise<Map<string, TeamBox>> {
+  const out = new Map<string, TeamBox>();
+  for (const year of years) {
+    let raw: CsvRow[];
+    try {
+      raw = await allRows(assets.teamStats(year));
+    } catch (err) {
+      logger.warn(
+        { year, err: String(err) },
+        "stats_team unavailable — team box-score columns stay null for this season",
+      );
+      continue;
+    }
+    checkColumns(raw[0], "stats_team", ["game_id", "team", "season_type"], [
+      "passing_yards", "rushing_yards", "passing_interceptions", "fumbles_lost_total",
+      "passing_first_downs", "rushing_first_downs", "penalties", "penalty_yards",
+      "sacks_suffered", "def_sacks", "fg_made", "fg_att", "passing_epa", "rushing_epa",
+    ]);
+    for (const r of raw) {
+      const st = SEASON_TYPE[r.season_type ?? ""] ?? "";
+      if (ctx.seasonType ? st !== ctx.seasonType : st !== "REG" && st !== "POST") continue;
+      const pass = int(r.passing_yards);
+      const rush = int(r.rushing_yards);
+      out.set(`${r.game_id ?? ""}|${team(r.team ?? "")}`, {
+        // nflverse publishes the components, not the total.
+        total_yards: pass === null && rush === null ? null : (pass ?? 0) + (rush ?? 0),
+        passing_yards: pass,
+        rushing_yards: rush,
+        // Giveaways: picks thrown plus fumbles lost. (Downs are not turnovers.)
+        turnovers: (int(r.passing_interceptions) ?? 0) + (int(r.fumbles_lost_total) ?? 0),
+        // Passing + rushing only: receiving_first_downs counts the same plays
+        // as passing_first_downs at team grain, and penalty first downs are
+        // not published, so this is scrimmage first downs, not the box-score
+        // total. Named accordingly in the engine's stat label.
+        first_downs: (int(r.passing_first_downs) ?? 0) + (int(r.rushing_first_downs) ?? 0),
+        penalties: int(r.penalties),
+        penalty_yards: int(r.penalty_yards),
+        sacks_taken: int(r.sacks_suffered),
+        def_sacks: float(r.def_sacks),
+        fg_made: int(r.fg_made),
+        fg_att: int(r.fg_att),
+        passing_epa: float(r.passing_epa),
+        rushing_epa: float(r.rushing_epa),
+      });
+    }
+  }
+  return out;
 }
 
 export async function loadTeamGameStats(ctx: Ctx, years: number[]): Promise<number> {
@@ -375,16 +506,21 @@ export async function loadTeamGameStats(ctx: Ctx, years: number[]): Promise<numb
   }
   const finals = sched.filter((r) => int(r.home_score) !== null && int(r.away_score) !== null);
 
+  const box = await teamBoxScores(ctx, years);
+
   const side = (r: CsvRow, home: boolean) => {
     const pf = int(home ? r.home_score : r.away_score)!;
     const pa = int(home ? r.away_score : r.home_score)!;
+    const team_id = team((home ? r.home_team : r.away_team) ?? "");
+    const game_id = r.game_id ?? "";
     return {
-      team_id: team((home ? r.home_team : r.away_team) ?? ""),
-      game_id: r.game_id ?? "",
+      team_id,
+      game_id,
       is_home: home,
       points_for: pf,
       points_against: pa,
       result: (pf > pa ? "W" : pf < pa ? "L" : "T") as "W" | "L" | "T",
+      ...(box.get(`${game_id}|${team_id}`) ?? EMPTY_BOX),
     };
   };
   let rows = finals.flatMap((r) => [side(r, true), side(r, false)]);

@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { FactOfTheDay } from "./FactOfTheDay";
 import { Headshot } from "./Headshot";
 import { Performers } from "./Performers";
 import { TeamLogo } from "./TeamLogo";
 import {
   fetchExamples,
+  fetchFactOfTheDay,
   fetchFantasyPlayers,
   fetchGames,
   fetchLeaderboards,
@@ -15,6 +17,7 @@ import {
   fetchStandings,
   type ConferenceStandings,
   type ExampleQuestion,
+  type FactOfTheDayResponse,
   type FantasyPlayersResponse,
   type GameRow,
   type GamesResponse,
@@ -38,6 +41,7 @@ export function HomeDashboard() {
   const [fantasy, setFantasy] = useState<FantasyPlayersResponse | null>(null);
   const [boards, setBoards] = useState<LeaderboardsResponse | null>(null);
   const [examples, setExamples] = useState<ExampleQuestion[] | null>(null);
+  const [factOfDay, setFactOfDay] = useState<FactOfTheDayResponse | null>(null);
   // A failed fetch must degrade to an error line, never an eternal skeleton.
   const [failed, setFailed] = useState<Record<string, boolean>>({});
   const [divConf, setDivConf] = useState("AFC");
@@ -54,7 +58,8 @@ export function HomeDashboard() {
       // A balanced sample (server round-robins across categories); the card
       // shows up to 4 per group, so this budget comfortably covers every group.
       fetchExamples(40),
-    ]).then(([g, p, s, f, b, e]) => {
+      fetchFactOfTheDay(),
+    ]).then(([g, p, s, f, b, e, fact]) => {
       if (!active) return;
       if (g.status === "fulfilled") setGames(g.value);
       if (p.status === "fulfilled") setPerformers(p.value);
@@ -62,6 +67,9 @@ export function HomeDashboard() {
       if (f.status === "fulfilled") setFantasy(f.value);
       if (b.status === "fulfilled") setBoards(b.value);
       setExamples(e.status === "fulfilled" ? e.value : []);
+      // The fact card is additive: a failed fetch, or an empty backlog before
+      // the first mining run, hides it rather than showing an error row.
+      if (fact.status === "fulfilled") setFactOfDay(fact.value);
       setFailed({
         games: g.status === "rejected",
         performers: p.status === "rejected",
@@ -103,6 +111,18 @@ export function HomeDashboard() {
           <p className="yb-muted">No games at this time</p>
         )}
       </section>
+
+      {/* Fact of the day: mined nightly, never generated. Sits high because a
+          surprising number is the most repeatable reason to come back. */}
+      {factOfDay?.fact && (
+        <section className="yb-card" aria-label="Fact of the Day">
+          <div className="yb-dash-head">
+            <h2>Fact of the Day</h2>
+            <Link href="/facts">More facts →</Link>
+          </div>
+          <FactOfTheDay fact={factOfDay.fact} />
+        </section>
+      )}
 
       {/* Performers of the week */}
       <section className="yb-card" aria-label="Performers of the Week">

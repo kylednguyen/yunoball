@@ -11,6 +11,8 @@
     "dev:web": "pnpm --filter @yunoball/web dev",
     "dev:server": "pnpm --filter @yunoball/server dev",
     "ingest:nfl": "pnpm --filter @yunoball/server ingest",
+    "facts:mine": "pnpm --filter @yunoball/server facts:mine",
+    "facts:select": "pnpm --filter @yunoball/server facts:select",
     "db:migrate": "pnpm --filter @yunoball/server db:migrate",
     "build:web": "pnpm --filter @yunoball/web build",
     "lint": "turbo run lint",

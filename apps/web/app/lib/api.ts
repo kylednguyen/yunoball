@@ -8,6 +8,8 @@ import type {
   BoxScore,
   ChatTurn,
   ExampleQuestion,
+  FactOfTheDayResponse,
+  FactsResponse,
   PlayerSplits,
   FantasyPlayersResponse,
   GamesResponse,
@@ -31,6 +33,9 @@ export type {
   SplitRow,
   ConferenceStandings,
   ExampleQuestion,
+  FactOfTheDayResponse,
+  FactsResponse,
+  StatFact,
   FantasyPlayer,
   FantasyPlayersResponse,
   GameRow,
@@ -146,6 +151,19 @@ export function fetchSharedAnswer(shareId: string): Promise<AnswerResult | null>
   return getJsonOr404<AnswerResult>(`/api/search/answer/${shareId}`);
 }
 
+/** The day's published fact. `fact` is null when the backlog is empty (a
+ * fresh database, or an offseason that has exhausted its cooldowns) — the card
+ * hides itself rather than showing an error. */
+export async function fetchFactOfTheDay(day?: string): Promise<FactOfTheDayResponse> {
+  const params = day ? `?day=${encodeURIComponent(day)}` : "";
+  return getJson<FactOfTheDayResponse>(`/api/facts/today${params}`);
+}
+
+export async function fetchFacts(season?: number, limit = 20): Promise<FactsResponse> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (season) params.set("season", String(season));
+  return getJson<FactsResponse>(`/api/facts?${params}`);
+}
 export async function fetchLeaderboards(
   season?: number,
   limit = 10,

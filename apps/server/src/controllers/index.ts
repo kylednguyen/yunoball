@@ -10,6 +10,7 @@ import { ApiError } from "../lib/errors.js";
 import { clientIp, retryAfter } from "../lib/rateLimit.js";
 import { getAnswerByShareId } from "../lib/cache.js";
 import { runAgent } from "../services/agent.js";
+import { getFact, getFactOfTheDay, getFacts } from "../services/facts.js";
 import { getFantasyPlayers } from "../services/fantasy.js";
 import { getBoxScore, getGames, getPerformers } from "../services/games.js";
 import { getLeaderboards } from "../services/leaderboards.js";
@@ -141,6 +142,33 @@ export async function performers(req: Request, res: Response): Promise<void> {
 export async function boxScore(req: Request, res: Response): Promise<void> {
   limitedRead(req);
   res.json(await getBoxScore(parse(idParam, req.params.gameId)));
+}
+
+export async function factOfTheDay(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
+  const query = parse(
+    z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }),
+    req.query,
+  );
+  res.json(await getFactOfTheDay(query.day));
+}
+
+export async function facts(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
+  const query = parse(
+    z.object({
+      season: intParam(1),
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+    }),
+    req.query,
+  );
+  res.json(await getFacts(query));
+}
+
+export async function fact(req: Request, res: Response): Promise<void> {
+  limitedRead(req);
+  const factId = parse(idParam, req.params.factId);
+  res.json(await getFact(factId));
 }
 
 export async function standings(req: Request, res: Response): Promise<void> {

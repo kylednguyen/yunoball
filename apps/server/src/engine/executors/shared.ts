@@ -411,6 +411,15 @@ const SEASON_COLS = new Set([
   "receptions", "receiving_yards", "receiving_tds", "fantasy_points_ppr",
   "completions", "attempts", "sacks", "sack_yards", "fumbles", "fumbles_lost",
   "tackles", "def_sacks", "def_interceptions", "forced_fumbles", "passes_defended",
+  // Widened nflverse mapping — present in both grains, so both sets list them.
+  "fg_made", "fg_att", "fg_made_50_plus", "gwfg_made", "gwfg_att",
+  "pat_made", "pat_att", "punts", "punt_yards", "punt_net_yards",
+  "punts_inside_20", "punts_blocked", "punt_returns", "punt_return_yards",
+  "kick_returns", "kick_return_yards", "special_teams_tds",
+  "passing_first_downs", "rushing_first_downs", "receiving_first_downs",
+  "passing_yards_after_catch", "receiving_yards_after_catch",
+  "def_tackles_for_loss", "def_qb_hits", "def_interception_yards",
+  "def_tds", "def_safeties", "penalties", "penalty_yards",
 ]);
 const GAME_COLS = new Set([
   ...SEASON_COLS, "carries", "targets", "passing_air_yards", "receiving_air_yards",

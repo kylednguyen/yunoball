@@ -4589,3 +4589,68 @@ a.yb-game-team:hover {
     grid-column: 1 / -1;
   }
 }
+
+/* ---- Fact of the day ----------------------------------------------------
+   One statement, then its provenance. The fact reads at lead size because it
+   is the point of the card; the meta line stays small and muted so the claim
+   is never competing with its own footnotes. */
+.yb-fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.yb-fact-line {
+  margin: 0;
+  font-size: var(--fs-lead);
+  font-weight: 650;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+.yb-fact-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+.yb-fact-ask {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.yb-fact-ask:hover {
+  text-decoration: underline;
+}
+.yb-fact-subject {
+  align-self: flex-start;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 650;
+}
+.yb-fact-subject:hover {
+  color: var(--text);
+}
+
+/* Archive list: same claim-then-provenance rhythm, one row per fact. */
+.yb-fact-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.yb-fact-row {
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--border);
+}
+.yb-fact-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.yb-fact-row .yb-fact-line {
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
