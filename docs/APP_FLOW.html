@@ -3,130 +3,193 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YunoBall — App Flow</title>
+<title>YunoBall — App Flow · YunoBall docs</title>
 <style>
-:root { color-scheme: dark; }
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal; font-weight: 100 900; font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --panel: #13161e;
+  --elevated: #1b1f29;
+  --bg-soft: #222835;
+  --border: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.1);
+  --text: #f5f5f5;
+  --muted: #f2f2f4;
+  --faint: #e7e7ec;
+  --accent: #89f336;
+  --accent-ink: #9df84f;
+  --accent-soft: rgba(137,243,54,0.16);
+  --accent-border: rgba(137,243,54,0.42);
+  --success: #4ade80;
+  --danger: #f87171;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 14px; --r-pill: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--s-8); }
 body {
-  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
-  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
-main { max-width: 860px; margin: 0 auto; }
-h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
-h1 { font-size: 28px; margin: 0 0 8px; }
-h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
-h3 { font-size: 16px; margin: 28px 0 8px; }
-a { color: #34d399; text-decoration: none; }
+
+/* Top bar: every doc, always reachable, current one marked. */
+.docnav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(10,12,17,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.docnav .brand { font-weight: 800; letter-spacing: -0.02em; margin-right: var(--s-4); }
+.docnav .brand span { color: var(--accent-ink); }
+.docnav a {
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-pill);
+  color: var(--faint); text-decoration: none; font-weight: 550;
+}
+.docnav a:hover { background: var(--bg-soft); color: var(--text); }
+.docnav a[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.shell { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: var(--s-10);
+  max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-6) 96px; }
+main { min-width: 0; max-width: 860px; }
+
+/* Section index, derived from the h2/h3 tree. */
+.toc { position: sticky; top: 72px; align-self: start; font-size: 13px; }
+.toc h2 {
+  margin: 0 0 var(--s-3); padding: 0; border: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.7;
+}
+.toc a { display: block; padding: 3px 0; color: var(--faint); text-decoration: none; }
+.toc a:hover { color: var(--accent-ink); }
+.toc .d3 { padding-left: var(--s-3); opacity: 0.75; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 34px; margin: 0 0 var(--s-4); }
+h2 { font-size: 22px; margin: var(--s-10) 0 var(--s-4); padding-top: var(--s-6);
+  border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: var(--s-8) 0 var(--s-3); }
+h4 { font-size: 15px; margin: var(--s-6) 0 var(--s-2); color: var(--faint); }
+.anchor {
+  margin-left: var(--s-2); color: var(--accent-ink); opacity: 0;
+  text-decoration: none; font-weight: 500;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 0.6; }
+
+p, ul, ol { margin: var(--s-4) 0; }
+li { margin: var(--s-1) 0; }
+li > ul, li > ol { margin: var(--s-1) 0; }
+a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
-p, ul, ol { margin: 12px 0; }
-li { margin: 4px 0; }
+strong { font-weight: 700; color: #fff; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-8) 0; }
+
 blockquote {
-  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
-  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+  margin: var(--s-5) 0; padding: var(--s-3) var(--s-5);
+  background: var(--panel); border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0; color: var(--faint);
 }
-blockquote p { margin: 4px 0; }
+blockquote p { margin: var(--s-1) 0; }
+
 code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: var(--r-sm);
+}
+figure.code { position: relative; margin: var(--s-5) 0; }
+figure.code .lang {
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.5;
 }
 pre {
-  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
-  border: 1px solid rgba(255,255,255,0.05);
+  margin: 0; padding: var(--s-4) var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
 }
-pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
-table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
-th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-tr:hover td { background: #121417; }
-hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
-.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
-.docnav a { margin-right: 12px; }
-.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.6; }
+pre .k { color: var(--accent-ink); font-weight: 600; }
+pre .s { color: #ffd479; }
+pre .c { color: var(--faint); opacity: 0.45; font-style: italic; }
+pre .n { color: #7fd4ff; }
+
+.tablewrap { overflow-x: auto; margin: var(--s-5) 0; border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+th {
+  position: sticky; top: 0; background: var(--elevated); color: var(--faint);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+tbody tr:hover td { background: var(--panel); }
+td code { white-space: nowrap; }
+
+figure.diagram {
+  margin: var(--s-6) 0; padding: var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+}
+figure.diagram svg { display: block; max-width: 100%; height: auto; }
+figure.diagram figcaption {
+  margin-top: var(--s-3); color: var(--faint); font-size: 12.5px; opacity: 0.75;
+}
+
+/* Index page cards. */
+.cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: var(--s-6) 0; }
+.card {
+  display: block; padding: var(--s-5); background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--elevated); border-color: var(--accent-border); text-decoration: none; }
+.card h3 { margin: 0 0 var(--s-2); font-size: 16px; }
+.card p { margin: 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.lede { font-size: 17px; color: var(--faint); max-width: 62ch; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: var(--s-6); padding: var(--s-6) var(--s-4) 64px; }
+  .toc { display: none; }
+  h1 { font-size: 27px; }
+}
 </style>
 </head>
 <body>
+<nav class="docnav"><a class="brand" href="index.html">Yuno<span>Ball</span> docs</a><a href="PRD.html">Product</a><a href="ARCHITECTURE.html">Architecture</a><a href="TDD.html">Technical design</a><a href="BACKEND_SCHEMA.html">Schema</a><a href="FACTS.html">Facts</a><a href="ENGINEERING_PLAN.html">Plan</a><a href="APP_FLOW.html" aria-current="page">App flow</a><a href="DESIGN_BRIEF.html">Design</a><a href="FRONTEND_SPEC.html">Frontend spec</a><a href="DEPLOYMENT.html">Deploy</a><a href="search-results-audit.html">Search audit</a></nav>
+<div class="shell">
 <main>
-<nav class="docnav"><a href="PRD.html">PRD</a><a href="TDD.html">TDD</a><span class="here">APP_FLOW</span><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
-<h1>YunoBall — App Flow</h1>
+<h1 id="yunoball-app-flow">YunoBall — App Flow<a class="anchor" href="#yunoball-app-flow" aria-label="Link to this section">#</a></h1>
 <blockquote>
 <p>How a user moves through the product: routes, journeys, and states.
 Companion docs: <a href="PRD.html">PRD.md</a> · <a href="TDD.html">TDD.md</a> · <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a></p>
 </blockquote>
-<h2>1. Route map</h2>
-<table>
-<thead>
-<tr>
-<th>Route</th>
-<th>Surface</th>
-<th>Data source</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>/</code></td>
-<td>Home: search box + dashboard (score ticker, top performers, standings snapshot, leaders)</td>
-<td><code>/api/games</code>, <code>/api/games/performers</code>, <code>/api/standings</code>, <code>/api/leaderboards</code></td>
-</tr>
-<tr>
-<td><code>/a/[shareId]</code></td>
-<td>Persisted answer page (the shareable result)</td>
-<td><code>GET /api/search/answer/:shareId</code></td>
-</tr>
-<tr>
-<td><code>/scores</code></td>
-<td>Week-by-week finals with season/week pickers</td>
-<td><code>/api/games</code></td>
-</tr>
-<tr>
-<td><code>/games/[gameId]</code></td>
-<td>Box score — both teams&#39; player stat lines</td>
-<td><code>/api/games/:gameId/boxscore</code></td>
-</tr>
-<tr>
-<td><code>/standings</code></td>
-<td>Conference → division standings, season picker</td>
-<td><code>/api/standings</code></td>
-</tr>
-<tr>
-<td><code>/leaderboards</code></td>
-<td>Season stat leader boards (dense tables)</td>
-<td><code>/api/leaderboards</code></td>
-</tr>
-<tr>
-<td><code>/leaders</code></td>
-<td>Leaders overview</td>
-<td><code>/api/leaderboards</code></td>
-</tr>
-<tr>
-<td><code>/players/[playerId]</code></td>
-<td>Player profile: bio, career, seasons (REG/POST), game log, TD log, splits</td>
-<td><code>/api/players/:id</code>, <code>/api/players/:id/splits</code></td>
-</tr>
-<tr>
-<td><code>/teams/[teamId]</code></td>
-<td>Team profile: record, ranks, leaders, key players, schedule</td>
-<td><code>/api/teams/:id</code></td>
-</tr>
-<tr>
-<td><code>/fantasy</code></td>
-<td>PPR lineup builder over season production</td>
-<td><code>/api/fantasy/players</code></td>
-</tr>
-<tr>
-<td><code>/assistant</code></td>
-<td>Chat-style tool-routing assistant (demo mode)</td>
-<td><code>POST /api/agent</code></td>
-</tr>
-<tr>
-<td><code>/glossary</code></td>
-<td>Stat definitions</td>
-<td>static</td>
-</tr>
-</tbody></table>
+<h2 id="1-route-map">1. Route map<a class="anchor" href="#1-route-map" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Route</th><th>Surface</th><th>Data source</th></tr></thead><tbody><tr><td><code>/</code></td><td>Home: search box + dashboard (score ticker, top performers, standings snapshot, leaders)</td><td><code>/api/games</code>, <code>/api/games/performers</code>, <code>/api/standings</code>, <code>/api/leaderboards</code></td></tr>
+<tr><td><code>/a/[shareId]</code></td><td>Persisted answer page (the shareable result)</td><td><code>GET /api/search/answer/:shareId</code></td></tr>
+<tr><td><code>/scores</code></td><td>Week-by-week finals with season/week pickers</td><td><code>/api/games</code></td></tr>
+<tr><td><code>/games/[gameId]</code></td><td>Box score — both teams&#39; player stat lines</td><td><code>/api/games/:gameId/boxscore</code></td></tr>
+<tr><td><code>/standings</code></td><td>Conference → division standings, season picker</td><td><code>/api/standings</code></td></tr>
+<tr><td><code>/leaderboards</code></td><td>Season stat leader boards (dense tables)</td><td><code>/api/leaderboards</code></td></tr>
+<tr><td><code>/leaders</code></td><td>Leaders overview</td><td><code>/api/leaderboards</code></td></tr>
+<tr><td><code>/players/[playerId]</code></td><td>Player profile: bio, career, seasons (REG/POST), game log, TD log, splits</td><td><code>/api/players/:id</code>, <code>/api/players/:id/splits</code></td></tr>
+<tr><td><code>/teams/[teamId]</code></td><td>Team profile: record, ranks, leaders, key players, schedule</td><td><code>/api/teams/:id</code></td></tr>
+<tr><td><code>/fantasy</code></td><td>PPR lineup builder over season production</td><td><code>/api/fantasy/players</code></td></tr>
+<tr><td><code>/assistant</code></td><td>Chat-style tool-routing assistant (demo mode)</td><td><code>POST /api/agent</code></td></tr>
+<tr><td><code>/glossary</code></td><td>Stat definitions</td><td>static</td></tr></tbody></table></div>
 <p>Global navigation: top bar with primary sections and the search entry point
 (search lives in the nav, not buried in a page). Breadcrumbs (<code>Crumbs</code>) on
 drill-down pages.</p>
-<h2>2. The core journey: question → answer</h2>
-<pre><code class="language-text">User types in the search box
+<h2 id="2-the-core-journey-question-answer">2. The core journey: question → answer<a class="anchor" href="#2-the-core-journey-question-answer" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="lang">text</span><pre><code>User types in the search box
   → GET /api/search/suggest (debounced)
       autocomplete: matching players (headshots), teams, supported questions
   → user submits (or picks a suggestion / example question)
@@ -137,8 +200,7 @@ drill-down pages.</p>
       │    narration · player card(s) · sortable table · comparison chart
       │    (head-to-head) · query interpretation · SQL disclosure ·
       │    CSV export · share (copies /a/&lt;share_id&gt;)
-      └─ didn&#39;t parse → honest &quot;can&#39;t answer that yet&quot; + example questions
-</code></pre>
+      └─ didn't parse → honest &quot;can't answer that yet&quot; + example questions</code></pre></figure>
 <ul>
 <li>Every parsed answer is durably persisted under a deterministic <code>share_id</code>
 (SHA-256 prefix of the normalized question) before the user ever shares it.</li>
@@ -147,12 +209,12 @@ search field. <strong>Target behavior</strong> (per <code>search-results-audit.m
 navigates to <code>/a/&lt;share_id&gt;</code>, which owns the full result experience
 (loading, retry, export); the homepage stays a discovery surface.</li>
 </ul>
-<h3>Answer drill-downs</h3>
+<h3 id="answer-drill-downs">Answer drill-downs<a class="anchor" href="#answer-drill-downs" aria-label="Link to this section">#</a></h3>
 <p>Result rows link onward: player names → <code>/players/[id]</code>, teams →
 <code>/teams/[id]</code>, single games → <code>/games/[gameId]</code>. Answers about one
 player/team re-tint the accent system to that team&#39;s colors (see
 <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a> §3).</p>
-<h2>3. Browse journeys</h2>
+<h2 id="3-browse-journeys">3. Browse journeys<a class="anchor" href="#3-browse-journeys" aria-label="Link to this section">#</a></h2>
 <p><strong>Scoreboard loop</strong> — <code>/</code> ticker or <code>/scores</code> → pick season/week → game card
 → <code>/games/[id]</code> box score → tap a stat line → <code>/players/[id]</code>.</p>
 <p><strong>Standings loop</strong> — <code>/standings</code> → season picker → division tables → team →
@@ -162,15 +224,14 @@ row → player profile → splits/game-log tabs → questions about that player 
 search.</p>
 <p><strong>Fantasy loop</strong> — <code>/fantasy</code> → sort/filter player pool (position, per-game
 rates) → fill lineup slots → player links for due diligence.</p>
-<h2>4. Assistant flow</h2>
-<pre><code class="language-text">/assistant chat input
+<h2 id="4-assistant-flow">4. Assistant flow<a class="anchor" href="#4-assistant-flow" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="lang">text</span><pre><code>/assistant chat input
   → POST /api/agent { message, history }
   → intent routing over the same services (search, standings, leaderboards…)
-  → reply + visible tool steps (mode: &quot;demo&quot;)
-</code></pre>
+  → reply + visible tool steps (mode: &quot;demo&quot;)</code></pre></figure>
 <p>The assistant never free-generates numbers — it routes to the same trusted
 endpoints and reports which tools it used.</p>
-<h2>5. Share flow</h2>
+<h2 id="5-share-flow">5. Share flow<a class="anchor" href="#5-share-flow" aria-label="Link to this section">#</a></h2>
 <ol>
 <li>Any answer → &quot;share&quot; copies <code>https://&lt;host&gt;/a/&lt;share_id&gt;</code>.</li>
 <li>Recipient opens <code>/a/&lt;share_id&gt;</code> → server fetches the persisted
@@ -178,48 +239,18 @@ endpoints and reports which tools it used.</p>
 <li>Planned: route-level action bar and clean PNG export of the rendered card
 (Track C in <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>).</li>
 </ol>
-<h2>6. States &amp; edge behavior</h2>
-<table>
-<thead>
-<tr>
-<th>State</th>
-<th>Behavior</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Loading</td>
-<td>Skeleton components (shimmer), per-surface</td>
-</tr>
-<tr>
-<td>Unparseable question</td>
-<td>Honest refusal narration + supported-question examples; never a guess</td>
-</tr>
-<tr>
-<td>Ambiguous entity</td>
-<td>Fuzzy resolver picks best match above confidence floor; resolved entities are always displayed so the interpretation is visible</td>
-</tr>
-<tr>
-<td>Empty result (parsed, zero rows)</td>
-<td>Honest &quot;no qualifying rows&quot; narration</td>
-</tr>
-<tr>
-<td>API error</td>
-<td>Friendly error copy + retry (kept on the requesting surface)</td>
-</tr>
-<tr>
-<td>Unplayed/postponed game</td>
-<td>Stored with NULL scores; rendered as not-final</td>
-</tr>
-<tr>
-<td>Rate limit (30/min/IP default)</td>
-<td>429 on <code>/api/search</code> and <code>/api/agent</code></td>
-</tr>
-<tr>
-<td>Share id not found</td>
-<td><code>/a/</code> not-found state with a path back to search</td>
-</tr>
-</tbody></table>
+<h2 id="6-states-edge-behavior">6. States &amp; edge behavior<a class="anchor" href="#6-states-edge-behavior" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>State</th><th>Behavior</th></tr></thead><tbody><tr><td>Loading</td><td>Skeleton components (shimmer), per-surface</td></tr>
+<tr><td>Unparseable question</td><td>Honest refusal narration + supported-question examples; never a guess</td></tr>
+<tr><td>Ambiguous entity</td><td>Fuzzy resolver picks best match above confidence floor; resolved entities are always displayed so the interpretation is visible</td></tr>
+<tr><td>Empty result (parsed, zero rows)</td><td>Honest &quot;no qualifying rows&quot; narration</td></tr>
+<tr><td>API error</td><td>Friendly error copy + retry (kept on the requesting surface)</td></tr>
+<tr><td>Unplayed/postponed game</td><td>Stored with NULL scores; rendered as not-final</td></tr>
+<tr><td>Rate limit (30/min/IP default)</td><td>429 on <code>/api/search</code> and <code>/api/agent</code></td></tr>
+<tr><td>Share id not found</td><td><code>/a/</code> not-found state with a path back to search</td></tr></tbody></table></div>
 
 </main>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-route-map">1. Route map</a><a class="d2" href="#2-the-core-journey-question-answer">2. The core journey: question → answer</a><a class="d3" href="#answer-drill-downs">Answer drill-downs</a><a class="d2" href="#3-browse-journeys">3. Browse journeys</a><a class="d2" href="#4-assistant-flow">4. Assistant flow</a><a class="d2" href="#5-share-flow">5. Share flow</a><a class="d2" href="#6-states-edge-behavior">6. States &amp; edge behavior</a></aside>
+</div>
 </body>
 </html>

@@ -1,6 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "workspaces": {
+    ".": {
+      "entry": ["docs/build.mjs"]
+    },
     "apps/web": {
       "entry": ["app/**/{page,layout,error,loading,not-found}.tsx", "e2e/**/*.spec.ts"],
       "project": ["app/**/*.{ts,tsx}", "e2e/**/*.ts"]

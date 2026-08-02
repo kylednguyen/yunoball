@@ -3,56 +3,176 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YunoBall — Product Requirements Document</title>
+<title>YunoBall — Product Requirements Document · YunoBall docs</title>
 <style>
-:root { color-scheme: dark; }
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal; font-weight: 100 900; font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --panel: #13161e;
+  --elevated: #1b1f29;
+  --bg-soft: #222835;
+  --border: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.1);
+  --text: #f5f5f5;
+  --muted: #f2f2f4;
+  --faint: #e7e7ec;
+  --accent: #89f336;
+  --accent-ink: #9df84f;
+  --accent-soft: rgba(137,243,54,0.16);
+  --accent-border: rgba(137,243,54,0.42);
+  --success: #4ade80;
+  --danger: #f87171;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 14px; --r-pill: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--s-8); }
 body {
-  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
-  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
-main { max-width: 860px; margin: 0 auto; }
-h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
-h1 { font-size: 28px; margin: 0 0 8px; }
-h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
-h3 { font-size: 16px; margin: 28px 0 8px; }
-a { color: #34d399; text-decoration: none; }
+
+/* Top bar: every doc, always reachable, current one marked. */
+.docnav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(10,12,17,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.docnav .brand { font-weight: 800; letter-spacing: -0.02em; margin-right: var(--s-4); }
+.docnav .brand span { color: var(--accent-ink); }
+.docnav a {
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-pill);
+  color: var(--faint); text-decoration: none; font-weight: 550;
+}
+.docnav a:hover { background: var(--bg-soft); color: var(--text); }
+.docnav a[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.shell { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: var(--s-10);
+  max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-6) 96px; }
+main { min-width: 0; max-width: 860px; }
+
+/* Section index, derived from the h2/h3 tree. */
+.toc { position: sticky; top: 72px; align-self: start; font-size: 13px; }
+.toc h2 {
+  margin: 0 0 var(--s-3); padding: 0; border: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.7;
+}
+.toc a { display: block; padding: 3px 0; color: var(--faint); text-decoration: none; }
+.toc a:hover { color: var(--accent-ink); }
+.toc .d3 { padding-left: var(--s-3); opacity: 0.75; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 34px; margin: 0 0 var(--s-4); }
+h2 { font-size: 22px; margin: var(--s-10) 0 var(--s-4); padding-top: var(--s-6);
+  border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: var(--s-8) 0 var(--s-3); }
+h4 { font-size: 15px; margin: var(--s-6) 0 var(--s-2); color: var(--faint); }
+.anchor {
+  margin-left: var(--s-2); color: var(--accent-ink); opacity: 0;
+  text-decoration: none; font-weight: 500;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 0.6; }
+
+p, ul, ol { margin: var(--s-4) 0; }
+li { margin: var(--s-1) 0; }
+li > ul, li > ol { margin: var(--s-1) 0; }
+a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
-p, ul, ol { margin: 12px 0; }
-li { margin: 4px 0; }
+strong { font-weight: 700; color: #fff; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-8) 0; }
+
 blockquote {
-  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
-  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+  margin: var(--s-5) 0; padding: var(--s-3) var(--s-5);
+  background: var(--panel); border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0; color: var(--faint);
 }
-blockquote p { margin: 4px 0; }
+blockquote p { margin: var(--s-1) 0; }
+
 code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: var(--r-sm);
+}
+figure.code { position: relative; margin: var(--s-5) 0; }
+figure.code .lang {
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.5;
 }
 pre {
-  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
-  border: 1px solid rgba(255,255,255,0.05);
+  margin: 0; padding: var(--s-4) var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
 }
-pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
-table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
-th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-tr:hover td { background: #121417; }
-hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
-.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
-.docnav a { margin-right: 12px; }
-.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.6; }
+pre .k { color: var(--accent-ink); font-weight: 600; }
+pre .s { color: #ffd479; }
+pre .c { color: var(--faint); opacity: 0.45; font-style: italic; }
+pre .n { color: #7fd4ff; }
+
+.tablewrap { overflow-x: auto; margin: var(--s-5) 0; border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+th {
+  position: sticky; top: 0; background: var(--elevated); color: var(--faint);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+tbody tr:hover td { background: var(--panel); }
+td code { white-space: nowrap; }
+
+figure.diagram {
+  margin: var(--s-6) 0; padding: var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+}
+figure.diagram svg { display: block; max-width: 100%; height: auto; }
+figure.diagram figcaption {
+  margin-top: var(--s-3); color: var(--faint); font-size: 12.5px; opacity: 0.75;
+}
+
+/* Index page cards. */
+.cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: var(--s-6) 0; }
+.card {
+  display: block; padding: var(--s-5); background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--elevated); border-color: var(--accent-border); text-decoration: none; }
+.card h3 { margin: 0 0 var(--s-2); font-size: 16px; }
+.card p { margin: 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.lede { font-size: 17px; color: var(--faint); max-width: 62ch; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: var(--s-6); padding: var(--s-6) var(--s-4) 64px; }
+  .toc { display: none; }
+  h1 { font-size: 27px; }
+}
 </style>
 </head>
 <body>
+<nav class="docnav"><a class="brand" href="index.html">Yuno<span>Ball</span> docs</a><a href="PRD.html" aria-current="page">Product</a><a href="ARCHITECTURE.html">Architecture</a><a href="TDD.html">Technical design</a><a href="BACKEND_SCHEMA.html">Schema</a><a href="FACTS.html">Facts</a><a href="ENGINEERING_PLAN.html">Plan</a><a href="APP_FLOW.html">App flow</a><a href="DESIGN_BRIEF.html">Design</a><a href="FRONTEND_SPEC.html">Frontend spec</a><a href="DEPLOYMENT.html">Deploy</a><a href="search-results-audit.html">Search audit</a></nav>
+<div class="shell">
 <main>
-<nav class="docnav"><span class="here">PRD</span><a href="TDD.html">TDD</a><a href="APP_FLOW.html">APP_FLOW</a><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
-<h1>YunoBall — Product Requirements Document</h1>
+<h1 id="yunoball-product-requirements-document">YunoBall — Product Requirements Document<a class="anchor" href="#yunoball-product-requirements-document" aria-label="Link to this section">#</a></h1>
 <blockquote>
 <p>Status: current product + roadmap · Last updated 2026-07-17
 Companion docs: <a href="TDD.html">TDD.md</a> · <a href="APP_FLOW.html">APP_FLOW.md</a> · <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a> · <a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA.md</a> · <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a></p>
 </blockquote>
-<h2>1. Product summary</h2>
+<h2 id="1-product-summary">1. Product summary<a class="anchor" href="#1-product-summary" aria-label="Link to this section">#</a></h2>
 <p>YunoBall is <strong>the all-in-one NFL platform where every number is computed from
 real data</strong> — an improved take on StatMuse, NFL-first. Users ask questions in
 plain English and get exact, sourced answers; around that core sit scores,
@@ -64,37 +184,12 @@ generation hallucinates numbers, so YunoBall never generates a number. A
 deterministic parser translates a question into a typed <code>QuerySpec</code>; a
 template builder writes safe SQL; Postgres is the source of truth. Every
 answer can show the exact SQL and rows behind it.</p>
-<h2>2. Target users</h2>
-<table>
-<thead>
-<tr>
-<th>Persona</th>
-<th>Need</th>
-<th>What they use</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>The stats-curious fan</td>
-<td>&quot;Who led the league in rushing in 2003?&quot; answered instantly, correctly</td>
-<td>Search, answer pages</td>
-</tr>
-<tr>
-<td>The debate settler</td>
-<td>Proof to win an argument — a number <em>with receipts</em></td>
-<td>Search, SQL disclosure, share links</td>
-</tr>
-<tr>
-<td>The fantasy player</td>
-<td>Season production, per-game rates, weekly performers, lineup ideas</td>
-<td>Fantasy, leaderboards, performers, player pages</td>
-</tr>
-<tr>
-<td>The browser</td>
-<td>Scores, standings, and leaders without asking anything</td>
-<td>Hub pages (<code>/scores</code>, <code>/standings</code>, <code>/leaderboards</code>)</td>
-</tr>
-</tbody></table>
-<h2>3. Problems we solve</h2>
+<h2 id="2-target-users">2. Target users<a class="anchor" href="#2-target-users" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Persona</th><th>Need</th><th>What they use</th></tr></thead><tbody><tr><td>The stats-curious fan</td><td>&quot;Who led the league in rushing in 2003?&quot; answered instantly, correctly</td><td>Search, answer pages</td></tr>
+<tr><td>The debate settler</td><td>Proof to win an argument — a number <em>with receipts</em></td><td>Search, SQL disclosure, share links</td></tr>
+<tr><td>The fantasy player</td><td>Season production, per-game rates, weekly performers, lineup ideas</td><td>Fantasy, leaderboards, performers, player pages</td></tr>
+<tr><td>The browser</td><td>Scores, standings, and leaders without asking anything</td><td>Hub pages (<code>/scores</code>, <code>/standings</code>, <code>/leaderboards</code>)</td></tr></tbody></table></div>
+<h2 id="3-problems-we-solve">3. Problems we solve<a class="anchor" href="#3-problems-we-solve" aria-label="Link to this section">#</a></h2>
 <ol>
 <li><strong>LLM sports answers can&#39;t be trusted</strong> — chatbots hallucinate stats.
 YunoBall computes every number from warehouse facts; zero LLM calls in the
@@ -106,8 +201,8 @@ the source rows for every answer.</li>
 fantasy elsewhere. YunoBall serves them all from one warehouse with one
 design language.</li>
 </ol>
-<h2>4. Feature requirements (shipped)</h2>
-<h3>4.1 Natural-language search (the core)</h3>
+<h2 id="4-feature-requirements-shipped">4. Feature requirements (shipped)<a class="anchor" href="#4-feature-requirements-shipped" aria-label="Link to this section">#</a></h2>
+<h3 id="41-natural-language-search-the-core">4.1 Natural-language search (the core)<a class="anchor" href="#41-natural-language-search-the-core" aria-label="Link to this section">#</a></h3>
 <ul>
 <li>Free-text question box with autocomplete (players, teams, supported questions).</li>
 <li>Deterministic answer pipeline: fuzzy entity resolution → rule-based parse to
@@ -123,12 +218,12 @@ confidence for every question.</li>
 <li>Every answer carries: narration, sortable result table, player identity
 card(s), query interpretation, SQL disclosure, CSV export, share action.</li>
 </ul>
-<h3>4.2 Shareable answers</h3>
+<h3 id="42-shareable-answers">4.2 Shareable answers<a class="anchor" href="#42-shareable-answers" aria-label="Link to this section">#</a></h3>
 <ul>
 <li>Every parsed answer gets a deterministic <code>share_id</code>; <code>/a/&lt;share_id&gt;</code> serves
 the persisted answer permanently (Postgres-backed).</li>
 </ul>
-<h3>4.3 Hub surfaces</h3>
+<h3 id="43-hub-surfaces">4.3 Hub surfaces<a class="anchor" href="#43-hub-surfaces" aria-label="Link to this section">#</a></h3>
 <ul>
 <li><strong>Scores</strong> (<code>/scores</code>) — week-by-week finals with box scores per game.</li>
 <li><strong>Standings</strong> (<code>/standings</code>) — W-L-T, pct, PF/PA, diff, streak; computed
@@ -137,7 +232,7 @@ live from game results; conference → division structure.</li>
 defaults to the most recent loaded season.</li>
 <li><strong>Top performers</strong> — weekly fantasy-point leaders with stat lines.</li>
 </ul>
-<h3>4.4 Profiles</h3>
+<h3 id="44-profiles">4.4 Profiles<a class="anchor" href="#44-profiles" aria-label="Link to this section">#</a></h3>
 <ul>
 <li><strong>Player pages</strong> (<code>/players/[id]</code>) — bio, career totals, season-by-season
 (REG + POST tabs), full game log with EPA columns, touchdown log, splits
@@ -147,46 +242,23 @@ stat ranks, team leaders, key players, season schedule/results; team-color
 themed.</li>
 <li><strong>Box scores</strong> (<code>/games/[id]</code>) — full player stat lines for both teams.</li>
 </ul>
-<h3>4.5 Fantasy</h3>
+<h3 id="45-fantasy">4.5 Fantasy<a class="anchor" href="#45-fantasy" aria-label="Link to this section">#</a></h3>
 <ul>
 <li><code>/fantasy</code> — build a PPR lineup from real season production; sortable player
 pool with per-game rates.</li>
 </ul>
-<h3>4.6 Assistant</h3>
+<h3 id="46-assistant">4.6 Assistant<a class="anchor" href="#46-assistant" aria-label="Link to this section">#</a></h3>
 <ul>
 <li><code>/assistant</code> — a tool-routing agent over the same trusted endpoints
 (currently demo mode; steps are surfaced to the user).</li>
 </ul>
-<h2>5. Non-functional requirements</h2>
-<table>
-<thead>
-<tr>
-<th>Requirement</th>
-<th>Bar</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>Accuracy</strong></td>
-<td>A wrong number is worse than no answer. Ambiguous vocabulary is deliberately excluded from the parser (e.g. &quot;pick&quot; ≠ interception).</td>
-</tr>
-<tr>
-<td><strong>Transparency</strong></td>
-<td>Every answer must expose its SQL, entities, and interpretation.</td>
-</tr>
-<tr>
-<td><strong>Latency</strong></td>
-<td>Cached answers instant (two-tier cache); cold answers a single indexed query. No LLM in the loop.</td>
-</tr>
-<tr>
-<td><strong>Cost</strong></td>
-<td>Zero inference cost; one small Postgres + one Node service + static frontend.</td>
-</tr>
-<tr>
-<td><strong>Safety</strong></td>
-<td>SQL injection impossible by construction (allowlists + bound params); reads run under a read-only role; per-IP rate limiting on search/agent.</td>
-</tr>
-</tbody></table>
-<h2>6. Non-goals (current)</h2>
+<h2 id="5-non-functional-requirements">5. Non-functional requirements<a class="anchor" href="#5-non-functional-requirements" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Requirement</th><th>Bar</th></tr></thead><tbody><tr><td><strong>Accuracy</strong></td><td>A wrong number is worse than no answer. Ambiguous vocabulary is deliberately excluded from the parser (e.g. &quot;pick&quot; ≠ interception).</td></tr>
+<tr><td><strong>Transparency</strong></td><td>Every answer must expose its SQL, entities, and interpretation.</td></tr>
+<tr><td><strong>Latency</strong></td><td>Cached answers instant (two-tier cache); cold answers a single indexed query. No LLM in the loop.</td></tr>
+<tr><td><strong>Cost</strong></td><td>Zero inference cost; one small Postgres + one Node service + static frontend.</td></tr>
+<tr><td><strong>Safety</strong></td><td>SQL injection impossible by construction (allowlists + bound params); reads run under a read-only role; per-IP rate limiting on search/agent.</td></tr></tbody></table></div>
+<h2 id="6-non-goals-current">6. Non-goals (current)<a class="anchor" href="#6-non-goals-current" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>Live in-progress game scores (data is release-file based; see roadmap).</li>
 <li>Betting/odds, projections, or ML predictions.</li>
@@ -195,7 +267,7 @@ pool with per-game rates.</li>
 <li>Full play-by-play storage (only touchdown events and per-game advanced
 aggregates are distilled from pbp).</li>
 </ul>
-<h2>7. Success metrics</h2>
+<h2 id="7-success-metrics">7. Success metrics<a class="anchor" href="#7-success-metrics" aria-label="Link to this section">#</a></h2>
 <ul>
 <li><strong>Answer rate</strong> — % of asked questions that parse and return an answer
 (measured via <code>query_audit</code>).</li>
@@ -206,7 +278,7 @@ questions served from cache.</li>
 <li><strong>Coverage</strong> — supported question archetypes (see the query-space map),
 growing per <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a> Track A.</li>
 </ul>
-<h2>8. Roadmap summary</h2>
+<h2 id="8-roadmap-summary">8. Roadmap summary<a class="anchor" href="#8-roadmap-summary" aria-label="Link to this section">#</a></h2>
 <p>Four tracks, detailed in <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>:</p>
 <ol>
 <li><strong>Query coverage expansion</strong> — grow the answerable question space
@@ -220,5 +292,7 @@ reliability, cost posture.</li>
 </ol>
 
 </main>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-product-summary">1. Product summary</a><a class="d2" href="#2-target-users">2. Target users</a><a class="d2" href="#3-problems-we-solve">3. Problems we solve</a><a class="d2" href="#4-feature-requirements-shipped">4. Feature requirements (shipped)</a><a class="d3" href="#41-natural-language-search-the-core">4.1 Natural-language search (the core)</a><a class="d3" href="#42-shareable-answers">4.2 Shareable answers</a><a class="d3" href="#43-hub-surfaces">4.3 Hub surfaces</a><a class="d3" href="#44-profiles">4.4 Profiles</a><a class="d3" href="#45-fantasy">4.5 Fantasy</a><a class="d3" href="#46-assistant">4.6 Assistant</a><a class="d2" href="#5-non-functional-requirements">5. Non-functional requirements</a><a class="d2" href="#6-non-goals-current">6. Non-goals (current)</a><a class="d2" href="#7-success-metrics">7. Success metrics</a><a class="d2" href="#8-roadmap-summary">8. Roadmap summary</a></aside>
+</div>
 </body>
 </html>

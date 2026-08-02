@@ -3,57 +3,177 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YunoBall — Design Brief</title>
+<title>YunoBall — Design Brief · YunoBall docs</title>
 <style>
-:root { color-scheme: dark; }
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal; font-weight: 100 900; font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --panel: #13161e;
+  --elevated: #1b1f29;
+  --bg-soft: #222835;
+  --border: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.1);
+  --text: #f5f5f5;
+  --muted: #f2f2f4;
+  --faint: #e7e7ec;
+  --accent: #89f336;
+  --accent-ink: #9df84f;
+  --accent-soft: rgba(137,243,54,0.16);
+  --accent-border: rgba(137,243,54,0.42);
+  --success: #4ade80;
+  --danger: #f87171;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 14px; --r-pill: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--s-8); }
 body {
-  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
-  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
-main { max-width: 860px; margin: 0 auto; }
-h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
-h1 { font-size: 28px; margin: 0 0 8px; }
-h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
-h3 { font-size: 16px; margin: 28px 0 8px; }
-a { color: #34d399; text-decoration: none; }
+
+/* Top bar: every doc, always reachable, current one marked. */
+.docnav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(10,12,17,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.docnav .brand { font-weight: 800; letter-spacing: -0.02em; margin-right: var(--s-4); }
+.docnav .brand span { color: var(--accent-ink); }
+.docnav a {
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-pill);
+  color: var(--faint); text-decoration: none; font-weight: 550;
+}
+.docnav a:hover { background: var(--bg-soft); color: var(--text); }
+.docnav a[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.shell { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: var(--s-10);
+  max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-6) 96px; }
+main { min-width: 0; max-width: 860px; }
+
+/* Section index, derived from the h2/h3 tree. */
+.toc { position: sticky; top: 72px; align-self: start; font-size: 13px; }
+.toc h2 {
+  margin: 0 0 var(--s-3); padding: 0; border: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.7;
+}
+.toc a { display: block; padding: 3px 0; color: var(--faint); text-decoration: none; }
+.toc a:hover { color: var(--accent-ink); }
+.toc .d3 { padding-left: var(--s-3); opacity: 0.75; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 34px; margin: 0 0 var(--s-4); }
+h2 { font-size: 22px; margin: var(--s-10) 0 var(--s-4); padding-top: var(--s-6);
+  border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: var(--s-8) 0 var(--s-3); }
+h4 { font-size: 15px; margin: var(--s-6) 0 var(--s-2); color: var(--faint); }
+.anchor {
+  margin-left: var(--s-2); color: var(--accent-ink); opacity: 0;
+  text-decoration: none; font-weight: 500;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 0.6; }
+
+p, ul, ol { margin: var(--s-4) 0; }
+li { margin: var(--s-1) 0; }
+li > ul, li > ol { margin: var(--s-1) 0; }
+a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
-p, ul, ol { margin: 12px 0; }
-li { margin: 4px 0; }
+strong { font-weight: 700; color: #fff; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-8) 0; }
+
 blockquote {
-  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
-  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+  margin: var(--s-5) 0; padding: var(--s-3) var(--s-5);
+  background: var(--panel); border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0; color: var(--faint);
 }
-blockquote p { margin: 4px 0; }
+blockquote p { margin: var(--s-1) 0; }
+
 code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: var(--r-sm);
+}
+figure.code { position: relative; margin: var(--s-5) 0; }
+figure.code .lang {
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.5;
 }
 pre {
-  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
-  border: 1px solid rgba(255,255,255,0.05);
+  margin: 0; padding: var(--s-4) var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
 }
-pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
-table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
-th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-tr:hover td { background: #121417; }
-hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
-.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
-.docnav a { margin-right: 12px; }
-.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.6; }
+pre .k { color: var(--accent-ink); font-weight: 600; }
+pre .s { color: #ffd479; }
+pre .c { color: var(--faint); opacity: 0.45; font-style: italic; }
+pre .n { color: #7fd4ff; }
+
+.tablewrap { overflow-x: auto; margin: var(--s-5) 0; border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+th {
+  position: sticky; top: 0; background: var(--elevated); color: var(--faint);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+tbody tr:hover td { background: var(--panel); }
+td code { white-space: nowrap; }
+
+figure.diagram {
+  margin: var(--s-6) 0; padding: var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+}
+figure.diagram svg { display: block; max-width: 100%; height: auto; }
+figure.diagram figcaption {
+  margin-top: var(--s-3); color: var(--faint); font-size: 12.5px; opacity: 0.75;
+}
+
+/* Index page cards. */
+.cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: var(--s-6) 0; }
+.card {
+  display: block; padding: var(--s-5); background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--elevated); border-color: var(--accent-border); text-decoration: none; }
+.card h3 { margin: 0 0 var(--s-2); font-size: 16px; }
+.card p { margin: 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.lede { font-size: 17px; color: var(--faint); max-width: 62ch; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: var(--s-6); padding: var(--s-6) var(--s-4) 64px; }
+  .toc { display: none; }
+  h1 { font-size: 27px; }
+}
 </style>
 </head>
 <body>
+<nav class="docnav"><a class="brand" href="index.html">Yuno<span>Ball</span> docs</a><a href="PRD.html">Product</a><a href="ARCHITECTURE.html">Architecture</a><a href="TDD.html">Technical design</a><a href="BACKEND_SCHEMA.html">Schema</a><a href="FACTS.html">Facts</a><a href="ENGINEERING_PLAN.html">Plan</a><a href="APP_FLOW.html">App flow</a><a href="DESIGN_BRIEF.html" aria-current="page">Design</a><a href="FRONTEND_SPEC.html">Frontend spec</a><a href="DEPLOYMENT.html">Deploy</a><a href="search-results-audit.html">Search audit</a></nav>
+<div class="shell">
 <main>
-<nav class="docnav"><a href="PRD.html">PRD</a><a href="TDD.html">TDD</a><a href="APP_FLOW.html">APP_FLOW</a><span class="here">DESIGN_BRIEF</span><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
-<h1>YunoBall — Design Brief</h1>
+<h1 id="yunoball-design-brief">YunoBall — Design Brief<a class="anchor" href="#yunoball-design-brief" aria-label="Link to this section">#</a></h1>
 <blockquote>
 <p>The design language: principles, tokens, and component rules.
 Runtime source of truth: <code>apps/web/app/globals.css</code> (tokens) and
 <code>apps/web/app/lib/teamTheme.ts</code> (team theming).</p>
 </blockquote>
-<h2>1. Personality &amp; principles</h2>
+<h2 id="1-personality-principles">1. Personality &amp; principles<a class="anchor" href="#1-personality-principles" aria-label="Link to this section">#</a></h2>
 <p><strong>Quiet, dense, authoritative.</strong> A dark, StatMuse-inspired stats surface that
 feels like a professional tool, not a fan site — until a team enters the
 frame, at which point the interface takes on that team&#39;s colors.</p>
@@ -72,60 +192,27 @@ re-tints to that team&#39;s branding. Backgrounds and neutrals never recolor.</l
 <li><strong>Honest states.</strong> Skeletons while loading, plain-language refusals,
 visible interpretations. The UI never pretends to know something.</li>
 </ol>
-<h2>2. Color system</h2>
-<h3>Neutral ramp (surfaces — depth = background contrast, not lines)</h3>
-<table>
-<thead>
-<tr>
-<th>Token</th>
-<th>Value</th>
-<th>Use</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>--bg</code></td>
-<td><code>#0c0d0f</code></td>
-<td>page background</td>
-</tr>
-<tr>
-<td><code>--panel</code></td>
-<td><code>#121417</code></td>
-<td>primary surface</td>
-</tr>
-<tr>
-<td><code>--elevated</code></td>
-<td><code>#181b20</code></td>
-<td>raised surface (popovers, hovers)</td>
-</tr>
-<tr>
-<td><code>--bg-soft</code></td>
-<td><code>#1f2328</code></td>
-<td>inset wells, chips</td>
-</tr>
-<tr>
-<td><code>--bg-hover</code></td>
-<td><code>#262b31</code></td>
-<td>hover tier for soft surfaces</td>
-</tr>
-<tr>
-<td><code>--border</code> / <code>--border-strong</code></td>
-<td>5% / 10% white</td>
-<td>the few places that need a line</td>
-</tr>
-</tbody></table>
-<h3>Ink</h3>
+<h2 id="2-color-system">2. Color system<a class="anchor" href="#2-color-system" aria-label="Link to this section">#</a></h2>
+<h3 id="neutral-ramp-surfaces-depth-background-contrast-not-lines">Neutral ramp (surfaces — depth = background contrast, not lines)<a class="anchor" href="#neutral-ramp-surfaces-depth-background-contrast-not-lines" aria-label="Link to this section">#</a></h3>
+<div class="tablewrap"><table><thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead><tbody><tr><td><code>--bg</code></td><td><code>#0c0d0f</code></td><td>page background</td></tr>
+<tr><td><code>--panel</code></td><td><code>#121417</code></td><td>primary surface</td></tr>
+<tr><td><code>--elevated</code></td><td><code>#181b20</code></td><td>raised surface (popovers, hovers)</td></tr>
+<tr><td><code>--bg-soft</code></td><td><code>#1f2328</code></td><td>inset wells, chips</td></tr>
+<tr><td><code>--bg-hover</code></td><td><code>#262b31</code></td><td>hover tier for soft surfaces</td></tr>
+<tr><td><code>--border</code> / <code>--border-strong</code></td><td>5% / 10% white</td><td>the few places that need a line</td></tr></tbody></table></div>
+<h3 id="ink">Ink<a class="anchor" href="#ink" aria-label="Link to this section">#</a></h3>
 <p><code>--text #f5f5f5</code> · <code>--muted #a1a1aa</code> · <code>--faint #95959f</code> (tertiary — chosen to
 clear 4.5:1 on every surface <em>including</em> the hover tier).</p>
-<h3>Brand accent (emerald, used sparingly)</h3>
+<h3 id="brand-accent-emerald-used-sparingly">Brand accent (emerald, used sparingly)<a class="anchor" href="#brand-accent-emerald-used-sparingly" aria-label="Link to this section">#</a></h3>
 <p><code>--accent #10b981</code> with a full derived family: <code>--accent-hover</code>,
 <code>--accent-soft</code> (12% fill), <code>--accent-contrast</code> (ink on solid accent),
 <code>--accent-ink #34d399</code> (accent-colored <em>text</em> needs the lighter tone),
 <code>--accent-border</code> (40%). Data marks use <code>--chart</code>/<code>--chart-strong</code> — never raw
 accent.</p>
-<h3>Semantic</h3>
+<h3 id="semantic">Semantic<a class="anchor" href="#semantic" aria-label="Link to this section">#</a></h3>
 <p><code>--success #4ade80</code> · <code>--warning #facc15</code> · <code>--danger #f87171</code> (+ soft/text/
 border variants).</p>
-<h2>3. Team theming (<code>teamTheme.ts</code>)</h2>
+<h2 id="3-team-theming-teamthemets">3. Team theming (<code>teamTheme.ts</code>)<a class="anchor" href="#3-team-theming-teamthemets" aria-label="Link to this section">#</a></h2>
 <p>The signature move. <code>teamTheme(teamId)</code> returns CSS-variable overrides scoped
 to a container — spreading it re-tints <strong>only the accent family</strong> to the
 team&#39;s primary color:</p>
@@ -142,7 +229,7 @@ cards render as solid team color with guaranteed-readable black/white ink.</li>
 <p>Rules: only accent-driven UI changes (buttons, active tabs, links, chart
 marks, stat highlights). Never re-tint backgrounds, neutrals, or semantic
 colors. Unknown team → no override (emerald stays).</p>
-<h2>4. Typography</h2>
+<h2 id="4-typography">4. Typography<a class="anchor" href="#4-typography" aria-label="Link to this section">#</a></h2>
 <ul>
 <li><strong>One face:</strong> Geist Variable (bundled woff2, weights 100–900, no runtime
 font request). System-stack fallback. Mono for SQL: <code>ui-monospace</code> stack.</li>
@@ -151,7 +238,7 @@ lead 16. Display sizes are per-context in the same face (<code>--display</code>)
 <li>Numbers-first design: tabular data uses tight, consistent sizing;
 narration reads at body sizes.</li>
 </ul>
-<h2>5. Space, shape, elevation, motion</h2>
+<h2 id="5-space-shape-elevation-motion">5. Space, shape, elevation, motion<a class="anchor" href="#5-space-shape-elevation-motion" aria-label="Link to this section">#</a></h2>
 <ul>
 <li><strong>Spacing:</strong> 4px base scale (<code>--s-1: 4px</code> … <code>--s-20: 80px</code>).</li>
 <li><strong>Radii:</strong> 6 / 8 / 12 / 14px + pill. Default <code>--radius: 12px</code>.</li>
@@ -163,52 +250,17 @@ skip-link(100). Overlays render in-flow; no portals.</li>
 160ms / slow 240ms; data draw-ins (bars) 700ms. Motion supports
 comprehension (draw-ins, shimmer), never decoration.</li>
 </ul>
-<h2>6. Component inventory (<code>apps/web/app/components/</code>)</h2>
-<table>
-<thead>
-<tr>
-<th>Component</th>
-<th>Role</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>AnswerCard</code></td>
-<td>The flagship: narration, entities, player card(s), comparison chart, sortable table, query interpretation, SQL disclosure, CSV, share</td>
-</tr>
-<tr>
-<td><code>SinglePlayerResult</code> / <code>PlayerComparisonResult</code></td>
-<td>Answer layouts per intent shape</td>
-</tr>
-<tr>
-<td><code>ResultDrilldown</code> / <code>ResultMethodology</code></td>
-<td>Row drill-downs and &quot;how was this computed&quot;</td>
-</tr>
-<tr>
-<td><code>SortTable</code></td>
-<td>Dense sortable stat table; horizontal containment on mobile</td>
-</tr>
-<tr>
-<td><code>SearchSuggest</code></td>
-<td>Debounced autocomplete: players (headshots), teams, questions</td>
-</tr>
-<tr>
-<td><code>ScoreTicker</code> / <code>GameCard</code> / <code>Performers</code> / <code>Leaders</code> / <code>HomeDashboard</code></td>
-<td>Home/dashboard surfaces</td>
-</tr>
-<tr>
-<td><code>Headshot</code> / <code>TeamLogo</code> / <code>Badge</code> (ui.tsx)</td>
-<td>Identity primitives</td>
-</tr>
-<tr>
-<td><code>Nav</code> / <code>Crumbs</code> / <code>Dropdown</code> / <code>SeasonSelect</code> / <code>tablist</code></td>
-<td>Chrome &amp; controls</td>
-</tr>
-<tr>
-<td><code>Skeleton</code></td>
-<td>Shimmer loading states</td>
-</tr>
-</tbody></table>
-<h2>7. Data-visualization rules</h2>
+<h2 id="6-component-inventory-appswebappcomponents">6. Component inventory (<code>apps/web/app/components/</code>)<a class="anchor" href="#6-component-inventory-appswebappcomponents" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>AnswerCard</code></td><td>The flagship: narration, entities, player card(s), comparison chart, sortable table, query interpretation, SQL disclosure, CSV, share</td></tr>
+<tr><td><code>SinglePlayerResult</code> / <code>PlayerComparisonResult</code></td><td>Answer layouts per intent shape</td></tr>
+<tr><td><code>ResultDrilldown</code> / <code>ResultMethodology</code></td><td>Row drill-downs and &quot;how was this computed&quot;</td></tr>
+<tr><td><code>SortTable</code></td><td>Dense sortable stat table; horizontal containment on mobile</td></tr>
+<tr><td><code>SearchSuggest</code></td><td>Debounced autocomplete: players (headshots), teams, questions</td></tr>
+<tr><td><code>ScoreTicker</code> / <code>GameCard</code> / <code>Performers</code> / <code>Leaders</code> / <code>HomeDashboard</code></td><td>Home/dashboard surfaces</td></tr>
+<tr><td><code>Headshot</code> / <code>TeamLogo</code> / <code>Badge</code> (ui.tsx)</td><td>Identity primitives</td></tr>
+<tr><td><code>Nav</code> / <code>Crumbs</code> / <code>Dropdown</code> / <code>SeasonSelect</code> / <code>tablist</code></td><td>Chrome &amp; controls</td></tr>
+<tr><td><code>Skeleton</code></td><td>Shimmer loading states</td></tr></tbody></table></div>
+<h2 id="7-data-visualization-rules">7. Data-visualization rules<a class="anchor" href="#7-data-visualization-rules" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>Marks use <code>--chart</code> tokens (team-tinted in team context), validated for the
 dark surface.</li>
@@ -216,7 +268,7 @@ dark surface.</li>
 <li>Tables are the primary viz: every chart has its numbers adjacent; CSV
 export always available.</li>
 </ul>
-<h2>8. Accessibility bars</h2>
+<h2 id="8-accessibility-bars">8. Accessibility bars<a class="anchor" href="#8-accessibility-bars" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>Text contrast ≥ 4.5:1 on <strong>every</strong> surface tier it can sit on (tokens are
 chosen and documented against the brightest tier).</li>
@@ -227,5 +279,7 @@ color-scheme: dark declared for native form rendering.</li>
 </ul>
 
 </main>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-personality-principles">1. Personality &amp; principles</a><a class="d2" href="#2-color-system">2. Color system</a><a class="d3" href="#neutral-ramp-surfaces-depth-background-contrast-not-lines">Neutral ramp (surfaces — depth = background contrast, not lines)</a><a class="d3" href="#ink">Ink</a><a class="d3" href="#brand-accent-emerald-used-sparingly">Brand accent (emerald, used sparingly)</a><a class="d3" href="#semantic">Semantic</a><a class="d2" href="#3-team-theming-teamthemets">3. Team theming (teamTheme.ts)</a><a class="d2" href="#4-typography">4. Typography</a><a class="d2" href="#5-space-shape-elevation-motion">5. Space, shape, elevation, motion</a><a class="d2" href="#6-component-inventory-appswebappcomponents">6. Component inventory (apps/web/app/components/)</a><a class="d2" href="#7-data-visualization-rules">7. Data-visualization rules</a><a class="d2" href="#8-accessibility-bars">8. Accessibility bars</a></aside>
+</div>
 </body>
 </html>

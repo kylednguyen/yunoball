@@ -3,217 +3,254 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YunoBall — Technical Design Document</title>
+<title>YunoBall — Technical Design Document · YunoBall docs</title>
 <style>
-:root { color-scheme: dark; }
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal; font-weight: 100 900; font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --panel: #13161e;
+  --elevated: #1b1f29;
+  --bg-soft: #222835;
+  --border: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.1);
+  --text: #f5f5f5;
+  --muted: #f2f2f4;
+  --faint: #e7e7ec;
+  --accent: #89f336;
+  --accent-ink: #9df84f;
+  --accent-soft: rgba(137,243,54,0.16);
+  --accent-border: rgba(137,243,54,0.42);
+  --success: #4ade80;
+  --danger: #f87171;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 14px; --r-pill: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--s-8); }
 body {
-  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
-  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
-main { max-width: 860px; margin: 0 auto; }
-h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
-h1 { font-size: 28px; margin: 0 0 8px; }
-h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
-h3 { font-size: 16px; margin: 28px 0 8px; }
-a { color: #34d399; text-decoration: none; }
+
+/* Top bar: every doc, always reachable, current one marked. */
+.docnav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(10,12,17,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.docnav .brand { font-weight: 800; letter-spacing: -0.02em; margin-right: var(--s-4); }
+.docnav .brand span { color: var(--accent-ink); }
+.docnav a {
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-pill);
+  color: var(--faint); text-decoration: none; font-weight: 550;
+}
+.docnav a:hover { background: var(--bg-soft); color: var(--text); }
+.docnav a[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.shell { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: var(--s-10);
+  max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-6) 96px; }
+main { min-width: 0; max-width: 860px; }
+
+/* Section index, derived from the h2/h3 tree. */
+.toc { position: sticky; top: 72px; align-self: start; font-size: 13px; }
+.toc h2 {
+  margin: 0 0 var(--s-3); padding: 0; border: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.7;
+}
+.toc a { display: block; padding: 3px 0; color: var(--faint); text-decoration: none; }
+.toc a:hover { color: var(--accent-ink); }
+.toc .d3 { padding-left: var(--s-3); opacity: 0.75; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 34px; margin: 0 0 var(--s-4); }
+h2 { font-size: 22px; margin: var(--s-10) 0 var(--s-4); padding-top: var(--s-6);
+  border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: var(--s-8) 0 var(--s-3); }
+h4 { font-size: 15px; margin: var(--s-6) 0 var(--s-2); color: var(--faint); }
+.anchor {
+  margin-left: var(--s-2); color: var(--accent-ink); opacity: 0;
+  text-decoration: none; font-weight: 500;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 0.6; }
+
+p, ul, ol { margin: var(--s-4) 0; }
+li { margin: var(--s-1) 0; }
+li > ul, li > ol { margin: var(--s-1) 0; }
+a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
-p, ul, ol { margin: 12px 0; }
-li { margin: 4px 0; }
+strong { font-weight: 700; color: #fff; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-8) 0; }
+
 blockquote {
-  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
-  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+  margin: var(--s-5) 0; padding: var(--s-3) var(--s-5);
+  background: var(--panel); border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0; color: var(--faint);
 }
-blockquote p { margin: 4px 0; }
+blockquote p { margin: var(--s-1) 0; }
+
 code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: var(--r-sm);
+}
+figure.code { position: relative; margin: var(--s-5) 0; }
+figure.code .lang {
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.5;
 }
 pre {
-  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
-  border: 1px solid rgba(255,255,255,0.05);
+  margin: 0; padding: var(--s-4) var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
 }
-pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
-table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
-th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-tr:hover td { background: #121417; }
-hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
-.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
-.docnav a { margin-right: 12px; }
-.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.6; }
+pre .k { color: var(--accent-ink); font-weight: 600; }
+pre .s { color: #ffd479; }
+pre .c { color: var(--faint); opacity: 0.45; font-style: italic; }
+pre .n { color: #7fd4ff; }
+
+.tablewrap { overflow-x: auto; margin: var(--s-5) 0; border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+th {
+  position: sticky; top: 0; background: var(--elevated); color: var(--faint);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+tbody tr:hover td { background: var(--panel); }
+td code { white-space: nowrap; }
+
+figure.diagram {
+  margin: var(--s-6) 0; padding: var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+}
+figure.diagram svg { display: block; max-width: 100%; height: auto; }
+figure.diagram figcaption {
+  margin-top: var(--s-3); color: var(--faint); font-size: 12.5px; opacity: 0.75;
+}
+
+/* Index page cards. */
+.cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: var(--s-6) 0; }
+.card {
+  display: block; padding: var(--s-5); background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--elevated); border-color: var(--accent-border); text-decoration: none; }
+.card h3 { margin: 0 0 var(--s-2); font-size: 16px; }
+.card p { margin: 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.lede { font-size: 17px; color: var(--faint); max-width: 62ch; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: var(--s-6); padding: var(--s-6) var(--s-4) 64px; }
+  .toc { display: none; }
+  h1 { font-size: 27px; }
+}
 </style>
 </head>
 <body>
+<nav class="docnav"><a class="brand" href="index.html">Yuno<span>Ball</span> docs</a><a href="PRD.html">Product</a><a href="ARCHITECTURE.html">Architecture</a><a href="TDD.html" aria-current="page">Technical design</a><a href="BACKEND_SCHEMA.html">Schema</a><a href="FACTS.html">Facts</a><a href="ENGINEERING_PLAN.html">Plan</a><a href="APP_FLOW.html">App flow</a><a href="DESIGN_BRIEF.html">Design</a><a href="FRONTEND_SPEC.html">Frontend spec</a><a href="DEPLOYMENT.html">Deploy</a><a href="search-results-audit.html">Search audit</a></nav>
+<div class="shell">
 <main>
-<nav class="docnav"><a href="PRD.html">PRD</a><span class="here">TDD</span><a href="APP_FLOW.html">APP_FLOW</a><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA</a><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
-<h1>YunoBall — Technical Design Document</h1>
+<h1 id="yunoball-technical-design-document">YunoBall — Technical Design Document<a class="anchor" href="#yunoball-technical-design-document" aria-label="Link to this section">#</a></h1>
 <blockquote>
-<p>How the system is built and why. Complements <a href="ARCHITECTURE.md">ARCHITECTURE.md</a>
+<p>How the system is built and why. Complements <a href="ARCHITECTURE.html">ARCHITECTURE.md</a>
 (the narrative overview) with the full technical reference.
-Companion docs: <a href="PRD.html">PRD.md</a> · <a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA.md</a> · <a href="DEPLOYMENT.md">DEPLOYMENT.md</a></p>
+Companion docs: <a href="PRD.html">PRD.md</a> · <a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA.md</a> · <a href="DEPLOYMENT.html">DEPLOYMENT.md</a></p>
 </blockquote>
-<h2>1. System overview</h2>
+<h2 id="1-system-overview">1. System overview<a class="anchor" href="#1-system-overview" aria-label="Link to this section">#</a></h2>
 <p>One language, one runtime — TypeScript end to end:</p>
-<table>
-<thead>
-<tr>
-<th>Layer</th>
-<th>Choice</th>
-<th>Where</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Frontend</td>
-<td>Next.js (App Router)</td>
-<td><code>apps/web</code></td>
-</tr>
-<tr>
-<td>Backend</td>
-<td>Express</td>
-<td><code>apps/server</code></td>
-</tr>
-<tr>
-<td>Wire contract</td>
-<td>Shared type package (types only, no runtime)</td>
-<td><code>packages/types</code></td>
-</tr>
-<tr>
-<td>Database</td>
-<td>Postgres (Supabase-hostable), plain-SQL schema</td>
-<td><code>apps/server/src/db</code></td>
-</tr>
-<tr>
-<td>Cache</td>
-<td>In-process two-tier answer cache + durable Postgres store</td>
-<td>engine + <code>answer_cache</code></td>
-</tr>
-<tr>
-<td>Data</td>
-<td>nflverse release CSVs</td>
-<td><code>apps/server/src/ingest</code></td>
-</tr>
-<tr>
-<td>Tooling</td>
-<td>pnpm workspaces + turbo; Node ≥ 22</td>
-<td>repo root</td>
-</tr>
-</tbody></table>
-<pre><code>web (Next.js) ──/api/*──► server (Express)
+<div class="tablewrap"><table><thead><tr><th>Layer</th><th>Choice</th><th>Where</th></tr></thead><tbody><tr><td>Frontend</td><td>Next.js (App Router)</td><td><code>apps/web</code></td></tr>
+<tr><td>Backend</td><td>Express</td><td><code>apps/server</code></td></tr>
+<tr><td>Wire contract</td><td>Shared type package (types only, no runtime)</td><td><code>packages/types</code></td></tr>
+<tr><td>Database</td><td>Postgres (Supabase-hostable), plain-SQL schema</td><td><code>apps/server/src/db</code></td></tr>
+<tr><td>Cache</td><td>In-process two-tier answer cache + durable Postgres store</td><td>engine + <code>answer_cache</code></td></tr>
+<tr><td>Data</td><td>nflverse release CSVs</td><td><code>apps/server/src/ingest</code></td></tr>
+<tr><td>Tooling</td><td>pnpm workspaces + turbo; Node ≥ 22</td><td>repo root</td></tr></tbody></table></div>
+<figure class="code"><pre><code>web (Next.js) ──/api/*──► server (Express)
                           routes → controllers (zod) → services → repositories
                           engine: POST /api/search (deterministic pipeline)
                           agent:  POST /api/agent  (intent routing)
                                         │
-                                  Postgres warehouse ◄── ingest CLI (nflverse)
-</code></pre>
-<h2>2. Monorepo layout</h2>
-<pre><code>apps/web            Next.js UI (app router pages, components, lib)
+                                  Postgres warehouse ◄── ingest CLI (nflverse)</code></pre></figure>
+<h2 id="2-monorepo-layout">2. Monorepo layout<a class="anchor" href="#2-monorepo-layout" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>apps/web            Next.js UI (app router pages, components, lib)
 apps/server/src
   routes/           path table only (thin)
   controllers/      request validation (zod) — one file
   services/         business logic per surface (search, games, standings,
-                    leaderboards, players, teams, fantasy, agent)
+                    leaderboards, players, teams, fantasy, facts, agent)
   repositories/     shared SQL helpers
   engine/           NL → QuerySpec → SQL (spec, parseRules, resolve, build,
-                    executors/, narrate, audit, similarity, pipeline, facts)
+                    executors/, narrate, audit, similarity, pipeline,
+                    facts — curated awards/franchise records)
+  facts/            mined fact of the day (types, probes/, registry, mine,
+                    score, claim, select, store, cli)
   ingest/           providers/ (nflverse), normalize, upsert, pipelines, cli
   db/               pool, schema.sql, migrate
-  cli/              fetchEspnIds (ESPN headshot ids)
+  cli/              searchAudit (search-hardening diagnostic harness)
   lib/              cross-cutting helpers (espn, rateLimit, …)
-packages/types      the API wire contract (snake_case = JSON format)
-</code></pre>
+packages/types      the API wire contract (snake_case = JSON format)</code></pre></figure>
 <p><strong>Dependency rule:</strong> web and server share <em>types only</em>. Field names are
 snake_case because they are the wire format; <code>packages/types</code> never ships
 runtime code.</p>
-<h2>3. API surface</h2>
-<table>
-<thead>
-<tr>
-<th>Endpoint</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>POST /api/search</code></td>
-<td>Ask a question → <code>AnswerResult</code></td>
-</tr>
-<tr>
-<td><code>GET /api/search/examples</code></td>
-<td>Supported example questions</td>
-</tr>
-<tr>
-<td><code>GET /api/search/suggest</code></td>
-<td>Autocomplete (players, teams, questions)</td>
-</tr>
-<tr>
-<td><code>GET /api/search/answer/:shareId</code></td>
-<td>Persisted answer for <code>/a/</code> pages</td>
-</tr>
-<tr>
-<td><code>GET /api/leaderboards</code></td>
-<td>Season leader boards</td>
-</tr>
-<tr>
-<td><code>GET /api/games</code></td>
-<td>Week slate (season/week pickers)</td>
-</tr>
-<tr>
-<td><code>GET /api/games/performers</code></td>
-<td>Weekly top performers (PPR)</td>
-</tr>
-<tr>
-<td><code>GET /api/games/:gameId/boxscore</code></td>
-<td>Full box score</td>
-</tr>
-<tr>
-<td><code>GET /api/standings</code></td>
-<td>Computed standings</td>
-</tr>
-<tr>
-<td><code>GET /api/fantasy/players</code></td>
-<td>Fantasy player pool</td>
-</tr>
-<tr>
-<td><code>GET /api/players/:playerId</code></td>
-<td>Player profile (+ <code>/splits</code>)</td>
-</tr>
-<tr>
-<td><code>GET /api/teams/:teamId</code></td>
-<td>Team profile</td>
-</tr>
-<tr>
-<td><code>POST /api/agent</code></td>
-<td>Assistant (tool routing, demo mode)</td>
-</tr>
-<tr>
-<td><code>GET /health</code> / <code>GET /ready</code></td>
-<td>Liveness / readiness (readiness pings Postgres; Render health-checks <code>/ready</code>)</td>
-</tr>
-</tbody></table>
+<h2 id="3-api-surface">3. API surface<a class="anchor" href="#3-api-surface" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Endpoint</th><th>Purpose</th></tr></thead><tbody><tr><td><code>POST /api/search</code></td><td>Ask a question → <code>AnswerResult</code></td></tr>
+<tr><td><code>GET /api/search/examples</code></td><td>Supported example questions</td></tr>
+<tr><td><code>GET /api/search/suggest</code></td><td>Autocomplete (players, teams, questions)</td></tr>
+<tr><td><code>GET /api/search/answer/:shareId</code></td><td>Persisted answer for <code>/a/</code> pages</td></tr>
+<tr><td><code>GET /api/leaderboards</code></td><td>Season leader boards</td></tr>
+<tr><td><code>GET /api/games</code></td><td>Week slate (season/week pickers)</td></tr>
+<tr><td><code>GET /api/games/performers</code></td><td>Weekly top performers (PPR)</td></tr>
+<tr><td><code>GET /api/games/:gameId/boxscore</code></td><td>Full box score</td></tr>
+<tr><td><code>GET /api/standings</code></td><td>Computed standings</td></tr>
+<tr><td><code>GET /api/facts/today</code></td><td>The day&#39;s mined fact (computes and backfills on a miss)</td></tr>
+<tr><td><code>GET /api/facts</code></td><td>Ranked fact backlog (<code>?season=</code>, <code>?limit=</code>, capped at 100)</td></tr>
+<tr><td><code>GET /api/facts/:factId</code></td><td>One fact plus the evidence rows behind it</td></tr>
+<tr><td><code>GET /api/fantasy/players</code></td><td>Fantasy player pool</td></tr>
+<tr><td><code>GET /api/players/:playerId</code></td><td>Player profile (+ <code>/splits</code>)</td></tr>
+<tr><td><code>GET /api/teams/:teamId</code></td><td>Team profile</td></tr>
+<tr><td><code>POST /api/agent</code></td><td>Assistant (tool routing, demo mode)</td></tr>
+<tr><td><code>GET /health</code> / <code>GET /ready</code></td><td>Liveness / readiness (readiness pings Postgres; Render health-checks <code>/ready</code>)</td></tr></tbody></table></div>
 <p>Response shapes are exactly the interfaces in <code>packages/types/src/index.ts</code>
 (<code>AnswerResult</code>, <code>LeaderboardsResponse</code>, <code>StandingsResponse</code>, <code>PlayerProfile</code>,
 <code>TeamProfile</code>, <code>BoxScore</code>, …).</p>
-<h2>4. The query engine (the core subsystem)</h2>
-<h3>4.1 Pipeline — deterministic end to end, zero LLM calls</h3>
-<pre><code>question ─► L1 cache (normalized text) ── hit ─► response
+<h2 id="4-the-query-engine-the-core-subsystem">4. The query engine (the core subsystem)<a class="anchor" href="#4-the-query-engine-the-core-subsystem" aria-label="Link to this section">#</a></h2>
+<h3 id="41-pipeline-deterministic-end-to-end-zero-llm-calls">4.1 Pipeline — deterministic end to end, zero LLM calls<a class="anchor" href="#41-pipeline-deterministic-end-to-end-zero-llm-calls" aria-label="Link to this section">#</a></h3>
+<figure class="code"><pre><code>question ─► L1 cache (normalized text) ── hit ─► response
         └─► resolve   fuzzy name → canonical player_id / team_id
         └─► parse     rule-based → typed QuerySpec
+        └─► gate      refuse a stat this intent's grain can't compute
         └─► L2 cache  (specCacheKey) ── hit ─► response
         └─► build     allowlisted template + bound params
         └─► execute   read-only role
         └─► narrate   templated from spec + rows
-        └─► audit     structured verdict → query_audit
-</code></pre>
+        └─► audit     structured verdict → query_audit</code></pre></figure>
 <p>Unparseable questions return an honest refusal — never a guess. Every parsed
 answer is persisted with a deterministic <code>share_id</code> <strong>before</strong> returning, so
 navigation to <code>/a/&lt;id&gt;</code> can&#39;t race the write.</p>
-<h3>4.2 QuerySpec — a typed AST, not SQL</h3>
-<p><code>engine/spec.ts</code> defines a <strong>discriminated union on <code>intent</code></strong> — 21 intents:
+<h3 id="42-queryspec-a-typed-ast-not-sql">4.2 QuerySpec — a typed AST, not SQL<a class="anchor" href="#42-queryspec-a-typed-ast-not-sql" aria-label="Link to this section">#</a></h3>
+<p><code>engine/spec.ts</code> defines a <strong>discriminated union on <code>intent</code></strong> — 23 intents:
 <code>leaders</code>, <code>player_total</code>, <code>player_seasons</code>, <code>single_game</code>, <code>compare</code>,
-<code>scoring</code>, <code>game_count</code>, <code>qualifying_count</code>, <code>player_rank</code>, <code>player_bio</code>,
-<code>game_log</code>, <code>team_game_log</code>, <code>game_result</code>, <code>draft_pick</code>, <code>team_bio</code>,
-<code>team_stat</code>, <code>team_roster</code>, <code>player_streak</code>, <code>team_streak</code>, <code>milestone</code>,
-<code>award</code>.</p>
+<code>scoring</code>, <code>scoring_board</code>, <code>game_count</code>, <code>game_count_leaders</code>,
+<code>qualifying_count</code>, <code>player_rank</code>, <code>player_bio</code>, <code>game_log</code>, <code>team_game_log</code>,
+<code>game_result</code>, <code>draft_pick</code>, <code>team_bio</code>, <code>team_stat</code>, <code>team_roster</code>,
+<code>player_streak</code>, <code>team_streak</code>, <code>milestone</code>, <code>award</code>.</p>
 <p>Each intent&#39;s node carries <strong>only the fields its executor consumes</strong> — &quot;the
 parser set a field the executor silently ignores&quot; (the engine&#39;s worst
 historical bug class) is a compile error. Cross-intent readers (auditor,
@@ -222,8 +259,8 @@ narration, cache key) use the loosened <code>fields()</code> view; executors mus
 limit), <code>GameWindow</code> (venue, week range, playoff round, Super Bowl only,
 opponent, season range, month, primetime, temperature ceiling), and
 <code>TeamGameFields</code> (team-anchored lookups, exact dates, margin ceilings).</p>
-<h3>4.3 The stat allowlist</h3>
-<p><code>STATS</code> maps ~30 stat keys to <code>StatDef</code>s: an SQL expression over alias <code>s</code>
+<h3 id="43-the-stat-allowlist">4.3 The stat allowlist<a class="anchor" href="#43-the-stat-allowlist" aria-label="Link to this section">#</a></h3>
+<p><code>STATS</code> maps 55 stat keys to <code>StatDef</code>s: an SQL expression over alias <code>s</code>
 (<strong>allowlisted here, never taken from free text</strong>), a narration label, and
 matching vocabulary (substring <code>phrases</code> + whole-word <code>words</code>, ordered most
 specific first so rate stats match before the volume stats they embed).
@@ -235,11 +272,24 @@ separately and divide after summing, with season/career qualifier floors.</li>
 <li><code>source: &quot;game&quot;</code> — stats that exist only at game grain aggregate the game
 log instead of season rollups; <code>table: &quot;advanced&quot;</code> routes to
 <code>player_game_advanced</code> (EPA/success/CPOE).</li>
+<li>The special-teams and situational block — kicking, punting, returns, first
+downs, YAC, tackles for loss, QB hits, defensive TDs, penalties — arrived
+with the widened nflverse mapping. Those columns land in <em>both</em> the game log
+and the season rollup, so they carry no <code>source: &quot;game&quot;</code>.</li>
+<li><code>statComputableFor()</code> (<code>executors/shared.ts</code>) is the capability gate the
+pipeline calls before building SQL: it checks a stat&#39;s columns against the
+storage grain the intent&#39;s executor actually reads, so a mis-routed stat is
+an honest &quot;can&#39;t compute that yet&quot; rather than SQL over a column the table
+doesn&#39;t have.</li>
 <li>Deliberate vocabulary gaps are correctness features: &quot;pick&quot; (collides with
 draft picks) and &quot;carries&quot; (means attempts, not yards) are excluded — a
 wrong number is worse than an honest refusal.</li>
+<li>The same reasoning keeps <code>fg_long</code> and <code>punt_long</code> out of <code>STATS</code> entirely:
+every executor SUMs its stat over the scoped rows, and a summed &quot;longest&quot; is
+a wrong number. They need a MAX-shaped intent that doesn&#39;t exist yet, so
+today the engine simply can&#39;t answer &quot;longest field goal&quot;.</li>
 </ul>
-<h3>4.4 Safety properties</h3>
+<h3 id="44-safety-properties">4.4 Safety properties<a class="anchor" href="#44-safety-properties" aria-label="Link to this section">#</a></h3>
 <ul>
 <li><strong>Injection-proof by construction:</strong> SQL text comes only from fixed
 templates + allowlisted stat expressions; all user-derived values are bound
@@ -249,7 +299,7 @@ set.</li>
 <li><strong>Auditable:</strong> every question logs a structured <code>query_audit</code> row (spec,
 status, warnings, confidence, row count, duration).</li>
 </ul>
-<h3>4.5 Caching &amp; shares</h3>
+<h3 id="45-caching-shares">4.5 Caching &amp; shares<a class="anchor" href="#45-caching-shares" aria-label="Link to this section">#</a></h3>
 <ul>
 <li><strong>L1:</strong> normalized question text → answer (repeat questions are instant).</li>
 <li><strong>L2:</strong> <code>specCacheKey(spec)</code> — different phrasings of the same intent share
@@ -259,18 +309,19 @@ one answer. The key enumerates every executor-relevant field (notably
 (deterministic SHA-256 prefix), TTL <code>ANSWER_CACHE_TTL_SECONDS</code> (24h
 default), powering permanent <code>/a/</code> share pages.</li>
 </ul>
-<h3>4.6 Entity resolution</h3>
+<h3 id="46-entity-resolution">4.6 Entity resolution<a class="anchor" href="#46-entity-resolution" aria-label="Link to this section">#</a></h3>
 <p>Fuzzy matcher (a difflib-equivalent port, golden-tested against CPython&#39;s
 behavior) maps mentions to canonical ids — last-name and typo tolerant, with
 confidence scores surfaced in <code>AnswerResult.entities</code>.</p>
-<h2>5. Services layer</h2>
+<h2 id="5-services-layer">5. Services layer<a class="anchor" href="#5-services-layer" aria-label="Link to this section">#</a></h2>
 <p>Non-search surfaces are conventional service modules over the repositories:
 <code>games</code>, <code>standings</code> (computed live from <code>team_game_stats</code>/<code>games</code>),
 <code>leaderboards</code> (defaults to the latest loaded season), <code>players</code> (profile,
-splits), <code>teams</code> (record, ranks, leaders), <code>fantasy</code>, <code>search</code>, <code>agent</code>. The
-assistant routes intents to these same services and reports its tool steps
-(<code>mode: &quot;demo&quot;</code>).</p>
-<h2>6. Ingestion subsystem</h2>
+splits), <code>teams</code> (record, ranks, leaders), <code>fantasy</code>, <code>facts</code> (short-list
+reads over <code>stat_facts</code> — the window scans happen in the mining job, never in
+a request), <code>search</code>, <code>agent</code>. The assistant routes intents to these same
+services and reports its tool steps (<code>mode: &quot;demo&quot;</code>).</p>
+<h2 id="6-ingestion-subsystem">6. Ingestion subsystem<a class="anchor" href="#6-ingestion-subsystem" aria-label="Link to this section">#</a></h2>
 <ul>
 <li><strong>Providers</strong> (<code>ingest/providers/nflverse</code>): release-file CSV download with
 disk cache and retries. New sources (ESPN, live scoring, injuries…) slot in
@@ -282,131 +333,69 @@ logged reason and an end-of-run tally (never silently dropped, never fatal).</li
 <li><strong>Upsert:</strong> batched idempotent upserts in transactions; per-dataset failure
 isolation (one bad dataset doesn&#39;t kill the run).</li>
 <li><strong>CLI:</strong> <code>pnpm ingest:nfl --season 2024 | --all | --years … [--season-type] [--dry-run]</code>; re-runs are safe.</li>
+<li><strong>Team box score:</strong> <code>total_yards</code>/<code>passing_yards</code>/<code>rushing_yards</code>/<code>turnovers</code>
+on <code>team_game_stats</code> come from the nflverse <code>stats_team</code> release, fetched
+best-effort — if it&#39;s unavailable the row still carries its schedule-derived
+result, with a warning, rather than failing the step.</li>
 <li><strong>Pbp distillation:</strong> scoring plays (TD events), per-player-game advanced
 aggregates, TD yards, drive counts — full play-by-play is never stored.</li>
 </ul>
-<h2>7. Configuration</h2>
-<table>
-<thead>
-<tr>
-<th>Env var</th>
-<th>Purpose</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>DATABASE_URL</code></td>
-<td>Postgres (Supabase session pooler in prod, :5432)</td>
-<td>local Docker</td>
-</tr>
-<tr>
-<td><code>READONLY_DATABASE_URL</code></td>
-<td>read-only role for engine SQL</td>
-<td>falls back to <code>DATABASE_URL</code></td>
-</tr>
-<tr>
-<td><code>CORS_ORIGINS</code></td>
-<td>allowed browser origins</td>
-<td>localhost dev ports</td>
-</tr>
-<tr>
-<td><code>RATE_LIMIT_PER_MINUTE</code></td>
-<td>per-IP cap on <code>/api/search</code> + <code>/api/agent</code> (0 = off)</td>
-<td>30</td>
-</tr>
-<tr>
-<td><code>ANSWER_CACHE_TTL_SECONDS</code></td>
-<td>durable answer TTL</td>
-<td>86400</td>
-</tr>
-<tr>
-<td><code>LOG_LEVEL</code></td>
-<td>pino level</td>
-<td>info</td>
-</tr>
-<tr>
-<td><code>NEXT_PUBLIC_API_URL</code></td>
-<td>(web) API origin</td>
-<td>—</td>
-</tr>
-</tbody></table>
+<h2 id="7-fact-mining">7. Fact mining<a class="anchor" href="#7-fact-mining" aria-label="Link to this section">#</a></h2>
+<p>The fact of the day is <strong>mined on a schedule, never generated in a request</strong>. A
+probe (<code>src/facts/probes/</code>) is a checked-in SQL template returning every
+occurrence of one rare event, newest first; the miner derives the claim from
+that list — newest row is the subject, row count is the population, next
+distinct occurrence is the &quot;since&quot; — renders the headline from the probe&#39;s own
+template, scores it, and upserts it into <code>stat_facts</code> under a stable
+<code>fact_id</code>. Five probe families, 39 variants today.</p>
+<p>It reuses the engine&#39;s safety machinery rather than reinventing it: <code>Params</code>
+for bound values and <code>statComputableFor()</code> over the <code>STATS</code> allowlist, so a
+probe can&#39;t interpolate a literal or name a column its grain doesn&#39;t carry.
+What a claim may reach past is bounded by a coverage floor read from the
+warehouse at mine time. Selection is a pure function of the date over the
+ranked backlog, which makes <code>.github/workflows/facts.yml</code> a cache warmer
+rather than a dependency — <code>GET /api/facts/today</code> computes and backfills the
+same answer on a miss.</p>
+<p>CLI: <code>pnpm facts:mine [--dry-run] [--probe &lt;id&gt;] [--since &lt;season&gt;] [--list]</code>
+· <code>pnpm facts:select [--day YYYY-MM-DD]</code>. The full design — probe contract,
+coverage-floor rules, scoring, and the authoring procedure — is in
+<a href="FACTS.html">FACTS.md</a>.</p>
+<h2 id="8-configuration">8. Configuration<a class="anchor" href="#8-configuration" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Env var</th><th>Purpose</th><th>Default</th></tr></thead><tbody><tr><td><code>DATABASE_URL</code></td><td>Postgres (Supabase session pooler in prod, :5432)</td><td>local Docker</td></tr>
+<tr><td><code>READONLY_DATABASE_URL</code></td><td>read-only role for engine SQL</td><td>falls back to <code>DATABASE_URL</code></td></tr>
+<tr><td><code>CORS_ORIGINS</code></td><td>allowed browser origins</td><td>localhost dev ports</td></tr>
+<tr><td><code>RATE_LIMIT_PER_MINUTE</code></td><td>per-IP cap on <code>/api/search</code> + <code>/api/agent</code> (0 = off)</td><td>30</td></tr>
+<tr><td><code>ANSWER_CACHE_TTL_SECONDS</code></td><td>durable answer TTL</td><td>86400</td></tr>
+<tr><td><code>LOG_LEVEL</code></td><td>pino level</td><td>info</td></tr>
+<tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>(web) API origin</td><td>—</td></tr></tbody></table></div>
 <p>TLS auto-enables for any non-localhost database host; the server binds the
 host-injected <code>$PORT</code>. Rate limiting reads the client from <code>X-Forwarded-For</code>
 behind the proxy.</p>
-<h2>8. Deployment</h2>
+<h2 id="9-deployment">9. Deployment<a class="anchor" href="#9-deployment" aria-label="Link to this section">#</a></h2>
 <p>Vercel (web, root <code>apps/web</code>) → Render (API — Docker blueprint in
 <code>render.yaml</code>, persistent Node service; health check <code>/ready</code>) → Supabase
-Postgres (session pooler). Full runbook: <a href="DEPLOYMENT.md">DEPLOYMENT.md</a>.
+Postgres (session pooler). Full runbook: <a href="DEPLOYMENT.html">DEPLOYMENT.md</a>.
 The API must be a persistent process (warm pool + in-process cache), not
 serverless.</p>
-<h2>9. Testing</h2>
-<table>
-<thead>
-<tr>
-<th>Suite</th>
-<th>What it proves</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>apps/server/test/engine.test.ts</code></td>
-<td>Parser/builder/narration golden cases; similarity port matches CPython difflib</td>
-</tr>
-<tr>
-<td><code>apps/server/test/ingest.test.ts</code></td>
-<td>Messy-data suite against a scratch Postgres: relocations, duplicate ids, postponed games, orphan stats, dry-run, idempotency, schema drift</td>
-</tr>
-<tr>
-<td><code>apps/web/e2e</code> (Playwright)</td>
-<td>Real browser flows over both servers (reuses running dev servers or boots its own)</td>
-</tr>
-<tr>
-<td>CI (<code>.github/workflows/ci.yml</code>)</td>
-<td>Lint, typecheck, both server suites, plus a real one-season ingest into a service Postgres before e2e</td>
-</tr>
-</tbody></table>
+<h2 id="10-testing">10. Testing<a class="anchor" href="#10-testing" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Suite</th><th>What it proves</th></tr></thead><tbody><tr><td><code>apps/server/test/engine.test.ts</code></td><td>Parser/builder/narration golden cases; similarity port matches CPython difflib</td></tr>
+<tr><td><code>apps/server/test/ingest.test.ts</code></td><td>Messy-data suite against a scratch Postgres: relocations, duplicate ids, postponed games, orphan stats, dry-run, idempotency, schema drift</td></tr>
+<tr><td><code>apps/server/test/facts.test.ts</code></td><td>Probe phrasing, claim derivation, scoring, and every registered probe&#39;s SQL shape; the coverage floor is pinned from three directions (phrase builder, headline scan, rendered output). No database — the SQL is built and inspected, not executed</td></tr>
+<tr><td><code>apps/web/e2e</code> (Playwright)</td><td>Real browser flows over both servers (reuses running dev servers or boots its own)</td></tr>
+<tr><td>CI (<code>.github/workflows/ci.yml</code>)</td><td>Typecheck, lint, knip, the server suites, plus a real three-season ingest (2022–2024) into a service Postgres before e2e</td></tr></tbody></table></div>
 <p>Run: <code>pnpm --filter @yunoball/server test</code> · <code>pnpm typecheck</code> · <code>pnpm e2e</code>.</p>
-<h2>10. Key decisions</h2>
-<table>
-<thead>
-<tr>
-<th>Decision</th>
-<th>Rationale</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Structured intent (QuerySpec), never raw SQL</td>
-<td>Fast, cacheable, injection-proof; the spec doubles as the cache key</td>
-</tr>
-<tr>
-<td>Discriminated union per intent</td>
-<td>Parser/executor field drift becomes a compile error</td>
-</tr>
-<tr>
-<td>Numbers from facts, not RAG/LLM</td>
-<td>Accuracy is the product; zero inference cost and latency</td>
-</tr>
-<tr>
-<td>Express + shared types package</td>
-<td>One language; the wire contract can&#39;t drift between web and server</td>
-</tr>
-<tr>
-<td>Plain-SQL schema + idempotent migrate</td>
-<td>~11 tables; <code>IF NOT EXISTS</code> beats a migration framework at this size</td>
-</tr>
-<tr>
-<td>nflverse release CSVs</td>
-<td>Free, open, 1999–present; no scraping/ToS risk</td>
-</tr>
-<tr>
-<td>Provider modules for new data sources</td>
-<td>Public API stays stable as sources are added</td>
-</tr>
-<tr>
-<td>Persistent Node API (not serverless)</td>
-<td>Warm pool, in-process cache, session-pooler compatibility</td>
-</tr>
-</tbody></table>
+<h2 id="11-key-decisions">11. Key decisions<a class="anchor" href="#11-key-decisions" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Decision</th><th>Rationale</th></tr></thead><tbody><tr><td>Structured intent (QuerySpec), never raw SQL</td><td>Fast, cacheable, injection-proof; the spec doubles as the cache key</td></tr>
+<tr><td>Discriminated union per intent</td><td>Parser/executor field drift becomes a compile error</td></tr>
+<tr><td>Numbers from facts, not RAG/LLM</td><td>Accuracy is the product; zero inference cost and latency</td></tr>
+<tr><td>Express + shared types package</td><td>One language; the wire contract can&#39;t drift between web and server</td></tr>
+<tr><td>Plain-SQL schema + idempotent migrate</td><td>~16 tables; <code>IF NOT EXISTS</code> beats a migration framework at this size</td></tr>
+<tr><td>nflverse release CSVs</td><td>Free, open, 1999–present; no scraping/ToS risk</td></tr>
+<tr><td>Provider modules for new data sources</td><td>Public API stays stable as sources are added</td></tr>
+<tr><td>Persistent Node API (not serverless)</td><td>Warm pool, in-process cache, session-pooler compatibility</td></tr></tbody></table></div>
 
 </main>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-system-overview">1. System overview</a><a class="d2" href="#2-monorepo-layout">2. Monorepo layout</a><a class="d2" href="#3-api-surface">3. API surface</a><a class="d2" href="#4-the-query-engine-the-core-subsystem">4. The query engine (the core subsystem)</a><a class="d3" href="#41-pipeline-deterministic-end-to-end-zero-llm-calls">4.1 Pipeline — deterministic end to end, zero LLM calls</a><a class="d3" href="#42-queryspec-a-typed-ast-not-sql">4.2 QuerySpec — a typed AST, not SQL</a><a class="d3" href="#43-the-stat-allowlist">4.3 The stat allowlist</a><a class="d3" href="#44-safety-properties">4.4 Safety properties</a><a class="d3" href="#45-caching-shares">4.5 Caching &amp; shares</a><a class="d3" href="#46-entity-resolution">4.6 Entity resolution</a><a class="d2" href="#5-services-layer">5. Services layer</a><a class="d2" href="#6-ingestion-subsystem">6. Ingestion subsystem</a><a class="d2" href="#7-fact-mining">7. Fact mining</a><a class="d2" href="#8-configuration">8. Configuration</a><a class="d2" href="#9-deployment">9. Deployment</a><a class="d2" href="#10-testing">10. Testing</a><a class="d2" href="#11-key-decisions">11. Key decisions</a></aside>
+</div>
 </body>
 </html>

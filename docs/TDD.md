@@ -35,13 +35,16 @@ apps/server/src
   routes/           path table only (thin)
   controllers/      request validation (zod) — one file
   services/         business logic per surface (search, games, standings,
-                    leaderboards, players, teams, fantasy, agent)
+                    leaderboards, players, teams, fantasy, facts, agent)
   repositories/     shared SQL helpers
   engine/           NL → QuerySpec → SQL (spec, parseRules, resolve, build,
-                    executors/, narrate, audit, similarity, pipeline, facts)
+                    executors/, narrate, audit, similarity, pipeline,
+                    facts — curated awards/franchise records)
+  facts/            mined fact of the day (types, probes/, registry, mine,
+                    score, claim, select, store, cli)
   ingest/           providers/ (nflverse), normalize, upsert, pipelines, cli
   db/               pool, schema.sql, migrate
-  cli/              fetchEspnIds (ESPN headshot ids)
+  cli/              searchAudit (search-hardening diagnostic harness)
   lib/              cross-cutting helpers (espn, rateLimit, …)
 packages/types      the API wire contract (snake_case = JSON format)
 ```
@@ -63,6 +66,9 @@ runtime code.
 | `GET /api/games/performers` | Weekly top performers (PPR) |
 | `GET /api/games/:gameId/boxscore` | Full box score |
 | `GET /api/standings` | Computed standings |
+| `GET /api/facts/today` | The day's mined fact (computes and backfills on a miss) |
+| `GET /api/facts` | Ranked fact backlog (`?season=`, `?limit=`, capped at 100) |
+| `GET /api/facts/:factId` | One fact plus the evidence rows behind it |
 | `GET /api/fantasy/players` | Fantasy player pool |
 | `GET /api/players/:playerId` | Player profile (+ `/splits`) |
 | `GET /api/teams/:teamId` | Team profile |
@@ -81,6 +87,7 @@ Response shapes are exactly the interfaces in `packages/types/src/index.ts`
 question ─► L1 cache (normalized text) ── hit ─► response
         └─► resolve   fuzzy name → canonical player_id / team_id
         └─► parse     rule-based → typed QuerySpec
+        └─► gate      refuse a stat this intent's grain can't compute
         └─► L2 cache  (specCacheKey) ── hit ─► response
         └─► build     allowlisted template + bound params
         └─► execute   read-only role
@@ -94,12 +101,12 @@ navigation to `/a/<id>` can't race the write.
 
 ### 4.2 QuerySpec — a typed AST, not SQL
 
-`engine/spec.ts` defines a **discriminated union on `intent`** — 21 intents:
+`engine/spec.ts` defines a **discriminated union on `intent`** — 23 intents:
 `leaders`, `player_total`, `player_seasons`, `single_game`, `compare`,
-`scoring`, `game_count`, `qualifying_count`, `player_rank`, `player_bio`,
-`game_log`, `team_game_log`, `game_result`, `draft_pick`, `team_bio`,
-`team_stat`, `team_roster`, `player_streak`, `team_streak`, `milestone`,
-`award`.
+`scoring`, `scoring_board`, `game_count`, `game_count_leaders`,
+`qualifying_count`, `player_rank`, `player_bio`, `game_log`, `team_game_log`,
+`game_result`, `draft_pick`, `team_bio`, `team_stat`, `team_roster`,
+`player_streak`, `team_streak`, `milestone`, `award`.
 
 Each intent's node carries **only the fields its executor consumes** — "the
 parser set a field the executor silently ignores" (the engine's worst
@@ -113,7 +120,7 @@ opponent, season range, month, primetime, temperature ceiling), and
 
 ### 4.3 The stat allowlist
 
-`STATS` maps ~30 stat keys to `StatDef`s: an SQL expression over alias `s`
+`STATS` maps 55 stat keys to `StatDef`s: an SQL expression over alias `s`
 (**allowlisted here, never taken from free text**), a narration label, and
 matching vocabulary (substring `phrases` + whole-word `words`, ordered most
 specific first so rate stats match before the volume stats they embed).
@@ -125,9 +132,22 @@ Machinery:
 - `source: "game"` — stats that exist only at game grain aggregate the game
   log instead of season rollups; `table: "advanced"` routes to
   `player_game_advanced` (EPA/success/CPOE).
+- The special-teams and situational block — kicking, punting, returns, first
+  downs, YAC, tackles for loss, QB hits, defensive TDs, penalties — arrived
+  with the widened nflverse mapping. Those columns land in *both* the game log
+  and the season rollup, so they carry no `source: "game"`.
+- `statComputableFor()` (`executors/shared.ts`) is the capability gate the
+  pipeline calls before building SQL: it checks a stat's columns against the
+  storage grain the intent's executor actually reads, so a mis-routed stat is
+  an honest "can't compute that yet" rather than SQL over a column the table
+  doesn't have.
 - Deliberate vocabulary gaps are correctness features: "pick" (collides with
   draft picks) and "carries" (means attempts, not yards) are excluded — a
   wrong number is worse than an honest refusal.
+- The same reasoning keeps `fg_long` and `punt_long` out of `STATS` entirely:
+  every executor SUMs its stat over the scoped rows, and a summed "longest" is
+  a wrong number. They need a MAX-shaped intent that doesn't exist yet, so
+  today the engine simply can't answer "longest field goal".
 
 ### 4.4 Safety properties
 
@@ -160,9 +180,10 @@ confidence scores surfaced in `AnswerResult.entities`.
 Non-search surfaces are conventional service modules over the repositories:
 `games`, `standings` (computed live from `team_game_stats`/`games`),
 `leaderboards` (defaults to the latest loaded season), `players` (profile,
-splits), `teams` (record, ranks, leaders), `fantasy`, `search`, `agent`. The
-assistant routes intents to these same services and reports its tool steps
-(`mode: "demo"`).
+splits), `teams` (record, ranks, leaders), `fantasy`, `facts` (short-list
+reads over `stat_facts` — the window scans happen in the mining job, never in
+a request), `search`, `agent`. The assistant routes intents to these same
+services and reports its tool steps (`mode: "demo"`).
 
 ## 6. Ingestion subsystem
 
@@ -177,10 +198,38 @@ assistant routes intents to these same services and reports its tool steps
   isolation (one bad dataset doesn't kill the run).
 - **CLI:** `pnpm ingest:nfl --season 2024 | --all | --years … [--season-type]
   [--dry-run]`; re-runs are safe.
+- **Team box score:** `total_yards`/`passing_yards`/`rushing_yards`/`turnovers`
+  on `team_game_stats` come from the nflverse `stats_team` release, fetched
+  best-effort — if it's unavailable the row still carries its schedule-derived
+  result, with a warning, rather than failing the step.
 - **Pbp distillation:** scoring plays (TD events), per-player-game advanced
   aggregates, TD yards, drive counts — full play-by-play is never stored.
 
-## 7. Configuration
+## 7. Fact mining
+
+The fact of the day is **mined on a schedule, never generated in a request**. A
+probe (`src/facts/probes/`) is a checked-in SQL template returning every
+occurrence of one rare event, newest first; the miner derives the claim from
+that list — newest row is the subject, row count is the population, next
+distinct occurrence is the "since" — renders the headline from the probe's own
+template, scores it, and upserts it into `stat_facts` under a stable
+`fact_id`. Five probe families, 39 variants today.
+
+It reuses the engine's safety machinery rather than reinventing it: `Params`
+for bound values and `statComputableFor()` over the `STATS` allowlist, so a
+probe can't interpolate a literal or name a column its grain doesn't carry.
+What a claim may reach past is bounded by a coverage floor read from the
+warehouse at mine time. Selection is a pure function of the date over the
+ranked backlog, which makes `.github/workflows/facts.yml` a cache warmer
+rather than a dependency — `GET /api/facts/today` computes and backfills the
+same answer on a miss.
+
+CLI: `pnpm facts:mine [--dry-run] [--probe <id>] [--since <season>] [--list]`
+· `pnpm facts:select [--day YYYY-MM-DD]`. The full design — probe contract,
+coverage-floor rules, scoring, and the authoring procedure — is in
+[FACTS.md](FACTS.md).
+
+## 8. Configuration
 
 | Env var | Purpose | Default |
 |---|---|---|
@@ -196,7 +245,7 @@ TLS auto-enables for any non-localhost database host; the server binds the
 host-injected `$PORT`. Rate limiting reads the client from `X-Forwarded-For`
 behind the proxy.
 
-## 8. Deployment
+## 9. Deployment
 
 Vercel (web, root `apps/web`) → Render (API — Docker blueprint in
 `render.yaml`, persistent Node service; health check `/ready`) → Supabase
@@ -204,18 +253,19 @@ Postgres (session pooler). Full runbook: [DEPLOYMENT.md](DEPLOYMENT.md).
 The API must be a persistent process (warm pool + in-process cache), not
 serverless.
 
-## 9. Testing
+## 10. Testing
 
 | Suite | What it proves |
 |---|---|
 | `apps/server/test/engine.test.ts` | Parser/builder/narration golden cases; similarity port matches CPython difflib |
 | `apps/server/test/ingest.test.ts` | Messy-data suite against a scratch Postgres: relocations, duplicate ids, postponed games, orphan stats, dry-run, idempotency, schema drift |
+| `apps/server/test/facts.test.ts` | Probe phrasing, claim derivation, scoring, and every registered probe's SQL shape; the coverage floor is pinned from three directions (phrase builder, headline scan, rendered output). No database — the SQL is built and inspected, not executed |
 | `apps/web/e2e` (Playwright) | Real browser flows over both servers (reuses running dev servers or boots its own) |
-| CI (`.github/workflows/ci.yml`) | Lint, typecheck, both server suites, plus a real one-season ingest into a service Postgres before e2e |
+| CI (`.github/workflows/ci.yml`) | Typecheck, lint, knip, the server suites, plus a real three-season ingest (2022–2024) into a service Postgres before e2e |
 
 Run: `pnpm --filter @yunoball/server test` · `pnpm typecheck` · `pnpm e2e`.
 
-## 10. Key decisions
+## 11. Key decisions
 
 | Decision | Rationale |
 |---|---|
@@ -223,7 +273,7 @@ Run: `pnpm --filter @yunoball/server test` · `pnpm typecheck` · `pnpm e2e`.
 | Discriminated union per intent | Parser/executor field drift becomes a compile error |
 | Numbers from facts, not RAG/LLM | Accuracy is the product; zero inference cost and latency |
 | Express + shared types package | One language; the wire contract can't drift between web and server |
-| Plain-SQL schema + idempotent migrate | ~11 tables; `IF NOT EXISTS` beats a migration framework at this size |
+| Plain-SQL schema + idempotent migrate | ~16 tables; `IF NOT EXISTS` beats a migration framework at this size |
 | nflverse release CSVs | Free, open, 1999–present; no scraping/ToS risk |
 | Provider modules for new data sources | Public API stays stable as sources are added |
 | Persistent Node API (not serverless) | Warm pool, in-process cache, session-pooler compatibility |
