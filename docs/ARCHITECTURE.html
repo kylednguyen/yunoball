@@ -185,12 +185,154 @@ a template builder <em>writes the SQL</em>; the database is the <em>source of tr
 <tr><td>Cache</td><td>In-process two-tier answer cache; durable share store in Postgres</td></tr>
 <tr><td>Data</td><td>nflverse release files via the <code>ingest/providers/nflverse</code> module</td></tr></tbody></table></div>
 <h2 id="system-map">System map<a class="anchor" href="#system-map" aria-label="Link to this section">#</a></h2>
-<figure class="code"><pre><code>            ┌──────────────────────── apps/web (Next.js) ────────────────────────┐
-            │  search box → answer card (narration + table + &quot;show the SQL&quot;)     │
+<figure class="diagram">
+<svg viewBox="0 0 760 634" role="img" aria-labelledby="yb-arch-title" xmlns="http://www.w3.org/2000/svg">
+  <title id="yb-arch-title">Request path from the Next.js browser through Express routes, controllers and services into the query engine's seven stages and Postgres, with the nflverse ingest and the fact miner writing to the warehouse on their own schedules.</title>
+
+  <defs>
+    <marker id="yb-arw-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/>
+    </marker>
+    <marker id="yb-arw-faint" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--faint)"/>
+    </marker>
+    <marker id="yb-arw-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--danger)"/>
+    </marker>
+  </defs>
+
+  <!-- ── browser ─────────────────────────────────────────────────────── -->
+  <rect x="180" y="12" width="400" height="54" rx="10" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="380" y="36" text-anchor="middle" font-family="var(--font)" font-size="12.5" font-weight="600" fill="var(--text)">apps/web — Next.js App Router</text>
+  <text x="380" y="53" text-anchor="middle" font-family="var(--font)" font-size="10" fill="var(--faint)">search box · answer card · share pages</text>
+
+  <line x1="380" y1="66" x2="380" y2="90" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#yb-arw-accent)"/>
+  <text x="392" y="84" font-family="var(--font)" font-size="10" fill="var(--accent-ink)">/api/* · types from packages/types</text>
+
+  <!-- ── express ─────────────────────────────────────────────────────── -->
+  <rect x="180" y="92" width="400" height="88" rx="10" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="194" y="110" font-family="var(--font)" font-size="11" font-weight="600" fill="var(--text)">apps/server — Express</text>
+  <text x="566" y="110" text-anchor="end" font-family="var(--font)" font-size="9.5" fill="var(--faint)">read + write rate tiers</text>
+
+  <rect x="192" y="120" width="112" height="44" rx="7" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="248" y="139" text-anchor="middle" font-family="var(--font)" font-size="11.5" fill="var(--text)">routes</text>
+  <text x="248" y="155" text-anchor="middle" font-family="var(--font)" font-size="9.5" fill="var(--faint)">paths only</text>
+
+  <line x1="306" y1="142" x2="320" y2="142" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#yb-arw-faint)"/>
+
+  <rect x="324" y="120" width="112" height="44" rx="7" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="380" y="139" text-anchor="middle" font-family="var(--font)" font-size="11.5" fill="var(--text)">controllers</text>
+  <text x="380" y="155" text-anchor="middle" font-family="var(--font)" font-size="9.5" fill="var(--faint)">zod validation</text>
+
+  <line x1="438" y1="142" x2="452" y2="142" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#yb-arw-faint)"/>
+
+  <rect x="456" y="120" width="112" height="44" rx="7" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="512" y="139" text-anchor="middle" font-family="var(--font)" font-size="11.5" fill="var(--text)">services</text>
+  <text x="512" y="155" text-anchor="middle" font-family="var(--font)" font-size="9.5" fill="var(--faint)">+ repositories</text>
+
+  <line x1="380" y1="166" x2="380" y2="208" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#yb-arw-accent)"/>
+  <text x="392" y="196" font-family="var(--font)" font-size="10" fill="var(--accent-ink)">POST /api/search</text>
+
+  <!-- ── engine ──────────────────────────────────────────────────────── -->
+  <rect x="180" y="210" width="400" height="262" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="194" y="232" font-family="var(--font)" font-size="11" font-weight="600" fill="var(--accent-ink)">engine — apps/server/src/engine</text>
+  <text x="566" y="232" text-anchor="end" font-family="var(--font)" font-size="9.5" fill="var(--faint)">deterministic · zero-LLM</text>
+
+  <rect x="196" y="242" width="368" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="259" font-family="var(--font)" font-size="12" fill="var(--text)">L1 cache</text>
+  <text x="552" y="259" text-anchor="end" font-family="var(--font)" font-size="10" fill="var(--faint)">normalized question text</text>
+
+  <path d="M184,269 L188,273 L192,269" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="196" y="274" width="368" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="291" font-family="var(--font)" font-size="12" fill="var(--text)">resolve</text>
+  <text x="552" y="291" text-anchor="end" font-family="var(--font)" font-size="10" fill="var(--faint)">fuzzy name → canonical player_id</text>
+
+  <path d="M184,301 L188,305 L192,301" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="196" y="306" width="368" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="323" font-family="var(--font)" font-size="12" fill="var(--text)">parse</text>
+  <text x="552" y="323" text-anchor="end" font-family="var(--font)" font-size="10" fill="var(--faint)">rules → QuerySpec · 23 intents</text>
+
+  <path d="M184,333 L188,337 L192,333" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="196" y="338" width="368" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="355" font-family="var(--font)" font-size="12" fill="var(--text)">L2 cache</text>
+  <text x="552" y="355" text-anchor="end" font-family="var(--font)" font-size="10" fill="var(--faint)">keyed on the spec</text>
+
+  <path d="M184,365 L188,369 L192,365" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="196" y="370" width="368" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="387" font-family="var(--font)" font-size="12" fill="var(--text)">build</text>
+  <text x="552" y="387" text-anchor="end" font-family="var(--font)" font-size="10" fill="var(--faint)">allowlisted template, bound params</text>
+
+  <path d="M184,397 L188,401 L192,397" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="196" y="402" width="368" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="419" font-family="var(--font)" font-size="12" fill="var(--text)">execute</text>
+  <text x="552" y="419" text-anchor="end" font-family="var(--font)" font-size="10" fill="var(--faint)">read-only role</text>
+
+  <path d="M184,429 L188,433 L192,429" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="196" y="434" width="368" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="451" font-family="var(--font)" font-size="12" fill="var(--text)">narrate</text>
+  <text x="552" y="451" text-anchor="end" font-family="var(--font)" font-size="10" fill="var(--faint)">templated from spec + rows</text>
+
+  <!-- ── refusal exit (left) ─────────────────────────────────────────── -->
+  <line x1="196" y1="319" x2="154" y2="319" stroke="var(--danger)" stroke-width="1.4" marker-end="url(#yb-arw-danger)"/>
+  <text x="86" y="293" font-family="var(--font)" font-size="9.5" fill="var(--faint)">unsupported</text>
+  <rect x="8" y="300" width="140" height="42" rx="8" fill="var(--panel)" stroke="var(--danger)" stroke-width="1.2"/>
+  <text x="78" y="318" text-anchor="middle" font-family="var(--font)" font-size="11" font-weight="600" fill="var(--danger)">honest refusal</text>
+  <text x="78" y="333" text-anchor="middle" font-family="var(--font)" font-size="9.5" fill="var(--faint)">never a wrong number</text>
+  <path d="M78,300 V39 H176" fill="none" stroke="var(--danger)" stroke-width="1.4" marker-end="url(#yb-arw-danger)"/>
+
+  <!-- ── cache-hit return (right) ────────────────────────────────────── -->
+  <line x1="566" y1="255" x2="600" y2="255" stroke="var(--accent)" stroke-width="1.4"/>
+  <path d="M566,351 H600 V39 H584" fill="none" stroke="var(--accent)" stroke-width="1.4" marker-end="url(#yb-arw-accent)"/>
+  <text x="610" y="150" font-family="var(--font)" font-size="10" fill="var(--accent-ink)">cache hit — instant</text>
+
+  <!-- ── engine → warehouse ──────────────────────────────────────────── -->
+  <line x1="380" y1="476" x2="380" y2="502" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#yb-arw-accent)"/>
+  <text x="392" y="494" font-family="var(--font)" font-size="10" fill="var(--faint)">bound params · read-only role</text>
+
+  <!-- ── warehouse ───────────────────────────────────────────────────── -->
+  <rect x="180" y="506" width="400" height="104" rx="10" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="194" y="528" font-family="var(--font)" font-size="12" font-weight="600" fill="var(--text)">Postgres warehouse</text>
+  <text x="566" y="528" text-anchor="end" font-family="var(--font)" font-size="9.5" fill="var(--faint)">sixteen tables · star schema</text>
+  <text x="194" y="548" font-family="var(--font)" font-size="9.5" fill="var(--faint)">seasons · teams · players · games · rosters</text>
+  <text x="194" y="563" font-family="var(--font)" font-size="9.5" fill="var(--faint)">player_game_stats · player_season_stats · team_game_stats</text>
+  <text x="194" y="578" font-family="var(--font)" font-size="9.5" fill="var(--faint)">player_game_advanced · scoring_plays · draft_picks · player_id_map</text>
+  <text x="194" y="593" font-family="var(--font)" font-size="9.5" fill="var(--faint)">query_audit · answer_cache · stat_facts · fact_of_the_day</text>
+
+  <!-- ── scheduled writer: ingest ────────────────────────────────────── -->
+  <rect x="8" y="494" width="140" height="128" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="18" y="514" font-family="var(--font)" font-size="11.5" font-weight="600" fill="var(--text)">ingest</text>
+  <text x="18" y="530" font-family="var(--font)" font-size="9.5" fill="var(--accent-ink)">pnpm ingest:nfl</text>
+  <text x="18" y="552" font-family="var(--font)" font-size="9.5" fill="var(--faint)">fetch nflverse CSVs</text>
+  <text x="18" y="566" font-family="var(--font)" font-size="9.5" fill="var(--faint)">→ normalize</text>
+  <text x="18" y="580" font-family="var(--font)" font-size="9.5" fill="var(--faint)">→ validate (zod)</text>
+  <text x="18" y="594" font-family="var(--font)" font-size="9.5" fill="var(--faint)">→ upsert (idempotent)</text>
+  <text x="18" y="612" font-family="var(--font)" font-size="9" fill="var(--faint)">Tue 10:00 UTC · Actions</text>
+  <line x1="150" y1="558" x2="174" y2="558" stroke="var(--faint)" stroke-width="1.4" marker-end="url(#yb-arw-faint)"/>
+
+  <!-- ── scheduled writer: fact miner ────────────────────────────────── -->
+  <rect x="612" y="494" width="140" height="128" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="622" y="514" font-family="var(--font)" font-size="11.5" font-weight="600" fill="var(--text)">fact miner</text>
+  <text x="622" y="530" font-family="var(--font)" font-size="9.5" fill="var(--accent-ink)">pnpm facts:mine</text>
+  <text x="622" y="552" font-family="var(--font)" font-size="9.5" fill="var(--faint)">reviewed SQL probes</text>
+  <text x="622" y="566" font-family="var(--font)" font-size="9.5" fill="var(--faint)">→ score · rarity</text>
+  <text x="622" y="580" font-family="var(--font)" font-size="9.5" fill="var(--faint)">→ coverage floors</text>
+  <text x="622" y="594" font-family="var(--font)" font-size="9.5" fill="var(--faint)">→ stat_facts</text>
+  <text x="622" y="612" font-family="var(--font)" font-size="9" fill="var(--faint)">after ingest · daily pick</text>
+  <line x1="610" y1="558" x2="586" y2="558" stroke="var(--faint)" stroke-width="1.4" marker-end="url(#yb-arw-faint)"/>
+</svg>
+<figcaption>The lime path is one <code>POST /api/search</code>: the browser calls Express, the controller hands the question straight to the engine, and only <em>execute</em> touches Postgres — a cache hit returns before that and an unparseable question leaves via the refusal exit, while the ingest and the fact miner write to the same warehouse on their own schedules, outside any request.</figcaption>
+</figure><figure class="code"><pre><code>            ┌──────────────────────── apps/web (Next.js) ─────────────────────────┐
+            │  search box → answer card (narration + table + &quot;show the SQL&quot;)      │
             └──────────────────────────────────┬──────────────────────────────────┘
                                                │  /api/* (types: packages/types)
-            ┌─────────────────────── apps/server (Express) ──────────────────────┐
-            │  routes → controllers (zod validation) → services → repositories   │
+            ┌─────────────────────── apps/server (Express) ───────────────────────┐
+            │  routes → controllers (zod validation) → services → repositories    │
             │                                                                     │
             │  engine (POST /api/search):                                         │
             │    L1 cache   (normalized text) ── hit ─► response                  │
@@ -205,16 +347,17 @@ a template builder <em>writes the SQL</em>; the database is the <em>source of tr
             │  facts (GET /api/facts/*): single-row reads of mined stat_facts     │
             └──────────────────────────────────┬──────────────────────────────────┘
                                                │
-            ┌───────────────────────── Postgres warehouse ────────────────────────┐
+            ┌──────────────────────── Postgres warehouse ─────────────────────────┐
             │  star schema: seasons · teams · players · games                     │
-            │              player_game_stats · team_game_stats                    │
-            │              player_season_stats (rollup)   answer_cache (shares)   │
-            │              draft_picks · query_audit                              │
-            │              stat_facts · fact_of_the_day  (see docs/FACTS.md)     │
-            │  (schema.sql + `pnpm db:migrate`, idempotent)                       │
+            │               player_game_stats · team_game_stats · scoring_plays   │
+            │               player_season_stats (rollup) · player_game_advanced   │
+            │               rosters · player_id_map · draft_picks                 │
+            │               query_audit · answer_cache (shares)                   │
+            │               stat_facts · fact_of_the_day  (see docs/FACTS.md)     │
+            │  (schema.sql + `pnpm db:migrate`, idempotent — sixteen tables)      │
             └──────────────────────────────────▲──────────────────────────────────┘
                                                │  batched idempotent upserts
-            ┌──────────────── apps/server/src/ingest (`pnpm ingest:nfl`) ─────────┐
+            ┌──────────── apps/server/src/ingest (`pnpm ingest:nfl`) ─────────────┐
             │  providers/nflverse (CSV, disk cache, retries)                      │
             │    → normalize (stable ids, relocations, REG/POST)                  │
             │    → validate (zod, skip + log malformed rows)                      │
@@ -224,7 +367,7 @@ a template builder <em>writes the SQL</em>; the database is the <em>source of tr
 <div class="tablewrap"><table><thead><tr><th>Decision</th><th>Rationale</th></tr></thead><tbody><tr><td>Structured intent, not raw SQL</td><td>The parser emits a typed <code>QuerySpec</code>, never SQL → fast, cacheable, and injection-proof: we build the SQL from allowlists.</td></tr>
 <tr><td>Numbers from facts, not RAG</td><td>Answers are computed from the warehouse, never retrieved from prose.</td></tr>
 <tr><td>Express (TypeScript) backend</td><td>One language and runtime across the whole app; types shared with the frontend so the contract can&#39;t drift.</td></tr>
-<tr><td>Plain-SQL schema + idempotent migrate</td><td>The warehouse is eleven tables; <code>CREATE TABLE IF NOT EXISTS</code> beats a migration framework at this size.</td></tr>
+<tr><td>Plain-SQL schema + idempotent migrate</td><td>The warehouse is sixteen tables; <code>CREATE TABLE IF NOT EXISTS</code> beats a migration framework at this size, and column widenings ship as <code>ADD COLUMN IF NOT EXISTS</code> in the same file.</td></tr>
 <tr><td>nflverse release CSVs</td><td>Free, open, comprehensive (stats back to 1999). No scraping/ToS risk, no SDK dependency.</td></tr>
 <tr><td>Provider modules under <code>ingest/providers</code></td><td>New sources (ESPN, SportsDataIO, live scoring, injuries...) are independent modules; the public API never changes.</td></tr>
 <tr><td>Read-only role for reads</td><td>Engine-executed SQL and API reads run least-privilege when <code>READONLY_DATABASE_URL</code> is set.</td></tr></tbody></table></div>
@@ -233,7 +376,7 @@ a template builder <em>writes the SQL</em>; the database is the <em>source of tr
 <ol>
 <li><strong>L1 cache</strong> — normalized question text. Repeats → instant.</li>
 <li><strong>Resolve</strong> — fuzzy-match names to a canonical <code>player_id</code> (last-name / typo tolerant; a difflib-equivalent matcher).</li>
-<li><strong>Parse to <code>QuerySpec</code></strong> — rule-based, zero-LLM. Intents: leaders, player totals (season/career/first-N), single-game marks, player-vs-player comparisons, REG/POST scopes.</li>
+<li><strong>Parse to <code>QuerySpec</code></strong> — rule-based, zero-LLM. Twenty-three intents: leaders, player totals (season/career/first-N), single-game marks, comparisons, game logs, ranks, streaks and milestones, scoring, bios, draft picks, team stats, rosters, awards. The spec is a discriminated union on <code>intent</code>, so a field the executor doesn&#39;t consume is a compile error rather than a wrong number. Every intent carries a REG/POST scope.</li>
 <li><strong>L2 cache</strong> — keyed on the spec, so different phrasings that mean the same thing share an answer.</li>
 <li><strong>Build → execute</strong> — deterministic template with <strong>bound params</strong>; stat columns come only from an allowlist.</li>
 <li><strong>Narrate</strong> — templated from spec + rows.</li>
@@ -248,9 +391,11 @@ isolation; every malformed/orphaned row is skipped with a logged reason and an
 end-of-run tally. Normalization: stable ids (gsis player ids, nflverse game
 ids, current-franchise team ids with relocations folded forward), playoff
 rounds collapsed to <code>POST</code>, postponed games kept with <code>NULL</code> scores.
-<code>scoring_plays</code> distills play-by-play down to touchdown events only (~1.4k
+<code>scoring_plays</code> distills play-by-play down to touchdown events only (~1.5k
 rows/season instead of ~50k), powering first/last-TD questions and the
-player-page touchdown log without storing full pbp.</p>
+player-page touchdown log without storing full pbp. The same stream also
+accumulates <code>player_game_advanced</code> (per-player-game EPA, success counts, CPOE)
+and per-team drive counts, so the pbp files are read once, not three times.</p>
 <p>The nflverse <code>stats_player</code> files carry 145 columns; the mapping consumes the
 special-teams, situational and extended-defensive blocks alongside the original
 box score, so kicking, punting, returns, first downs, YAC and penalties are all
@@ -260,12 +405,19 @@ carries its result, as it always did.</p>
 <p>Table relationships:</p>
 <figure class="code"><pre><code>seasons ◄────────── games ──────────► teams
    ▲                  ▲                 ▲
-player_season_stats   ├── player_game_stats (player × game)
-   │                  ├── team_game_stats   (team × game)
-   ▼                  └── scoring_plays     (touchdown events)
+player_season_stats   ├── player_game_stats    (player × game)
+   │                  ├── player_game_advanced (player × game, pbp EPA/CPOE)
+   │                  ├── team_game_stats      (team × game)
+   ▼                  └── scoring_plays        (touchdown events)
 players ◄── player_game_stats.player_id / scoring_plays.player_id
+   ▲
+rosters (player × season × team)
 
-(plus draft_picks and query_audit)</code></pre></figure>
+fact_of_the_day ──► stat_facts</code></pre></figure>
+<p>The rest carry no foreign keys, deliberately: <code>draft_picks</code> and
+<code>player_id_map</code> reach past the loaded seasons, a <code>stat_facts</code> subject can age
+out of the warehouse, and <code>query_audit</code> / <code>answer_cache</code> are app tables rather
+than warehouse ones.</p>
 <h2 id="notable-facts">Notable facts<a class="anchor" href="#notable-facts" aria-label="Link to this section">#</a></h2>
 <p>A scheduled miner (<code>pnpm facts:mine</code>) runs a registry of reviewed SQL <strong>probes</strong>
 over the warehouse and stores the rare lines they find in <code>stat_facts</code>, one of
@@ -285,6 +437,20 @@ data does. See <a href="FACTS.html">FACTS.md</a>.</p>
 <ul>
 <li><code>apps/server/test/engine.test.ts</code> — parser/builder/narration golden cases,
 including a check that the similarity port matches CPython&#39;s difflib.</li>
+<li><code>apps/server/test/battery.test.ts</code> — the 100-question battery: every input
+must land in a <code>QuerySpec</code>, a tailored refusal, or an honest null. The
+failure mode it guards is the wrong <em>bucket</em>, not the wrong number.</li>
+<li><code>apps/server/test/audit.test.ts</code> — the second-layer auditor&#39;s DB-free paths
+(contradictions, coverage bounds, the Super Bowl played-year rule).</li>
+<li><code>apps/server/test/sweep.test.ts</code> — every stat-bearing intent × every stat in
+the allowlist, EXPLAINed against a schema-only scratch database. <code>buildSql</code>
+must never emit SQL that fails to plan; a stat an executor can&#39;t compute is
+the parser&#39;s job to refuse.</li>
+<li><code>apps/server/test/facts.test.ts</code> — miner phrasing, the coverage-floor guard
+(pinned from three directions), scoring, and the shape of every registered
+probe&#39;s SQL — built and inspected, never executed.</li>
+<li><code>apps/server/test/espn.test.ts</code> — headshot resolution: nflverse URL wins,
+<code>espn_id</code> builds the CDN fallback, unknown players stay null.</li>
 <li><code>apps/server/test/ingest.test.ts</code> — messy-data suite (relocations, duplicate
 ids, postponed games, orphan stats, dry-run, idempotency, schema drift)
 against a scratch Postgres database.</li>

@@ -197,7 +197,191 @@ mined facts: stat_facts ◄── fact_of_the_day</code></pre></figure>
 <code>stat_facts</code> (probe output), <code>fact_of_the_day</code> (one published row per day)</li>
 <li><strong>History:</strong> <code>draft_picks</code> (1980+, deliberately no season FK)</li>
 </ul>
-<h2 id="2-conventions">2. Conventions<a class="anchor" href="#2-conventions" aria-label="Link to this section">#</a></h2>
+<figure class="diagram">
+<svg viewBox="0 0 780 736" role="img" font-family="var(--font)">
+  <title>Entity-relationship diagram of the YunoBall warehouse: the seasons, teams, players and games dimensions, the event-grain fact tables and season rollup that join them by foreign key, and the app tables that sit outside the star.</title>
+
+  <defs>
+    <marker id="er-fk" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 1 L9 5 L0 9 Z" fill="var(--faint)" opacity="0.55" />
+    </marker>
+    <marker id="er-fk-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 1 L9 5 L0 9 Z" fill="var(--accent)" />
+    </marker>
+  </defs>
+
+  <!-- ============================ dimension-to-dimension keys on games -->
+  <g fill="none" stroke="var(--faint)" stroke-opacity="0.42" stroke-width="1">
+    <path d="M282 58 V22 H702 V58" marker-end="url(#er-fk)" />
+    <path d="M270 58 V44 H418 V58" marker-end="url(#er-fk)" />
+  </g>
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.8" text-anchor="end">
+    <text x="694" y="16">season</text>
+    <text x="410" y="38">home_team · away_team</text>
+  </g>
+
+  <!-- ============================================== dimensions (top row) -->
+  <text x="16" y="88" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">DIMENSIONS</text>
+  <text x="16" y="103" font-size="10" fill="var(--faint)" fill-opacity="0.5">no keys out but games</text>
+
+  <g fill="var(--elevated)" stroke="var(--border-strong)" stroke-width="1">
+    <rect x="214" y="58" width="124" height="60" rx="8" stroke="var(--accent)" />
+    <rect x="356" y="58" width="124" height="60" rx="8" />
+    <rect x="498" y="58" width="124" height="60" rx="8" />
+    <rect x="640" y="58" width="124" height="60" rx="8" />
+  </g>
+  <g text-anchor="middle">
+    <text x="276" y="80" font-size="13" font-weight="700" fill="var(--accent-ink)">games</text>
+    <text x="418" y="80" font-size="13" font-weight="700" fill="var(--text)">teams</text>
+    <text x="560" y="80" font-size="13" font-weight="700" fill="var(--text)">players</text>
+    <text x="702" y="80" font-size="13" font-weight="700" fill="var(--text)">seasons</text>
+
+    <g font-size="10" fill="var(--faint)">
+      <text x="276" y="97">PK game_id</text>
+      <text x="418" y="97">PK team_id</text>
+      <text x="560" y="97">PK player_id</text>
+      <text x="702" y="97">PK season</text>
+    </g>
+    <g font-size="10" fill="var(--faint)" fill-opacity="0.6">
+      <text x="276" y="111">nflverse schedule</text>
+      <text x="418" y="111">current franchise</text>
+      <text x="560" y="111">nflverse gsis id</text>
+      <text x="702" y="111">1999+ loaded</text>
+    </g>
+  </g>
+
+  <!-- ====================================================== the FK rails -->
+  <!-- Each rail stops at the last table that uses it, so a line crossing a
+       rail always means a join. -->
+  <g fill="none" stroke-width="1">
+    <path d="M276 415 V118" stroke="var(--accent)" stroke-opacity="0.85"
+          stroke-width="1.5" marker-end="url(#er-fk-accent)" />
+    <g stroke="var(--faint)" stroke-opacity="0.42">
+      <path d="M418 513 V118" marker-end="url(#er-fk)" />
+      <path d="M560 513 V118" marker-end="url(#er-fk)" />
+      <path d="M702 513 V118" marker-end="url(#er-fk)" />
+    </g>
+  </g>
+
+  <!-- ============================================ fact tables + the rollup -->
+  <text x="16" y="146" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">FACT TABLES · EVENT GRAIN</text>
+  <text x="16" y="472" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">ROLLUP · SEASON GRAIN</text>
+
+  <!-- join lines, box edge out to the last dimension each table references -->
+  <g fill="none" stroke="var(--faint)" stroke-opacity="0.42" stroke-width="1">
+    <path d="M194 187 H560" />
+    <path d="M194 263 H560" />
+    <path d="M194 339 H418" />
+    <path d="M194 415 H560" />
+    <path d="M194 513 H702" />
+  </g>
+
+  <g fill="var(--elevated)" stroke="var(--border-strong)" stroke-width="1">
+    <rect x="16" y="156" width="178" height="62" rx="8" />
+    <rect x="16" y="232" width="178" height="62" rx="8" />
+    <rect x="16" y="308" width="178" height="62" rx="8" />
+    <rect x="16" y="384" width="178" height="62" rx="8" />
+    <rect x="16" y="482" width="178" height="62" rx="8" />
+  </g>
+
+  <g font-size="12" font-weight="600" fill="var(--text)">
+    <text x="28" y="178">player_game_stats</text>
+    <text x="28" y="254">player_game_advanced</text>
+    <text x="28" y="330">team_game_stats</text>
+    <text x="28" y="406">scoring_plays</text>
+    <text x="28" y="504">player_season_stats</text>
+  </g>
+  <g font-size="10" fill="var(--faint)">
+    <text x="28" y="195">PK (player_id, game_id)</text>
+    <text x="28" y="271">PK (player_id, game_id)</text>
+    <text x="28" y="347">PK (team_id, game_id)</text>
+    <text x="28" y="423">PK play_id</text>
+    <text x="28" y="521">PK (player_id, season,</text>
+  </g>
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.6">
+    <text x="28" y="209">player × game</text>
+    <text x="28" y="285">EPA · success · CPOE</text>
+    <text x="28" y="361">team × game</text>
+    <text x="28" y="437">touchdown events only</text>
+  </g>
+  <text x="28" y="535" font-size="10" fill="var(--faint)">season_type)</text>
+
+  <!-- foreign keys: filled dot where a table references that dimension -->
+  <g fill="var(--faint)">
+    <circle cx="418" cy="187" r="3.5" />
+    <circle cx="560" cy="187" r="3.5" />
+    <circle cx="560" cy="263" r="3.5" />
+    <circle cx="418" cy="339" r="3.5" />
+    <circle cx="418" cy="415" r="3.5" />
+    <circle cx="560" cy="415" r="3.5" />
+    <circle cx="560" cy="513" r="3.5" />
+    <circle cx="702" cy="513" r="3.5" />
+  </g>
+  <g fill="var(--accent)">
+    <circle cx="276" cy="187" r="3.5" />
+    <circle cx="276" cy="263" r="3.5" />
+    <circle cx="276" cy="339" r="3.5" />
+    <circle cx="276" cy="415" r="3.5" />
+  </g>
+
+  <!-- team_id is carried but deliberately unconstrained on these two -->
+  <g fill="var(--panel)" stroke="var(--danger)" stroke-width="1.4">
+    <circle cx="418" cy="263" r="4.5" />
+    <circle cx="418" cy="513" r="4.5" />
+  </g>
+
+  <!-- ========================================= app tables, outside the star -->
+  <rect x="14" y="572" width="752" height="118" rx="12"
+        fill="var(--panel)" stroke="var(--border-strong)" stroke-dasharray="4 4" />
+  <text x="30" y="596" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">APP TABLES · NOT PART OF THE STAR</text>
+
+  <g fill="var(--elevated)" stroke="var(--border-strong)" stroke-width="1">
+    <rect x="30" y="610" width="158" height="62" rx="8" />
+    <rect x="206" y="610" width="158" height="62" rx="8" />
+    <rect x="382" y="610" width="158" height="62" rx="8" />
+    <rect x="592" y="610" width="158" height="62" rx="8" />
+  </g>
+  <g font-size="12" font-weight="600" fill="var(--text)">
+    <text x="42" y="632">answer_cache</text>
+    <text x="218" y="632">query_audit</text>
+    <text x="394" y="632">stat_facts</text>
+    <text x="604" y="632">fact_of_the_day</text>
+  </g>
+  <g font-size="10" fill="var(--faint)">
+    <text x="42" y="649">PK id</text>
+    <text x="218" y="649">PK id (identity)</text>
+    <text x="394" y="649">PK fact_id</text>
+    <text x="604" y="649">PK day</text>
+  </g>
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.6">
+    <text x="42" y="663">unique share_id</text>
+    <text x="218" y="663">one row per answer</text>
+    <text x="604" y="663">fact_id → stat_facts</text>
+  </g>
+  <text x="394" y="663" font-size="10" fill="var(--danger)">subject_id: no FK</text>
+
+  <path d="M592 641 H544" fill="none" stroke="var(--faint)" stroke-opacity="0.42"
+        stroke-width="1" marker-end="url(#er-fk)" />
+
+  <!-- ============================================================= legend -->
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.75">
+    <circle cx="20" cy="702" r="3.5" fill="var(--faint)" fill-opacity="1" />
+    <text x="32" y="706">foreign key</text>
+    <circle cx="126" cy="702" r="4.5" fill="var(--panel)"
+            stroke="var(--danger)" stroke-width="1.4" />
+    <text x="138" y="706">column carried, no FK constraint</text>
+    <rect x="16" y="717" width="16" height="2" fill="var(--accent)" />
+    <text x="38" y="723">game_id — the one key every event-grain fact table joins on</text>
+  </g>
+</svg>
+<figcaption>The warehouse star — four dimensions on top, the event-grain fact tables and the season rollup hanging off them by foreign key, and the app tables below, which carry no key into the star at all (the bridge and history tables <code>rosters</code>, <code>player_id_map</code> and <code>draft_picks</code> are left out for clarity).</figcaption>
+</figure><h2 id="2-conventions">2. Conventions<a class="anchor" href="#2-conventions" aria-label="Link to this section">#</a></h2>
 <ul>
 <li><strong>Idempotent DDL.</strong> <code>CREATE TABLE IF NOT EXISTS</code> everywhere; later columns
 are added with <code>ADD COLUMN IF NOT EXISTS</code> widening blocks at the bottom of

@@ -173,41 +173,51 @@ figure.diagram figcaption {
 Companion docs: <a href="PRD.html">PRD.md</a> · <a href="TDD.html">TDD.md</a> · <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a></p>
 </blockquote>
 <h2 id="1-route-map">1. Route map<a class="anchor" href="#1-route-map" aria-label="Link to this section">#</a></h2>
-<div class="tablewrap"><table><thead><tr><th>Route</th><th>Surface</th><th>Data source</th></tr></thead><tbody><tr><td><code>/</code></td><td>Home: search box + dashboard (score ticker, top performers, standings snapshot, leaders)</td><td><code>/api/games</code>, <code>/api/games/performers</code>, <code>/api/standings</code>, <code>/api/leaderboards</code></td></tr>
+<div class="tablewrap"><table><thead><tr><th>Route</th><th>Surface</th><th>Data source</th></tr></thead><tbody><tr><td><code>/</code></td><td>Home: search (in the nav) + dashboard (score ticker, featured matchup, fact of the day, top performers, standings snapshot, leaders, playoff picture, trending questions)</td><td><code>/api/games</code>, <code>/api/games/performers</code>, <code>/api/standings</code>, <code>/api/leaderboards</code>, <code>/api/fantasy/players</code>, <code>/api/facts/today</code>, <code>/api/search/examples</code></td></tr>
 <tr><td><code>/a/[shareId]</code></td><td>Persisted answer page (the shareable result)</td><td><code>GET /api/search/answer/:shareId</code></td></tr>
-<tr><td><code>/scores</code></td><td>Week-by-week finals with season/week pickers</td><td><code>/api/games</code></td></tr>
-<tr><td><code>/games/[gameId]</code></td><td>Box score — both teams&#39; player stat lines</td><td><code>/api/games/:gameId/boxscore</code></td></tr>
+<tr><td><code>/scores</code></td><td>Week-by-week finals with season/week pickers</td><td><code>/api/games</code>, <code>/api/games/performers</code></td></tr>
+<tr><td><code>/games/[gameId]</code></td><td>Game summary — team comparison, top performers, scoring log, game info</td><td><code>/api/games/:gameId/boxscore</code></td></tr>
+<tr><td><code>/games/[gameId]/box</code></td><td>Box score tab — both teams&#39; player stat lines, by category (same fetch as the summary)</td><td><code>/api/games/:gameId/boxscore</code></td></tr>
 <tr><td><code>/standings</code></td><td>Conference → division standings, season picker</td><td><code>/api/standings</code></td></tr>
-<tr><td><code>/leaderboards</code></td><td>Season stat leader boards (dense tables)</td><td><code>/api/leaderboards</code></td></tr>
-<tr><td><code>/leaders</code></td><td>Leaders overview</td><td><code>/api/leaderboards</code></td></tr>
+<tr><td><code>/leaders</code></td><td>League leaders hub: every player category as a dense sortable table, plus a team-rankings tab; team/position filters live in the URL</td><td><code>/api/leaderboards</code>, <code>/api/standings</code></td></tr>
+<tr><td><code>/leaderboards</code></td><td>Legacy path — server-side redirect to <code>/leaders</code>, carrying <code>?season</code> through</td><td>—</td></tr>
 <tr><td><code>/players/[playerId]</code></td><td>Player profile: bio, career, seasons (REG/POST), game log, TD log, splits</td><td><code>/api/players/:id</code>, <code>/api/players/:id/splits</code></td></tr>
+<tr><td><code>/teams</code></td><td>All 32 teams as cards, grouped by division; records come from standings, so the page owns no endpoint</td><td><code>/api/standings</code></td></tr>
 <tr><td><code>/teams/[teamId]</code></td><td>Team profile: record, ranks, leaders, key players, schedule</td><td><code>/api/teams/:id</code></td></tr>
+<tr><td><code>/facts</code></td><td>Fact archive: everything the nightly miner has surfaced, most surprising first, each row carrying its own coverage window</td><td><code>/api/facts</code></td></tr>
 <tr><td><code>/fantasy</code></td><td>PPR lineup builder over season production</td><td><code>/api/fantasy/players</code></td></tr>
-<tr><td><code>/assistant</code></td><td>Chat-style tool-routing assistant (demo mode)</td><td><code>POST /api/agent</code></td></tr>
+<tr><td><code>/assistant</code></td><td>Chat-style tool-routing assistant; gated behind a Pro paywall unless <code>NEXT_PUBLIC_ASSISTANT_ENABLED=true</code></td><td><code>POST /api/agent</code></td></tr>
 <tr><td><code>/glossary</code></td><td>Stat definitions</td><td>static</td></tr></tbody></table></div>
-<p>Global navigation: top bar with primary sections and the search entry point
-(search lives in the nav, not buried in a page). Breadcrumbs (<code>Crumbs</code>) on
-drill-down pages.</p>
+<p>Global navigation: primary sections plus the search entry point, as an
+always-visible rail on desktop and a modal drawer on mobile (search lives in
+the nav, not buried in a page). Breadcrumbs (<code>Crumbs</code>) on drill-down pages.</p>
 <h2 id="2-the-core-journey-question-answer">2. The core journey: question → answer<a class="anchor" href="#2-the-core-journey-question-answer" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="lang">text</span><pre><code>User types in the search box
   → GET /api/search/suggest (debounced)
       autocomplete: matching players (headshots), teams, supported questions
   → user submits (or picks a suggestion / example question)
+      a bare team name (&quot;eagles&quot;, &quot;kansas city chiefs&quot;) short-circuits
+      straight to /teams/&lt;id&gt; — that isn't a question, it's navigation
   → POST /api/search { question }
       engine: L1 cache → resolve → parse → L2 cache → build → execute → narrate
-  → AnswerResult
+  → AnswerResult (always carries a share_id) → push to /a/&lt;share_id&gt;
       ├─ parsed &amp; answered → AnswerCard
-      │    narration · player card(s) · sortable table · comparison chart
-      │    (head-to-head) · query interpretation · SQL disclosure ·
-      │    CSV export · share (copies /a/&lt;share_id&gt;)
-      └─ didn't parse → honest &quot;can't answer that yet&quot; + example questions</code></pre></figure>
+      │    narration · player card(s) · resolved-entity chips · sortable
+      │    table; single-player and head-to-head intents render through
+      │    their own components (SinglePlayerResult, PlayerComparisonResult)
+      └─ didn't parse → same result page, honest &quot;can't answer that yet&quot;
+           narration and no rows</code></pre></figure>
 <ul>
-<li>Every parsed answer is durably persisted under a deterministic <code>share_id</code>
-(SHA-256 prefix of the normalized question) before the user ever shares it.</li>
-<li><strong>Current behavior:</strong> the answer renders inline on the homepage below the
-search field. <strong>Target behavior</strong> (per <code>search-results-audit.md</code>): submit
-navigates to <code>/a/&lt;share_id&gt;</code>, which owns the full result experience
-(loading, retry, export); the homepage stays a discovery surface.</li>
+<li>Every answer — a refusal included — is durably persisted under a
+deterministic <code>share_id</code> (SHA-256 prefix of the normalized question) before
+the response returns, so <code>/a/&lt;share_id&gt;</code> can never race its own lookup.</li>
+<li>Submit navigates to <code>/a/&lt;share_id&gt;</code>, which owns the full result experience
+(loading skeleton, retry, not-found, share); the homepage stays a discovery
+surface. This is the target behavior <code>search-results-audit.md</code> called for,
+now shipped.</li>
+<li>The card shows no SQL, no parsed spec and no audit verdict: the server
+redacts all three before the answer crosses the wire, so there is nothing on
+the client to disclose.</li>
 </ul>
 <h3 id="answer-drill-downs">Answer drill-downs<a class="anchor" href="#answer-drill-downs" aria-label="Link to this section">#</a></h3>
 <p>Result rows link onward: player names → <code>/players/[id]</code>, teams →
@@ -216,37 +226,49 @@ player/team re-tint the accent system to that team&#39;s colors (see
 <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a> §3).</p>
 <h2 id="3-browse-journeys">3. Browse journeys<a class="anchor" href="#3-browse-journeys" aria-label="Link to this section">#</a></h2>
 <p><strong>Scoreboard loop</strong> — <code>/</code> ticker or <code>/scores</code> → pick season/week → game card
-→ <code>/games/[id]</code> box score → tap a stat line → <code>/players/[id]</code>.</p>
+→ <code>/games/[id]</code> summary → box-score tab → tap a stat line → <code>/players/[id]</code>.</p>
 <p><strong>Standings loop</strong> — <code>/standings</code> → season picker → division tables → team →
 <code>/teams/[id]</code> → schedule row → box score.</p>
-<p><strong>Leaders loop</strong> — <code>/leaderboards</code> (defaults to latest loaded season) → board
+<p><strong>Leaders loop</strong> — <code>/leaders</code> (defaults to latest loaded season) → board
 row → player profile → splits/game-log tabs → questions about that player via
 search.</p>
 <p><strong>Fantasy loop</strong> — <code>/fantasy</code> → sort/filter player pool (position, per-game
 rates) → fill lineup slots → player links for due diligence.</p>
+<p><strong>Facts loop</strong> — the Fact of the Day card sits second on the dashboard,
+directly under the featured matchup, because a surprising number is the most
+repeatable reason to come back. &quot;More facts&quot; → <code>/facts</code> archive (most
+surprising first) → &quot;Check the numbers&quot; re-runs the fact as a search, landing
+on <code>/a/&lt;share_id&gt;</code>; player facts also link straight to the profile. <code>/facts</code>
+is not in the nav — the home card is its doorway.</p>
 <h2 id="4-assistant-flow">4. Assistant flow<a class="anchor" href="#4-assistant-flow" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="lang">text</span><pre><code>/assistant chat input
-  → POST /api/agent { message, history }
+  → POST /api/agent { messages }   (the last 20 turns, no more)
   → intent routing over the same services (search, standings, leaderboards…)
   → reply + visible tool steps (mode: &quot;demo&quot;)</code></pre></figure>
 <p>The assistant never free-generates numbers — it routes to the same trusted
-endpoints and reports which tools it used.</p>
+endpoints and reports which tools it used. <code>mode: &quot;demo&quot;</code> is not a placeholder
+for a smarter mode: the LLM tool-calling layer was dropped, so routing is the
+whole product. The page itself is behind a Pro paywall until the flag flips,
+so most users meet the upsell rather than the chat.</p>
 <h2 id="5-share-flow">5. Share flow<a class="anchor" href="#5-share-flow" aria-label="Link to this section">#</a></h2>
 <ol>
-<li>Any answer → &quot;share&quot; copies <code>https://&lt;host&gt;/a/&lt;share_id&gt;</code>.</li>
+<li>Any answer already lives at <code>/a/&lt;share_id&gt;</code>; its &quot;Share&quot; button copies that
+URL and reads &quot;Link copied&quot; for two seconds.</li>
 <li>Recipient opens <code>/a/&lt;share_id&gt;</code> → server fetches the persisted
 <code>AnswerResult</code> → same AnswerCard experience, no recomputation.</li>
-<li>Planned: route-level action bar and clean PNG export of the rendered card
-(Track C in <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>).</li>
+<li>The route-level action bar (New search · Share) has shipped; a clean PNG
+export of the rendered card is still planned (Track C in
+<a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>).</li>
 </ol>
 <h2 id="6-states-edge-behavior">6. States &amp; edge behavior<a class="anchor" href="#6-states-edge-behavior" aria-label="Link to this section">#</a></h2>
 <div class="tablewrap"><table><thead><tr><th>State</th><th>Behavior</th></tr></thead><tbody><tr><td>Loading</td><td>Skeleton components (shimmer), per-surface</td></tr>
 <tr><td>Unparseable question</td><td>Honest refusal narration + supported-question examples; never a guess</td></tr>
 <tr><td>Ambiguous entity</td><td>Fuzzy resolver picks best match above confidence floor; resolved entities are always displayed so the interpretation is visible</td></tr>
 <tr><td>Empty result (parsed, zero rows)</td><td>Honest &quot;no qualifying rows&quot; narration</td></tr>
+<tr><td>Empty fact backlog</td><td>The home Fact of the Day card omits itself entirely — a missing fact is not an error, and a failed <code>/api/facts/today</code> hides it the same way; <code>/facts</code> says facts appear once the mining job has run</td></tr>
 <tr><td>API error</td><td>Friendly error copy + retry (kept on the requesting surface)</td></tr>
 <tr><td>Unplayed/postponed game</td><td>Stored with NULL scores; rendered as not-final</td></tr>
-<tr><td>Rate limit (30/min/IP default)</td><td>429 on <code>/api/search</code> and <code>/api/agent</code></td></tr>
+<tr><td>Rate limit (30/min/IP default)</td><td>429 on <code>/api/search</code> and <code>/api/agent</code>; read endpoints count in their own 120/min bucket</td></tr>
 <tr><td>Share id not found</td><td><code>/a/</code> not-found state with a path back to search</td></tr></tbody></table></div>
 
 </main>

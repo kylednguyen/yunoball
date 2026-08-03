@@ -21,6 +21,8 @@ A model's only contribution is the probe source, written at design time and
 pinned by a golden test. Nothing generative runs in a request, and no sentence
 a user sees was composed by a model.
 
+<!-- figure: facts-pipeline -->
+
 ## The probe
 
 A probe returns **every occurrence** of one rare event, newest first. The miner

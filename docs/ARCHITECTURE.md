@@ -24,13 +24,15 @@ One language, one runtime — TypeScript end to end:
 
 ## System map
 
+<!-- figure: architecture-map -->
+
 ```
-            ┌──────────────────────── apps/web (Next.js) ────────────────────────┐
-            │  search box → answer card (narration + table + "show the SQL")     │
+            ┌──────────────────────── apps/web (Next.js) ─────────────────────────┐
+            │  search box → answer card (narration + table + "show the SQL")      │
             └──────────────────────────────────┬──────────────────────────────────┘
                                                │  /api/* (types: packages/types)
-            ┌─────────────────────── apps/server (Express) ──────────────────────┐
-            │  routes → controllers (zod validation) → services → repositories   │
+            ┌─────────────────────── apps/server (Express) ───────────────────────┐
+            │  routes → controllers (zod validation) → services → repositories    │
             │                                                                     │
             │  engine (POST /api/search):                                         │
             │    L1 cache   (normalized text) ── hit ─► response                  │
@@ -45,16 +47,17 @@ One language, one runtime — TypeScript end to end:
             │  facts (GET /api/facts/*): single-row reads of mined stat_facts     │
             └──────────────────────────────────┬──────────────────────────────────┘
                                                │
-            ┌───────────────────────── Postgres warehouse ────────────────────────┐
+            ┌──────────────────────── Postgres warehouse ─────────────────────────┐
             │  star schema: seasons · teams · players · games                     │
-            │              player_game_stats · team_game_stats                    │
-            │              player_season_stats (rollup)   answer_cache (shares)   │
-            │              draft_picks · query_audit                              │
-            │              stat_facts · fact_of_the_day  (see docs/FACTS.md)     │
-            │  (schema.sql + `pnpm db:migrate`, idempotent)                       │
+            │               player_game_stats · team_game_stats · scoring_plays   │
+            │               player_season_stats (rollup) · player_game_advanced   │
+            │               rosters · player_id_map · draft_picks                 │
+            │               query_audit · answer_cache (shares)                   │
+            │               stat_facts · fact_of_the_day  (see docs/FACTS.md)     │
+            │  (schema.sql + `pnpm db:migrate`, idempotent — sixteen tables)      │
             └──────────────────────────────────▲──────────────────────────────────┘
                                                │  batched idempotent upserts
-            ┌──────────────── apps/server/src/ingest (`pnpm ingest:nfl`) ─────────┐
+            ┌──────────── apps/server/src/ingest (`pnpm ingest:nfl`) ─────────────┐
             │  providers/nflverse (CSV, disk cache, retries)                      │
             │    → normalize (stable ids, relocations, REG/POST)                  │
             │    → validate (zod, skip + log malformed rows)                      │
@@ -69,7 +72,7 @@ One language, one runtime — TypeScript end to end:
 | Structured intent, not raw SQL | The parser emits a typed `QuerySpec`, never SQL → fast, cacheable, and injection-proof: we build the SQL from allowlists. |
 | Numbers from facts, not RAG | Answers are computed from the warehouse, never retrieved from prose. |
 | Express (TypeScript) backend | One language and runtime across the whole app; types shared with the frontend so the contract can't drift. |
-| Plain-SQL schema + idempotent migrate | The warehouse is eleven tables; `CREATE TABLE IF NOT EXISTS` beats a migration framework at this size. |
+| Plain-SQL schema + idempotent migrate | The warehouse is sixteen tables; `CREATE TABLE IF NOT EXISTS` beats a migration framework at this size, and column widenings ship as `ADD COLUMN IF NOT EXISTS` in the same file. |
 | nflverse release CSVs | Free, open, comprehensive (stats back to 1999). No scraping/ToS risk, no SDK dependency. |
 | Provider modules under `ingest/providers` | New sources (ESPN, SportsDataIO, live scoring, injuries...) are independent modules; the public API never changes. |
 | Read-only role for reads | Engine-executed SQL and API reads run least-privilege when `READONLY_DATABASE_URL` is set. |
@@ -80,7 +83,7 @@ The common path is deterministic end to end:
 
 1. **L1 cache** — normalized question text. Repeats → instant.
 2. **Resolve** — fuzzy-match names to a canonical `player_id` (last-name / typo tolerant; a difflib-equivalent matcher).
-3. **Parse to `QuerySpec`** — rule-based, zero-LLM. Intents: leaders, player totals (season/career/first-N), single-game marks, player-vs-player comparisons, REG/POST scopes.
+3. **Parse to `QuerySpec`** — rule-based, zero-LLM. Twenty-three intents: leaders, player totals (season/career/first-N), single-game marks, comparisons, game logs, ranks, streaks and milestones, scoring, bios, draft picks, team stats, rosters, awards. The spec is a discriminated union on `intent`, so a field the executor doesn't consume is a compile error rather than a wrong number. Every intent carries a REG/POST scope.
 4. **L2 cache** — keyed on the spec, so different phrasings that mean the same thing share an answer.
 5. **Build → execute** — deterministic template with **bound params**; stat columns come only from an allowlist.
 6. **Narrate** — templated from spec + rows.
@@ -97,9 +100,11 @@ isolation; every malformed/orphaned row is skipped with a logged reason and an
 end-of-run tally. Normalization: stable ids (gsis player ids, nflverse game
 ids, current-franchise team ids with relocations folded forward), playoff
 rounds collapsed to `POST`, postponed games kept with `NULL` scores.
-`scoring_plays` distills play-by-play down to touchdown events only (~1.4k
+`scoring_plays` distills play-by-play down to touchdown events only (~1.5k
 rows/season instead of ~50k), powering first/last-TD questions and the
-player-page touchdown log without storing full pbp.
+player-page touchdown log without storing full pbp. The same stream also
+accumulates `player_game_advanced` (per-player-game EPA, success counts, CPOE)
+and per-team drive counts, so the pbp files are read once, not three times.
 
 The nflverse `stats_player` files carry 145 columns; the mapping consumes the
 special-teams, situational and extended-defensive blocks alongside the original
@@ -113,13 +118,21 @@ Table relationships:
 ```
 seasons ◄────────── games ──────────► teams
    ▲                  ▲                 ▲
-player_season_stats   ├── player_game_stats (player × game)
-   │                  ├── team_game_stats   (team × game)
-   ▼                  └── scoring_plays     (touchdown events)
+player_season_stats   ├── player_game_stats    (player × game)
+   │                  ├── player_game_advanced (player × game, pbp EPA/CPOE)
+   │                  ├── team_game_stats      (team × game)
+   ▼                  └── scoring_plays        (touchdown events)
 players ◄── player_game_stats.player_id / scoring_plays.player_id
+   ▲
+rosters (player × season × team)
 
-(plus draft_picks and query_audit)
+fact_of_the_day ──► stat_facts
 ```
+
+The rest carry no foreign keys, deliberately: `draft_picks` and
+`player_id_map` reach past the loaded seasons, a `stat_facts` subject can age
+out of the warehouse, and `query_audit` / `answer_cache` are app tables rather
+than warehouse ones.
 
 ## Notable facts
 
@@ -142,6 +155,20 @@ data does. See [FACTS.md](FACTS.md).
 
 - `apps/server/test/engine.test.ts` — parser/builder/narration golden cases,
   including a check that the similarity port matches CPython's difflib.
+- `apps/server/test/battery.test.ts` — the 100-question battery: every input
+  must land in a `QuerySpec`, a tailored refusal, or an honest null. The
+  failure mode it guards is the wrong *bucket*, not the wrong number.
+- `apps/server/test/audit.test.ts` — the second-layer auditor's DB-free paths
+  (contradictions, coverage bounds, the Super Bowl played-year rule).
+- `apps/server/test/sweep.test.ts` — every stat-bearing intent × every stat in
+  the allowlist, EXPLAINed against a schema-only scratch database. `buildSql`
+  must never emit SQL that fails to plan; a stat an executor can't compute is
+  the parser's job to refuse.
+- `apps/server/test/facts.test.ts` — miner phrasing, the coverage-floor guard
+  (pinned from three directions), scoring, and the shape of every registered
+  probe's SQL — built and inspected, never executed.
+- `apps/server/test/espn.test.ts` — headshot resolution: nflverse URL wins,
+  `espn_id` builds the CDN fallback, unknown players stay null.
 - `apps/server/test/ingest.test.ts` — messy-data suite (relocations, duplicate
   ids, postponed games, orphan stats, dry-run, idempotency, schema drift)
   against a scratch Postgres database.

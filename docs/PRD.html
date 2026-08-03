@@ -169,34 +169,37 @@ figure.diagram figcaption {
 <main>
 <h1 id="yunoball-product-requirements-document">YunoBall — Product Requirements Document<a class="anchor" href="#yunoball-product-requirements-document" aria-label="Link to this section">#</a></h1>
 <blockquote>
-<p>Status: current product + roadmap · Last updated 2026-07-17
-Companion docs: <a href="TDD.html">TDD.md</a> · <a href="APP_FLOW.html">APP_FLOW.md</a> · <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a> · <a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA.md</a> · <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a></p>
+<p>Status: current product + roadmap · Last updated 2026-08-02
+Companion docs: <a href="TDD.html">TDD.md</a> · <a href="APP_FLOW.html">APP_FLOW.md</a> · <a href="DESIGN_BRIEF.html">DESIGN_BRIEF.md</a> · <a href="BACKEND_SCHEMA.html">BACKEND_SCHEMA.md</a> · <a href="FACTS.html">FACTS.md</a> · <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a></p>
 </blockquote>
 <h2 id="1-product-summary">1. Product summary<a class="anchor" href="#1-product-summary" aria-label="Link to this section">#</a></h2>
 <p>YunoBall is <strong>the all-in-one NFL platform where every number is computed from
 real data</strong> — an improved take on StatMuse, NFL-first. Users ask questions in
 plain English and get exact, sourced answers; around that core sit scores,
-standings, leaderboards, player/team profiles, a fantasy lineup surface, and a
-tool-routing assistant — all served from one authoritative warehouse
-(nflverse, 1999–present).</p>
+standings, league leaders, player/team profiles, a mined fact of the day, a
+fantasy lineup surface, and a tool-routing assistant — all served from one
+authoritative warehouse (nflverse, 1999–present).</p>
 <p><strong>Core thesis:</strong> a stats product lives or dies on accuracy. Free-form LLM
 generation hallucinates numbers, so YunoBall never generates a number. A
 deterministic parser translates a question into a typed <code>QuerySpec</code>; a
 template builder writes safe SQL; Postgres is the source of truth. Every
-answer can show the exact SQL and rows behind it.</p>
+answer ships with the rows it was computed from, and the SQL that produced it
+is persisted alongside it — the query is kept so any published number can be
+re-derived, not printed on the card.</p>
 <h2 id="2-target-users">2. Target users<a class="anchor" href="#2-target-users" aria-label="Link to this section">#</a></h2>
 <div class="tablewrap"><table><thead><tr><th>Persona</th><th>Need</th><th>What they use</th></tr></thead><tbody><tr><td>The stats-curious fan</td><td>&quot;Who led the league in rushing in 2003?&quot; answered instantly, correctly</td><td>Search, answer pages</td></tr>
-<tr><td>The debate settler</td><td>Proof to win an argument — a number <em>with receipts</em></td><td>Search, SQL disclosure, share links</td></tr>
-<tr><td>The fantasy player</td><td>Season production, per-game rates, weekly performers, lineup ideas</td><td>Fantasy, leaderboards, performers, player pages</td></tr>
-<tr><td>The browser</td><td>Scores, standings, and leaders without asking anything</td><td>Hub pages (<code>/scores</code>, <code>/standings</code>, <code>/leaderboards</code>)</td></tr></tbody></table></div>
+<tr><td>The debate settler</td><td>Proof to win an argument — a number <em>with receipts</em></td><td>Search, source rows, share links</td></tr>
+<tr><td>The fantasy player</td><td>Season production, per-game rates, weekly performers, lineup ideas</td><td>Fantasy, leaders, performers, player pages</td></tr>
+<tr><td>The browser</td><td>Scores, standings, and leaders without asking anything</td><td>Hub pages (<code>/scores</code>, <code>/standings</code>, <code>/leaders</code>), fact of the day</td></tr></tbody></table></div>
 <h2 id="3-problems-we-solve">3. Problems we solve<a class="anchor" href="#3-problems-we-solve" aria-label="Link to this section">#</a></h2>
 <ol>
 <li><strong>LLM sports answers can&#39;t be trusted</strong> — chatbots hallucinate stats.
 YunoBall computes every number from warehouse facts; zero LLM calls in the
 answer path.</li>
-<li><strong>StatMuse is a black box</strong> — you get a number, not the query behind it.
-YunoBall exposes the SQL, the resolved entities, the interpretation, and
-the source rows for every answer.</li>
+<li><strong>StatMuse is a black box</strong> — you get a number with nothing under it.
+Every YunoBall answer arrives with the rows it was computed from and the
+entities it resolved, and the query behind it is persisted server-side, so
+a disputed number can be audited after the fact.</li>
 <li><strong>Stats sites fragment the experience</strong> — scores here, splits there,
 fantasy elsewhere. YunoBall serves them all from one warehouse with one
 design language.</li>
@@ -206,66 +209,106 @@ design language.</li>
 <ul>
 <li>Free-text question box with autocomplete (players, teams, supported questions).</li>
 <li>Deterministic answer pipeline: fuzzy entity resolution → rule-based parse to
-a typed <code>QuerySpec</code> (21 intents: leaders, player totals, comparisons, game
+a typed <code>QuerySpec</code> (23 intents: leaders, player totals, comparisons, game
 logs, streaks, milestones, drafts, team stats, bios, awards…) → allowlisted
 SQL → templated narration. See <a href="TDD.html">TDD.md</a> §4.</li>
+<li>55 allowlisted stats, now including kicking, punting, returns, first downs
+and yards after catch — the parser only accepts a stat the engine already
+knows how to compute, so the vocabulary and the coverage cannot drift apart.</li>
 <li>Scope grammar: seasons and ranges, REG/POST, playoff rounds, Super Bowl
-only, home/away, weeks, months, opponent, primetime, weather, rookie
+only, home/away, weeks, months, opponent, primetime, cold weather, rookie
 seasons, first/last-N games, per-game and median rates.</li>
 <li><strong>Honesty rule:</strong> questions that don&#39;t parse get &quot;can&#39;t answer that yet&quot; —
 never a guess. A second-layer auditor records status, warnings, and
 confidence for every question.</li>
-<li>Every answer carries: narration, sortable result table, player identity
-card(s), query interpretation, SQL disclosure, CSV export, share action.</li>
+<li>Every answer carries: narration, a sortable result table (player
+leaderboards get a leader drill-down card above it), player identity
+card(s), resolved-entity chips, and a share action. The SQL and the audit
+verdict are stripped at the HTTP boundary — warnings are already folded into
+the narration, so the card answers the question instead of explaining itself.</li>
 </ul>
 <h3 id="42-shareable-answers">4.2 Shareable answers<a class="anchor" href="#42-shareable-answers" aria-label="Link to this section">#</a></h3>
 <ul>
-<li>Every parsed answer gets a deterministic <code>share_id</code>; <code>/a/&lt;share_id&gt;</code> serves
-the persisted answer permanently (Postgres-backed).</li>
+<li>Every parsed answer gets a deterministic <code>share_id</code> (a hash of the
+normalized question); <code>/a/&lt;share_id&gt;</code> serves the persisted answer
+permanently (Postgres-backed).</li>
+<li>Asking a question navigates straight there rather than rendering the result
+inline, so the page a user reads is the page they send someone; it carries
+the copy-link action.</li>
 </ul>
 <h3 id="43-hub-surfaces">4.3 Hub surfaces<a class="anchor" href="#43-hub-surfaces" aria-label="Link to this section">#</a></h3>
 <ul>
 <li><strong>Scores</strong> (<code>/scores</code>) — week-by-week finals with box scores per game.</li>
 <li><strong>Standings</strong> (<code>/standings</code>) — W-L-T, pct, PF/PA, diff, streak; computed
 live from game results; conference → division structure.</li>
-<li><strong>Leaderboards</strong> (<code>/leaderboards</code>) — season stat leaders as dense tables;
-defaults to the most recent loaded season.</li>
-<li><strong>Top performers</strong> — weekly fantasy-point leaders with stat lines.</li>
+<li><strong>League leaders</strong> (<code>/leaders</code>) — 13 player categories as dense sortable
+tables, filterable by team and position, plus a whole-league team-rankings
+tab; defaults to the most recent loaded season. <code>/leaderboards</code> redirects
+here.</li>
+<li><strong>Teams</strong> (<code>/teams</code>) — all 32 teams as cards grouped by division, records
+read off the standings endpoint so the page needs no API of its own.</li>
+<li><strong>Glossary</strong> (<code>/glossary</code>) — every stat, fantasy term and league concept the
+product uses, defined in plain language.</li>
+<li><strong>Top performers</strong> — weekly fantasy-point leaders with stat lines, on
+<code>/scores</code> and the home dashboard.</li>
 </ul>
 <h3 id="44-profiles">4.4 Profiles<a class="anchor" href="#44-profiles" aria-label="Link to this section">#</a></h3>
 <ul>
-<li><strong>Player pages</strong> (<code>/players/[id]</code>) — bio, career totals, season-by-season
-(REG + POST tabs), full game log with EPA columns, touchdown log, splits
-(home/road, wins/losses, month, conference, division, opponent), headshots.</li>
-<li><strong>Team pages</strong> (<code>/teams/[id]</code>) — record and division rank, offense/defense
-stat ranks, team leaders, key players, season schedule/results; team-color
-themed.</li>
-<li><strong>Box scores</strong> (<code>/games/[id]</code>) — full player stat lines for both teams.</li>
+<li><strong>Player pages</strong> (<code>/players/[id]</code>) — Overview, Splits, Game Log, Career and
+Playoffs tabs (the last only when there are playoff rows): bio, career
+totals, season-by-season in totals or per-game, a position-aware game log,
+touchdown log, splits (home/road, wins/losses, month, opponent conference,
+opponent division, opponent), headshots.</li>
+<li><strong>Team pages</strong> (<code>/teams/[teamId]</code>) — record and division rank,
+offense/defense stat ranks, team leaders, roster, season schedule/results;
+team-color themed.</li>
+<li><strong>Games</strong> (<code>/games/[gameId]</code>) — summary: team comparison, top performers,
+scoring log, game info; <code>/games/[gameId]/box</code> is the full player stat lines
+for both teams.</li>
 </ul>
 <h3 id="45-fantasy">4.5 Fantasy<a class="anchor" href="#45-fantasy" aria-label="Link to this section">#</a></h3>
 <ul>
-<li><code>/fantasy</code> — build a PPR lineup from real season production; sortable player
-pool with per-game rates.</li>
+<li><code>/fantasy</code> — build a PPR lineup from real season production; player pool
+ranked by fantasy points, filterable by position and free-text, showing
+season total and per-game rate. The lineup persists in <code>localStorage</code>.</li>
 </ul>
 <h3 id="46-assistant">4.6 Assistant<a class="anchor" href="#46-assistant" aria-label="Link to this section">#</a></h3>
 <ul>
-<li><code>/assistant</code> — a tool-routing agent over the same trusted endpoints
-(currently demo mode; steps are surfaced to the user).</li>
+<li><code>/assistant</code> — a tool-routing agent over the same trusted endpoints; the API
+answers in demo mode and surfaces its steps. The page ships behind a Pro
+paywall unless <code>NEXT_PUBLIC_ASSISTANT_ENABLED=true</code>, because a half-built
+assistant costs more trust than an absent one.</li>
+</ul>
+<h3 id="47-fact-of-the-day">4.7 Fact of the day<a class="anchor" href="#47-fact-of-the-day" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>One mined statistical fact published per day — &quot;only the fourth 200-yard
+rushing game since 2019&quot; — as a home-page card, with the archive at
+<code>/facts</code> ranked by how surprising each fact is.</li>
+<li>Facts are <strong>mined, never generated</strong>: reviewed SQL probes run on a schedule
+and the headline comes from the probe&#39;s own template. Every claim shows its
+population and how far back the record actually runs, because &quot;since 1999&quot;
+and &quot;ever&quot; are different claims and only one of them is provable here. See
+<a href="FACTS.html">FACTS.md</a>.</li>
+<li>Each fact links to its subject&#39;s player page and to the question that
+reproduces it, so a claim sits one click from the query behind it. The home
+card is additive — an empty backlog or a failed fetch hides it rather than
+degrading the dashboard.</li>
 </ul>
 <h2 id="5-non-functional-requirements">5. Non-functional requirements<a class="anchor" href="#5-non-functional-requirements" aria-label="Link to this section">#</a></h2>
 <div class="tablewrap"><table><thead><tr><th>Requirement</th><th>Bar</th></tr></thead><tbody><tr><td><strong>Accuracy</strong></td><td>A wrong number is worse than no answer. Ambiguous vocabulary is deliberately excluded from the parser (e.g. &quot;pick&quot; ≠ interception).</td></tr>
-<tr><td><strong>Transparency</strong></td><td>Every answer must expose its SQL, entities, and interpretation.</td></tr>
+<tr><td><strong>Transparency</strong></td><td>Every answer shows the rows it was computed from and the entities it resolved. The SQL and the audit verdict are recorded server-side (<code>answer_cache</code>, <code>query_audit</code>) instead of rendered — reproducible on demand, not clutter on the card.</td></tr>
 <tr><td><strong>Latency</strong></td><td>Cached answers instant (two-tier cache); cold answers a single indexed query. No LLM in the loop.</td></tr>
 <tr><td><strong>Cost</strong></td><td>Zero inference cost; one small Postgres + one Node service + static frontend.</td></tr>
-<tr><td><strong>Safety</strong></td><td>SQL injection impossible by construction (allowlists + bound params); reads run under a read-only role; per-IP rate limiting on search/agent.</td></tr></tbody></table></div>
+<tr><td><strong>Safety</strong></td><td>SQL injection impossible by construction (allowlists + bound params); reads run under a read-only role; two-tier per-IP rate limiting — a tight bucket for search/agent, a more generous one for GET reads so normal browsing never trips it.</td></tr></tbody></table></div>
 <h2 id="6-non-goals-current">6. Non-goals (current)<a class="anchor" href="#6-non-goals-current" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>Live in-progress game scores (data is release-file based; see roadmap).</li>
 <li>Betting/odds, projections, or ML predictions.</li>
-<li>User accounts, saved lineups, personalization.</li>
+<li>User accounts and server-side personalization (the fantasy lineup persists
+in <code>localStorage</code> only).</li>
 <li>Sports beyond the NFL (the architecture allows it; the product doesn&#39;t yet).</li>
-<li>Full play-by-play storage (only touchdown events and per-game advanced
-aggregates are distilled from pbp).</li>
+<li>Full play-by-play storage (only touchdown events, per-game advanced
+aggregates and team drive counts are distilled from pbp).</li>
 </ul>
 <h2 id="7-success-metrics">7. Success metrics<a class="anchor" href="#7-success-metrics" aria-label="Link to this section">#</a></h2>
 <ul>
@@ -281,18 +324,21 @@ growing per <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a> Track A.</li
 <h2 id="8-roadmap-summary">8. Roadmap summary<a class="anchor" href="#8-roadmap-summary" aria-label="Link to this section">#</a></h2>
 <p>Four tracks, detailed in <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>:</p>
 <ol>
-<li><strong>Query coverage expansion</strong> — grow the answerable question space
-(team-stat questions over loaded-but-unused data, more splits, awards).</li>
+<li><strong>Query coverage expansion</strong> — grow the answerable question space. The
+previously-unused columns are now written (team box scores, kicking,
+punting, returns); what remains is the question archetypes over them, more
+splits, and awards.</li>
 <li><strong>Live/current-season data</strong> — standalone ingestion worker with run
 tracking and resumable backfills; in-season freshness for the 2026 season.</li>
-<li><strong>Product polish &amp; UX</strong> — dedicated <code>/a/</code> result experience with PNG
-export, team-color rollout, mobile, assistant beyond demo mode.</li>
+<li><strong>Product polish &amp; UX</strong> — the dedicated <code>/a/</code> result experience has landed;
+PNG export of a result, team-color rollout, mobile, assistant beyond demo
+mode.</li>
 <li><strong>Production hardening</strong> — observability, SEO for share pages, deploy
 reliability, cost posture.</li>
 </ol>
 
 </main>
-<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-product-summary">1. Product summary</a><a class="d2" href="#2-target-users">2. Target users</a><a class="d2" href="#3-problems-we-solve">3. Problems we solve</a><a class="d2" href="#4-feature-requirements-shipped">4. Feature requirements (shipped)</a><a class="d3" href="#41-natural-language-search-the-core">4.1 Natural-language search (the core)</a><a class="d3" href="#42-shareable-answers">4.2 Shareable answers</a><a class="d3" href="#43-hub-surfaces">4.3 Hub surfaces</a><a class="d3" href="#44-profiles">4.4 Profiles</a><a class="d3" href="#45-fantasy">4.5 Fantasy</a><a class="d3" href="#46-assistant">4.6 Assistant</a><a class="d2" href="#5-non-functional-requirements">5. Non-functional requirements</a><a class="d2" href="#6-non-goals-current">6. Non-goals (current)</a><a class="d2" href="#7-success-metrics">7. Success metrics</a><a class="d2" href="#8-roadmap-summary">8. Roadmap summary</a></aside>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-product-summary">1. Product summary</a><a class="d2" href="#2-target-users">2. Target users</a><a class="d2" href="#3-problems-we-solve">3. Problems we solve</a><a class="d2" href="#4-feature-requirements-shipped">4. Feature requirements (shipped)</a><a class="d3" href="#41-natural-language-search-the-core">4.1 Natural-language search (the core)</a><a class="d3" href="#42-shareable-answers">4.2 Shareable answers</a><a class="d3" href="#43-hub-surfaces">4.3 Hub surfaces</a><a class="d3" href="#44-profiles">4.4 Profiles</a><a class="d3" href="#45-fantasy">4.5 Fantasy</a><a class="d3" href="#46-assistant">4.6 Assistant</a><a class="d3" href="#47-fact-of-the-day">4.7 Fact of the day</a><a class="d2" href="#5-non-functional-requirements">5. Non-functional requirements</a><a class="d2" href="#6-non-goals-current">6. Non-goals (current)</a><a class="d2" href="#7-success-metrics">7. Success metrics</a><a class="d2" href="#8-roadmap-summary">8. Roadmap summary</a></aside>
 </div>
 </body>
 </html>

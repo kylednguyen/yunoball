@@ -31,6 +31,8 @@ mined facts: stat_facts ◄── fact_of_the_day
   `stat_facts` (probe output), `fact_of_the_day` (one published row per day)
 - **History:** `draft_picks` (1980+, deliberately no season FK)
 
+<!-- figure: schema-er -->
+
 ## 2. Conventions
 
 - **Idempotent DDL.** `CREATE TABLE IF NOT EXISTS` everywhere; later columns

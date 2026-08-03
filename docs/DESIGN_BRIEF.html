@@ -181,105 +181,163 @@ frame, at which point the interface takes on that team&#39;s colors.</p>
 <li><strong>Content over chrome.</strong> Hierarchy comes from spacing, background
 contrast, and typography — not borders. Borders are rare by design
 (<code>--border</code> is a 5% white whisper).</li>
-<li><strong>Neutral dominates; accent is earned.</strong> The emerald brand accent appears
+<li><strong>Neutral dominates; accent is earned.</strong> The lime brand accent appears
 only where it means something: search, selection, CTAs, links, positive
 metrics. Everything else stays neutral.</li>
 <li><strong>Team color is context, not decoration.</strong> When the active context is one
 team (team page, player profile, single-team answer), the accent family
 re-tints to that team&#39;s branding. Backgrounds and neutrals never recolor.</li>
 <li><strong>Dense but legible.</strong> Stat tables are the product. Small type sizes
-(11–16px scale) with strict contrast floors, not big type with thin data.</li>
+(a 12–17px text ramp) with strict contrast floors, not big type with thin
+data.</li>
 <li><strong>Honest states.</strong> Skeletons while loading, plain-language refusals,
-visible interpretations. The UI never pretends to know something.</li>
+coverage stated beside every mined claim. The UI never pretends to know
+something.</li>
 </ol>
 <h2 id="2-color-system">2. Color system<a class="anchor" href="#2-color-system" aria-label="Link to this section">#</a></h2>
 <h3 id="neutral-ramp-surfaces-depth-background-contrast-not-lines">Neutral ramp (surfaces — depth = background contrast, not lines)<a class="anchor" href="#neutral-ramp-surfaces-depth-background-contrast-not-lines" aria-label="Link to this section">#</a></h3>
-<div class="tablewrap"><table><thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead><tbody><tr><td><code>--bg</code></td><td><code>#0c0d0f</code></td><td>page background</td></tr>
-<tr><td><code>--panel</code></td><td><code>#121417</code></td><td>primary surface</td></tr>
-<tr><td><code>--elevated</code></td><td><code>#181b20</code></td><td>raised surface (popovers, hovers)</td></tr>
-<tr><td><code>--bg-soft</code></td><td><code>#1f2328</code></td><td>inset wells, chips</td></tr>
-<tr><td><code>--bg-hover</code></td><td><code>#262b31</code></td><td>hover tier for soft surfaces</td></tr>
+<p>A cool-slate ramp carrying a touch of chroma, so the darks read rich rather
+than flat grey.</p>
+<div class="tablewrap"><table><thead><tr><th>Token</th><th>Value</th><th>Use</th></tr></thead><tbody><tr><td><code>--bg</code></td><td><code>#0a0c11</code></td><td>page background</td></tr>
+<tr><td><code>--panel</code></td><td><code>#13161e</code></td><td>primary surface</td></tr>
+<tr><td><code>--elevated</code></td><td><code>#1b1f29</code></td><td>raised surface (popovers, hovers)</td></tr>
+<tr><td><code>--bg-soft</code></td><td><code>#222835</code></td><td>inset wells, chips, buttons</td></tr>
+<tr><td><code>--bg-hover</code></td><td><code>#2b3240</code></td><td>hover tier for soft surfaces</td></tr>
+<tr><td><code>--bg-scrim</code></td><td><code>rgba(10,12,17,0.85)</code></td><td>translucent bg behind the blurred nav/search bars</td></tr>
 <tr><td><code>--border</code> / <code>--border-strong</code></td><td>5% / 10% white</td><td>the few places that need a line</td></tr></tbody></table></div>
 <h3 id="ink">Ink<a class="anchor" href="#ink" aria-label="Link to this section">#</a></h3>
-<p><code>--text #f5f5f5</code> · <code>--muted #a1a1aa</code> · <code>--faint #95959f</code> (tertiary — chosen to
-clear 4.5:1 on every surface <em>including</em> the hover tier).</p>
-<h3 id="brand-accent-emerald-used-sparingly">Brand accent (emerald, used sparingly)<a class="anchor" href="#brand-accent-emerald-used-sparingly" aria-label="Link to this section">#</a></h3>
-<p><code>--accent #10b981</code> with a full derived family: <code>--accent-hover</code>,
-<code>--accent-soft</code> (12% fill), <code>--accent-contrast</code> (ink on solid accent),
-<code>--accent-ink #34d399</code> (accent-colored <em>text</em> needs the lighter tone),
-<code>--accent-border</code> (40%). Data marks use <code>--chart</code>/<code>--chart-strong</code> — never raw
-accent.</p>
+<p><code>--text #f5f5f5</code> · <code>--muted #f2f2f4</code> · <code>--faint #e7e7ec</code>. The ramp is
+deliberately near-white top to bottom: hierarchy is carried by weight and a
+slight step-down, not by dimming secondary text to grey — which also means
+every tier clears 4.5:1 on every surface <em>including</em> the hover tier.</p>
+<h3 id="brand-accent-lime-used-sparingly">Brand accent (lime, used sparingly)<a class="anchor" href="#brand-accent-lime-used-sparingly" aria-label="Link to this section">#</a></h3>
+<p><code>--accent #89f336</code> with a full derived family: <code>--accent-hover #9ff955</code>,
+<code>--accent-soft</code> (16% fill), <code>--accent-contrast #101c03</code> (near-black ink on
+solid accent), <code>--accent-ink #9df84f</code> (accent-colored <em>text</em> on dark needs the
+lighter tone; solid accent <em>fills</em> use <code>--accent</code> itself), <code>--accent-border</code>
+(42%). <code>--accent-deep</code> aliases <code>--accent</code> at brand level and exists so team
+themes have a handle to override. <code>--chart</code> mirrors <code>--accent</code>.</p>
 <h3 id="semantic">Semantic<a class="anchor" href="#semantic" aria-label="Link to this section">#</a></h3>
-<p><code>--success #4ade80</code> · <code>--warning #facc15</code> · <code>--danger #f87171</code> (+ soft/text/
-border variants).</p>
+<p><code>--success #4ade80</code> (+ <code>--success-soft</code>) · <code>--danger #f87171</code> (+
+<code>--danger-soft</code>, <code>--danger-text #fca5a5</code> for ink on the soft fill). There is no
+warning tier.</p>
 <h2 id="3-team-theming-teamthemets">3. Team theming (<code>teamTheme.ts</code>)<a class="anchor" href="#3-team-theming-teamthemets" aria-label="Link to this section">#</a></h2>
 <p>The signature move. <code>teamTheme(teamId)</code> returns CSS-variable overrides scoped
 to a container — spreading it re-tints <strong>only the accent family</strong> to the
 team&#39;s primary color:</p>
 <ul>
-<li><code>--accent</code> ← team primary; <code>--accent-deep</code> (−22%), <code>--accent-hover</code>
-(+12%), <code>--accent-ink</code> (+28% toward white), <code>--accent-soft</code> (14% alpha),
-<code>--accent-border</code> (40% alpha), <code>--chart</code>/<code>--chart-strong</code>.</li>
+<li><code>--accent</code>, <code>--accent-deep</code> and <code>--chart</code> ← the team primary, <strong>unmodified</strong>
+— no lightening, darkening or muting. The primary drives solid surfaces.</li>
+<li><code>--accent-hover</code>, <code>--accent-ink</code> and <code>--chart-strong</code> ← the team&#39;s <em>brand
+ink</em>: <code>readableInk()</code> picks the most vivid palette color (chroma ≥ 0.25)
+that clears 3.4:1 on the dark canvas, else the first that clears 3.2:1, else
+the primary. Picking a real palette color rather than a lightened primary is
+what makes the theme show Seahawks green and Commanders gold instead of a
+washed-out tint.</li>
+<li><code>--accent-soft</code> → <code>var(--elevated)</code> and <code>--accent-border</code> → <code>var(--border)</code>:
+deliberately <strong>not</strong> tinted. A low-opacity team color over the dark canvas
+goes muddy, so soft surfaces stay a clean neutral and the brand shows in the
+text and the solid fills.</li>
 <li><code>--accent-contrast</code> (ink on solid team surfaces) is <strong>contrast-checked</strong>:
-prefer the team&#39;s secondary, then accent color, requiring WCAG ≥ 4.5:1
-against the primary; otherwise fall back to near-black or white — so player
-cards render as solid team color with guaranteed-readable black/white ink.</li>
-<li>All 32 team palettes (primary/secondary/accent) live in <code>NFL_TEAM_COLORS</code>.</li>
+the first of the team&#39;s secondary then accent color that is near-neutral
+(chroma ≤ 0.2) <em>and</em> clears WCAG 4.5:1 against the primary; otherwise fall
+back to near-black <code>#0c0d0f</code> or white, whichever the primary carries. Strong
+second hues (navy + gold) are excluded on purpose — colored ink on a colored
+card reads badly — so player cards render as solid team color with
+guaranteed-readable ink.</li>
+<li>All 32 team palettes (primary/secondary/accent) live in <code>NFL_TEAM_COLORS</code>,
+which also backs <code>NFL_TEAM_NAMES</code> so names and colors can&#39;t drift apart.</li>
 </ul>
 <p>Rules: only accent-driven UI changes (buttons, active tabs, links, chart
 marks, stat highlights). Never re-tint backgrounds, neutrals, or semantic
-colors. Unknown team → no override (emerald stays).</p>
+colors. Unknown team → <code>teamTheme()</code> returns <code>undefined</code>, no override (the
+lime brand accent stays).</p>
 <h2 id="4-typography">4. Typography<a class="anchor" href="#4-typography" aria-label="Link to this section">#</a></h2>
 <ul>
-<li><strong>One face:</strong> Geist Variable (bundled woff2, weights 100–900, no runtime
-font request). System-stack fallback. Mono for SQL: <code>ui-monospace</code> stack.</li>
-<li><strong>Text scale:</strong> caption 11 / small 12 / body 13 / ui 14 / body-lg 15 /
-lead 16. Display sizes are per-context in the same face (<code>--display</code>).</li>
-<li>Numbers-first design: tabular data uses tight, consistent sizing;
-narration reads at body sizes.</li>
+<li><strong>One face:</strong> Geist Variable (one bundled woff2 at
+<code>public/fonts/Geist-Variable.woff2</code>, weights 100–900, <code>font-display: swap</code>,
+no runtime font request). System-stack fallback. <code>--display</code> aliases
+<code>--font</code> — the same face carries everything from navigation copy through
+display metrics.</li>
+<li><strong>Text scale:</strong> caption 12 / small 13 / body 14 / ui 15 / body-lg 16 /
+lead 17, plus <code>--fs-micro</code> 10 for status glyphs and sort arrows.</li>
+<li><strong>Heading tiers,</strong> consolidated from the old 18–32px strays: h5 18 / h4 20 /
+h3 22 / h2 <code>clamp(24px, 4.2vw, 28px)</code> / h1 <code>clamp(26px, 5vw, 32px)</code> /
+<code>--fs-hero</code> <code>clamp(38px, 4.6vw, 48px)</code>. A few page-defining headlines
+(the answer line, entity titles, focused result heads) still clamp
+per-context.</li>
+<li>Numbers-first design: stat cells carry <code>font-variant-numeric: tabular-nums</code>
+so columns don&#39;t jitter between rows; narration reads at body sizes.</li>
 </ul>
 <h2 id="5-space-shape-elevation-motion">5. Space, shape, elevation, motion<a class="anchor" href="#5-space-shape-elevation-motion" aria-label="Link to this section">#</a></h2>
 <ul>
-<li><strong>Spacing:</strong> 4px base scale (<code>--s-1: 4px</code> … <code>--s-20: 80px</code>).</li>
-<li><strong>Radii:</strong> 6 / 8 / 12 / 14px + pill. Default <code>--radius: 12px</code>.</li>
-<li><strong>Elevation:</strong> flat by philosophy — shadows are subtle dark-on-dark
-(<code>--shadow-sm/card/pop</code>); borders and background steps do the work.</li>
+<li><strong>Spacing:</strong> 4px base scale, <code>--s-1: 4px</code> … <code>--s-10: 40px</code> — steps 1–6, then
+8 and 10. The scale stops at 40px; larger gaps are page-level padding, set
+per-layout.</li>
+<li><strong>Radii:</strong> <code>--r-sm</code> 6 / <code>--r-md</code> 8 / <code>--r-lg</code> 12 / <code>--r-xl</code> 14 / <code>--r-2xl</code>
+16 / <code>--r-pill</code> 999px. There is no single default: shared surfaces take
+<code>--r-lg</code>, cards <code>--r-xl</code>, and <code>--r-2xl</code> is reserved for the hero search
+family (input + suggest popover) so nothing else drifts that large.</li>
+<li><strong>Elevation:</strong> flat by philosophy — two shadows only, <code>--shadow-card</code> (a 1px
+hairline lift) and <code>--shadow-pop</code> (two-layer, for the mobile drawer and
+popovers); borders and background steps do the rest.</li>
 <li><strong>Z-scale:</strong> one documented ladder — sticky(1) &lt; nav(10) &lt; popover(40) &lt;
-skip-link(100). Overlays render in-flow; no portals.</li>
-<li><strong>Motion:</strong> <code>--ease: cubic-bezier(0.2, 0.8, 0.2, 1)</code>; fast 120ms / base
-160ms / slow 240ms; data draw-ins (bars) 700ms. Motion supports
-comprehension (draw-ins, shimmer), never decoration.</li>
+skip-link(100). Overlays render in-flow; no portals — each popover&#39;s parent
+stacks above table headers. On mobile the nav outranks <code>--z-pop</code> so its
+drawer and scrim clear any open dropdown behind them.</li>
+<li><strong>Motion:</strong> <code>--ease: cubic-bezier(0.2, 0.8, 0.2, 1)</code>; <code>--dur</code> 160ms base and
+<code>--dur-slow</code> 240ms slow — no separate fast tier. Comparison bars animate
+their width at <code>--dur</code>; the shimmer sweep runs 1.3s. Motion supports
+comprehension, never decoration, and <code>prefers-reduced-motion</code> collapses all
+of it (infinite loops <em>stop</em> rather than spinning at 0.001ms).</li>
 </ul>
 <h2 id="6-component-inventory-appswebappcomponents">6. Component inventory (<code>apps/web/app/components/</code>)<a class="anchor" href="#6-component-inventory-appswebappcomponents" aria-label="Link to this section">#</a></h2>
-<div class="tablewrap"><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>AnswerCard</code></td><td>The flagship: narration, entities, player card(s), comparison chart, sortable table, query interpretation, SQL disclosure, CSV, share</td></tr>
-<tr><td><code>SinglePlayerResult</code> / <code>PlayerComparisonResult</code></td><td>Answer layouts per intent shape</td></tr>
-<tr><td><code>ResultDrilldown</code> / <code>ResultMethodology</code></td><td>Row drill-downs and &quot;how was this computed&quot;</td></tr>
+<div class="tablewrap"><table><thead><tr><th>Component</th><th>Role</th></tr></thead><tbody><tr><td><code>AnswerCard</code></td><td>The flagship: narration, entity chips, player card(s), mirrored-bar comparison chart, sortable table, drill-down</td></tr>
+<tr><td><code>SinglePlayerResult</code> / <code>PlayerComparisonResult</code></td><td>Answer layouts per intent shape (<code>player_total</code>, <code>compare</code>)</td></tr>
+<tr><td><code>ResultDrilldown</code></td><td>Leaderboard answers: the leader (or tied leaders) as a team-colored card, then the ranked table</td></tr>
 <tr><td><code>SortTable</code></td><td>Dense sortable stat table; horizontal containment on mobile</td></tr>
-<tr><td><code>SearchSuggest</code></td><td>Debounced autocomplete: players (headshots), teams, questions</td></tr>
-<tr><td><code>ScoreTicker</code> / <code>GameCard</code> / <code>Performers</code> / <code>Leaders</code> / <code>HomeDashboard</code></td><td>Home/dashboard surfaces</td></tr>
+<tr><td><code>SearchSuggest</code></td><td>Debounced ARIA combobox: questions, teams, players — teams and players jump straight to their pages, anything else runs as a question</td></tr>
+<tr><td><code>FactOfTheDay</code></td><td>The day&#39;s mined fact plus its provenance (occurrence count, coverage floor); archive at <code>/facts</code></td></tr>
+<tr><td><code>ScoreTicker</code> / <code>GameCard</code> / <code>Performers</code> / <code>HomeDashboard</code></td><td>Home/dashboard surfaces</td></tr>
+<tr><td><code>Surface</code> / <code>PageHeader</code> / <code>SectionHeader</code> / <code>EntityHero</code> / <code>InfoGrid</code> / <code>StatSummary</code> (ui.tsx)</td><td>The shared page-scaffolding primitives every route builds from</td></tr>
 <tr><td><code>Headshot</code> / <code>TeamLogo</code> / <code>Badge</code> (ui.tsx)</td><td>Identity primitives</td></tr>
-<tr><td><code>Nav</code> / <code>Crumbs</code> / <code>Dropdown</code> / <code>SeasonSelect</code> / <code>tablist</code></td><td>Chrome &amp; controls</td></tr>
+<tr><td><code>Nav</code> / <code>Crumbs</code> / <code>Dropdown</code> / <code>tablist</code></td><td>Chrome &amp; controls</td></tr>
 <tr><td><code>Skeleton</code></td><td>Shimmer loading states</td></tr></tbody></table></div>
+<p>The share affordance lives on the result-page shell
+(<code>app/a/[id]/ResultExperience.tsx</code>), not inside <code>AnswerCard</code> — the card
+renders an answer wherever it&#39;s mounted and owns no routing.</p>
 <h2 id="7-data-visualization-rules">7. Data-visualization rules<a class="anchor" href="#7-data-visualization-rules" aria-label="Link to this section">#</a></h2>
 <ul>
-<li>Marks use <code>--chart</code> tokens (team-tinted in team context), validated for the
-dark surface.</li>
-<li>Comparison charts accompany head-to-head answers; bars draw in over 700ms.</li>
-<li>Tables are the primary viz: every chart has its numbers adjacent; CSV
-export always available.</li>
+<li>The mirrored-bar comparison chart is currently the <em>only</em> chart. The
+leading bar takes <code>--accent</code> (team-tinted in team context), the trailing bar
+<code>--border-strong</code>; widths animate at <code>--dur</code>.</li>
+<li><code>--chart</code> / <code>--chart-strong</code> are declared and team-tinted but nothing
+consumes them yet — they are the reserved handle for real chart marks, so
+future viz doesn&#39;t reach for raw <code>--accent</code>.</li>
+<li>Tables are the primary viz: every bar has its number beside it (each row is
+value | bar | label | bar | value). The chart sizes off a container query,
+not the viewport, so it renders the same in the main column and on the
+share page; under 560px the label takes its own line and the bars keep
+their length.</li>
 </ul>
 <h2 id="8-accessibility-bars">8. Accessibility bars<a class="anchor" href="#8-accessibility-bars" aria-label="Link to this section">#</a></h2>
 <ul>
-<li>Text contrast ≥ 4.5:1 on <strong>every</strong> surface tier it can sit on (tokens are
-chosen and documented against the brightest tier).</li>
+<li>Text contrast ≥ 4.5:1 on <strong>every</strong> surface tier it can sit on. The near-white
+ink ramp is what buys this: because no tier dims to grey, <code>--faint</code> clears
+the bar even on <code>--bg-hover</code>, the brightest surface.</li>
 <li>Team-tinted ink is programmatically contrast-checked (WCAG relative
 luminance) before use; falls back to black/white.</li>
-<li>Visible 2px accent focus outlines; skip-link at the top of the z-scale;
-color-scheme: dark declared for native form rendering.</li>
+<li>Links inside running text are underlined — color alone is not a cue
+(WCAG 1.4.1). Standalone links (nav, cards, rows) identify themselves by
+position instead, so they stay clean.</li>
+<li>Visible 2px accent <code>:focus-visible</code> outlines at 2px offset, never removed
+without replacement; skip-link at the top of the z-scale; the mobile nav
+toggle keeps a full 44px hit area; <code>color-scheme: dark</code> declared for native
+form rendering.</li>
 </ul>
 
 </main>
-<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-personality-principles">1. Personality &amp; principles</a><a class="d2" href="#2-color-system">2. Color system</a><a class="d3" href="#neutral-ramp-surfaces-depth-background-contrast-not-lines">Neutral ramp (surfaces — depth = background contrast, not lines)</a><a class="d3" href="#ink">Ink</a><a class="d3" href="#brand-accent-emerald-used-sparingly">Brand accent (emerald, used sparingly)</a><a class="d3" href="#semantic">Semantic</a><a class="d2" href="#3-team-theming-teamthemets">3. Team theming (teamTheme.ts)</a><a class="d2" href="#4-typography">4. Typography</a><a class="d2" href="#5-space-shape-elevation-motion">5. Space, shape, elevation, motion</a><a class="d2" href="#6-component-inventory-appswebappcomponents">6. Component inventory (apps/web/app/components/)</a><a class="d2" href="#7-data-visualization-rules">7. Data-visualization rules</a><a class="d2" href="#8-accessibility-bars">8. Accessibility bars</a></aside>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-personality-principles">1. Personality &amp; principles</a><a class="d2" href="#2-color-system">2. Color system</a><a class="d3" href="#neutral-ramp-surfaces-depth-background-contrast-not-lines">Neutral ramp (surfaces — depth = background contrast, not lines)</a><a class="d3" href="#ink">Ink</a><a class="d3" href="#brand-accent-lime-used-sparingly">Brand accent (lime, used sparingly)</a><a class="d3" href="#semantic">Semantic</a><a class="d2" href="#3-team-theming-teamthemets">3. Team theming (teamTheme.ts)</a><a class="d2" href="#4-typography">4. Typography</a><a class="d2" href="#5-space-shape-elevation-motion">5. Space, shape, elevation, motion</a><a class="d2" href="#6-component-inventory-appswebappcomponents">6. Component inventory (apps/web/app/components/)</a><a class="d2" href="#7-data-visualization-rules">7. Data-visualization rules</a><a class="d2" href="#8-accessibility-bars">8. Accessibility bars</a></aside>
 </div>
 </body>
 </html>

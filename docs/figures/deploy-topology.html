@@ -1,0 +1,177 @@
+<svg viewBox="0 0 780 588" role="img" font-family="var(--font)" xmlns="http://www.w3.org/2000/svg">
+  <title>Deployment topology: the browser loads the page bundle from Vercel and then calls the Render-hosted Express API directly, which reads Supabase Postgres through the read-only role and writes the answer cache, audit log and fact backfill through the read/write role; separately, GitHub Actions runs the weekly nflverse ingest and the fact mine and select jobs against the same database with the INGEST_DATABASE_URL secret, with the mine job skipped when the ingest run did not succeed.</title>
+
+  <defs>
+    <marker id="dt-arw-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)" />
+    </marker>
+    <marker id="dt-arw-faint" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--faint)" />
+    </marker>
+    <marker id="dt-arw-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--danger)" />
+    </marker>
+  </defs>
+
+  <!-- ══ band header ═══════════════════════════════════════════════════ -->
+  <text x="16" y="18" font-size="10" letter-spacing="1.1" fill="var(--accent-ink)">USER TRAFFIC</text>
+  <text x="16" y="32" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">on demand — one browser, two origins</text>
+
+  <!-- ══ the browser ═══════════════════════════════════════════════════ -->
+  <rect x="16" y="52" width="182" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="28" y="76" font-size="12" font-weight="600" fill="var(--text)">browser</text>
+  <text x="28" y="93" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">one visitor, one tab</text>
+
+  <line x1="200" y1="72" x2="232" y2="72" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#dt-arw-accent)"/>
+  <path d="M200,92 H216 V200 H232" fill="none" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#dt-arw-accent)"/>
+
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="16" y="136">the browser calls the API</text>
+    <text x="16" y="150">origin directly — Vercel</text>
+    <text x="16" y="164">never proxies it, which is</text>
+    <text x="16" y="178">why CORS_ORIGINS exists</text>
+  </g>
+
+  <!-- ══ why this shape ════════════════════════════════════════════════ -->
+  <rect x="16" y="190" width="182" height="140" rx="10" fill="var(--panel)"
+        stroke="var(--border-strong)" stroke-dasharray="4 4"/>
+  <text x="28" y="210" font-size="10" letter-spacing="1.1" fill="var(--faint)" fill-opacity="0.7">WHY THIS SHAPE</text>
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="28" y="230">Vercel holds no database</text>
+    <text x="28" y="243">credentials — it serves the</text>
+    <text x="28" y="256">bundle, nothing else.</text>
+    <text x="28" y="276">The API is persistent, not</text>
+    <text x="28" y="289">serverless: it keeps a warm</text>
+    <text x="28" y="302">pool and an in-process</text>
+    <text x="28" y="315">answer cache.</text>
+  </g>
+
+  <!-- ══ Vercel ════════════════════════════════════════════════════════ -->
+  <rect x="236" y="44" width="270" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="248" y="66" font-size="12" font-weight="600" fill="var(--text)">Vercel · apps/web</text>
+  <text x="494" y="66" text-anchor="end" font-size="9.5" fill="var(--faint)">Next.js 15 app router</text>
+  <text x="248" y="86" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">NEXT_PUBLIC_API_URL is inlined at build time</text>
+
+  <!-- ══ Render ════════════════════════════════════════════════════════ -->
+  <rect x="236" y="138" width="270" height="170" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="248" y="160" font-size="12" font-weight="600" fill="var(--text)">Render · yunoball-api</text>
+  <text x="494" y="160" text-anchor="end" font-size="9.5" fill="var(--faint)">web service</text>
+  <text x="248" y="178" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">root Dockerfile, runtime: docker · binds $PORT</text>
+
+  <rect x="248" y="186" width="246" height="28" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="258" y="204" font-size="11" fill="var(--text)">routes · /api/*</text>
+  <text x="484" y="204" text-anchor="end" font-size="9.5" fill="var(--faint)">CORS + rate limits</text>
+
+  <rect x="248" y="220" width="246" height="28" rx="6" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.6"/>
+  <text x="258" y="238" font-size="11" font-weight="600" fill="var(--text)">engine · execute</text>
+  <text x="484" y="238" text-anchor="end" font-size="9.5" fill="var(--accent-ink)">READONLY_DATABASE_URL</text>
+
+  <rect x="248" y="254" width="246" height="28" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="258" y="272" font-size="11" fill="var(--text)">persist · audit · backfill</text>
+  <text x="484" y="272" text-anchor="end" font-size="9.5" fill="var(--faint)">DATABASE_URL</text>
+
+  <text x="248" y="298" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">health check /ready — is Postgres reachable?</text>
+
+  <line x1="508" y1="234" x2="540" y2="234" stroke="var(--accent)" stroke-width="1.8"
+        marker-end="url(#dt-arw-accent)"/>
+  <line x1="508" y1="268" x2="540" y2="268" stroke="var(--accent)" stroke-width="1.2"
+        marker-end="url(#dt-arw-accent)"/>
+
+  <!-- ══ Supabase ══════════════════════════════════════════════════════ -->
+  <rect x="544" y="138" width="220" height="402" rx="10" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="556" y="162" font-size="12" font-weight="600" fill="var(--text)">Supabase</text>
+  <text x="752" y="162" text-anchor="end" font-size="9.5" fill="var(--faint)">Postgres</text>
+  <text x="556" y="180" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">the warehouse — 16 tables,</text>
+  <text x="556" y="194" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">every number comes from here</text>
+
+  <rect x="556" y="221" width="196" height="26" rx="6" fill="var(--elevated)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="566" y="238" font-size="9.5" fill="var(--accent-ink)">reads · READONLY_DATABASE_URL</text>
+
+  <rect x="556" y="255" width="196" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="566" y="272" font-size="9.5" fill="var(--faint)">writes · DATABASE_URL</text>
+
+  <text x="556" y="306" font-size="10" fill="var(--text)">what it holds</text>
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="556" y="324">games · teams · players</text>
+    <text x="556" y="338">player_game_stats · rosters</text>
+    <text x="556" y="352">player_season_stats</text>
+    <text x="556" y="366">team_game_stats · scoring_plays</text>
+    <text x="556" y="380">answer_cache · query_audit</text>
+    <text x="556" y="394">stat_facts · fact_of_the_day</text>
+  </g>
+
+  <rect x="556" y="435" width="196" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="566" y="452" font-size="9.5" fill="var(--faint)">writes · INGEST_DATABASE_URL</text>
+
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="556" y="488">session pooler :5432 — this</text>
+    <text x="556" y="502">API is a persistent server,</text>
+    <text x="556" y="516">not a serverless function.</text>
+  </g>
+
+  <!-- ══ band header ═══════════════════════════════════════════════════ -->
+  <text x="16" y="348" font-size="10" letter-spacing="1.1" fill="var(--faint)" fill-opacity="0.7">SCHEDULED WRITERS</text>
+  <text x="16" y="362" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">no user in the loop — cron + chain</text>
+
+  <!-- ══ nflverse ══════════════════════════════════════════════════════ -->
+  <rect x="16" y="385" width="150" height="70" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="28" y="407" font-size="11" font-weight="600" fill="var(--text)">nflverse-data</text>
+  <text x="28" y="422" font-size="9" fill="var(--faint)" fill-opacity="0.75">GitHub release CSVs</text>
+  <text x="28" y="436" font-size="9" fill="var(--faint)" fill-opacity="0.75">the only data source</text>
+
+  <line x1="168" y1="420" x2="192" y2="420" stroke="var(--faint)" stroke-width="1.3"
+        stroke-dasharray="4 3" marker-end="url(#dt-arw-faint)"/>
+
+  <!-- ══ GitHub Actions ════════════════════════════════════════════════ -->
+  <rect x="196" y="356" width="310" height="184" rx="10" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="378" font-size="12" font-weight="600" fill="var(--text)">GitHub Actions</text>
+  <text x="494" y="378" text-anchor="end" font-size="9.5" fill="var(--faint)">one repo secret: INGEST_DATABASE_URL</text>
+
+  <rect x="208" y="392" width="124" height="56" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="218" y="412" font-size="10.5" fill="var(--text)">ingest.yml</text>
+  <text x="218" y="426" font-size="9" fill="var(--faint)" fill-opacity="0.75">Tuesdays 10:00 UTC</text>
+  <text x="218" y="439" font-size="9" fill="var(--faint)" fill-opacity="0.75">pnpm ingest:nfl</text>
+
+  <line x1="334" y1="420" x2="364" y2="420" stroke="var(--faint)" stroke-width="1.3"
+        stroke-dasharray="4 3" marker-end="url(#dt-arw-faint)"/>
+  <text x="349" y="412" text-anchor="middle" font-size="9" fill="var(--faint)">success</text>
+
+  <rect x="368" y="392" width="126" height="56" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="378" y="412" font-size="10.5" fill="var(--text)">facts.yml · mine</text>
+  <text x="378" y="426" font-size="9" fill="var(--faint)" fill-opacity="0.75">after a successful</text>
+  <text x="378" y="439" font-size="9" fill="var(--faint)" fill-opacity="0.75">ingest run</text>
+
+  <rect x="368" y="466" width="126" height="56" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="378" y="486" font-size="10" fill="var(--text)">facts.yml · select</text>
+  <text x="378" y="500" font-size="9" fill="var(--faint)" fill-opacity="0.75">daily 11:00 UTC</text>
+  <text x="378" y="513" font-size="9" fill="var(--faint)" fill-opacity="0.75">the daily promise</text>
+
+  <!-- ══ the run that does not happen ══════════════════════════════════ -->
+  <line x1="270" y1="450" x2="270" y2="468" stroke="var(--danger)" stroke-width="1.4"
+        marker-end="url(#dt-arw-danger)"/>
+  <text x="208" y="484" font-size="9" fill="var(--danger)">if the ingest fails</text>
+  <g font-size="9" fill="var(--faint)" fill-opacity="0.75">
+    <text x="208" y="497">the mine job is skipped —</text>
+    <text x="208" y="510">no facts mined from a</text>
+    <text x="208" y="523">half-loaded season</text>
+  </g>
+
+  <line x1="508" y1="448" x2="540" y2="448" stroke="var(--faint)" stroke-width="1.4"
+        stroke-dasharray="4 3" marker-end="url(#dt-arw-faint)"/>
+
+  <!-- ══ legend ════════════════════════════════════════════════════════ -->
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.75">
+    <rect x="16" y="563" width="16" height="2" fill="var(--accent)"/>
+    <text x="40" y="568">user traffic — on demand</text>
+    <line x1="178" y1="564" x2="194" y2="564" stroke="var(--faint)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="202" y="568">scheduled job — GitHub Actions</text>
+    <rect x="369" y="563" width="16" height="2" fill="var(--danger)"/>
+    <text x="393" y="568">the gate that skips a run</text>
+  </g>
+</svg>
+<figcaption>Four hosts, two kinds of traffic. Lime is the request path — the browser fetches the page from Vercel but calls the Render API <em>directly</em>, which is why the API owns <code>CORS_ORIGINS</code> — and the engine's SQL leaves through the least-privilege <code>READONLY_DATABASE_URL</code>, a separate role from the one that persists answers and backfills the fact of the day. Dashed is GitHub Actions on a cron — the only path that loads nflverse data, reaching the same database through a read/write secret of its own.</figcaption>

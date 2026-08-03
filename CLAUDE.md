@@ -2,7 +2,7 @@
 
 Monorepo: `apps/web` (Next.js 15 app-router UI), `apps/server` (Express/TS
 API + rule-based query engine + nflverse ingest), `packages/types` (shared
-wire types), Postgres warehouse (Docker :5433 local, Supabase prod). All
+wire types), Postgres warehouse (Docker :5432 local, Supabase prod). All
 numbers computed from nflverse data.
 
 ## The rule

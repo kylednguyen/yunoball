@@ -173,42 +173,98 @@ figure.diagram figcaption {
 prototype described in <a href="PRD.html">PRD.md</a> / <a href="TDD.html">TDD.md</a> — deterministic
 query engine, 1999–present warehouse, hub surfaces, share pages, deployed
 topology (Vercel / Render / Supabase).
-Written 2026-07-17. The 2026 NFL season kicks off in early September —
-that date anchors Track B.</p>
+Written 2026-07-17, revised 2026-08-02 (§0.1). The 2026 NFL season kicks off
+in early September — that date anchors Track B.</p>
 </blockquote>
 <h2 id="0-baseline-done">0. Baseline (done)<a class="anchor" href="#0-baseline-done" aria-label="Link to this section">#</a></h2>
 <ul>
-<li>Query engine: 21 intents, ~30 allowlisted stats, scope grammar (rounds,
+<li>Query engine: 23 intents, ~30 allowlisted stats, scope grammar (rounds,
 venues, months, primetime, weather, ranges), two-tier cache + durable
 shares, structured audit log, zero LLM calls.</li>
-<li>Warehouse: full nflverse ingest with validation, idempotent upserts, pbp
-distillation (scoring plays, EPA aggregates); Supabase prod instance loaded
-and RLS-enabled.</li>
+<li>Warehouse: nflverse ingest (nine release assets) with validation, idempotent
+upserts, pbp distillation (scoring plays, EPA aggregates); Supabase prod
+instance loaded and RLS-enabled.</li>
 <li>Product: home dashboard, scores/standings/leaderboards, player/team/box
 score pages, fantasy pool, demo-mode assistant, <code>/a/</code> share pages.</li>
 <li>Delivery: CI with real-ingest e2e, Docker/Render blueprint, Vercel web.</li>
+</ul>
+<h2 id="01-shipped-since-2026-08-02">0.1 Shipped since (2026-08-02)<a class="anchor" href="#01-shipped-since-2026-08-02" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><strong>Warehouse breadth.</strong> The nflverse <code>stats_player</code> files the ingest already
+downloads carry 145 columns and the mapping consumed 24; it now takes 31 more
+at both the game and season grain (<code>ingest/pipelines.ts</code>), so kicking,
+punting, returns, first downs, YAC, penalties and the extended defensive line
+stop being discarded from files already sitting in the disk cache.
+Twenty-two of them are registered in the engine&#39;s allowlist, which is now 55
+stats. <code>fg_long</code> and <code>punt_long</code> are deliberately not: every executor SUMs,
+and a summed &quot;longest&quot; is a wrong number.</li>
+<li><strong>Team box scores.</strong> <code>team_game_stats</code> declared <code>total_yards</code>,
+<code>passing_yards</code>, <code>rushing_yards</code> and <code>turnovers</code> from the start but was built
+from the schedule alone, so they were NULL in every production row. The
+<code>stats_team</code> release fills them, plus first downs, penalties, sacks taken,
+defensive sacks, field goals made/attempted and passing/rushing EPA. Fetched
+best-effort: if it is unavailable the row still carries its result, as
+before. This is the <em>data</em> half of A.1 — the engine half is untouched.</li>
+<li><strong>Fact of the day.</strong> A probe registry, a miner and a daily selection
+(<code>src/facts/</code>, <code>stat_facts</code> + <code>fact_of_the_day</code>, <code>GET /api/facts/*</code>, a home
+card and <code>/facts</code>, <code>.github/workflows/facts.yml</code>) — five probe families, 39
+variants. Coverage floors are derived from the warehouse at mine time and
+enforced twice, so a mined line can never claim to see further back than the
+data does. Not on this plan when it was written; it is the first surface that
+says something without being asked a question. Design doc:
+<a href="FACTS.html">FACTS.md</a>.</li>
 </ul>
 <h2 id="track-a-query-coverage-expansion">Track A — Query coverage expansion<a class="anchor" href="#track-a-query-coverage-expansion" aria-label="Link to this section">#</a></h2>
 <p><strong>Goal:</strong> raise the answer rate — the % of real questions that parse and
 return a correct answer (measured from <code>query_audit</code>).</p>
 <ol>
-<li><strong>Team-stat unlock (highest-leverage).</strong> <code>team_game_stats</code> is loaded but
-barely queried: total/passing/rushing yards, turnovers, time of
-possession, drives are refused today outside points questions. Extend
-<code>team_stat</code> executors + parser vocabulary to cover them (totals, per-game,
-per-drive, leaders among teams, season ranges).</li>
-<li><strong>Archetype-driven backlog.</strong> Work through the query-space archetype map
+<li><p><strong>Team-stat unlock (highest-leverage).</strong> The data landed (§0.1), so the
+refusal is now purely engine-side: <code>TeamStatSpec.metric</code> is
+<code>points_for | points_against</code> and <code>executors/teamStat.ts</code> picks between
+exactly those two columns, while yards, turnovers, first downs, penalties
+and team EPA sit in the table unqueryable. Extend <code>team_stat</code> executors +
+parser vocabulary to cover them (totals, per-game, per-drive, leaders among
+teams, season ranges). Time of possession stays refused until something
+writes it: nflverse does not publish it in <code>stats_team</code>, so it has to come
+from pbp drive timing.</p>
+</li>
+<li><p><strong>Archetype-driven backlog.</strong> Work through the query-space archetype map
 (the ~289-archetype grammar documented on the <code>query-dev</code> branch —
 <code>docs/query-space.md</code>; land that doc on main). Prioritize by (a) data
-already loaded, (b) frequency in <code>query_audit</code> misses.</li>
-<li><strong>Splits depth.</strong> The <code>GameWindow</code> grammar already carries month,
+already loaded, (b) frequency in <code>query_audit</code> misses.</p>
+</li>
+<li><p><strong>Splits depth.</strong> The <code>GameWindow</code> grammar already carries month,
 primetime, weather, venue, opponent — audit which stat × window
-combinations refuse and close the gaps; add division/conference windows.</li>
-<li><strong>Awards &amp; milestones maturity.</strong> Broaden <code>award</code> beyond MVP/SBMVP as
-data allows; more milestone races (&quot;fastest to N&quot;).</li>
-<li><strong>Measurement loop.</strong> A small answer-rate report over <code>query_audit</code>
+combinations refuse and close the gaps; add division/conference windows.</p>
+</li>
+<li><p><strong>Awards &amp; milestones maturity.</strong> Broaden <code>award</code> beyond MVP/SBMVP as
+data allows; more milestone races (&quot;fastest to N&quot;).</p>
+</li>
+<li><p><strong>Measurement loop.</strong> A small answer-rate report over <code>query_audit</code>
 (parse rate, refusal reasons, top unanswered phrasings) — the tracker for
-this whole track.</li>
+this whole track.</p>
+</li>
+<li><p><strong>The rest of the nflverse catalogue.</strong> The ingest reads nine release assets
+(<code>ingest/providers/nflverse.ts</code>); everything below is published in the same
+place, in the same CSV shape, and is simply not loaded. The newer ones are
+worth less than their column counts suggest — an answer or a probe over a
+dataset can only reach back to its first season, which is exactly how the
+fact miner&#39;s coverage floor already behaves.</p>
+<div class="tablewrap"><table><thead><tr><th>Dataset</th><th>Coverage</th><th>Why</th></tr></thead><tbody><tr><td><code>weekly_rosters</code></td><td>2002+</td><td><strong>Correctness, not coverage.</strong> <code>player_season_stats.team_id</code> comes from nflverse&#39;s <code>recent_team</code>, one row per (player, season, type) — so a traded player&#39;s whole season collapses onto the team he finished it with. Weekly roster rows carry the real (player, week, team); the <code>rosters</code> table already models multiple teams in a season, the season stats don&#39;t.</td></tr>
+<tr><td><code>snap_counts</code></td><td>2012+</td><td>Snap share: the denominator behind &quot;did he start&quot;, and an honest qualifier for rate stats. Keyed by <code>pfr_player_id</code>, which joins through <code>player_id_map</code> (already loaded).</td></tr>
+<tr><td><code>nextgen_stats</code></td><td>2016+</td><td>Time to throw, separation, air-yard splits. One file per stat type (<code>ngs_passing</code>/<code>rushing</code>/<code>receiving.csv.gz</code>) covering every season at once, not one file per year like everything the ingest reads today — a different loop shape, not just another mapping.</td></tr>
+<tr><td><code>pfr_advstats</code></td><td>2018+</td><td>Pressures, drops, missed tackles. Season files per stat type plus per-year weekly files. nflverse publishes them, so this stays inside the nflverse-only rule — we still never scrape PFR ourselves.</td></tr>
+<tr><td><code>espn_data</code> (QBR)</td><td>2006+</td><td>Season- and week-level QBR — the one mainstream number the warehouse can&#39;t compute from what it holds.</td></tr>
+<tr><td><code>pbp_participation</code></td><td>2016+</td><td>Personnel, formation, box count and who was on the field for each play.</td></tr>
+<tr><td><code>ftn_charting</code></td><td>2022+</td><td>Play-level charting: motion, play action, RPO, blitzers, pressure. Deep splits on a thin floor.</td></tr>
+<tr><td><code>depth_charts</code></td><td>2001+</td><td>Weekly depth position — starter/backup context for roster and player pages.</td></tr></tbody></table></div>
+<p>Then the small self-contained files, a day each when a page needs them:
+<code>combine</code> (2000+; joins the draft through the <code>pfr_player_id</code> /
+<code>cfb_player_id</code> the draft file already carries and the mapping drops),
+<code>officials</code>, <code>trades</code>, and <code>contracts</code> — the OverTheCap history, published
+as <code>.rds</code>, <code>.parquet</code> <em>and</em> a gzipped CSV, so the existing provider handles
+it (<code>pbp</code> is already <code>.csv.gz</code>).</p>
+</li>
 </ol>
 <p><strong>Exit criteria:</strong> team-stat questions answer correctly; answer rate visibly
 climbing month over month; query-space doc merged to main.</p>
@@ -216,16 +272,22 @@ climbing month over month; query-space doc merged to main.</p>
 <p><strong>Goal:</strong> the 2026 season shows up in YunoBall within hours of games ending,
 without manual runs.</p>
 <ol>
-<li><strong>Standalone ingestion worker.</strong> Promote ingest from a hand-run CLI to a
-worker app (<code>pnpm worker</code>) with <strong>run/source tracking</strong> (which dataset,
-which season, when, row counts, outcome — persisted) and <strong>resumable
-backfills</strong>. Builds on the existing pipeline; never replaces it. Stays on
-license-safe sources (nflverse spine; ESPN/Wikidata only where nflverse
-lacks coverage).</li>
+<li><strong>Standalone ingestion worker.</strong> The cheapest version of this exists and
+does not work: <code>.github/workflows/ingest.yml</code> runs <code>pnpm ingest:nfl</code> every
+Tuesday at 10:00 UTC, but passes <code>--season</code> only on <code>workflow_dispatch</code>,
+and the CLI exits 2 when given no season — so the scheduled run fails, and
+<code>facts.yml</code>, gated on a <em>successful</em> ingest, never mines from it. That is a
+one-line fix and the first thing in this track. Then promote ingest from a
+hand-run CLI to a worker app (<code>pnpm worker</code>) with <strong>run/source tracking</strong>
+(which dataset, which season, when, row counts, outcome — persisted) and
+<strong>resumable backfills</strong>. Builds on the existing pipeline; never replaces
+it. Stays on license-safe sources (nflverse spine; ESPN/Wikidata only where
+nflverse lacks coverage).</li>
 <li><strong>In-season cadence.</strong> Scheduled refresh matched to nflverse release
 timing (stats land within ~24h of games): current-week schedules, scores,
 player/team game stats, rollup recompute, cache invalidation for affected
-answers.</li>
+answers. The Tuesday cron is the placeholder for the timing; the recompute
+and the invalidation are what&#39;s missing.</li>
 <li><strong>Freshness surfacing.</strong> &quot;Data through Week N&quot; indicator; leaderboards
 and standings default to the in-progress season once Week 1 loads.</li>
 <li><strong>Roster/headshot refresh.</strong> Automate the ESPN-id fetch for rookies and
@@ -270,30 +332,38 @@ Track C&#39;s PNG export); sitemap for player/team pages.</li>
 review once traffic exists; dependency audit in CI.</li>
 <li><strong>Data safety.</strong> The warehouse is rebuildable from nflverse, so backups
 are cheap insurance for the app tables (<code>answer_cache</code>, <code>query_audit</code>) —
-confirm Supabase PITR settings and document restore.</li>
+confirm Supabase PITR settings and document restore. <code>stat_facts</code> re-mines
+from the probes, but <code>fact_of_the_day</code> does not come back: selection is a
+pure function of the day over <em>the backlog as it stood</em>, and the backlog
+moves with every mining run.</li>
 </ol>
 <p><strong>Exit criteria:</strong> a bad deploy or a failed ingest pages a human; share pages
 unfurl properly in social/chat apps.</p>
 <h2 id="sequencing">Sequencing<a class="anchor" href="#sequencing" aria-label="Link to this section">#</a></h2>
 <figure class="code"><pre><code>Now ──► M1 (≈2 wks): Track A.1 team-stat unlock + A.5 answer-rate report
-              Track C.1 dedicated result page
+              Track C.1 dedicated result page; B.1 scheduled-ingest fix
         M2 (≈4 wks): Track B.1 worker + run tracking; C.2 PNG export;
-              D.3 share-page SEO
+              D.3 share-page SEO; A.6 weekly_rosters (traded-player fix)
         M3 (by 2026 kickoff, early Sept): B.2–B.4 in-season automation;
               D.1–D.2 observability + paid dyno — LAUNCH BAR
-        M4 (in-season): A.2–A.4 archetype grind; C.3–C.5 polish; D.4–D.5</code></pre></figure>
+        M4 (in-season): A.2–A.4 archetype grind; A.6 remaining ingest tiers;
+              C.3–C.5 polish; D.4–D.5</code></pre></figure>
 <p>Rationale: A.1 + C.1 are the highest user-visible leverage per effort and
-de-risk nothing later; the worker must exist well before kickoff so September
-is automation-tuning, not a rewrite; the archetype grind is steady-state work
-that benefits from the measurement loop existing first.</p>
+de-risk nothing later; the scheduled-ingest fix leads because the fact miner is
+chained to it; the worker must exist well before kickoff so September is
+automation-tuning, not a rewrite; <code>weekly_rosters</code> outranks the rest of A.6
+because it is a wrong team on a season line, not a missing feature; the
+archetype grind is steady-state work that benefits from the measurement loop
+existing first.</p>
 <h2 id="risks">Risks<a class="anchor" href="#risks" aria-label="Link to this section">#</a></h2>
 <div class="tablewrap"><table><thead><tr><th>Risk</th><th>Mitigation</th></tr></thead><tbody><tr><td>nflverse release timing/format drift in-season</td><td>Provider isolation + zod validation already quarantine bad rows; worker run-tracking makes drift visible the day it happens</td></tr>
 <tr><td>Coverage grind produces wrong answers under pressure to say <em>something</em></td><td>Keep the honesty rule absolute; every new archetype ships with golden cases in <code>engine.test.ts</code></td></tr>
+<tr><td>A mined fact claims more history than the warehouse holds</td><td>Coverage floors are derived at mine time rather than hardcoded, and enforced twice — <code>sinceClause()</code> phrasing plus <code>assertNoUnsupportedYear()</code> throwing on the rendered headline. A dataset loaded from A.6 tightens every probe over it automatically (<a href="FACTS.html">FACTS.md</a>)</td></tr>
 <tr><td>Render/Supabase free-tier limits under real traffic</td><td>D.2 upgrade before launch; API is portable to any Node host by design</td></tr>
 <tr><td>Scope creep toward accounts/predictions</td><td>Out of scope per <a href="PRD.html">PRD.md</a> §6 until the four tracks land</td></tr></tbody></table></div>
 
 </main>
-<aside class="toc"><h2>On this page</h2><a class="d2" href="#0-baseline-done">0. Baseline (done)</a><a class="d2" href="#track-a-query-coverage-expansion">Track A — Query coverage expansion</a><a class="d2" href="#track-b-livecurrent-season-data-deadline-2026-kickoff">Track B — Live/current-season data (deadline: 2026 kickoff)</a><a class="d2" href="#track-c-product-polish-ux">Track C — Product polish &amp; UX</a><a class="d2" href="#track-d-production-hardening">Track D — Production hardening</a><a class="d2" href="#sequencing">Sequencing</a><a class="d2" href="#risks">Risks</a></aside>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#0-baseline-done">0. Baseline (done)</a><a class="d2" href="#01-shipped-since-2026-08-02">0.1 Shipped since (2026-08-02)</a><a class="d2" href="#track-a-query-coverage-expansion">Track A — Query coverage expansion</a><a class="d2" href="#track-b-livecurrent-season-data-deadline-2026-kickoff">Track B — Live/current-season data (deadline: 2026 kickoff)</a><a class="d2" href="#track-c-product-polish-ux">Track C — Product polish &amp; UX</a><a class="d2" href="#track-d-production-hardening">Track D — Production hardening</a><a class="d2" href="#sequencing">Sequencing</a><a class="d2" href="#risks">Risks</a></aside>
 </div>
 </body>
 </html>

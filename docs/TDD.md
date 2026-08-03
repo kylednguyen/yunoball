@@ -99,6 +99,9 @@ Unparseable questions return an honest refusal — never a guess. Every parsed
 answer is persisted with a deterministic `share_id` **before** returning, so
 navigation to `/a/<id>` can't race the write.
 
+<!-- figure: query-pipeline -->
+
+
 ### 4.2 QuerySpec — a typed AST, not SQL
 
 `engine/spec.ts` defines a **discriminated union on `intent`** — 23 intents:
