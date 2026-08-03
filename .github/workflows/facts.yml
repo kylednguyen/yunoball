@@ -1,0 +1,83 @@
+name: Mine notable facts
+
+# Two cadences, because they answer to different things.
+#
+#   mine    — only needs to run when the data changes, which is when the
+#             nflverse ingest lands. The probes do full-table window scans;
+#             once a week is plenty and keeps them far away from the API.
+#   select  — daily, because that is the product promise.
+#
+# Neither is load-bearing. Selection is a pure function of the date over the
+# ranked backlog, so GET /api/facts/today computes and backfills the same
+# answer on a miss. A skipped or delayed run self-heals on the next request
+# rather than leaving the home page with a stale fact.
+
+on:
+  workflow_run:
+    workflows: ["Ingest nflverse"]
+    types: [completed]
+  schedule:
+    - cron: "0 11 * * *" # daily selection, 11:00 UTC
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "Mine a single probe id (default: all)"
+        required: false
+      since:
+        description: "Only publish events at or after this season"
+        required: false
+      write:
+        description: "Set to 'true' to write; otherwise this is a dry run"
+        required: false
+        default: "false"
+
+concurrency:
+  group: facts
+  cancel-in-progress: false
+
+jobs:
+  mine:
+    # Only after a SUCCESSFUL ingest — mining a half-loaded season produces
+    # facts about data that is about to change.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Mine
+        run: >-
+          pnpm facts:mine
+          ${{ github.event_name == 'workflow_dispatch' && inputs.write != 'true' && '--dry-run' || '' }}
+          ${{ inputs.probe && format('--probe {0}', inputs.probe) || '' }}
+          ${{ inputs.since && format('--since {0}', inputs.since) || '' }}
+        env:
+          DATABASE_URL: ${{ secrets.INGEST_DATABASE_URL }}
+      - name: Publish today's fact
+        if: github.event_name != 'workflow_dispatch' || inputs.write == 'true'
+        run: pnpm facts:select
+        env:
+          DATABASE_URL: ${{ secrets.INGEST_DATABASE_URL }}
+
+  select:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm facts:select
+        env:
+          DATABASE_URL: ${{ secrets.INGEST_DATABASE_URL }}

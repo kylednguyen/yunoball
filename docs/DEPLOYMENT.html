@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deployment · YunoBall docs</title>
+<style>
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal; font-weight: 100 900; font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --panel: #13161e;
+  --elevated: #1b1f29;
+  --bg-soft: #222835;
+  --border: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.1);
+  --text: #f5f5f5;
+  --muted: #f2f2f4;
+  --faint: #e7e7ec;
+  --accent: #89f336;
+  --accent-ink: #9df84f;
+  --accent-soft: rgba(137,243,54,0.16);
+  --accent-border: rgba(137,243,54,0.42);
+  --success: #4ade80;
+  --danger: #f87171;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 14px; --r-pill: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--s-8); }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Top bar: every doc, always reachable, current one marked. */
+.docnav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(10,12,17,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.docnav .brand { font-weight: 800; letter-spacing: -0.02em; margin-right: var(--s-4); }
+.docnav .brand span { color: var(--accent-ink); }
+.docnav a {
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-pill);
+  color: var(--faint); text-decoration: none; font-weight: 550;
+}
+.docnav a:hover { background: var(--bg-soft); color: var(--text); }
+.docnav a[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.shell { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: var(--s-10);
+  max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-6) 96px; }
+main { min-width: 0; max-width: 860px; }
+
+/* Section index, derived from the h2/h3 tree. */
+.toc { position: sticky; top: 72px; align-self: start; font-size: 13px; }
+.toc h2 {
+  margin: 0 0 var(--s-3); padding: 0; border: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.7;
+}
+.toc a { display: block; padding: 3px 0; color: var(--faint); text-decoration: none; }
+.toc a:hover { color: var(--accent-ink); }
+.toc .d3 { padding-left: var(--s-3); opacity: 0.75; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 34px; margin: 0 0 var(--s-4); }
+h2 { font-size: 22px; margin: var(--s-10) 0 var(--s-4); padding-top: var(--s-6);
+  border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: var(--s-8) 0 var(--s-3); }
+h4 { font-size: 15px; margin: var(--s-6) 0 var(--s-2); color: var(--faint); }
+.anchor {
+  margin-left: var(--s-2); color: var(--accent-ink); opacity: 0;
+  text-decoration: none; font-weight: 500;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 0.6; }
+
+p, ul, ol { margin: var(--s-4) 0; }
+li { margin: var(--s-1) 0; }
+li > ul, li > ol { margin: var(--s-1) 0; }
+a { color: var(--accent-ink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+strong { font-weight: 700; color: #fff; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-8) 0; }
+
+blockquote {
+  margin: var(--s-5) 0; padding: var(--s-3) var(--s-5);
+  background: var(--panel); border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0; color: var(--faint);
+}
+blockquote p { margin: var(--s-1) 0; }
+
+code {
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: var(--r-sm);
+}
+figure.code { position: relative; margin: var(--s-5) 0; }
+figure.code .lang {
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.5;
+}
+pre {
+  margin: 0; padding: var(--s-4) var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.6; }
+pre .k { color: var(--accent-ink); font-weight: 600; }
+pre .s { color: #ffd479; }
+pre .c { color: var(--faint); opacity: 0.45; font-style: italic; }
+pre .n { color: #7fd4ff; }
+
+.tablewrap { overflow-x: auto; margin: var(--s-5) 0; border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+th {
+  position: sticky; top: 0; background: var(--elevated); color: var(--faint);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+tbody tr:hover td { background: var(--panel); }
+td code { white-space: nowrap; }
+
+figure.diagram {
+  margin: var(--s-6) 0; padding: var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+}
+figure.diagram svg { display: block; max-width: 100%; height: auto; }
+figure.diagram figcaption {
+  margin-top: var(--s-3); color: var(--faint); font-size: 12.5px; opacity: 0.75;
+}
+
+/* Index page cards. */
+.cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: var(--s-6) 0; }
+.card {
+  display: block; padding: var(--s-5); background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--elevated); border-color: var(--accent-border); text-decoration: none; }
+.card h3 { margin: 0 0 var(--s-2); font-size: 16px; }
+.card p { margin: 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.lede { font-size: 17px; color: var(--faint); max-width: 62ch; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: var(--s-6); padding: var(--s-6) var(--s-4) 64px; }
+  .toc { display: none; }
+  h1 { font-size: 27px; }
+}
+</style>
+</head>
+<body>
+<nav class="docnav"><a class="brand" href="index.html">Yuno<span>Ball</span> docs</a><a href="PRD.html">Product</a><a href="ARCHITECTURE.html">Architecture</a><a href="TDD.html">Technical design</a><a href="BACKEND_SCHEMA.html">Schema</a><a href="FACTS.html">Facts</a><a href="ENGINEERING_PLAN.html">Plan</a><a href="APP_FLOW.html">App flow</a><a href="DESIGN_BRIEF.html">Design</a><a href="FRONTEND_SPEC.html">Frontend spec</a><a href="DEPLOYMENT.html" aria-current="page">Deploy</a><a href="search-results-audit.html">Search audit</a></nav>
+<div class="shell">
+<main>
+<h1 id="deployment">Deployment<a class="anchor" href="#deployment" aria-label="Link to this section">#</a></h1>
+<p>Recommended topology: <strong>frontend on Vercel</strong>, <strong>API on a persistent Node host</strong>
+(Render/Fly), <strong>Postgres on Supabase</strong>.</p>
+<figure class="code"><pre><code>Vercel (Next.js)  ──►  Express API (Render / Fly)  ──►  Supabase Postgres</code></pre></figure>
+<figure class="diagram">
+<svg viewBox="0 0 780 588" role="img" font-family="var(--font)" xmlns="http://www.w3.org/2000/svg">
+  <title>Deployment topology: the browser loads the page bundle from Vercel and then calls the Render-hosted Express API directly, which reads Supabase Postgres through the read-only role and writes the answer cache, audit log and fact backfill through the read/write role; separately, GitHub Actions runs the weekly nflverse ingest and the fact mine and select jobs against the same database with the INGEST_DATABASE_URL secret, with the mine job skipped when the ingest run did not succeed.</title>
+
+  <defs>
+    <marker id="dt-arw-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)" />
+    </marker>
+    <marker id="dt-arw-faint" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--faint)" />
+    </marker>
+    <marker id="dt-arw-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--danger)" />
+    </marker>
+  </defs>
+
+  <!-- ══ band header ═══════════════════════════════════════════════════ -->
+  <text x="16" y="18" font-size="10" letter-spacing="1.1" fill="var(--accent-ink)">USER TRAFFIC</text>
+  <text x="16" y="32" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">on demand — one browser, two origins</text>
+
+  <!-- ══ the browser ═══════════════════════════════════════════════════ -->
+  <rect x="16" y="52" width="182" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="28" y="76" font-size="12" font-weight="600" fill="var(--text)">browser</text>
+  <text x="28" y="93" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">one visitor, one tab</text>
+
+  <line x1="200" y1="72" x2="232" y2="72" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#dt-arw-accent)"/>
+  <path d="M200,92 H216 V200 H232" fill="none" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#dt-arw-accent)"/>
+
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="16" y="136">the browser calls the API</text>
+    <text x="16" y="150">origin directly — Vercel</text>
+    <text x="16" y="164">never proxies it, which is</text>
+    <text x="16" y="178">why CORS_ORIGINS exists</text>
+  </g>
+
+  <!-- ══ why this shape ════════════════════════════════════════════════ -->
+  <rect x="16" y="190" width="182" height="140" rx="10" fill="var(--panel)"
+        stroke="var(--border-strong)" stroke-dasharray="4 4"/>
+  <text x="28" y="210" font-size="10" letter-spacing="1.1" fill="var(--faint)" fill-opacity="0.7">WHY THIS SHAPE</text>
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="28" y="230">Vercel holds no database</text>
+    <text x="28" y="243">credentials — it serves the</text>
+    <text x="28" y="256">bundle, nothing else.</text>
+    <text x="28" y="276">The API is persistent, not</text>
+    <text x="28" y="289">serverless: it keeps a warm</text>
+    <text x="28" y="302">pool and an in-process</text>
+    <text x="28" y="315">answer cache.</text>
+  </g>
+
+  <!-- ══ Vercel ════════════════════════════════════════════════════════ -->
+  <rect x="236" y="44" width="270" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="248" y="66" font-size="12" font-weight="600" fill="var(--text)">Vercel · apps/web</text>
+  <text x="494" y="66" text-anchor="end" font-size="9.5" fill="var(--faint)">Next.js 15 app router</text>
+  <text x="248" y="86" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">NEXT_PUBLIC_API_URL is inlined at build time</text>
+
+  <!-- ══ Render ════════════════════════════════════════════════════════ -->
+  <rect x="236" y="138" width="270" height="170" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="248" y="160" font-size="12" font-weight="600" fill="var(--text)">Render · yunoball-api</text>
+  <text x="494" y="160" text-anchor="end" font-size="9.5" fill="var(--faint)">web service</text>
+  <text x="248" y="178" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">root Dockerfile, runtime: docker · binds $PORT</text>
+
+  <rect x="248" y="186" width="246" height="28" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="258" y="204" font-size="11" fill="var(--text)">routes · /api/*</text>
+  <text x="484" y="204" text-anchor="end" font-size="9.5" fill="var(--faint)">CORS + rate limits</text>
+
+  <rect x="248" y="220" width="246" height="28" rx="6" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.6"/>
+  <text x="258" y="238" font-size="11" font-weight="600" fill="var(--text)">engine · execute</text>
+  <text x="484" y="238" text-anchor="end" font-size="9.5" fill="var(--accent-ink)">READONLY_DATABASE_URL</text>
+
+  <rect x="248" y="254" width="246" height="28" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="258" y="272" font-size="11" fill="var(--text)">persist · audit · backfill</text>
+  <text x="484" y="272" text-anchor="end" font-size="9.5" fill="var(--faint)">DATABASE_URL</text>
+
+  <text x="248" y="298" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">health check /ready — is Postgres reachable?</text>
+
+  <line x1="508" y1="234" x2="540" y2="234" stroke="var(--accent)" stroke-width="1.8"
+        marker-end="url(#dt-arw-accent)"/>
+  <line x1="508" y1="268" x2="540" y2="268" stroke="var(--accent)" stroke-width="1.2"
+        marker-end="url(#dt-arw-accent)"/>
+
+  <!-- ══ Supabase ══════════════════════════════════════════════════════ -->
+  <rect x="544" y="138" width="220" height="402" rx="10" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="556" y="162" font-size="12" font-weight="600" fill="var(--text)">Supabase</text>
+  <text x="752" y="162" text-anchor="end" font-size="9.5" fill="var(--faint)">Postgres</text>
+  <text x="556" y="180" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">the warehouse — 16 tables,</text>
+  <text x="556" y="194" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">every number comes from here</text>
+
+  <rect x="556" y="221" width="196" height="26" rx="6" fill="var(--elevated)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="566" y="238" font-size="9.5" fill="var(--accent-ink)">reads · READONLY_DATABASE_URL</text>
+
+  <rect x="556" y="255" width="196" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="566" y="272" font-size="9.5" fill="var(--faint)">writes · DATABASE_URL</text>
+
+  <text x="556" y="306" font-size="10" fill="var(--text)">what it holds</text>
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="556" y="324">games · teams · players</text>
+    <text x="556" y="338">player_game_stats · rosters</text>
+    <text x="556" y="352">player_season_stats</text>
+    <text x="556" y="366">team_game_stats · scoring_plays</text>
+    <text x="556" y="380">answer_cache · query_audit</text>
+    <text x="556" y="394">stat_facts · fact_of_the_day</text>
+  </g>
+
+  <rect x="556" y="435" width="196" height="26" rx="6" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="566" y="452" font-size="9.5" fill="var(--faint)">writes · INGEST_DATABASE_URL</text>
+
+  <g font-size="9.5" fill="var(--faint)" fill-opacity="0.75">
+    <text x="556" y="488">session pooler :5432 — this</text>
+    <text x="556" y="502">API is a persistent server,</text>
+    <text x="556" y="516">not a serverless function.</text>
+  </g>
+
+  <!-- ══ band header ═══════════════════════════════════════════════════ -->
+  <text x="16" y="348" font-size="10" letter-spacing="1.1" fill="var(--faint)" fill-opacity="0.7">SCHEDULED WRITERS</text>
+  <text x="16" y="362" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">no user in the loop — cron + chain</text>
+
+  <!-- ══ nflverse ══════════════════════════════════════════════════════ -->
+  <rect x="16" y="385" width="150" height="70" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="28" y="407" font-size="11" font-weight="600" fill="var(--text)">nflverse-data</text>
+  <text x="28" y="422" font-size="9" fill="var(--faint)" fill-opacity="0.75">GitHub release CSVs</text>
+  <text x="28" y="436" font-size="9" fill="var(--faint)" fill-opacity="0.75">the only data source</text>
+
+  <line x1="168" y1="420" x2="192" y2="420" stroke="var(--faint)" stroke-width="1.3"
+        stroke-dasharray="4 3" marker-end="url(#dt-arw-faint)"/>
+
+  <!-- ══ GitHub Actions ════════════════════════════════════════════════ -->
+  <rect x="196" y="356" width="310" height="184" rx="10" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="208" y="378" font-size="12" font-weight="600" fill="var(--text)">GitHub Actions</text>
+  <text x="494" y="378" text-anchor="end" font-size="9.5" fill="var(--faint)">one repo secret: INGEST_DATABASE_URL</text>
+
+  <rect x="208" y="392" width="124" height="56" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="218" y="412" font-size="10.5" fill="var(--text)">ingest.yml</text>
+  <text x="218" y="426" font-size="9" fill="var(--faint)" fill-opacity="0.75">Tuesdays 10:00 UTC</text>
+  <text x="218" y="439" font-size="9" fill="var(--faint)" fill-opacity="0.75">pnpm ingest:nfl</text>
+
+  <line x1="334" y1="420" x2="364" y2="420" stroke="var(--faint)" stroke-width="1.3"
+        stroke-dasharray="4 3" marker-end="url(#dt-arw-faint)"/>
+  <text x="349" y="412" text-anchor="middle" font-size="9" fill="var(--faint)">success</text>
+
+  <rect x="368" y="392" width="126" height="56" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="378" y="412" font-size="10.5" fill="var(--text)">facts.yml · mine</text>
+  <text x="378" y="426" font-size="9" fill="var(--faint)" fill-opacity="0.75">after a successful</text>
+  <text x="378" y="439" font-size="9" fill="var(--faint)" fill-opacity="0.75">ingest run</text>
+
+  <rect x="368" y="466" width="126" height="56" rx="6" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="378" y="486" font-size="10" fill="var(--text)">facts.yml · select</text>
+  <text x="378" y="500" font-size="9" fill="var(--faint)" fill-opacity="0.75">daily 11:00 UTC</text>
+  <text x="378" y="513" font-size="9" fill="var(--faint)" fill-opacity="0.75">the daily promise</text>
+
+  <!-- ══ the run that does not happen ══════════════════════════════════ -->
+  <line x1="270" y1="450" x2="270" y2="468" stroke="var(--danger)" stroke-width="1.4"
+        marker-end="url(#dt-arw-danger)"/>
+  <text x="208" y="484" font-size="9" fill="var(--danger)">if the ingest fails</text>
+  <g font-size="9" fill="var(--faint)" fill-opacity="0.75">
+    <text x="208" y="497">the mine job is skipped —</text>
+    <text x="208" y="510">no facts mined from a</text>
+    <text x="208" y="523">half-loaded season</text>
+  </g>
+
+  <line x1="508" y1="448" x2="540" y2="448" stroke="var(--faint)" stroke-width="1.4"
+        stroke-dasharray="4 3" marker-end="url(#dt-arw-faint)"/>
+
+  <!-- ══ legend ════════════════════════════════════════════════════════ -->
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.75">
+    <rect x="16" y="563" width="16" height="2" fill="var(--accent)"/>
+    <text x="40" y="568">user traffic — on demand</text>
+    <line x1="178" y1="564" x2="194" y2="564" stroke="var(--faint)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="202" y="568">scheduled job — GitHub Actions</text>
+    <rect x="369" y="563" width="16" height="2" fill="var(--danger)"/>
+    <text x="393" y="568">the gate that skips a run</text>
+  </g>
+</svg>
+<figcaption>Four hosts, two kinds of traffic. Lime is the request path — the browser fetches the page from Vercel but calls the Render API <em>directly</em>, which is why the API owns <code>CORS_ORIGINS</code> — and the engine's SQL leaves through the least-privilege <code>READONLY_DATABASE_URL</code>, a separate role from the one that persists answers and backfills the fact of the day. Dashed is GitHub Actions on a cron — the only path that loads nflverse data, reaching the same database through a read/write secret of its own.</figcaption>
+</figure><h2 id="1-frontend-vercel">1. Frontend → Vercel<a class="anchor" href="#1-frontend-vercel" aria-label="Link to this section">#</a></h2>
+<p>The Next.js app lives in <code>apps/web</code> (pnpm monorepo).</p>
+<ol>
+<li>New Vercel Project → import this repo.</li>
+<li>Set <strong>Root Directory</strong> to <code>apps/web</code>. Vercel detects Next.js and the pnpm
+workspace automatically; <code>apps/web/vercel.json</code> pins the framework/commands.</li>
+<li>Environment variable:<ul>
+<li><code>NEXT_PUBLIC_API_URL</code> → your deployed API origin (e.g. <code>https://yunoball-api.onrender.com</code>).</li>
+</ul>
+</li>
+<li>Deploy. That&#39;s the whole frontend.</li>
+</ol>
+<h2 id="2-api-render-persistent-node-service">2. API → Render (persistent Node service)<a class="anchor" href="#2-api-render-persistent-node-service" aria-label="Link to this section">#</a></h2>
+<p>The API keeps a warm connection pool and an in-process answer cache, so a
+<strong>persistent service</strong> is the right shape (not serverless functions). Render
+builds the root <code>Dockerfile</code> (<code>runtime: docker</code> in <code>render.yaml</code>) and runs the
+container.</p>
+<p>The code already handles the two things hosts need: it binds Render&#39;s injected
+<code>$PORT</code>, and it enables TLS automatically for any non-localhost database host —
+encrypted, but <em>unverified</em> until you supply the provider CA (<code>DATABASE_CA_CERT</code>
+as PEM, or <code>DATABASE_CA_CERT_FILE</code> as a path). The server logs a warning while
+it is falling back, because an unverified channel is still MITM-able.</p>
+<p><strong>Steps (Render dashboard):</strong></p>
+<ol>
+<li>Push this branch to GitHub.</li>
+<li>Render → <strong>New → Blueprint</strong> → pick this repo. Render reads <code>render.yaml</code>
+and provisions the <code>yunoball-api</code> web service.</li>
+<li>Fill the three <code>sync:false</code> secrets when prompted (they never live in git):<ul>
+<li><code>DATABASE_URL</code> → Supabase <strong>session pooler</strong> string, port <strong>5432</strong>
+(Supabase → Connect → <em>Session pooler</em>). <strong>Not</strong> the 6543 transaction
+pooler — that&#39;s for serverless and drops session features.</li>
+<li><code>READONLY_DATABASE_URL</code> → a read-only role&#39;s session-pooler string
+(recommended; leave blank to fall back to <code>DATABASE_URL</code>).</li>
+<li><code>CORS_ORIGINS</code> → your Vercel origin, e.g. <code>https://&lt;project&gt;.vercel.app</code>
+(comma-separate to allow more, e.g. a custom domain).</li>
+</ul>
+</li>
+<li><strong>Apply</strong> → Render builds the root <code>Dockerfile</code> and starts the container.
+Watch <strong>Logs</strong> for <code>YunoBall API up on :&lt;port&gt;</code>; the <code>/ready</code> check must go
+green (it verifies Postgres is reachable).</li>
+<li>Copy the service URL (<code>https://yunoball-api.onrender.com</code>) — it&#39;s the
+<code>NEXT_PUBLIC_API_URL</code> for Vercel (step 1) and must appear in <code>CORS_ORIGINS</code>.</li>
+</ol>
+<blockquote>
+<p>⚠️ Render&#39;s <strong>free</strong> plan sleeps after ~15 min idle → a ~50s cold start on the
+next request. Use the <strong>Starter</strong> plan for anything user-facing.</p>
+</blockquote>
+<p>Any other Node host works the same way — just provide the env vars and run:</p>
+<figure class="code"><span class="lang">bash</span><pre><code><span class="k">pnpm</span> install <span class="c">--frozen-lockfile</span>
+DATABASE_URL=... <span class="k">pnpm</span> <span class="c">--filter @yunoball/server start</span></code></pre></figure>
+<p>Env vars (same everywhere):</p>
+<ul>
+<li><code>DATABASE_URL</code> → Supabase <strong>session pooler</strong> connection (<code>...pooler.supabase.com:5432/...</code>).</li>
+<li><code>READONLY_DATABASE_URL</code> → a read-only role (recommended; falls back to <code>DATABASE_URL</code>).</li>
+<li><code>CORS_ORIGINS</code> → comma-separated allowed origins (the Vercel URL).</li>
+<li><code>RATE_LIMIT_PER_MINUTE</code> → per-IP cap on the search/agent endpoints (default 30).</li>
+<li><code>READ_RATE_LIMIT_PER_MINUTE</code> → separate, more generous per-IP cap on the GET
+data endpoints (default 120) — one home-page load fires several of them, so
+reads and writes get their own buckets rather than starving each other.</li>
+</ul>
+<h2 id="3-database-supabase">3. Database → Supabase<a class="anchor" href="#3-database-supabase" aria-label="Link to this section">#</a></h2>
+<ol>
+<li>Create a Supabase project; grab the pooled connection string.</li>
+<li>Apply the schema and load data (from a host with open egress to GitHub
+release assets):<figure class="code"><span class="lang">bash</span><pre><code>DATABASE_URL=... <span class="k">pnpm</span> db:migrate
+DATABASE_URL=... <span class="k">pnpm</span> ingest:nfl <span class="c">--all</span>
+DATABASE_URL=... <span class="k">pnpm</span> facts:mine</code></pre></figure>
+<code>db:migrate</code> applies the whole schema, <code>stat_facts</code> and <code>fact_of_the_day</code>
+included — the fact tables need no separate step. Until the first mining run
+has filled the backlog, <code>GET /api/facts/today</code> answers <code>fact: null</code> and the
+home page simply omits the fact card, so this is safe to defer.</li>
+</ol>
+<h2 id="4-scheduled-jobs-github-actions">4. Scheduled jobs → GitHub Actions<a class="anchor" href="#4-scheduled-jobs-github-actions" aria-label="Link to this section">#</a></h2>
+<p>Two workflows keep the warehouse and the fact backlog current. Both read one
+repo secret, <strong><code>INGEST_DATABASE_URL</code></strong>, and pass it as <code>DATABASE_URL</code> — it must
+be a read/write connection (the API&#39;s read-only role can&#39;t write). Set it in
+<strong>Settings → Secrets and variables → Actions</strong>.</p>
+<div class="tablewrap"><table><thead><tr><th>Job</th><th>Trigger</th><th>Runs</th></tr></thead><tbody><tr><td><code>ingest.yml</code> → <code>ingest</code></td><td>Tuesdays 10:00 UTC (after MNF stats land), or manual</td><td><code>pnpm ingest:nfl</code></td></tr>
+<tr><td><code>facts.yml</code> → <code>mine</code></td><td><code>workflow_run</code> on a <strong>successful</strong> <em>Ingest nflverse</em> run, or manual</td><td><code>pnpm facts:mine</code>, then <code>pnpm facts:select</code></td></tr>
+<tr><td><code>facts.yml</code> → <code>select</code></td><td>daily, 11:00 UTC</td><td><code>pnpm facts:select</code></td></tr></tbody></table></div>
+<p>The two fact cadences answer to different things. Mining does full-table window
+scans and only has new data to look at once the ingest lands, so it chains off
+that run instead of keeping its own clock — and only on <code>conclusion == &#39;success&#39;</code>,
+because mining a half-loaded season produces facts about data that is about to
+change. Selection is daily because <em>fact of the day</em> is a daily promise.</p>
+<p><strong>Neither job is load-bearing</strong>, which is the property to preserve if you move
+this scheduling anywhere else. Selection is a pure function of the date over the
+ranked backlog, so <code>GET /api/facts/today</code> computes the same answer and backfills
+it on a miss; a skipped or delayed run self-heals on the next request rather than
+leaving the home page on yesterday&#39;s fact. That backfill is a write, so the API&#39;s
+<code>DATABASE_URL</code> role needs insert on <code>fact_of_the_day</code> — <code>READONLY_DATABASE_URL</code>
+alone is not enough.</p>
+<p>Manual runs (<code>workflow_dispatch</code>) are a <strong>dry run unless you pass <code>write: true</code></strong>,
+and take <code>probe</code> / <code>since</code> to scope what gets mined. Both fact jobs share one
+<code>concurrency</code> group and never cancel in progress.</p>
+<h2 id="5-generated-docs">5. Generated docs<a class="anchor" href="#5-generated-docs" aria-label="Link to this section">#</a></h2>
+<p><code>docs/*.html</code> is build output: <code>pnpm docs:build</code> regenerates every page from the
+markdown next to it (<code>docs/build.mjs</code>). Never hand-edit the HTML — the next build
+overwrites it. The pages are deliberately self-contained (no CDN, no external
+font or stylesheet), so they open straight off disk or from any static host, and
+nothing in the deploy depends on them.</p>
+<h2 id="environment-variables-summary">Environment variables (summary)<a class="anchor" href="#environment-variables-summary" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><table><thead><tr><th>Var</th><th>Where</th><th>Purpose</th></tr></thead><tbody><tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>web</td><td>API origin the browser calls</td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>api</td><td>Supabase pooled connection; also the role that backfills <code>fact_of_the_day</code></td></tr>
+<tr><td><code>READONLY_DATABASE_URL</code></td><td>api</td><td>read-only role for engine-executed SQL and API reads (optional)</td></tr>
+<tr><td><code>DATABASE_CA_CERT</code> / <code>_FILE</code></td><td>api</td><td>provider CA (PEM / path) for <em>verified</em> TLS; without it the connection is encrypted but unverified</td></tr>
+<tr><td><code>CORS_ORIGINS</code></td><td>api</td><td>allowed browser origins</td></tr>
+<tr><td><code>RATE_LIMIT_PER_MINUTE</code></td><td>api</td><td>per-IP cap on search/agent (default 30, 0 disables)</td></tr>
+<tr><td><code>READ_RATE_LIMIT_PER_MINUTE</code></td><td>api</td><td>per-IP cap on the GET data endpoints (default 120, 0 disables)</td></tr>
+<tr><td><code>ANSWER_CACHE_TTL_SECONDS</code></td><td>api</td><td>TTL for the in-process answer cache (default 86400)</td></tr>
+<tr><td><code>TRUST_PROXY_HOPS</code></td><td>api</td><td>proxy hops in front of the API (default 1; drives <code>req.ip</code> for the rate limiter)</td></tr>
+<tr><td><code>LOG_LEVEL</code></td><td>api</td><td>pino level (default <code>info</code>)</td></tr>
+<tr><td><code>PORT</code> / <code>API_PORT</code></td><td>api</td><td>bind port — the host injects <code>PORT</code>; <code>API_PORT</code> is the local override (default 4000)</td></tr>
+<tr><td><code>INGEST_DATABASE_URL</code></td><td>GitHub Actions</td><td>read/write connection the ingest and fact jobs pass as <code>DATABASE_URL</code></td></tr></tbody></table></div>
+
+</main>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-frontend-vercel">1. Frontend → Vercel</a><a class="d2" href="#2-api-render-persistent-node-service">2. API → Render (persistent Node service)</a><a class="d2" href="#3-database-supabase">3. Database → Supabase</a><a class="d2" href="#4-scheduled-jobs-github-actions">4. Scheduled jobs → GitHub Actions</a><a class="d2" href="#5-generated-docs">5. Generated docs</a><a class="d2" href="#environment-variables-summary">Environment variables (summary)</a></aside>
+</div>
+</body>
+</html>

@@ -22,6 +22,7 @@ export const assets = {
   weeklyStats: (year: number) => `${RELEASES}/stats_player/stats_player_week_${year}.csv`,
   seasonStats: (year: number, level: "reg" | "post") =>
     `${RELEASES}/stats_player/stats_player_${level}_${year}.csv`,
+  teamStats: (year: number) => `${RELEASES}/stats_team/stats_team_week_${year}.csv`,
   pbp: (year: number) => `${RELEASES}/pbp/play_by_play_${year}.csv.gz`,
   draftPicks: () => `${RELEASES}/draft_picks/draft_picks.csv`, // all drafts, one file
   playerIds: () => `${RELEASES}/players/players.csv`, // id crosswalk, one file

@@ -1,0 +1,232 @@
+<svg viewBox="0 0 780 770" role="img" font-family="var(--font)" xmlns="http://www.w3.org/2000/svg">
+  <title>Flowchart of runQueryPipeline: the question enters at the L1 cache and leaves by one of six exits — an L1 hit, a parser refusal, a capability-gate refusal, an audit-verdict refusal, an L2 hit, or the full build → execute → narrate path that ends in a persisted AnswerResult.</title>
+
+  <defs>
+    <marker id="qp-arw-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)" />
+    </marker>
+    <marker id="qp-arw-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--danger)" />
+    </marker>
+    <marker id="qp-arw-faint" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--faint)" />
+    </marker>
+  </defs>
+
+  <!-- ======================================================= the question -->
+  <rect x="36" y="12" width="300" height="34" rx="10"
+        fill="var(--panel)" stroke="var(--border-strong)" />
+  <text x="186" y="34" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">question — POST /api/search</text>
+  <line x1="186" y1="47" x2="186" y2="65" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+
+  <!-- ================================================== L1 · text-keyed -->
+  <rect x="36" y="66" width="300" height="46" rx="10"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="186" y="86" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">L1 cache · normalized question text</text>
+  <text x="186" y="102" text-anchor="middle" font-size="10"
+        fill="var(--faint)">cacheGet(textKey(question))</text>
+
+  <line x1="338" y1="89" x2="454" y2="89" stroke="var(--accent)" stroke-width="1.4"
+        marker-end="url(#qp-arw-accent)" />
+  <text x="347" y="84" font-size="10" fill="var(--accent-ink)">hit</text>
+
+  <line x1="186" y1="113" x2="186" y2="131" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+  <text x="194" y="127" font-size="10" fill="var(--faint)">miss</text>
+
+  <!-- ========================================================== resolve -->
+  <rect x="36" y="132" width="300" height="44" rx="10"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="186" y="152" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">resolve · fuzzy name → canonical ids</text>
+  <text x="186" y="168" text-anchor="middle" font-size="10"
+        fill="var(--faint)">player + team indexes, confidence scored</text>
+
+  <line x1="186" y1="177" x2="186" y2="195" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+
+  <!-- ============================================================ parse -->
+  <rect x="36" y="196" width="300" height="46" rx="10"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="186" y="216" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">parse · rules → QuerySpec</text>
+  <text x="186" y="232" text-anchor="middle" font-size="10"
+        fill="var(--faint)">23 intents · deterministic, zero LLM</text>
+
+  <line x1="338" y1="219" x2="454" y2="219" stroke="var(--danger)" stroke-width="1.4"
+        marker-end="url(#qp-arw-danger)" />
+  <text x="347" y="214" font-size="10" fill="var(--danger)">refusal · null</text>
+
+  <line x1="186" y1="243" x2="186" y2="261" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+  <text x="194" y="257" font-size="10" fill="var(--faint)">a spec</text>
+
+  <!-- ================================================== capability gate -->
+  <rect x="36" y="264" width="300" height="46" rx="10"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="186" y="284" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">capability gate</text>
+  <text x="186" y="300" text-anchor="middle" font-size="10"
+        fill="var(--faint)">statComputableFor(intent, stat)</text>
+
+  <line x1="338" y1="287" x2="454" y2="287" stroke="var(--danger)" stroke-width="1.4"
+        marker-end="url(#qp-arw-danger)" />
+  <text x="347" y="282" font-size="10" fill="var(--danger)">wrong grain</text>
+
+  <line x1="186" y1="311" x2="186" y2="329" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+  <text x="194" y="325" font-size="10" fill="var(--faint)">computable</text>
+
+  <!-- ============================================================ audit -->
+  <rect x="36" y="332" width="300" height="46" rx="10"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="186" y="352" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">audit · warehouse reality check</text>
+  <text x="186" y="368" text-anchor="middle" font-size="10"
+        fill="var(--faint)">runs before any SQL exists</text>
+
+  <line x1="338" y1="355" x2="454" y2="355" stroke="var(--danger)" stroke-width="1.4"
+        marker-end="url(#qp-arw-danger)" />
+  <text x="347" y="350" font-size="10" fill="var(--danger)">not validated</text>
+
+  <line x1="186" y1="379" x2="186" y2="397" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+  <text x="194" y="393" font-size="10" fill="var(--faint)">validated (± warnings)</text>
+
+  <!-- ================================================== L2 · spec-keyed -->
+  <rect x="36" y="400" width="300" height="46" rx="10"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="186" y="420" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">L2 cache · specCacheKey(spec)</text>
+  <text x="186" y="436" text-anchor="middle" font-size="10"
+        fill="var(--faint)">one entry per spec, not per phrasing</text>
+
+  <line x1="338" y1="423" x2="454" y2="423" stroke="var(--accent)" stroke-width="1.4"
+        marker-end="url(#qp-arw-accent)" />
+  <text x="347" y="418" font-size="10" fill="var(--accent-ink)">hit</text>
+
+  <line x1="186" y1="447" x2="186" y2="465" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+  <text x="194" y="461" font-size="10" fill="var(--faint)">miss</text>
+
+  <!-- ================================================= the answered path -->
+  <rect x="36" y="468" width="300" height="132" rx="12"
+        fill="var(--panel)" stroke="var(--accent)" stroke-width="1.4" />
+  <text x="48" y="490" font-size="10" letter-spacing="1.1"
+        fill="var(--accent-ink)">THE ANSWERED PATH</text>
+
+  <rect x="48" y="496" width="276" height="26" rx="6"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="60" y="513" font-size="11.5" fill="var(--text)">build</text>
+  <text x="312" y="513" text-anchor="end" font-size="10"
+        fill="var(--faint)">allowlisted template · bound params</text>
+
+  <rect x="48" y="528" width="276" height="26" rx="6"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="60" y="545" font-size="11.5" fill="var(--text)">execute</text>
+  <text x="312" y="545" text-anchor="end" font-size="10"
+        fill="var(--faint)">read-only role</text>
+
+  <rect x="48" y="560" width="276" height="26" rx="6"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="60" y="577" font-size="11.5" fill="var(--text)">narrate</text>
+  <text x="312" y="577" text-anchor="end" font-size="10"
+        fill="var(--faint)">templated from spec + rows</text>
+
+  <line x1="186" y1="601" x2="186" y2="621" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+
+  <!-- ========================================================= finalize -->
+  <rect x="36" y="622" width="300" height="46" rx="10"
+        fill="var(--elevated)" stroke="var(--border-strong)" />
+  <text x="186" y="642" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--text)">finalize</text>
+  <text x="186" y="658" text-anchor="middle" font-size="10"
+        fill="var(--faint)">cacheSet L1 + L2 · await persistAnswer</text>
+
+  <line x1="186" y1="669" x2="186" y2="691" stroke="var(--accent)" stroke-width="1.6"
+        marker-end="url(#qp-arw-accent)" />
+
+  <rect x="36" y="692" width="300" height="36" rx="10"
+        fill="var(--panel)" stroke="var(--accent)" stroke-width="1.2" />
+  <text x="186" y="715" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--accent-ink)">AnswerResult · share_id → /a/&lt;id&gt;</text>
+
+  <!-- ============================================== exits · cache hits -->
+  <rect x="456" y="66" width="300" height="46" rx="10"
+        fill="var(--panel)" stroke="var(--accent)" stroke-width="1.2" />
+  <text x="606" y="86" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--accent-ink)">cached answer</text>
+  <text x="606" y="102" text-anchor="middle" font-size="10"
+        fill="var(--faint)">cached: true · skips resolve and parse</text>
+
+  <rect x="456" y="400" width="300" height="46" rx="10"
+        fill="var(--panel)" stroke="var(--accent)" stroke-width="1.2" />
+  <text x="606" y="420" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--accent-ink)">cached answer</text>
+  <text x="606" y="436" text-anchor="middle" font-size="10"
+        fill="var(--faint)">a new phrasing, the same spec — back-fills L1</text>
+
+  <!-- ================================================ exits · refusals -->
+  <rect x="456" y="196" width="300" height="46" rx="10"
+        fill="var(--panel)" stroke="var(--danger)" stroke-width="1.2" />
+  <text x="606" y="216" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--danger)">honest refusal</text>
+  <text x="606" y="232" text-anchor="middle" font-size="10"
+        fill="var(--faint)">a tailored sentence, or the generic hint</text>
+
+  <rect x="456" y="264" width="300" height="46" rx="10"
+        fill="var(--panel)" stroke="var(--danger)" stroke-width="1.2" />
+  <text x="606" y="284" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--danger)">capability refusal</text>
+  <text x="606" y="300" text-anchor="middle" font-size="10"
+        fill="var(--faint)">names the stat, suggests a shape that works</text>
+
+  <rect x="456" y="332" width="300" height="46" rx="10"
+        fill="var(--panel)" stroke="var(--danger)" stroke-width="1.2" />
+  <text x="606" y="352" text-anchor="middle" font-size="12" font-weight="600"
+        fill="var(--danger)">audit refusal · clarification</text>
+  <text x="606" y="368" text-anchor="middle" font-size="10"
+        fill="var(--faint)">needs_clarification · no_matching_data · invalid</text>
+
+  <!-- ========================================== what every exit shares -->
+  <rect x="456" y="468" width="300" height="132" rx="12"
+        fill="var(--panel)" stroke="var(--border-strong)" stroke-dasharray="4 4" />
+  <text x="470" y="490" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">WHAT EVERY EXIT SHARES</text>
+  <g font-size="10" fill="var(--faint)">
+    <text x="470" y="510">Refusals are answers, not errors — narration,</text>
+    <text x="470" y="525">share_id, empty rows, persisted like any other.</text>
+    <text x="470" y="547">Every non-cached exit logs one query_audit row</text>
+    <text x="470" y="562">(status, warnings, confidence, duration).</text>
+    <text x="470" y="584">A failed execute throws: a 500, never a refusal.</text>
+  </g>
+
+  <!-- ================================ why the durable write is awaited -->
+  <path d="M337,645 H396 V672 H454" fill="none" stroke="var(--faint)"
+        stroke-opacity="0.5" stroke-width="1" stroke-dasharray="3 3"
+        marker-end="url(#qp-arw-faint)" />
+  <rect x="456" y="626" width="300" height="92" rx="12"
+        fill="var(--panel)" stroke="var(--border-strong)" stroke-dasharray="4 4" />
+  <g font-size="10" fill="var(--faint)">
+    <text x="470" y="648">The durable write is awaited, not</text>
+    <text x="470" y="663">fire-and-forget: /a/&lt;share_id&gt; opens right</text>
+    <text x="470" y="678">after this response and must not race</text>
+    <text x="470" y="693">its own lookup.</text>
+  </g>
+
+  <!-- =========================================================== legend -->
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.75">
+    <rect x="36" y="749" width="16" height="2" fill="var(--accent)" />
+    <text x="58" y="754">the answered path</text>
+    <rect x="190" y="749" width="16" height="2" fill="var(--danger)" />
+    <text x="212" y="754">refusal exit — an answer, not an error</text>
+  </g>
+</svg>
+<figcaption>One call to <code>runQueryPipeline</code> has six ways out: two cache hits that return before any work, three refusals that are ordinary answers with empty rows, and the single validated path down to <em>build → execute → narrate</em> — note that the auditor sits <em>above</em> the L2 lookup, so a question the warehouse can't answer honestly never even earns a spec cache key.</figcaption>

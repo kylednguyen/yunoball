@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notable facts — the fact of the day · YunoBall docs</title>
+<style>
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal; font-weight: 100 900; font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --panel: #13161e;
+  --elevated: #1b1f29;
+  --bg-soft: #222835;
+  --border: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.1);
+  --text: #f5f5f5;
+  --muted: #f2f2f4;
+  --faint: #e7e7ec;
+  --accent: #89f336;
+  --accent-ink: #9df84f;
+  --accent-soft: rgba(137,243,54,0.16);
+  --accent-border: rgba(137,243,54,0.42);
+  --success: #4ade80;
+  --danger: #f87171;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 14px; --r-pill: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--s-8); }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Top bar: every doc, always reachable, current one marked. */
+.docnav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(10,12,17,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.docnav .brand { font-weight: 800; letter-spacing: -0.02em; margin-right: var(--s-4); }
+.docnav .brand span { color: var(--accent-ink); }
+.docnav a {
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-pill);
+  color: var(--faint); text-decoration: none; font-weight: 550;
+}
+.docnav a:hover { background: var(--bg-soft); color: var(--text); }
+.docnav a[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.shell { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: var(--s-10);
+  max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-6) 96px; }
+main { min-width: 0; max-width: 860px; }
+
+/* Section index, derived from the h2/h3 tree. */
+.toc { position: sticky; top: 72px; align-self: start; font-size: 13px; }
+.toc h2 {
+  margin: 0 0 var(--s-3); padding: 0; border: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.7;
+}
+.toc a { display: block; padding: 3px 0; color: var(--faint); text-decoration: none; }
+.toc a:hover { color: var(--accent-ink); }
+.toc .d3 { padding-left: var(--s-3); opacity: 0.75; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 34px; margin: 0 0 var(--s-4); }
+h2 { font-size: 22px; margin: var(--s-10) 0 var(--s-4); padding-top: var(--s-6);
+  border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: var(--s-8) 0 var(--s-3); }
+h4 { font-size: 15px; margin: var(--s-6) 0 var(--s-2); color: var(--faint); }
+.anchor {
+  margin-left: var(--s-2); color: var(--accent-ink); opacity: 0;
+  text-decoration: none; font-weight: 500;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 0.6; }
+
+p, ul, ol { margin: var(--s-4) 0; }
+li { margin: var(--s-1) 0; }
+li > ul, li > ol { margin: var(--s-1) 0; }
+a { color: var(--accent-ink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+strong { font-weight: 700; color: #fff; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-8) 0; }
+
+blockquote {
+  margin: var(--s-5) 0; padding: var(--s-3) var(--s-5);
+  background: var(--panel); border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0; color: var(--faint);
+}
+blockquote p { margin: var(--s-1) 0; }
+
+code {
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: var(--r-sm);
+}
+figure.code { position: relative; margin: var(--s-5) 0; }
+figure.code .lang {
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.5;
+}
+pre {
+  margin: 0; padding: var(--s-4) var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
+}
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.6; }
+pre .k { color: var(--accent-ink); font-weight: 600; }
+pre .s { color: #ffd479; }
+pre .c { color: var(--faint); opacity: 0.45; font-style: italic; }
+pre .n { color: #7fd4ff; }
+
+.tablewrap { overflow-x: auto; margin: var(--s-5) 0; border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+th {
+  position: sticky; top: 0; background: var(--elevated); color: var(--faint);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+tbody tr:hover td { background: var(--panel); }
+td code { white-space: nowrap; }
+
+figure.diagram {
+  margin: var(--s-6) 0; padding: var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+}
+figure.diagram svg { display: block; max-width: 100%; height: auto; }
+figure.diagram figcaption {
+  margin-top: var(--s-3); color: var(--faint); font-size: 12.5px; opacity: 0.75;
+}
+
+/* Index page cards. */
+.cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: var(--s-6) 0; }
+.card {
+  display: block; padding: var(--s-5); background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--elevated); border-color: var(--accent-border); text-decoration: none; }
+.card h3 { margin: 0 0 var(--s-2); font-size: 16px; }
+.card p { margin: 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.lede { font-size: 17px; color: var(--faint); max-width: 62ch; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: var(--s-6); padding: var(--s-6) var(--s-4) 64px; }
+  .toc { display: none; }
+  h1 { font-size: 27px; }
+}
+</style>
+</head>
+<body>
+<nav class="docnav"><a class="brand" href="index.html">Yuno<span>Ball</span> docs</a><a href="PRD.html">Product</a><a href="ARCHITECTURE.html">Architecture</a><a href="TDD.html">Technical design</a><a href="BACKEND_SCHEMA.html">Schema</a><a href="FACTS.html" aria-current="page">Facts</a><a href="ENGINEERING_PLAN.html">Plan</a><a href="APP_FLOW.html">App flow</a><a href="DESIGN_BRIEF.html">Design</a><a href="FRONTEND_SPEC.html">Frontend spec</a><a href="DEPLOYMENT.html">Deploy</a><a href="search-results-audit.html">Search audit</a></nav>
+<div class="shell">
+<main>
+<h1 id="notable-facts-the-fact-of-the-day">Notable facts — the fact of the day<a class="anchor" href="#notable-facts-the-fact-of-the-day" aria-label="Link to this section">#</a></h1>
+<blockquote>
+<p>ESPN-style stat lines (&quot;only the fourth 200-yard rushing game since 2019&quot;),
+mined from the warehouse on a schedule and published one per day.</p>
+</blockquote>
+<h2 id="the-constraint-that-shapes-the-design">The constraint that shapes the design<a class="anchor" href="#the-constraint-that-shapes-the-design" aria-label="Link to this section">#</a></h2>
+<p>YunoBall&#39;s core invariant is that a number is never wrong: the parser
+translates, a template builder writes the SQL, the warehouse is the source of
+truth, and anything that can&#39;t be answered precisely is refused. A feature that
+generated SQL or prose at request time would break that on day one.</p>
+<p>So the work splits across <strong>two clocks</strong>:</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Who</th><th>When</th><th>Output</th></tr></thead><tbody><tr><td><strong>Design time</strong></td><td>the <code>stat-scout</code> agent + <code>stat-facts</code> skill</td><td>on demand, in dev</td><td><strong>probe modules</strong> — SQL + a narration template + a test, reviewed in a PR</td></tr>
+<tr><td><strong>Run time</strong></td><td><code>pnpm facts:mine</code>, plain Node</td><td>weekly on a schedule</td><td>rows in <code>stat_facts</code>, one row in <code>fact_of_the_day</code></td></tr></tbody></table></div>
+<p>A model&#39;s only contribution is the probe source, written at design time and
+pinned by a golden test. Nothing generative runs in a request, and no sentence
+a user sees was composed by a model.</p>
+<figure class="diagram">
+<svg viewBox="0 0 780 738" role="img" font-family="var(--font)" xmlns="http://www.w3.org/2000/svg">
+  <title>The two clocks behind the fact of the day: a design-time chain in which the stat-scout agent writes a probe module that is reviewed in a pull request and registered, and a run-time pipeline in which the miner runs each probe's SQL, derives a claim from the occurrence list, passes it through the coverage-floor guard — which throws and drops the fact when a headline names a season the warehouse cannot see — then scores, dedupes, stores and serves it.</title>
+
+  <defs>
+    <marker id="fp-arw-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/>
+    </marker>
+    <marker id="fp-arw-faint" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--faint)"/>
+    </marker>
+    <marker id="fp-arw-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--danger)"/>
+    </marker>
+  </defs>
+
+  <!-- ══ column headers ═════════════════════════════════════════════════ -->
+  <text x="12" y="20" font-size="10" letter-spacing="1.1" fill="var(--faint)" fill-opacity="0.7">DESIGN TIME</text>
+  <text x="12" y="34" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">on demand, in dev — reviewed in a PR</text>
+
+  <text x="300" y="20" font-size="10" letter-spacing="1.1" fill="var(--accent-ink)">RUN TIME</text>
+  <text x="300" y="34" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">weekly mine · daily select · plain Node, no model</text>
+
+  <!-- ══ design time: scout → probe → review → registry ═════════════════ -->
+  <rect x="12" y="76" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="96" font-size="11.5" font-weight="600" fill="var(--text)">stat-scout agent</text>
+  <text x="24" y="111" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">.claude/agents/stat-scout.md</text>
+  <text x="24" y="125" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">researches candidate events</text>
+
+  <line x1="124" y1="134" x2="124" y2="152" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+
+  <rect x="12" y="152" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="172" font-size="11.5" font-weight="600" fill="var(--text)">probe module</text>
+  <text x="24" y="187" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">SQL + headline template + test</text>
+  <text x="24" y="201" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">facts/probes/ — five modules</text>
+
+  <line x1="124" y1="210" x2="124" y2="228" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+
+  <rect x="12" y="228" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="248" font-size="11.5" font-weight="600" fill="var(--text)">review — a pull request</text>
+  <text x="24" y="263" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">dry-run, read the headlines</text>
+  <text x="24" y="277" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">a golden test pins the output</text>
+
+  <line x1="124" y1="286" x2="124" y2="304" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+
+  <rect x="12" y="304" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="324" font-size="11.5" font-weight="600" fill="var(--text)">registry.ts</text>
+  <text x="24" y="339" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">PROBES[] — one added line</text>
+  <text x="24" y="353" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">nothing scans the directory</text>
+
+  <!-- ══ the handoff: the only line that crosses between the clocks ═════ -->
+  <path d="M236,333 H266 V60 H455 V76" fill="none" stroke="var(--accent)" stroke-width="1.4"
+        stroke-dasharray="5 4" marker-end="url(#fp-arw-accent)"/>
+  <text x="274" y="54" font-size="9.5" fill="var(--accent-ink)">PROBES — the miner's whole input</text>
+
+  <!-- ══ run time: probe SQL ═══════════════════════════════════════════ -->
+  <rect x="300" y="76" width="310" height="46" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="96" font-size="12" font-weight="600" fill="var(--text)">probe SQL</text>
+  <text x="598" y="96" text-anchor="end" font-size="9.5" fill="var(--faint)">per variant, from the ladder</text>
+  <text x="312" y="112" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">bound params · stats from the engine's STATS allowlist</text>
+
+  <line x1="455" y1="122" x2="455" y2="140" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ occurrence list, with the population-cap skip ═════════════════ -->
+  <rect x="300" y="140" width="310" height="46" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="160" font-size="12" font-weight="600" fill="var(--text)">occurrence list</text>
+  <text x="598" y="160" text-anchor="end" font-size="9.5" fill="var(--faint)">newest first</text>
+  <text x="312" y="176" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">every qualifying row, capped at maxPopulation + 1</text>
+
+  <line x1="610" y1="163" x2="628" y2="163" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+  <text x="632" y="159" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">too many rows, or none</text>
+  <text x="632" y="172" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">→ skipped, no fact</text>
+
+  <line x1="455" y1="186" x2="455" y2="204" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ claim derivation ══════════════════════════════════════════════ -->
+  <rect x="300" y="204" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="224" font-size="12" font-weight="600" fill="var(--text)">claim derivation</text>
+  <text x="598" y="224" text-anchor="end" font-size="9.5" fill="var(--faint)">claimFrom()</text>
+  <text x="312" y="239" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">newest row = subject · row count = population</text>
+  <text x="312" y="253" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">next distinct = prior season · same week = co-holders</text>
+
+  <line x1="455" y1="260" x2="455" y2="274" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ THE COVERAGE-FLOOR GUARD ══════════════════════════════════════ -->
+  <rect x="282" y="274" width="332" height="94" rx="12" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1"/>
+  <rect x="286" y="278" width="324" height="86" rx="9" fill="var(--elevated)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="298" y="298" font-size="12.5" font-weight="700" fill="var(--accent-ink)">coverage-floor guard</text>
+  <text x="598" y="298" text-anchor="end" font-size="9.5" fill="var(--accent-ink)">derived at mine time</text>
+  <text x="298" y="315" font-size="10" fill="var(--text)">floorsFor(): MIN(season) per source table</text>
+  <text x="298" y="329" font-size="10" fill="var(--text)">a probe's floor = the LATEST of its sources'</text>
+  <text x="298" y="343" font-size="10" fill="var(--faint)" fill-opacity="0.8">sinceClause() cannot outrun the floor;</text>
+  <text x="298" y="357" font-size="10" fill="var(--faint)" fill-opacity="0.8">assertNoUnsupportedYear() rescans the headline</text>
+
+  <!-- ══ the rejection path ════════════════════════════════════════════ -->
+  <line x1="614" y1="321" x2="630" y2="321" stroke="var(--danger)" stroke-width="1.6" marker-end="url(#fp-arw-danger)"/>
+  <text x="634" y="284" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">a year before the floor</text>
+  <rect x="634" y="291" width="138" height="60" rx="9" fill="var(--panel)" stroke="var(--danger)" stroke-width="1.2"/>
+  <text x="703" y="312" text-anchor="middle" font-size="11" font-weight="700" fill="var(--danger)">throws</text>
+  <text x="703" y="327" text-anchor="middle" font-size="9.5" fill="var(--faint)" fill-opacity="0.8">the fact is dropped;</text>
+  <text x="703" y="340" text-anchor="middle" font-size="9.5" fill="var(--faint)" fill-opacity="0.8">the run continues</text>
+
+  <line x1="455" y1="368" x2="455" y2="382" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ scoring ═══════════════════════════════════════════════════════ -->
+  <rect x="300" y="382" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="402" font-size="12" font-weight="600" fill="var(--text)">scoring</text>
+  <text x="598" y="402" text-anchor="end" font-size="9.5" fill="var(--faint)">checked-in constants</text>
+  <text x="312" y="417" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">2.0 rarity + 1.2 drought + 0.8 recency + 0.5 roundness</text>
+  <text x="312" y="431" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">ranks a backlog; it is not a model</text>
+
+  <line x1="455" y1="438" x2="455" y2="456" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ dedupe ════════════════════════════════════════════════════════ -->
+  <rect x="300" y="456" width="310" height="46" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="476" font-size="12" font-weight="600" fill="var(--text)">dedupe</text>
+  <text x="598" y="476" text-anchor="end" font-size="9.5" fill="var(--faint)">one story per subject</text>
+  <text x="312" y="492" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">keyed on subject + metric family + season + week</text>
+
+  <line x1="455" y1="502" x2="455" y2="520" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ stat_facts ════════════════════════════════════════════════════ -->
+  <rect x="300" y="520" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="540" font-size="12" font-weight="600" fill="var(--text)">stat_facts</text>
+  <text x="598" y="540" text-anchor="end" font-size="9.5" fill="var(--faint)">upsert on fact_id</text>
+  <text x="312" y="555" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">the claim and its proof — the exact SQL + peer rows</text>
+  <text x="312" y="569" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">re-mining a week updates rows in place</text>
+
+  <line x1="455" y1="576" x2="455" y2="594" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ daily selection ═══════════════════════════════════════════════ -->
+  <rect x="300" y="594" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="614" font-size="12" font-weight="600" fill="var(--text)">daily selection</text>
+  <text x="598" y="614" text-anchor="end" font-size="9.5" fill="var(--faint)">a pure function of the date</text>
+  <text x="312" y="629" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">sha1(day) % pool over the top 25 by surprise</text>
+  <text x="312" y="643" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">10-day subject cooldown → fact_of_the_day</text>
+
+  <line x1="455" y1="650" x2="455" y2="668" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ API ═══════════════════════════════════════════════════════════ -->
+  <rect x="300" y="668" width="310" height="56" rx="9" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="312" y="688" font-size="12" font-weight="600" fill="var(--accent-ink)">API</text>
+  <text x="598" y="688" text-anchor="end" font-size="9.5" fill="var(--faint)">recomputes on a miss</text>
+  <text x="312" y="703" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">GET /api/facts/today — computes and backfills</text>
+  <text x="312" y="717" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">GET /api/facts · GET /api/facts/:factId</text>
+</svg>
+<figcaption>Two clocks, one dashed line between them: everything a model touches happens on the left, at design time, and reaches run time only as a reviewed probe in the registry. The lime path on the right is <code>pnpm facts:mine</code> — and the one step drawn wider than the rest is the coverage-floor guard, which throws rather than warns, so a headline claiming a season the warehouse never held is dropped instead of published.</figcaption>
+</figure><h2 id="the-probe">The probe<a class="anchor" href="#the-probe" aria-label="Link to this section">#</a></h2>
+<p>A probe returns <strong>every occurrence</strong> of one rare event, newest first. The miner
+derives the claim from that list:</p>
+<ul>
+<li>newest row → the subject</li>
+<li>row count → the population (&quot;just the fourth…&quot;)</li>
+<li>next distinct occurrence → the prior season (&quot;…since 2019&quot;)</li>
+<li>same season+week rows → co-holders, so &quot;first&quot; doesn&#39;t crown one of two</li>
+</ul>
+<p>Probes reuse the query engine&#39;s own machinery — <code>Params</code> for bound values and
+<code>statDef()</code> for stat expressions — so a probe can only reference a stat the
+engine already knows how to compute, and cannot interpolate a literal into SQL.</p>
+<p>Families in <code>apps/server/src/facts/probes/</code>: <code>gameThreshold</code>,
+<code>seasonThreshold</code>, <code>conjunction</code>, <code>streak</code>, <code>teamGame</code>.</p>
+<h2 id="the-coverage-floor">The coverage floor<a class="anchor" href="#the-coverage-floor" aria-label="Link to this section">#</a></h2>
+<p><strong>This is the part that keeps the feature honest.</strong> The warehouse starts in
+1999, and newer datasets start later. &quot;First since 1972&quot; is unprovable here and
+is exactly where this class of feature ships a wrong number.</p>
+<p>Floors are <strong>derived from the warehouse at mine time</strong>, never hardcoded:
+<code>floorsFor()</code> reads <code>MIN(season)</code> per source table, and a probe&#39;s floor is the
+<em>latest</em> of its sources&#39; floors — it can only see as far back as its most
+recently-starting input. A backfill therefore widens what probes may claim
+automatically, and a dataset that failed to load tightens it.</p>
+<p>The rule is enforced twice:</p>
+<ol>
+<li><code>sinceClause()</code> cannot say more than the data supports. With no prior
+occurrence on record it renders &quot;since 1999, the earliest season on record
+here&quot; rather than &quot;ever&quot; — because the true statement is about <em>our record</em>,
+not about NFL history.</li>
+<li><code>assertNoUnsupportedYear()</code> scans the rendered headline and <strong>throws</strong> on any
+year before the floor, catching a hand-written year in a template that the
+phrase builders can&#39;t see.</li>
+</ol>
+<p>An empty dataset gets an unreachable floor, so a probe over it produces no
+claim at all rather than an unbounded one.</p>
+<h2 id="scoring">Scoring<a class="anchor" href="#scoring" aria-label="Link to this section">#</a></h2>
+<p>Four terms, weighted as constants (<code>facts/score.ts</code>) — this ranks a backlog, it
+is not a model:</p>
+<figure class="code"><pre><code>surprise = 2.0·log(1/frequency)        rarity, per season of record
+         + 1.2·log(1 + drought)        seasons since the previous occurrence
+         + 0.8·recency                 did it happen in the current season
+         + 0.5·roundness               400 yards reads as a milestone, 387 does not</code></pre></figure>
+<p>Then near-duplicates collapse: one fact per (subject, metric family, week), so
+a reader never gets two passing facts about one quarterback in one day.</p>
+<h2 id="selection-and-the-cron">Selection and the cron<a class="anchor" href="#selection-and-the-cron" aria-label="Link to this section">#</a></h2>
+<p>Two cadences, because they answer to different things — mining only needs to
+run when the data changes (weekly, chained off the nflverse ingest via
+<code>workflow_run</code>), selection runs daily because that is the product promise.
+See <code>.github/workflows/facts.yml</code>.</p>
+<p><strong>Neither is load-bearing.</strong> Selection is a pure function of the date over the
+ranked backlog: <code>sha1(day) % pool</code>, filtered by a 10-day subject cooldown. The
+scheduled job and <code>GET /api/facts/today</code> compute the same answer, so the
+endpoint backfills on a miss and a skipped or delayed run self-heals on the
+next request. Scheduled GitHub Actions drift and are occasionally dropped
+entirely; the design removes the dependency rather than monitoring it.</p>
+<p>Mining is idempotent — <code>fact_id</code> hashes probe, variant, subject and date — so
+re-running a week updates rows in place.</p>
+<h2 id="storage-and-api">Storage and API<a class="anchor" href="#storage-and-api" aria-label="Link to this section">#</a></h2>
+<p><code>stat_facts</code> carries the claim <strong>and its proof</strong>: the exact SQL and the peer
+rows behind it. A fact that can&#39;t show its work doesn&#39;t ship, the same way an
+answer card exposes its query. <code>fact_of_the_day</code> is one row per day.</p>
+<figure class="code"><pre><code>GET /api/facts/today[?day=YYYY-MM-DD]   -&gt; { day, fact | null }
+GET /api/facts[?season=&amp;limit=]          -&gt; { facts: [...] }
+GET /api/facts/:factId                   -&gt; the fact + sql + evidence</code></pre></figure>
+<p>List responses drop <code>sql</code>/<code>evidence</code> to keep the home payload small; the detail
+route carries them.</p>
+<h2 id="offseason">Offseason<a class="anchor" href="#offseason" aria-label="Link to this section">#</a></h2>
+<p>Mining finds nothing new from February to September, which is what the backlog
+is for: a season&#39;s mining yields hundreds of ranked facts and daily selection
+rotates through them under the cooldown. The miner warns when it produces no
+candidates rather than exiting quietly green.</p>
+<h2 id="adding-a-probe">Adding a probe<a class="anchor" href="#adding-a-probe" aria-label="Link to this section">#</a></h2>
+<p>See the <code>stat-facts</code> skill (<code>.claude/skills/stat-facts/</code>) for the procedure and
+the review checklist, and <code>.claude/agents/stat-scout.md</code> for the research agent
+that authors them. Short version: copy the closest family, write variants from
+a round-number ladder, dry-run with <code>pnpm facts:mine --dry-run --probe &lt;id&gt;</code>,
+read the headlines out loud, add a test, and commit probe + registry line +
+test together.</p>
+<p>Never loosen a guard to ship a fact. Drop the fact.</p>
+
+</main>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#the-constraint-that-shapes-the-design">The constraint that shapes the design</a><a class="d2" href="#the-probe">The probe</a><a class="d2" href="#the-coverage-floor">The coverage floor</a><a class="d2" href="#scoring">Scoring</a><a class="d2" href="#selection-and-the-cron">Selection and the cron</a><a class="d2" href="#storage-and-api">Storage and API</a><a class="d2" href="#offseason">Offseason</a><a class="d2" href="#adding-a-probe">Adding a probe</a></aside>
+</div>
+</body>
+</html>

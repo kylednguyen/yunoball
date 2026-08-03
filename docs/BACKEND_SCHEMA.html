@@ -3,80 +3,389 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>YunoBall — Backend Schema</title>
+<title>YunoBall — Backend Schema · YunoBall docs</title>
 <style>
-:root { color-scheme: dark; }
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/Geist-Variable.woff2") format("woff2");
+  font-style: normal; font-weight: 100 900; font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --panel: #13161e;
+  --elevated: #1b1f29;
+  --bg-soft: #222835;
+  --border: rgba(255,255,255,0.05);
+  --border-strong: rgba(255,255,255,0.1);
+  --text: #f5f5f5;
+  --muted: #f2f2f4;
+  --faint: #e7e7ec;
+  --accent: #89f336;
+  --accent-ink: #9df84f;
+  --accent-soft: rgba(137,243,54,0.16);
+  --accent-border: rgba(137,243,54,0.42);
+  --success: #4ade80;
+  --danger: #f87171;
+  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 14px; --r-pill: 999px;
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--s-8); }
 body {
-  margin: 0; padding: 48px 24px; background: #0c0d0f; color: #f5f5f5;
-  font: 15px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 15px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
-main { max-width: 860px; margin: 0 auto; }
-h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
-h1 { font-size: 28px; margin: 0 0 8px; }
-h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); }
-h3 { font-size: 16px; margin: 28px 0 8px; }
-a { color: #34d399; text-decoration: none; }
+
+/* Top bar: every doc, always reachable, current one marked. */
+.docnav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1);
+  padding: var(--s-3) var(--s-6);
+  background: rgba(10,12,17,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.docnav .brand { font-weight: 800; letter-spacing: -0.02em; margin-right: var(--s-4); }
+.docnav .brand span { color: var(--accent-ink); }
+.docnav a {
+  padding: var(--s-1) var(--s-3); border-radius: var(--r-pill);
+  color: var(--faint); text-decoration: none; font-weight: 550;
+}
+.docnav a:hover { background: var(--bg-soft); color: var(--text); }
+.docnav a[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.shell { display: grid; grid-template-columns: minmax(0,1fr) 220px; gap: var(--s-10);
+  max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-6) 96px; }
+main { min-width: 0; max-width: 860px; }
+
+/* Section index, derived from the h2/h3 tree. */
+.toc { position: sticky; top: 72px; align-self: start; font-size: 13px; }
+.toc h2 {
+  margin: 0 0 var(--s-3); padding: 0; border: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.7;
+}
+.toc a { display: block; padding: 3px 0; color: var(--faint); text-decoration: none; }
+.toc a:hover { color: var(--accent-ink); }
+.toc .d3 { padding-left: var(--s-3); opacity: 0.75; }
+
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: 34px; margin: 0 0 var(--s-4); }
+h2 { font-size: 22px; margin: var(--s-10) 0 var(--s-4); padding-top: var(--s-6);
+  border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: var(--s-8) 0 var(--s-3); }
+h4 { font-size: 15px; margin: var(--s-6) 0 var(--s-2); color: var(--faint); }
+.anchor {
+  margin-left: var(--s-2); color: var(--accent-ink); opacity: 0;
+  text-decoration: none; font-weight: 500;
+}
+h2:hover .anchor, h3:hover .anchor { opacity: 0.6; }
+
+p, ul, ol { margin: var(--s-4) 0; }
+li { margin: var(--s-1) 0; }
+li > ul, li > ol { margin: var(--s-1) 0; }
+a { color: var(--accent-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
-p, ul, ol { margin: 12px 0; }
-li { margin: 4px 0; }
+strong { font-weight: 700; color: #fff; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-8) 0; }
+
 blockquote {
-  margin: 16px 0; padding: 10px 16px; border-left: 3px solid rgba(16,185,129,0.4);
-  background: #121417; border-radius: 0 8px 8px 0; color: #a1a1aa;
+  margin: var(--s-5) 0; padding: var(--s-3) var(--s-5);
+  background: var(--panel); border-left: 3px solid var(--accent-border);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0; color: var(--faint);
 }
-blockquote p { margin: 4px 0; }
+blockquote p { margin: var(--s-1) 0; }
+
 code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 13px; background: #1f2328; padding: 1px 5px; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--bg-soft); padding: 1px 5px; border-radius: var(--r-sm);
+}
+figure.code { position: relative; margin: var(--s-5) 0; }
+figure.code .lang {
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--faint); opacity: 0.5;
 }
 pre {
-  background: #121417; padding: 16px; border-radius: 12px; overflow-x: auto;
-  border: 1px solid rgba(255,255,255,0.05);
+  margin: 0; padding: var(--s-4) var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg);
 }
-pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
-table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13.5px; display: block; overflow-x: auto; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
-th { color: #a1a1aa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-tr:hover td { background: #121417; }
-hr { border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
-.docnav { font-size: 12.5px; color: #a1a1aa; margin-bottom: 32px; }
-.docnav a { margin-right: 12px; }
-.docnav .here { color: #f5f5f5; font-weight: 600; margin-right: 12px; }
+pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.6; }
+pre .k { color: var(--accent-ink); font-weight: 600; }
+pre .s { color: #ffd479; }
+pre .c { color: var(--faint); opacity: 0.45; font-style: italic; }
+pre .n { color: #7fd4ff; }
+
+.tablewrap { overflow-x: auto; margin: var(--s-5) 0; border-radius: var(--r-lg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+th {
+  position: sticky; top: 0; background: var(--elevated); color: var(--faint);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+tbody tr:hover td { background: var(--panel); }
+td code { white-space: nowrap; }
+
+figure.diagram {
+  margin: var(--s-6) 0; padding: var(--s-5); overflow-x: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-xl);
+}
+figure.diagram svg { display: block; max-width: 100%; height: auto; }
+figure.diagram figcaption {
+  margin-top: var(--s-3); color: var(--faint); font-size: 12.5px; opacity: 0.75;
+}
+
+/* Index page cards. */
+.cards { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin: var(--s-6) 0; }
+.card {
+  display: block; padding: var(--s-5); background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--r-xl);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--elevated); border-color: var(--accent-border); text-decoration: none; }
+.card h3 { margin: 0 0 var(--s-2); font-size: 16px; }
+.card p { margin: 0; color: var(--faint); font-size: 13.5px; line-height: 1.5; }
+.lede { font-size: 17px; color: var(--faint); max-width: 62ch; }
+
+@media (max-width: 940px) {
+  .shell { grid-template-columns: minmax(0,1fr); gap: var(--s-6); padding: var(--s-6) var(--s-4) 64px; }
+  .toc { display: none; }
+  h1 { font-size: 27px; }
+}
 </style>
 </head>
 <body>
+<nav class="docnav"><a class="brand" href="index.html">Yuno<span>Ball</span> docs</a><a href="PRD.html">Product</a><a href="ARCHITECTURE.html">Architecture</a><a href="TDD.html">Technical design</a><a href="BACKEND_SCHEMA.html" aria-current="page">Schema</a><a href="FACTS.html">Facts</a><a href="ENGINEERING_PLAN.html">Plan</a><a href="APP_FLOW.html">App flow</a><a href="DESIGN_BRIEF.html">Design</a><a href="FRONTEND_SPEC.html">Frontend spec</a><a href="DEPLOYMENT.html">Deploy</a><a href="search-results-audit.html">Search audit</a></nav>
+<div class="shell">
 <main>
-<nav class="docnav"><a href="PRD.html">PRD</a><a href="TDD.html">TDD</a><a href="APP_FLOW.html">APP_FLOW</a><a href="DESIGN_BRIEF.html">DESIGN_BRIEF</a><span class="here">BACKEND_SCHEMA</span><a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN</a><a href="FRONTEND_SPEC.html">FRONTEND_SPEC</a></nav>
-<h1>YunoBall — Backend Schema</h1>
+<h1 id="yunoball-backend-schema">YunoBall — Backend Schema<a class="anchor" href="#yunoball-backend-schema" aria-label="Link to this section">#</a></h1>
 <blockquote>
 <p>The Postgres warehouse: a star model over nflverse data.
 Source of truth: <code>apps/server/src/db/schema.sql</code> (idempotent —
 <code>pnpm db:migrate</code> is safe on a fresh or existing database).</p>
 </blockquote>
-<h2>1. Shape</h2>
-<pre><code>seasons ◄────────── games ──────────► teams
+<h2 id="1-shape">1. Shape<a class="anchor" href="#1-shape" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>seasons ◄────────── games ──────────► teams
    ▲                  ▲                 ▲
 player_season_stats   ├── player_game_stats    (player × game)
    │                  ├── player_game_advanced (pbp aggregates)
    ▼                  ├── team_game_stats      (team × game)
 players ◄─────────────┴── scoring_plays        (touchdown events)
+   └── rosters (player × season × team) · player_id_map (id crosswalk)
 
 app tables: answer_cache · query_audit        history: draft_picks
-</code></pre>
+mined facts: stat_facts ◄── fact_of_the_day</code></pre></figure>
 <ul>
 <li><strong>Dimensions:</strong> <code>seasons</code>, <code>teams</code>, <code>players</code>, <code>games</code></li>
 <li><strong>Facts:</strong> <code>player_game_stats</code>, <code>team_game_stats</code>, <code>player_game_advanced</code>,
 <code>scoring_plays</code></li>
 <li><strong>Rollups:</strong> <code>player_season_stats</code></li>
+<li><strong>Bridges:</strong> <code>rosters</code> (who was on which team each season), <code>player_id_map</code>
+(gsis id → every other provider&#39;s id)</li>
 <li><strong>App:</strong> <code>answer_cache</code> (durable shareable answers), <code>query_audit</code>
 (per-question audit log)</li>
+<li><strong>Mined facts</strong> (a different sense of &quot;fact&quot; — not the star-schema one):
+<code>stat_facts</code> (probe output), <code>fact_of_the_day</code> (one published row per day)</li>
 <li><strong>History:</strong> <code>draft_picks</code> (1980+, deliberately no season FK)</li>
 </ul>
-<h2>2. Conventions</h2>
+<figure class="diagram">
+<svg viewBox="0 0 780 736" role="img" font-family="var(--font)">
+  <title>Entity-relationship diagram of the YunoBall warehouse: the seasons, teams, players and games dimensions, the event-grain fact tables and season rollup that join them by foreign key, and the app tables that sit outside the star.</title>
+
+  <defs>
+    <marker id="er-fk" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 1 L9 5 L0 9 Z" fill="var(--faint)" opacity="0.55" />
+    </marker>
+    <marker id="er-fk-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 1 L9 5 L0 9 Z" fill="var(--accent)" />
+    </marker>
+  </defs>
+
+  <!-- ============================ dimension-to-dimension keys on games -->
+  <g fill="none" stroke="var(--faint)" stroke-opacity="0.42" stroke-width="1">
+    <path d="M282 58 V22 H702 V58" marker-end="url(#er-fk)" />
+    <path d="M270 58 V44 H418 V58" marker-end="url(#er-fk)" />
+  </g>
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.8" text-anchor="end">
+    <text x="694" y="16">season</text>
+    <text x="410" y="38">home_team · away_team</text>
+  </g>
+
+  <!-- ============================================== dimensions (top row) -->
+  <text x="16" y="88" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">DIMENSIONS</text>
+  <text x="16" y="103" font-size="10" fill="var(--faint)" fill-opacity="0.5">no keys out but games</text>
+
+  <g fill="var(--elevated)" stroke="var(--border-strong)" stroke-width="1">
+    <rect x="214" y="58" width="124" height="60" rx="8" stroke="var(--accent)" />
+    <rect x="356" y="58" width="124" height="60" rx="8" />
+    <rect x="498" y="58" width="124" height="60" rx="8" />
+    <rect x="640" y="58" width="124" height="60" rx="8" />
+  </g>
+  <g text-anchor="middle">
+    <text x="276" y="80" font-size="13" font-weight="700" fill="var(--accent-ink)">games</text>
+    <text x="418" y="80" font-size="13" font-weight="700" fill="var(--text)">teams</text>
+    <text x="560" y="80" font-size="13" font-weight="700" fill="var(--text)">players</text>
+    <text x="702" y="80" font-size="13" font-weight="700" fill="var(--text)">seasons</text>
+
+    <g font-size="10" fill="var(--faint)">
+      <text x="276" y="97">PK game_id</text>
+      <text x="418" y="97">PK team_id</text>
+      <text x="560" y="97">PK player_id</text>
+      <text x="702" y="97">PK season</text>
+    </g>
+    <g font-size="10" fill="var(--faint)" fill-opacity="0.6">
+      <text x="276" y="111">nflverse schedule</text>
+      <text x="418" y="111">current franchise</text>
+      <text x="560" y="111">nflverse gsis id</text>
+      <text x="702" y="111">1999+ loaded</text>
+    </g>
+  </g>
+
+  <!-- ====================================================== the FK rails -->
+  <!-- Each rail stops at the last table that uses it, so a line crossing a
+       rail always means a join. -->
+  <g fill="none" stroke-width="1">
+    <path d="M276 415 V118" stroke="var(--accent)" stroke-opacity="0.85"
+          stroke-width="1.5" marker-end="url(#er-fk-accent)" />
+    <g stroke="var(--faint)" stroke-opacity="0.42">
+      <path d="M418 513 V118" marker-end="url(#er-fk)" />
+      <path d="M560 513 V118" marker-end="url(#er-fk)" />
+      <path d="M702 513 V118" marker-end="url(#er-fk)" />
+    </g>
+  </g>
+
+  <!-- ============================================ fact tables + the rollup -->
+  <text x="16" y="146" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">FACT TABLES · EVENT GRAIN</text>
+  <text x="16" y="472" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">ROLLUP · SEASON GRAIN</text>
+
+  <!-- join lines, box edge out to the last dimension each table references -->
+  <g fill="none" stroke="var(--faint)" stroke-opacity="0.42" stroke-width="1">
+    <path d="M194 187 H560" />
+    <path d="M194 263 H560" />
+    <path d="M194 339 H418" />
+    <path d="M194 415 H560" />
+    <path d="M194 513 H702" />
+  </g>
+
+  <g fill="var(--elevated)" stroke="var(--border-strong)" stroke-width="1">
+    <rect x="16" y="156" width="178" height="62" rx="8" />
+    <rect x="16" y="232" width="178" height="62" rx="8" />
+    <rect x="16" y="308" width="178" height="62" rx="8" />
+    <rect x="16" y="384" width="178" height="62" rx="8" />
+    <rect x="16" y="482" width="178" height="62" rx="8" />
+  </g>
+
+  <g font-size="12" font-weight="600" fill="var(--text)">
+    <text x="28" y="178">player_game_stats</text>
+    <text x="28" y="254">player_game_advanced</text>
+    <text x="28" y="330">team_game_stats</text>
+    <text x="28" y="406">scoring_plays</text>
+    <text x="28" y="504">player_season_stats</text>
+  </g>
+  <g font-size="10" fill="var(--faint)">
+    <text x="28" y="195">PK (player_id, game_id)</text>
+    <text x="28" y="271">PK (player_id, game_id)</text>
+    <text x="28" y="347">PK (team_id, game_id)</text>
+    <text x="28" y="423">PK play_id</text>
+    <text x="28" y="521">PK (player_id, season,</text>
+  </g>
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.6">
+    <text x="28" y="209">player × game</text>
+    <text x="28" y="285">EPA · success · CPOE</text>
+    <text x="28" y="361">team × game</text>
+    <text x="28" y="437">touchdown events only</text>
+  </g>
+  <text x="28" y="535" font-size="10" fill="var(--faint)">season_type)</text>
+
+  <!-- foreign keys: filled dot where a table references that dimension -->
+  <g fill="var(--faint)">
+    <circle cx="418" cy="187" r="3.5" />
+    <circle cx="560" cy="187" r="3.5" />
+    <circle cx="560" cy="263" r="3.5" />
+    <circle cx="418" cy="339" r="3.5" />
+    <circle cx="418" cy="415" r="3.5" />
+    <circle cx="560" cy="415" r="3.5" />
+    <circle cx="560" cy="513" r="3.5" />
+    <circle cx="702" cy="513" r="3.5" />
+  </g>
+  <g fill="var(--accent)">
+    <circle cx="276" cy="187" r="3.5" />
+    <circle cx="276" cy="263" r="3.5" />
+    <circle cx="276" cy="339" r="3.5" />
+    <circle cx="276" cy="415" r="3.5" />
+  </g>
+
+  <!-- team_id is carried but deliberately unconstrained on these two -->
+  <g fill="var(--panel)" stroke="var(--danger)" stroke-width="1.4">
+    <circle cx="418" cy="263" r="4.5" />
+    <circle cx="418" cy="513" r="4.5" />
+  </g>
+
+  <!-- ========================================= app tables, outside the star -->
+  <rect x="14" y="572" width="752" height="118" rx="12"
+        fill="var(--panel)" stroke="var(--border-strong)" stroke-dasharray="4 4" />
+  <text x="30" y="596" font-size="10" letter-spacing="1.1"
+        fill="var(--faint)" fill-opacity="0.7">APP TABLES · NOT PART OF THE STAR</text>
+
+  <g fill="var(--elevated)" stroke="var(--border-strong)" stroke-width="1">
+    <rect x="30" y="610" width="158" height="62" rx="8" />
+    <rect x="206" y="610" width="158" height="62" rx="8" />
+    <rect x="382" y="610" width="158" height="62" rx="8" />
+    <rect x="592" y="610" width="158" height="62" rx="8" />
+  </g>
+  <g font-size="12" font-weight="600" fill="var(--text)">
+    <text x="42" y="632">answer_cache</text>
+    <text x="218" y="632">query_audit</text>
+    <text x="394" y="632">stat_facts</text>
+    <text x="604" y="632">fact_of_the_day</text>
+  </g>
+  <g font-size="10" fill="var(--faint)">
+    <text x="42" y="649">PK id</text>
+    <text x="218" y="649">PK id (identity)</text>
+    <text x="394" y="649">PK fact_id</text>
+    <text x="604" y="649">PK day</text>
+  </g>
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.6">
+    <text x="42" y="663">unique share_id</text>
+    <text x="218" y="663">one row per answer</text>
+    <text x="604" y="663">fact_id → stat_facts</text>
+  </g>
+  <text x="394" y="663" font-size="10" fill="var(--danger)">subject_id: no FK</text>
+
+  <path d="M592 641 H544" fill="none" stroke="var(--faint)" stroke-opacity="0.42"
+        stroke-width="1" marker-end="url(#er-fk)" />
+
+  <!-- ============================================================= legend -->
+  <g font-size="10" fill="var(--faint)" fill-opacity="0.75">
+    <circle cx="20" cy="702" r="3.5" fill="var(--faint)" fill-opacity="1" />
+    <text x="32" y="706">foreign key</text>
+    <circle cx="126" cy="702" r="4.5" fill="var(--panel)"
+            stroke="var(--danger)" stroke-width="1.4" />
+    <text x="138" y="706">column carried, no FK constraint</text>
+    <rect x="16" y="717" width="16" height="2" fill="var(--accent)" />
+    <text x="38" y="723">game_id — the one key every event-grain fact table joins on</text>
+  </g>
+</svg>
+<figcaption>The warehouse star — four dimensions on top, the event-grain fact tables and the season rollup hanging off them by foreign key, and the app tables below, which carry no key into the star at all (the bridge and history tables <code>rosters</code>, <code>player_id_map</code> and <code>draft_picks</code> are left out for clarity).</figcaption>
+</figure><h2 id="2-conventions">2. Conventions<a class="anchor" href="#2-conventions" aria-label="Link to this section">#</a></h2>
 <ul>
 <li><strong>Idempotent DDL.</strong> <code>CREATE TABLE IF NOT EXISTS</code> everywhere; later columns
 are added with <code>ADD COLUMN IF NOT EXISTS</code> widening blocks at the bottom of
-<code>schema.sql</code>. Twelve tables — this beats a migration framework.</li>
+<code>schema.sql</code>. Sixteen tables — this beats a migration framework.</li>
 <li><strong>Stable identifiers.</strong> <code>players.player_id</code> = nflverse gsis id;
 <code>games.game_id</code> = canonical nflverse schedule id; <code>teams.team_id</code> =
 <em>current-franchise</em> abbreviation with relocations folded forward (e.g. the
@@ -88,99 +397,165 @@ ranking weeks within a postseason.</li>
 than being dropped.</li>
 <li><strong>Reads run least-privilege</strong> when <code>READONLY_DATABASE_URL</code> is configured.</li>
 </ul>
-<h2>3. Table reference</h2>
-<h3>seasons</h3>
+<h2 id="3-table-reference">3. Table reference<a class="anchor" href="#3-table-reference" aria-label="Link to this section">#</a></h2>
+<h3 id="seasons">seasons<a class="anchor" href="#seasons" aria-label="Link to this section">#</a></h3>
 <p><code>season int PK</code>, <code>start_date</code>, <code>end_date</code>. One row per loaded season
 (1999–present).</p>
-<h3>teams</h3>
+<h3 id="teams">teams<a class="anchor" href="#teams" aria-label="Link to this section">#</a></h3>
 <p><code>team_id varchar PK</code> (current franchise abbr), <code>name</code>, <code>nickname</code>,
 <code>conference</code> (AFC|NFC), <code>division</code>, <code>color</code>, <code>color2</code> (brand hexes).</p>
-<h3>players</h3>
+<h3 id="players">players<a class="anchor" href="#players" aria-label="Link to this section">#</a></h3>
 <p><code>player_id varchar PK</code> (gsis), <code>full_name</code> (indexed), <code>first_name</code>,
 <code>last_name</code>, <code>position</code>, <code>birth_date</code>, <code>height_inches</code>, <code>weight_lbs</code>,
-<code>college</code>, <code>rookie_season</code>, <code>jersey_number</code>.</p>
-<h3>games</h3>
+<code>college</code>, <code>rookie_season</code>, <code>jersey_number</code>, plus <code>espn_id</code> and
+<code>headshot_url</code> synced from <code>player_id_map</code> by the ingest&#39;s player-ids step.
+<strong><code>rookie_season</code> is declared but never written:</strong> no pipeline maps it, so it
+is NULL in every row — the engine&#39;s &quot;before season N&quot; window guards on
+<code>rookie_season IS NOT NULL</code> and therefore returns nothing until a source fills
+it.</p>
+<h3 id="games">games<a class="anchor" href="#games" aria-label="Link to this section">#</a></h3>
 <p><code>game_id varchar PK</code>, <code>season → seasons</code>, <code>week</code>, <code>season_type</code> (REG|POST),
 <code>game_date</code>, <code>home_team → teams</code>, <code>away_team → teams</code>, <code>home_score</code> /
 <code>away_score</code> (NULL until played), <code>stadium</code>, <code>roof</code>, <code>surface</code>, plus split
 metadata: <code>weekday</code>, <code>gametime</code>, <code>temp</code>, <code>wind</code>, <code>home_coach</code>, <code>away_coach</code>.
 Indexes: <code>(season, week)</code>, <code>(season, season_type)</code>, <code>home_team</code>, <code>away_team</code>.</p>
-<h3>player_game_stats — PK (player_id, game_id)</h3>
+<h3 id="playergamestats-pk-playerid-gameid">player_game_stats — PK (player_id, game_id)<a class="anchor" href="#playergamestats-pk-playerid-gameid" aria-label="Link to this section">#</a></h3>
 <p>One row per player per game, <code>team_id</code> for that game. Offense: completions,
 attempts, passing_yards/tds, interceptions, sacks (taken) + sack_yards,
 carries, rushing_yards/tds, targets, receptions, receiving_yards/tds,
 fumbles(+lost), passing/receiving_air_yards, fantasy_points_ppr. Defense:
 tackles (solo+assist), def_sacks, def_interceptions, forced_fumbles,
-passes_defended. Indexes: game_id, team_id.</p>
-<h3>player_season_stats — PK (player_id, season, season_type)</h3>
-<p>The REG/POST season rollup of the same stat set plus <code>games_played</code> and
-<code>team_id</code>. Indexes: season, <code>(season, season_type)</code>, <code>(team_id, season)</code> —
-these carry leaderboards and &quot;players on team X in year Y&quot;.</p>
-<h3>team_game_stats — PK (team_id, game_id)</h3>
-<p>Per-team-game: <code>is_home</code>, points_for/against, total/passing/rushing_yards,
-turnovers, time_of_possession_sec, <code>drives</code>, <code>result</code> (W|L|T). Powers
+passes_defended.</p>
+<p>Widened with 31 further columns taken from the <em>same</em> <code>stats_player</code> files the
+ingest already downloads — nflverse ships 145 columns there and the original
+mapping consumed 24, which left every kicker and punter unrepresented in the
+warehouse. Nothing below costs an extra fetch:</p>
+<ul>
+<li><strong>Kicking:</strong> <code>fg_made</code>, <code>fg_att</code>, <code>fg_long</code>, <code>fg_made_50_plus</code> (nflverse
+buckets makes by distance; this is the 50–59 and 60+ buckets summed),
+<code>gwfg_made</code> / <code>gwfg_att</code> (game-winners), <code>pat_made</code>, <code>pat_att</code>.</li>
+<li><strong>Punting:</strong> <code>punts</code>, <code>punt_yards</code>, <code>punt_long</code>, <code>punt_net_yards</code>,
+<code>punts_inside_20</code>, <code>punts_blocked</code> (nflverse names these <code>pt_*</code>).</li>
+<li><strong>Returns:</strong> <code>punt_returns</code>, <code>punt_return_yards</code>, <code>kick_returns</code>,
+<code>kick_return_yards</code>, <code>special_teams_tds</code>.</li>
+<li><strong>Situational:</strong> <code>passing_first_downs</code>, <code>rushing_first_downs</code>,
+<code>receiving_first_downs</code>, <code>passing_yards_after_catch</code>,
+<code>receiving_yards_after_catch</code>, <code>penalties</code>, <code>penalty_yards</code>.</li>
+<li><strong>Extended defense:</strong> <code>def_tackles_for_loss</code>, <code>def_qb_hits</code>,
+<code>def_interception_yards</code>, <code>def_tds</code>, <code>def_safeties</code>.</li>
+</ul>
+<p>Indexes: game_id, team_id.</p>
+<h3 id="playerseasonstats-pk-playerid-season-seasontype">player_season_stats — PK (player_id, season, season_type)<a class="anchor" href="#playerseasonstats-pk-playerid-season-seasontype" aria-label="Link to this section">#</a></h3>
+<p>The REG/POST season rollup of the game log&#39;s stat set — minus <code>carries</code>,
+<code>targets</code> and the air-yards pair, which this table doesn&#39;t declare — plus
+<code>games_played</code> and <code>team_id</code>. It has all 31 widened columns above: they
+are defined once in <code>normalize.ts</code> and shared by both row schemas, so the two
+grains can&#39;t drift apart. Indexes: season, <code>(season, season_type)</code>,
+<code>(team_id, season)</code> — these carry leaderboards and &quot;players on team X in
+year Y&quot;.</p>
+<h3 id="teamgamestats-pk-teamid-gameid">team_game_stats — PK (team_id, game_id)<a class="anchor" href="#teamgamestats-pk-teamid-gameid" aria-label="Link to this section">#</a></h3>
+<p>Per-team-game: <code>is_home</code>, points_for/against, <code>drives</code>, <code>result</code> (W|L|T), plus
+the box score from the nflverse <code>stats_team</code> release: total/passing/rushing
+yards, <code>turnovers</code> (interceptions thrown + fumbles lost — downs are not
+turnovers), <code>first_downs</code>, <code>penalties</code>, <code>penalty_yards</code>, <code>sacks_taken</code>,
+<code>def_sacks</code>, <code>fg_made</code>, <code>fg_att</code>, <code>passing_epa</code>, <code>rushing_epa</code>. Powers
 standings, team stat ranks, and points/per-drive questions.</p>
-<h3>player_game_advanced — PK (player_id, game_id)</h3>
+<p>Three caveats worth knowing before you query it:</p>
+<ul>
+<li>The first four box-score columns (total_yards, passing_yards, rushing_yards,
+turnovers) were declared when the table was created but <strong>never written</strong> —
+the loader built rows from the schedule alone, so they were NULL in every
+production row. The <code>stats_team</code> fetch now fills them. Every box-score column
+is nullable because that fetch is best-effort: if the release is unavailable
+the row still carries the result, as it always did.</li>
+<li><code>first_downs</code> is <em>scrimmage</em> first downs (passing + rushing), not the
+box-score total: at team grain receiving_first_downs counts the same plays as
+passing_first_downs, and penalty first downs aren&#39;t published.</li>
+<li><strong><code>time_of_possession_sec</code> is still never populated.</strong> nflverse does not
+publish it in <code>stats_team</code>; it is derivable from play-by-play drive timing,
+which is future work. The game service still selects it and the game page
+still lists it, but that page drops any team-stat row that is null on both
+sides — so it goes missing rather than showing a wrong number.</li>
+</ul>
+<h3 id="playergameadvanced-pk-playerid-gameid">player_game_advanced — PK (player_id, game_id)<a class="anchor" href="#playergameadvanced-pk-playerid-gameid" aria-label="Link to this section">#</a></h3>
 <p>Play-by-play distilled to per-player-game aggregates, split by role:
 pass/rush/recv <code>_plays</code>, <code>_epa</code>, <code>_success</code> counts, plus <code>cpoe_sum</code>/<code>cpoe_n</code>.
 Powers EPA, success-rate, and CPOE stats without storing full pbp.</p>
-<h3>scoring_plays — PK play_id (game_id + play number)</h3>
+<h3 id="scoringplays-pk-playid-gameid-play-number">scoring_plays — PK play_id (game_id + play number)<a class="anchor" href="#scoringplays-pk-playid-gameid-play-number" aria-label="Link to this section">#</a></h3>
 <p>Touchdown events only (~1.4k rows/season vs ~50k pbp rows): <code>game_id</code>,
 <code>player_id</code> (the scorer), <code>team_id</code>, <code>qtr</code>, <code>play_type</code>, <code>description</code>,
-<code>yards</code>. Powers first/last-TD questions, longest-TD lookups, and the
-player-page touchdown log. Indexed by player and game.</p>
-<h3>draft_picks — PK (season, pick)</h3>
+<code>yards</code>, <code>td_kind</code>. Powers first/last-TD questions, longest-TD lookups, and the
+player-page touchdown log. Indexed by player and game. <code>td_kind</code> is classified
+at ingest from the pbp&#39;s own discriminator columns
+(pass | rush | int_return | fumble_return | kick_return | punt_return | other)
+rather than at query time: int_return + fumble_return <em>are</em> the defensive
+touchdowns, and &quot;other&quot; catches own-fumble and blocked-kick recoveries that
+description matching would miscount as defensive.</p>
+<h3 id="rosters-pk-playerid-season-teamid">rosters — PK (player_id, season, team_id)<a class="anchor" href="#rosters-pk-playerid-season-teamid" aria-label="Link to this section">#</a></h3>
+<p>Full historical rosters — which team a player was on each season, with
+<code>position</code>, <code>jersey_number</code> and <code>status</code>. A mid-season move produces a row per
+team, which is why <code>team_id</code> is in the key. Indexed <code>(team_id, season)</code>. This
+is the fact behind &quot;who wore #18 for the Colts in 2004&quot;; <code>players</code> keeps only
+the latest snapshot per player, so it can&#39;t answer that.</p>
+<h3 id="playeridmap-pk-playerid">player_id_map — PK player_id<a class="anchor" href="#playeridmap-pk-playerid" aria-label="Link to this section">#</a></h3>
+<p>Cross-source id crosswalk from the nflverse players release: gsis id →
+<code>espn_id</code>, <code>pfr_id</code>, <code>pff_id</code>, <code>otc_id</code>, <code>esb_id</code>, plus <code>headshot_url</code>. Full
+snapshot, <strong>no FK</strong> — it covers players beyond the loaded 1999+ seasons. This
+is the dedup backbone for any future second source: join on ids, never names.</p>
+<h3 id="draftpicks-pk-season-pick">draft_picks — PK (season, pick)<a class="anchor" href="#draftpicks-pk-season-pick" aria-label="Link to this section">#</a></h3>
 <p>nflverse draft history 1980+: round, pick, <code>team_id</code> (normalized to current
 franchise), <code>player_id</code> (gsis when available — joins <code>players</code>),
 <code>player_name</code>, position, college. <strong>No season FK on purpose:</strong> the draft runs
 ahead of/behind the loaded stats seasons.</p>
-<h3>query_audit</h3>
+<h3 id="queryaudit">query_audit<a class="anchor" href="#queryaudit" aria-label="Link to this section">#</a></h3>
 <p>Append-only auditor log — one structured record per answered question:
 <code>asked_at</code>, <code>question</code>, <code>spec jsonb</code>, <code>status</code>, <code>warnings jsonb</code>,
 <code>confidence jsonb</code>, <code>row_count</code>, <code>duration_ms</code>. Stores decisions, never
 free-form reasoning. This is the measurement substrate for answer-rate
 metrics.</p>
-<h3>answer_cache</h3>
+<h3 id="answercache">answer_cache<a class="anchor" href="#answercache" aria-label="Link to this section">#</a></h3>
 <p>Durable shareable answers behind <code>/a/&lt;share_id&gt;</code>: <code>share_id</code> (unique,
 deterministic 32-char SHA-256 prefix of the normalized question),
 <code>question</code>, <code>normalized_question</code> (unique), <code>sql</code>, <code>answer_json</code>, <code>hits</code>,
 <code>created_at</code>. Fronted by the in-process cache; TTL via
 <code>ANSWER_CACHE_TTL_SECONDS</code>.</p>
-<h2>4. Index strategy</h2>
+<h3 id="statfacts-pk-factid">stat_facts — PK fact_id<a class="anchor" href="#statfacts-pk-factid" aria-label="Link to this section">#</a></h3>
+<p>Notable statistical facts mined from the warehouse by the probe registry
+(<code>src/facts</code>). <code>fact_id</code> is a 24-char SHA-1 prefix of
+(probe_id, variant key, subject_id, season, week), so re-mining upserts a fact
+in place instead of duplicating it.</p>
+<p>Identity and claim: <code>probe_id</code>, <code>family</code> (threshold | drought | streak | pace |
+conjunction | anti), <code>subject_kind</code> (player | team), <code>subject_id</code> (<strong>no FK</strong> —
+subjects can age out), <code>subject_name</code>, <code>season</code>, <code>week</code>, <code>season_type</code>,
+<code>headline</code>, <code>metric</code>, <code>value</code>, <code>question</code> (a deep link into <code>/search</code>).</p>
+<p>Provenance: <code>sql</code> and <code>evidence jsonb</code> (the peer rows behind the claim) are
+NOT NULL — a fact that can&#39;t show its work doesn&#39;t ship, and the API serves
+both on the detail route the way an answer card exposes its SQL. <code>headline</code> is
+rendered by the probe&#39;s own template; no free-form text ever lands here.</p>
+<p>Scoring and honesty: <code>population</code> (how many times this has happened in the
+scanned era), <code>prior_season</code> (previous occurrence; NULL = never before),
+<code>rarity</code>, <code>surprise</code>, and <code>coverage_floor</code> — the earliest season the probe
+could actually see, derived from its source datasets at mine time. A claim may
+never reach past its floor; see <code>assertCoverage()</code> in <code>facts/claim.ts</code> and
+<a href="FACTS.html">FACTS.md</a>. Indexes: <code>surprise DESC</code>, <code>(season DESC, week DESC)</code>,
+<code>(subject_kind, subject_id)</code>.</p>
+<h3 id="factoftheday-pk-day">fact_of_the_day — PK day<a class="anchor" href="#factoftheday-pk-day" aria-label="Link to this section">#</a></h3>
+<p><code>day date</code>, <code>fact_id → stat_facts ON DELETE CASCADE</code>, <code>selected_at</code>. One
+published fact per day. Selection is a pure function of the date over the
+ranked backlog, so the cron job and the API compute the same answer and a
+missed run self-heals on the next read — the write is <code>ON CONFLICT (day) DO NOTHING</code>, so a re-run never swaps the fact out from under someone who already
+read it.</p>
+<h2 id="4-index-strategy">4. Index strategy<a class="anchor" href="#4-index-strategy" aria-label="Link to this section">#</a></h2>
 <p>Indexes exist for the query shapes the engine actually emits:</p>
-<table>
-<thead>
-<tr>
-<th>Shape</th>
-<th>Index</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Leaderboards: season + type filter, sort by stat</td>
-<td><code>pss_season_type_idx (season, season_type)</code></td>
-</tr>
-<tr>
-<td>Roster/team-season: &quot;players on X in Y&quot;</td>
-<td><code>pss_team_season_idx (team_id, season)</code></td>
-</tr>
-<tr>
-<td>Week slate / REG-POST scans</td>
-<td><code>games_season_week_idx</code>, <code>games_season_type_idx</code></td>
-</tr>
-<tr>
-<td>Game-log joins</td>
-<td><code>pgs_game_idx</code>, <code>pga_game_idx</code>, <code>tgs_game_idx</code></td>
-</tr>
-<tr>
-<td>Name lookup fallback</td>
-<td><code>players_full_name_idx</code></td>
-</tr>
-<tr>
-<td>TD timeline per player/game</td>
-<td><code>scoring_plays_player_idx</code>, <code>scoring_plays_game_idx</code></td>
-</tr>
-</tbody></table>
-<h2>5. Ingestion → schema mapping</h2>
+<div class="tablewrap"><table><thead><tr><th>Shape</th><th>Index</th></tr></thead><tbody><tr><td>Leaderboards: season + type filter, sort by stat</td><td><code>pss_season_type_idx (season, season_type)</code></td></tr>
+<tr><td>Roster/team-season: &quot;players on X in Y&quot;</td><td><code>pss_team_season_idx (team_id, season)</code></td></tr>
+<tr><td>Week slate / REG-POST scans</td><td><code>games_season_week_idx</code>, <code>games_season_type_idx</code></td></tr>
+<tr><td>Game-log joins</td><td><code>pgs_game_idx</code>, <code>pga_game_idx</code>, <code>tgs_game_idx</code></td></tr>
+<tr><td>Name lookup fallback</td><td><code>players_full_name_idx</code></td></tr>
+<tr><td>TD timeline per player/game</td><td><code>scoring_plays_player_idx</code>, <code>scoring_plays_game_idx</code></td></tr>
+<tr><td>Roster history: &quot;who was on X in Y&quot;</td><td><code>rosters_team_season_idx (team_id, season)</code></td></tr>
+<tr><td>Fact backlog: rank by surprise, subject cooldown</td><td><code>stat_facts_surprise_idx</code>, <code>stat_facts_subject_idx</code></td></tr></tbody></table></div>
+<h2 id="5-ingestion-schema-mapping">5. Ingestion → schema mapping<a class="anchor" href="#5-ingestion-schema-mapping" aria-label="Link to this section">#</a></h2>
 <p><code>pnpm ingest:nfl --season N | --all | --years … [--season-type REG] [--dry-run]</code></p>
 <ul>
 <li>nflverse release CSVs → normalize (stable ids, relocation folding,
@@ -190,24 +565,41 @@ failure isolation.</li>
 <li>Play-by-play is distilled at ingest into <code>scoring_plays</code> (TD events),
 <code>player_game_advanced</code> (EPA/success/CPOE), TD <code>yards</code>, and per-game
 <code>drives</code> — full pbp is never stored.</li>
-<li>ESPN headshot ids come from a separate standalone CLI
-(<code>apps/server/src/cli/fetchEspnIds.ts</code>) into <code>apps/server/data/espn_ids.json</code>.</li>
+<li><code>player_game_stats</code> and <code>player_season_stats</code> both come from <code>stats_player</code>
+(weekly file / REG+POST season files). The widened special-teams,
+situational and extended-defense columns are mapped by one shared function
+because the two release files use identical column names at both grains.</li>
+<li><code>team_game_stats</code> is built from the schedule (result, points) and widened
+with the <code>stats_team</code> weekly release, keyed <code>game_id|team_id</code>. That fetch is
+best-effort per season: a failure warns and leaves the box-score columns
+null rather than failing the step, matching the per-dataset failure
+isolation the rest of the ingest guarantees.</li>
+<li>Every pipeline verifies its source columns before mapping (<code>checkColumns</code>):
+a missing <em>identity</em> column fails the run, a missing <em>stat</em> column warns
+loudly. Without this an upstream rename would coerce to null and summed
+stats would fabricate zeros — corrupt data with exit code 0.</li>
+<li>ESPN ids and headshot URLs come from the <code>player_id_map</code> step (the nflverse
+players release), which also syncs <code>espn_id</code> / <code>headshot_url</code> onto the
+<code>players</code> dimension the API reads.</li>
 </ul>
-<h2>6. Environments</h2>
+<h2 id="6-environments">6. Environments<a class="anchor" href="#6-environments" aria-label="Link to this section">#</a></h2>
 <ul>
-<li><strong>Local:</strong> Docker Postgres (<code>docker-compose.yml</code>; host port 5433 in the
-standard local setup). Schema + data via <code>pnpm db:migrate</code> + <code>pnpm ingest:nfl</code>.</li>
+<li><strong>Local:</strong> Docker Postgres (<code>docker-compose.yml</code> publishes 5432; if that host
+port is taken, remap it in a <code>docker-compose.override.yml</code> and update
+<code>DATABASE_URL</code>). Schema + data via <code>pnpm db:migrate</code> + <code>pnpm ingest:nfl</code>.</li>
 <li><strong>Production:</strong> Supabase Postgres, connected through the <strong>session pooler</strong>
 (port 5432 — never the 6543 transaction pooler; the API is a persistent
 server). RLS enabled with read policies; the API connects with its own
 role, with a read-only role for engine-executed SQL.</li>
 </ul>
-<h2>7. Planned schema work</h2>
+<h2 id="7-planned-schema-work">7. Planned schema work<a class="anchor" href="#7-planned-schema-work" aria-label="Link to this section">#</a></h2>
 <p>See <a href="ENGINEERING_PLAN.html">ENGINEERING_PLAN.md</a>. Highlights: ingestion
 run/source tracking tables for the standalone worker (Track B); wider splits
 metadata as query coverage grows (Track A); no destructive changes — the
 widening-ALTER convention continues.</p>
 
 </main>
+<aside class="toc"><h2>On this page</h2><a class="d2" href="#1-shape">1. Shape</a><a class="d2" href="#2-conventions">2. Conventions</a><a class="d2" href="#3-table-reference">3. Table reference</a><a class="d3" href="#seasons">seasons</a><a class="d3" href="#teams">teams</a><a class="d3" href="#players">players</a><a class="d3" href="#games">games</a><a class="d3" href="#playergamestats-pk-playerid-gameid">playergamestats — PK (playerid, gameid)</a><a class="d3" href="#playerseasonstats-pk-playerid-season-seasontype">playerseasonstats — PK (playerid, season, seasontype)</a><a class="d3" href="#teamgamestats-pk-teamid-gameid">teamgamestats — PK (teamid, gameid)</a><a class="d3" href="#playergameadvanced-pk-playerid-gameid">playergameadvanced — PK (playerid, gameid)</a><a class="d3" href="#scoringplays-pk-playid-gameid-play-number">scoringplays — PK playid (gameid + play number)</a><a class="d3" href="#rosters-pk-playerid-season-teamid">rosters — PK (playerid, season, teamid)</a><a class="d3" href="#playeridmap-pk-playerid">playeridmap — PK playerid</a><a class="d3" href="#draftpicks-pk-season-pick">draftpicks — PK (season, pick)</a><a class="d3" href="#queryaudit">queryaudit</a><a class="d3" href="#answercache">answercache</a><a class="d3" href="#statfacts-pk-factid">statfacts — PK factid</a><a class="d3" href="#factoftheday-pk-day">factoftheday — PK day</a><a class="d2" href="#4-index-strategy">4. Index strategy</a><a class="d2" href="#5-ingestion-schema-mapping">5. Ingestion → schema mapping</a><a class="d2" href="#6-environments">6. Environments</a><a class="d2" href="#7-planned-schema-work">7. Planned schema work</a></aside>
+</div>
 </body>
 </html>

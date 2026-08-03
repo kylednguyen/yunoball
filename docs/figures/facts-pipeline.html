@@ -1,0 +1,146 @@
+<svg viewBox="0 0 780 738" role="img" font-family="var(--font)" xmlns="http://www.w3.org/2000/svg">
+  <title>The two clocks behind the fact of the day: a design-time chain in which the stat-scout agent writes a probe module that is reviewed in a pull request and registered, and a run-time pipeline in which the miner runs each probe's SQL, derives a claim from the occurrence list, passes it through the coverage-floor guard — which throws and drops the fact when a headline names a season the warehouse cannot see — then scores, dedupes, stores and serves it.</title>
+
+  <defs>
+    <marker id="fp-arw-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent)"/>
+    </marker>
+    <marker id="fp-arw-faint" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--faint)"/>
+    </marker>
+    <marker id="fp-arw-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="var(--danger)"/>
+    </marker>
+  </defs>
+
+  <!-- ══ column headers ═════════════════════════════════════════════════ -->
+  <text x="12" y="20" font-size="10" letter-spacing="1.1" fill="var(--faint)" fill-opacity="0.7">DESIGN TIME</text>
+  <text x="12" y="34" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">on demand, in dev — reviewed in a PR</text>
+
+  <text x="300" y="20" font-size="10" letter-spacing="1.1" fill="var(--accent-ink)">RUN TIME</text>
+  <text x="300" y="34" font-size="9.5" fill="var(--faint)" fill-opacity="0.55">weekly mine · daily select · plain Node, no model</text>
+
+  <!-- ══ design time: scout → probe → review → registry ═════════════════ -->
+  <rect x="12" y="76" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="96" font-size="11.5" font-weight="600" fill="var(--text)">stat-scout agent</text>
+  <text x="24" y="111" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">.claude/agents/stat-scout.md</text>
+  <text x="24" y="125" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">researches candidate events</text>
+
+  <line x1="124" y1="134" x2="124" y2="152" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+
+  <rect x="12" y="152" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="172" font-size="11.5" font-weight="600" fill="var(--text)">probe module</text>
+  <text x="24" y="187" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">SQL + headline template + test</text>
+  <text x="24" y="201" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">facts/probes/ — five modules</text>
+
+  <line x1="124" y1="210" x2="124" y2="228" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+
+  <rect x="12" y="228" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="248" font-size="11.5" font-weight="600" fill="var(--text)">review — a pull request</text>
+  <text x="24" y="263" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">dry-run, read the headlines</text>
+  <text x="24" y="277" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">a golden test pins the output</text>
+
+  <line x1="124" y1="286" x2="124" y2="304" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+
+  <rect x="12" y="304" width="224" height="58" rx="9" fill="var(--panel)" stroke="var(--border-strong)"/>
+  <text x="24" y="324" font-size="11.5" font-weight="600" fill="var(--text)">registry.ts</text>
+  <text x="24" y="339" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">PROBES[] — one added line</text>
+  <text x="24" y="353" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">nothing scans the directory</text>
+
+  <!-- ══ the handoff: the only line that crosses between the clocks ═════ -->
+  <path d="M236,333 H266 V60 H455 V76" fill="none" stroke="var(--accent)" stroke-width="1.4"
+        stroke-dasharray="5 4" marker-end="url(#fp-arw-accent)"/>
+  <text x="274" y="54" font-size="9.5" fill="var(--accent-ink)">PROBES — the miner's whole input</text>
+
+  <!-- ══ run time: probe SQL ═══════════════════════════════════════════ -->
+  <rect x="300" y="76" width="310" height="46" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="96" font-size="12" font-weight="600" fill="var(--text)">probe SQL</text>
+  <text x="598" y="96" text-anchor="end" font-size="9.5" fill="var(--faint)">per variant, from the ladder</text>
+  <text x="312" y="112" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">bound params · stats from the engine's STATS allowlist</text>
+
+  <line x1="455" y1="122" x2="455" y2="140" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ occurrence list, with the population-cap skip ═════════════════ -->
+  <rect x="300" y="140" width="310" height="46" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="160" font-size="12" font-weight="600" fill="var(--text)">occurrence list</text>
+  <text x="598" y="160" text-anchor="end" font-size="9.5" fill="var(--faint)">newest first</text>
+  <text x="312" y="176" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">every qualifying row, capped at maxPopulation + 1</text>
+
+  <line x1="610" y1="163" x2="628" y2="163" stroke="var(--faint)" stroke-width="1.2" marker-end="url(#fp-arw-faint)"/>
+  <text x="632" y="159" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">too many rows, or none</text>
+  <text x="632" y="172" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">→ skipped, no fact</text>
+
+  <line x1="455" y1="186" x2="455" y2="204" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ claim derivation ══════════════════════════════════════════════ -->
+  <rect x="300" y="204" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="224" font-size="12" font-weight="600" fill="var(--text)">claim derivation</text>
+  <text x="598" y="224" text-anchor="end" font-size="9.5" fill="var(--faint)">claimFrom()</text>
+  <text x="312" y="239" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">newest row = subject · row count = population</text>
+  <text x="312" y="253" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">next distinct = prior season · same week = co-holders</text>
+
+  <line x1="455" y1="260" x2="455" y2="274" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ THE COVERAGE-FLOOR GUARD ══════════════════════════════════════ -->
+  <rect x="282" y="274" width="332" height="94" rx="12" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1"/>
+  <rect x="286" y="278" width="324" height="86" rx="9" fill="var(--elevated)" stroke="var(--accent)" stroke-width="2"/>
+  <text x="298" y="298" font-size="12.5" font-weight="700" fill="var(--accent-ink)">coverage-floor guard</text>
+  <text x="598" y="298" text-anchor="end" font-size="9.5" fill="var(--accent-ink)">derived at mine time</text>
+  <text x="298" y="315" font-size="10" fill="var(--text)">floorsFor(): MIN(season) per source table</text>
+  <text x="298" y="329" font-size="10" fill="var(--text)">a probe's floor = the LATEST of its sources'</text>
+  <text x="298" y="343" font-size="10" fill="var(--faint)" fill-opacity="0.8">sinceClause() cannot outrun the floor;</text>
+  <text x="298" y="357" font-size="10" fill="var(--faint)" fill-opacity="0.8">assertNoUnsupportedYear() rescans the headline</text>
+
+  <!-- ══ the rejection path ════════════════════════════════════════════ -->
+  <line x1="614" y1="321" x2="630" y2="321" stroke="var(--danger)" stroke-width="1.6" marker-end="url(#fp-arw-danger)"/>
+  <text x="634" y="284" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">a year before the floor</text>
+  <rect x="634" y="291" width="138" height="60" rx="9" fill="var(--panel)" stroke="var(--danger)" stroke-width="1.2"/>
+  <text x="703" y="312" text-anchor="middle" font-size="11" font-weight="700" fill="var(--danger)">throws</text>
+  <text x="703" y="327" text-anchor="middle" font-size="9.5" fill="var(--faint)" fill-opacity="0.8">the fact is dropped;</text>
+  <text x="703" y="340" text-anchor="middle" font-size="9.5" fill="var(--faint)" fill-opacity="0.8">the run continues</text>
+
+  <line x1="455" y1="368" x2="455" y2="382" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ scoring ═══════════════════════════════════════════════════════ -->
+  <rect x="300" y="382" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="402" font-size="12" font-weight="600" fill="var(--text)">scoring</text>
+  <text x="598" y="402" text-anchor="end" font-size="9.5" fill="var(--faint)">checked-in constants</text>
+  <text x="312" y="417" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">2.0 rarity + 1.2 drought + 0.8 recency + 0.5 roundness</text>
+  <text x="312" y="431" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">ranks a backlog; it is not a model</text>
+
+  <line x1="455" y1="438" x2="455" y2="456" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ dedupe ════════════════════════════════════════════════════════ -->
+  <rect x="300" y="456" width="310" height="46" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="476" font-size="12" font-weight="600" fill="var(--text)">dedupe</text>
+  <text x="598" y="476" text-anchor="end" font-size="9.5" fill="var(--faint)">one story per subject</text>
+  <text x="312" y="492" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">keyed on subject + metric family + season + week</text>
+
+  <line x1="455" y1="502" x2="455" y2="520" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ stat_facts ════════════════════════════════════════════════════ -->
+  <rect x="300" y="520" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="540" font-size="12" font-weight="600" fill="var(--text)">stat_facts</text>
+  <text x="598" y="540" text-anchor="end" font-size="9.5" fill="var(--faint)">upsert on fact_id</text>
+  <text x="312" y="555" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">the claim and its proof — the exact SQL + peer rows</text>
+  <text x="312" y="569" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">re-mining a week updates rows in place</text>
+
+  <line x1="455" y1="576" x2="455" y2="594" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ daily selection ═══════════════════════════════════════════════ -->
+  <rect x="300" y="594" width="310" height="56" rx="9" fill="var(--elevated)" stroke="var(--border-strong)"/>
+  <text x="312" y="614" font-size="12" font-weight="600" fill="var(--text)">daily selection</text>
+  <text x="598" y="614" text-anchor="end" font-size="9.5" fill="var(--faint)">a pure function of the date</text>
+  <text x="312" y="629" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">sha1(day) % pool over the top 25 by surprise</text>
+  <text x="312" y="643" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">10-day subject cooldown → fact_of_the_day</text>
+
+  <line x1="455" y1="650" x2="455" y2="668" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#fp-arw-accent)"/>
+
+  <!-- ══ API ═══════════════════════════════════════════════════════════ -->
+  <rect x="300" y="668" width="310" height="56" rx="9" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="312" y="688" font-size="12" font-weight="600" fill="var(--accent-ink)">API</text>
+  <text x="598" y="688" text-anchor="end" font-size="9.5" fill="var(--faint)">recomputes on a miss</text>
+  <text x="312" y="703" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">GET /api/facts/today — computes and backfills</text>
+  <text x="312" y="717" font-size="9.5" fill="var(--faint)" fill-opacity="0.75">GET /api/facts · GET /api/facts/:factId</text>
+</svg>
+<figcaption>Two clocks, one dashed line between them: everything a model touches happens on the left, at design time, and reaches run time only as a reviewed probe in the registry. The lime path on the right is <code>pnpm facts:mine</code> — and the one step drawn wider than the rest is the coverage-floor guard, which throws rather than warns, so a headline claiming a season the warehouse never held is dropped instead of published.</figcaption>
