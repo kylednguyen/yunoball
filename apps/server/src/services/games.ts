@@ -333,7 +333,7 @@ export async function getGamePlays(gameId: string): Promise<GamePlaysResponse> {
   const rows = await q<{
     play_id: string; play_no: number; drive: number | null; qtr: number | null;
     down: number | null; ydstogo: number | null; clock: string | null;
-    posteam: string | null; defteam: string | null; yardline_100: number | null;
+    seconds_remaining: number | null; posteam: string | null; defteam: string | null; yardline_100: number | null;
     play_type: string | null; yards_gained: number | null; air_yards: number | null;
     yards_after_catch: number | null; pass_length: GamePlay["pass_length"];
     pass_location: GamePlay["pass_location"]; run_location: GamePlay["run_location"];
@@ -346,7 +346,7 @@ export async function getGamePlays(gameId: string): Promise<GamePlaysResponse> {
     home_score: number | null; away_score: number | null; epa: number | null;
     description: string | null;
   }>(
-    `SELECT play_id, play_no, drive, qtr, down, ydstogo, clock, posteam, defteam,
+    `SELECT play_id, play_no, drive, qtr, down, ydstogo, clock, seconds_remaining, posteam, defteam,
             yardline_100, play_type, yards_gained, air_yards, yards_after_catch,
             pass_length, pass_location, run_location, run_gap, complete_pass,
             interception, sack, scramble, touchdown, fumble_lost, first_down, penalty,
@@ -372,6 +372,7 @@ export async function getGamePlays(gameId: string): Promise<GamePlaysResponse> {
       down: r.down,
       ydstogo: r.ydstogo,
       clock: r.clock,
+      seconds_remaining: r.seconds_remaining,
       posteam: r.posteam,
       defteam: r.defteam,
       yardline_100: r.yardline_100,

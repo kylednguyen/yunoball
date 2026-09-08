@@ -76,7 +76,7 @@ team pages, player profiles, single-team answers, and winner rows.
 | Entity hero | `.yb-entity-hero` family (ui.tsx `EntityHero`) | player/team page headers |
 | Info grid | `dl.yb-info-grid` | bio/definition pairs |
 | Stat summary | `.yb-stat-summary` | headline metric group |
-| Field view | `.yb-field-view` > `.yb-field-stage` (`svg.yb-field`, `.yb-field-scoreline`, `.yb-field-caption`, `.yb-field-stepper`) + `.yb-field-drives` > `.yb-field-drive` > `button.yb-field-row(.is-on)` | game page Plays tab (`FieldView.tsx`); marks in `--chart` scoped by `teamTheme(posteam)`, pass arc `.yb-field-arc(.is-incomplete/.is-picked)`, run `.yb-field-run(.is-loss)`, kick `.yb-field-kick`, line to gain `.yb-field-ltg` in accent; 700ms draw-in, off under reduced motion; arrow keys step |
+| Field view | `.yb-field-view` > `.yb-field-stage` (`svg.yb-field`, `.yb-field-scoreline`, `.yb-field-caption`, `.yb-field-stepper`) + `.yb-field-drivetabs` (tablist, one `button.yb-field-drivetab` per drive with its result) + `.yb-field-drive` (tabpanel: heading with result badge and plays · net yards · clock, then `button.yb-field-row(.is-on)` per play) | game page Plays tab (`FieldView.tsx`); marks in `--chart` scoped by `teamTheme(posteam)`, pass arc `.yb-field-arc(.is-incomplete/.is-picked)`, run `.yb-field-run(.is-loss)`, kick `.yb-field-kick`, line to gain `.yb-field-ltg` in accent; 700ms draw-in, off under reduced motion; arrow keys step |
 
 ### Answer experience (`AnswerCard.tsx`)
 | Element | Classes | Notes |

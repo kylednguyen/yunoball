@@ -118,6 +118,99 @@ function yards(p: GamePlay): string | null {
 }
 
 /* ----------------------------------------------------------------------------
+ * Drives. A drive is the run of consecutive plays sharing nflverse's drive
+ * number (the kickoff is filed under the receiving drive). Rows with no
+ * drive number — timeouts, the two-minute warning, end-of-quarter markers —
+ * belong to the drive in progress, so they fold into the previous group
+ * rather than splitting it; a group's team is the first possession it
+ * records. Its summary is computed from its own plays: net yards from the
+ * field position of the first scrimmage snap to where the last one ended,
+ * play count over scrimmage plays only, and the clock span from its first
+ * snap to the next drive's first snap (when possession actually changed).
+ * -------------------------------------------------------------------------- */
+
+const SCRIMMAGE = new Set(["pass", "run", "qb_kneel", "qb_spike"]);
+const NOT_DECIDING = new Set(["no_play", "extra_point", "kickoff"]);
+/** A two-point try is filed as a pass or run with touchdown=false and no
+ * down — it follows the score, it isn't part of the drive that produced it. */
+const isConversion = (p: GamePlay): boolean => /^TWO-POINT CONVERSION/.test(p.description ?? "");
+const isScrimmage = (p: GamePlay): boolean =>
+  !!p.play_type && SCRIMMAGE.has(p.play_type) && p.yardline_100 != null && !isConversion(p);
+
+interface Drive {
+  drive: number | null;
+  posteam: string | null;
+  plays: { play: GamePlay; i: number }[];
+  result: { label: string; tone: "accent" | "success" | "danger" | "neutral" };
+  count: number;
+  netYards: number | null;
+  seconds: number | null;
+}
+
+/** How a drive ended, from its last real play — and, for the drives that
+ * simply ran out of clock, from whether the next drive starts after the
+ * break (the half) or there is no next drive at all (the game). */
+function driveResult(plays: GamePlay[], next: GamePlay | undefined): Drive["result"] {
+  // The play that decided the drive: not the extra point after a touchdown,
+  // not a timeout, not the kickoff filed under the next possession.
+  const last = [...plays].reverse().find((p) => !NOT_DECIDING.has(p.play_type ?? "") && !isConversion(p))
+    ?? plays[plays.length - 1];
+  if (!last) return { label: "—", tone: "neutral" };
+  if (last.touchdown) return { label: "Touchdown", tone: "success" };
+  if (/\bSAFETY\b/.test(last.description ?? "")) return { label: "Safety", tone: "danger" };
+  if (last.play_type === "field_goal") {
+    return last.field_goal_result === "made"
+      ? { label: "Field goal", tone: "success" }
+      : { label: "Missed FG", tone: "danger" };
+  }
+  if (last.interception) return { label: "Interception", tone: "danger" };
+  if (last.fumble_lost) return { label: "Fumble", tone: "danger" };
+  if (last.play_type === "punt") return { label: "Punt", tone: "neutral" };
+  if (last.down === 4 && !last.first_down) return { label: "Downs", tone: "danger" };
+  if (!next) return { label: "End of game", tone: "neutral" };
+  if (last.qtr != null && next.qtr != null && next.qtr > last.qtr && last.qtr % 2 === 0) {
+    return { label: "End of half", tone: "neutral" };
+  }
+  return { label: "—", tone: "neutral" };
+}
+
+function buildDrives(plays: GamePlay[]): Drive[] {
+  const groups: { drive: number | null; posteam: string | null; plays: { play: GamePlay; i: number }[] }[] = [];
+  plays.forEach((p, i) => {
+    const last = groups[groups.length - 1];
+    const sameDrive = last && (p.drive == null || last.drive === p.drive);
+    if (sameDrive) {
+      last.plays.push({ play: p, i });
+      if (last.posteam == null && p.posteam) last.posteam = p.posteam;
+    } else {
+      groups.push({ drive: p.drive, posteam: p.posteam, plays: [{ play: p, i }] });
+    }
+  });
+  return groups.map((g, gi) => {
+    const own = g.plays.map((x) => x.play);
+    const scrimmage = own.filter(isScrimmage);
+    const first = scrimmage[0];
+    const last = scrimmage[scrimmage.length - 1];
+    const netYards = first && last && last.yardline_100 != null && first.yardline_100 != null
+      ? first.yardline_100 - (last.yardline_100 - (last.yards_gained ?? 0))
+      : null;
+    const start = own[0]?.seconds_remaining ?? null;
+    const next = groups[gi + 1]?.plays[0]?.play.seconds_remaining ?? own[own.length - 1]?.seconds_remaining ?? null;
+    return {
+      drive: g.drive,
+      posteam: g.posteam,
+      plays: g.plays,
+      result: driveResult(own, groups[gi + 1]?.plays[0]?.play),
+      count: scrimmage.length,
+      netYards,
+      seconds: start != null && next != null && start >= next ? start - next : null,
+    };
+  });
+}
+
+const clock = (sec: number): string => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+
+/* ----------------------------------------------------------------------------
  * The field
  * -------------------------------------------------------------------------- */
 
@@ -222,32 +315,25 @@ function PlayMark({ play, shape }: { play: GamePlay; shape: Shape }) {
 export function FieldView({ data }: { data: GamePlaysResponse }) {
   const plays = data.plays;
   const [index, setIndex] = useState(() => Math.max(0, plays.findIndex((p) => p.play_type !== "kickoff" && p.yardline_100 != null)));
-  const listRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const play = plays[index];
 
-  // Drives, in order, for the list.
-  const drives = useMemo(() => {
-    const groups: { drive: number | null; posteam: string | null; plays: { play: GamePlay; i: number }[] }[] = [];
-    plays.forEach((p, i) => {
-      const last = groups[groups.length - 1];
-      if (last && last.drive === p.drive && last.posteam === p.posteam) last.plays.push({ play: p, i });
-      else groups.push({ drive: p.drive, posteam: p.posteam, plays: [{ play: p, i }] });
-    });
-    return groups;
-  }, [plays]);
+  const drives = useMemo(() => buildDrives(plays), [plays]);
+  const driveIdx = Math.max(0, drives.findIndex((d) => d.plays.some((x) => x.i === index)));
+  const drive = drives[driveIdx];
 
-  // Keep the selected row in view as the stepper moves.
+  // Keep the active drive's tab in view as the stepper crosses drives.
   useEffect(() => {
-    const list = listRef.current;
-    const row = list?.querySelector<HTMLElement>(`[data-play-index="${index}"]`);
-    if (!list || !row) return;
-    const top = row.offsetTop - list.offsetTop;
-    const bottom = top + row.offsetHeight;
-    if (top < list.scrollTop + 32) list.scrollTop = top - 32;
-    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
-  }, [index]);
+    const strip = tabsRef.current;
+    const tab = strip?.querySelector<HTMLElement>(`[data-drive-index="${driveIdx}"]`);
+    if (!strip || !tab) return;
+    const left = tab.offsetLeft - strip.offsetLeft;
+    const right = left + tab.offsetWidth;
+    if (left < strip.scrollLeft) strip.scrollTo({ left: left - 12 });
+    else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: right - strip.clientWidth + 12 });
+  }, [driveIdx]);
 
-  if (!play) return null;
+  if (!play || !drive) return null;
   const shape = shapeOf(play);
   const result = outcome(play);
   const gained = yards(play);
@@ -326,35 +412,64 @@ export function FieldView({ data }: { data: GamePlaysResponse }) {
         </div>
       </div>
 
-      <div className="yb-field-drives" ref={listRef} aria-label="Drives">
+      {/* One tab per drive: team, number and how it ended. The strip scrolls;
+          the active tab follows the stepper. */}
+      <div className="yb-field-drivetabs" ref={tabsRef} role="tablist" aria-label="Drives">
         {drives.map((d, di) => (
-          <section key={`${d.drive ?? "x"}-${di}`} className="yb-field-drive" style={teamTheme(d.posteam)}>
-            <h3>
-              {d.posteam && <TeamLogo team={d.posteam} size={16} />}
-              {d.drive != null ? `Drive ${d.drive}` : "Between drives"}
-              {d.posteam ? ` · ${d.posteam}` : ""}
-            </h3>
-            {d.plays.map(({ play: p, i }) => {
-              const o = outcome(p);
-              return (
-                <button
-                  key={p.play_id}
-                  type="button"
-                  className={`yb-field-row${i === index ? " is-on" : ""}${o.tone !== "neutral" ? ` is-${o.tone}` : ""}`}
-                  aria-pressed={i === index}
-                  data-play-index={i}
-                  onClick={() => setIndex(i)}
-                >
-                  <span className="dd">{downDistance(p) ?? (p.play_type === "kickoff" ? "Kickoff" : "")}</span>
-                  <span className="sp">{p.yardline_100 != null ? spot(p) : ""}</span>
-                  <span className="tx">{p.description ?? o.label}</span>
-                  <span className="yd">{yards(p) ?? ""}</span>
-                </button>
-              );
-            })}
-          </section>
+          <button
+            key={`${d.drive ?? "x"}-${di}`}
+            type="button"
+            role="tab"
+            aria-selected={di === driveIdx}
+            aria-controls="yb-field-drive-plays"
+            data-drive-index={di}
+            className={`yb-field-drivetab is-${d.result.tone}`}
+            style={teamTheme(d.posteam)}
+            onClick={() => setIndex((d.plays.find((x) => isScrimmage(x.play)) ?? d.plays[0]!).i)}
+          >
+            {d.posteam && <TeamLogo team={d.posteam} size={14} />}
+            <span className="n">{d.drive != null ? d.drive : "·"}</span>
+            <span className="r">{d.result.label}</span>
+          </button>
         ))}
       </div>
+
+      <section
+        id="yb-field-drive-plays"
+        role="tabpanel"
+        className="yb-field-drive"
+        style={teamTheme(drive.posteam)}
+        aria-label={`Drive ${drive.drive ?? ""} plays`}
+      >
+        <h3>
+          {drive.posteam && <TeamLogo team={drive.posteam} size={16} />}
+          <span>{drive.drive != null ? `Drive ${drive.drive}` : "Between drives"}{drive.posteam ? ` · ${drive.posteam}` : ""}</span>
+          <span className={`yb-badge ${drive.result.tone === "neutral" ? "" : drive.result.tone}`}>{drive.result.label}</span>
+          <span className="sum">
+            {drive.count} play{drive.count === 1 ? "" : "s"}
+            {drive.netYards != null ? ` · ${drive.netYards} yd${Math.abs(drive.netYards) === 1 ? "" : "s"}` : ""}
+            {drive.seconds != null ? ` · ${clock(drive.seconds)}` : ""}
+          </span>
+        </h3>
+        {drive.plays.map(({ play: p, i }) => {
+          const o = outcome(p);
+          return (
+            <button
+              key={p.play_id}
+              type="button"
+              className={`yb-field-row${i === index ? " is-on" : ""}${o.tone !== "neutral" ? ` is-${o.tone}` : ""}`}
+              aria-pressed={i === index}
+              data-play-index={i}
+              onClick={() => setIndex(i)}
+            >
+              <span className="dd">{downDistance(p) ?? (p.play_type === "kickoff" ? "Kickoff" : "")}</span>
+              <span className="sp">{p.yardline_100 != null ? spot(p) : ""}</span>
+              <span className="tx">{p.description ?? o.label}</span>
+              <span className="yd">{yards(p) ?? ""}</span>
+            </button>
+          );
+        })}
+      </section>
 
       <p className="yb-field-note">
         Field position, air yards and yards after the catch as recorded in nflverse play-by-play;

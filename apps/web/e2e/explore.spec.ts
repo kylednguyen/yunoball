@@ -117,22 +117,33 @@ test.describe("explore", () => {
     await expect(page.getByRole("heading", { name: "Scoring Log" })).toBeVisible();
   });
 
-  test("the plays tab draws each play on the field and steps through the game", async ({ page }) => {
+  test("the plays tab condenses the game into drives and draws each play", async ({ page }) => {
     // Super Bowl LIX — PHI 40, KC 22. Every play comes from nflverse pbp.
     await page.goto("/games/2024_22_KC_PHI/plays");
     await expect(page.getByRole("link", { name: "Plays" })).toHaveAttribute("aria-current", "true");
     const field = page.locator("svg.yb-field");
     await expect(field).toBeVisible();
 
-    // The drive list is the numbers beside the picture: every play, grouped.
-    const drives = page.locator(".yb-field-drive");
-    expect(await drives.count()).toBeGreaterThan(10);
-    const rows = page.locator(".yb-field-row");
-    expect(await rows.count()).toBeGreaterThan(120);
+    // One tab per drive, each carrying how it ended; only the active drive's
+    // plays are listed, with the drive's own numbers in its heading.
+    const tabs = page.getByRole("tablist", { name: "Drives" }).getByRole("tab");
+    expect(await tabs.count()).toBeGreaterThan(10);
+    await expect(tabs.filter({ hasText: "Touchdown" }).first()).toBeVisible();
+    const panel = page.getByRole("tabpanel");
+    await expect(panel.locator("h3")).toContainText(/\d+ plays? · -?\d+ yds?/);
+    const rows = panel.locator(".yb-field-row");
+    expect(await rows.count()).toBeLessThan(30);
 
-    // Pick a completed pass by its recorded text and check the drawing:
-    // an arc to the catch point, a catch mark, and the scoreline is real.
+    // Open touchdown drives until one holds a completed pass, then pick it by
+    // its recorded text: an arc to the catch point, a catch mark, a real
+    // scoreline. (A drive can score on the ground alone.)
     const completion = rows.filter({ hasText: /pass .* to .* for \d+ yards/ }).first();
+    const tdTabs = tabs.filter({ hasText: "Touchdown" });
+    for (let t = 0; t < (await tdTabs.count()); t++) {
+      await tdTabs.nth(t).click();
+      await expect(panel.locator("h3")).toContainText("Touchdown");
+      if ((await completion.count()) > 0) break;
+    }
     await completion.click();
     await expect(completion).toHaveAttribute("aria-pressed", "true");
     await expect(field.locator(".yb-field-arc:not(.is-incomplete)")).toHaveCount(1);
@@ -141,18 +152,20 @@ test.describe("explore", () => {
     await expect(page.locator(".yb-field-scoreline")).toContainText("KC");
     await expect(page.locator(".yb-field-scoreline")).toContainText("PHI");
 
-    // A run draws as an arrow, and the caption carries the yardage.
-    // nflverse writes runs as "S.Barkley left tackle to KC 44 for 4 yards" or
-    // "… up the middle to …".
+    // A run draws as an arrow, and the caption carries the yardage. nflverse
+    // writes runs as "S.Barkley left tackle to KC 44 for 4 yards".
     const run = rows.filter({ hasText: /((left|right) (end|tackle|guard)|up the middle) to [A-Z]+ \d+ for -?\d+ yard/ }).first();
     await run.click();
     await expect(field.locator(".yb-field-run")).toHaveCount(1);
     await expect(page.locator(".yb-field-yards")).toContainText(/yds?/);
 
-    // The stepper walks the same list; the final play carries the final score.
+    // The stepper walks every play and the active tab follows it across a
+    // drive boundary; the last drive's last play carries the final score.
     await page.getByRole("button", { name: "Next play" }).click();
     await expect(page.locator(".yb-field-count")).toContainText(/Play \d+ of \d+/);
-    await rows.last().click();
+    await tabs.last().click();
+    await panel.locator(".yb-field-row").last().click();
+    await expect(tabs.last()).toHaveAttribute("aria-selected", "true");
     await expect(page.locator(".yb-field-scoreline")).toContainText("40");
     await expect(page.locator(".yb-field-scoreline")).toContainText("22");
   });

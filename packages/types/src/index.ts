@@ -450,8 +450,10 @@ export interface GamePlay {
   qtr: number | null;
   down: number | null;
   ydstogo: number | null;
-  /** Game clock at the snap, "MM:SS". */
+  /** Game clock at the snap, "MM:SS", and the same as seconds left in the
+   * game — drive clock spans are differences of the latter. */
   clock: string | null;
+  seconds_remaining: number | null;
   posteam: string | null;
   defteam: string | null;
   yardline_100: number | null;

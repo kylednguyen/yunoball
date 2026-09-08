@@ -4774,28 +4774,87 @@ a.yb-game-team:hover {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.yb-field-drives {
-  max-height: 420px;
-  overflow-y: auto;
+/* Drive strip: one pill per drive, side-scrolling like the player tabs. The
+   number and the result read at caption size; the team logo carries whose
+   drive it was. The active pill fills with that team's accent. */
+.yb-field-drivetabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+.yb-field-drivetabs::-webkit-scrollbar {
+  display: none;
+}
+.yb-field-drivetab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--bg-soft);
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-caption);
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.yb-field-drivetab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.yb-field-drivetab .n {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.yb-field-drivetab.is-success .r {
+  color: var(--success);
+}
+.yb-field-drivetab.is-danger .r {
+  color: var(--danger-text);
+}
+.yb-field-drivetab[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+.yb-field-drivetab[aria-selected="true"] .r {
+  color: var(--accent-contrast);
+}
+.yb-field-drive {
   border-radius: var(--r-lg);
   background: var(--bg-soft);
   padding: 4px 0;
 }
 .yb-field-drive h3 {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
-  padding: 8px 12px 6px;
+  padding: 10px 12px 8px;
   font-size: var(--fs-caption);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent-ink);
-  background: var(--bg-soft);
+}
+.yb-field-drive h3 .yb-badge {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.yb-field-drive h3 .sum {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
 }
 .yb-field-row {
   display: grid;
