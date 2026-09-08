@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       season:
-        description: "Season to ingest (default: current)"
+        description: "Season to ingest (default: the season in progress)"
         required: false
 
 concurrency:
@@ -25,6 +25,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm ingest:nfl ${{ inputs.season && format('--season {0}', inputs.season) || '' }}
+      # Schema first, so a column added in the same release lands before the
+      # rows that fill it. Then the season in progress — nflverse republishes
+      # its files all season (new weeks, stat corrections) and the runner has
+      # no download cache, so every run reads the current release. A season
+      # passed to workflow_dispatch reloads that one instead.
+      - run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.INGEST_DATABASE_URL }}
+      - run: pnpm ingest:nfl ${{ inputs.season && format('--season {0}', inputs.season) || '--current' }}
         env:
           DATABASE_URL: ${{ secrets.INGEST_DATABASE_URL }}

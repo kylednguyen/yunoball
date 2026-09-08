@@ -4597,11 +4597,13 @@ a.yb-game-team:hover {
 }
 
 /* ---- Field view (game page › Plays) -------------------------------------
-   The field is drawn in neutral surfaces — turf is a raised surface, lines
-   are the strong border, end zones the soft surface — so it sits inside the
-   quiet theme. Only the marks carry colour: the possession team's --chart
-   (scoped by teamTheme on the stage), semantic success/danger for outcomes,
-   and the accent for the line to gain. */
+   The turf is a raised neutral surface and the lines the strong border, so
+   the field sits inside the quiet theme. Team colour arrives the way the
+   brief allows it: as solid blocks with contrast-checked ink — the two end
+   zones in their teams' primaries (the one being attacked belongs to the
+   defense, so they swap with possession), the scoreline chips, the active
+   drive tab — and as the possession team's --chart on the marks. Semantic
+   success/danger mark outcomes; the accent marks the line to gain. */
 .yb-field-view {
   display: flex;
   flex-direction: column;
@@ -4624,15 +4626,41 @@ a.yb-game-team:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  justify-self: start;
+  padding: 4px 10px 4px 8px;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 650;
+  /* Possession: the chip with the ball reads at full strength, the other
+     steps back — same surface, less presence. */
+  opacity: 0.55;
+  transition: opacity var(--dur) var(--ease);
+}
+.yb-field-scoreline .yb-field-team.has-ball {
+  opacity: 1;
 }
 .yb-field-scoreline .yb-field-team:last-child {
-  justify-content: flex-end;
+  justify-self: end;
+  padding: 4px 8px 4px 10px;
 }
 .yb-field-scoreline strong {
   font-size: var(--fs-body-lg);
-  color: var(--text);
+  color: inherit;
   font-variant-numeric: tabular-nums;
+}
+.yb-field-endzone rect {
+  fill: var(--accent);
+  opacity: 0.85;
+}
+.yb-field-endzone text {
+  fill: var(--accent-contrast);
+  font-size: 40px; /* SVG user units */
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  opacity: 0.9;
 }
 .yb-field-situation {
   text-align: center;

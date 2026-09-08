@@ -3,6 +3,7 @@
  *    pnpm ingest:nfl --season 2024               # one season (--years works too)
  *    pnpm ingest:nfl --years 2022 2023 2024      # specific seasons
  *    pnpm ingest:nfl --all                       # every season since 1999
+ *    pnpm ingest:nfl --current                   # the season in progress (the weekly job)
  *    pnpm ingest:nfl --season 2024 --dry-run     # validate + count, write nothing
  *    pnpm ingest:nfl --season 2024 --season-type REG
  *    pnpm ingest:nfl --season 2024 --no-cache    # re-fetch (current-season data changes)
@@ -48,6 +49,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       years: { type: "string", multiple: true },
       season: { type: "string", multiple: true },
       all: { type: "boolean", default: false },
+      current: { type: "boolean", default: false },
       only: { type: "string", multiple: true },
       skip: { type: "string", multiple: true, default: [] },
       "season-type": { type: "string" },
@@ -63,8 +65,9 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     ...(values.season ?? []),
     ...positionals,
   ].map(Number);
+  if (values.current) yearArgs.push(allSeasons().at(-1)!);
   if (!values.all && yearArgs.length === 0) {
-    logger.error("specify --season <year>, --years <y...>, or --all");
+    logger.error("specify --season <year>, --years <y...>, --current, or --all");
     return 2;
   }
   if (yearArgs.some((y) => !Number.isInteger(y))) {

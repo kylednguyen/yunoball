@@ -75,8 +75,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
       # The suite runs against the production build, not `next dev` — see the
-      # webServer note in playwright.config.ts.
+      # webServer note in playwright.config.ts. The origin is baked in at build
+      # time and the build refuses to run without one.
       - run: pnpm build:web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
       # Playwright boots both servers itself (playwright.config.ts webServer):
       # the Express API on :4000 and `next start` on :3000.
       - run: pnpm e2e

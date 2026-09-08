@@ -214,7 +214,26 @@ const clock = (sec: number): string => `${Math.floor(sec / 60)}:${String(sec % 6
  * The field
  * -------------------------------------------------------------------------- */
 
-function FieldLines() {
+function EndZone({ team, side }: { team: string | null; side: "left" | "right" }) {
+  const x = side === "left" ? 0 : GOAL_R;
+  const cx = x + GOAL_L / 2;
+  return (
+    <g className="yb-field-endzone" style={teamTheme(team)}>
+      <rect x={x} y={0} width={GOAL_L} height={H} />
+      {team && (
+        <text
+          x={cx}
+          y={MID_Y}
+          transform={`rotate(${side === "left" ? -90 : 90} ${cx} ${MID_Y})`}
+        >
+          {team}
+        </text>
+      )}
+    </g>
+  );
+}
+
+function FieldLines({ posteam, defteam }: { posteam: string | null; defteam: string | null }) {
   const lines = [];
   for (let yd = 0; yd <= 100; yd += 5) {
     const x = GOAL_L + yd * YARD;
@@ -250,8 +269,8 @@ function FieldLines() {
   return (
     <g>
       <rect x={0} y={0} width={W} height={H} fill="var(--elevated)" />
-      <rect x={0} y={0} width={GOAL_L} height={H} fill="var(--bg-soft)" />
-      <rect x={GOAL_R} y={0} width={W - GOAL_R} height={H} fill="var(--bg-soft)" />
+      <EndZone team={posteam} side="left" />
+      <EndZone team={defteam} side="right" />
       {lines}
       {hashes}
       {numbers}
@@ -358,7 +377,10 @@ export function FieldView({ data }: { data: GamePlaysResponse }) {
     >
       <div className="yb-field-stage" style={teamTheme(play.posteam)}>
         <div className="yb-field-scoreline" aria-live="polite">
-          <span className="yb-field-team">
+          <span
+            className={`yb-field-team${play.posteam === data.away.team_id ? " has-ball" : ""}`}
+            style={teamTheme(data.away.team_id)}
+          >
             <TeamLogo team={data.away.team_id} size={18} /> {data.away.team_id}{" "}
             <strong>{play.away_score ?? 0}</strong>
           </span>
@@ -367,7 +389,10 @@ export function FieldView({ data }: { data: GamePlaysResponse }) {
             {downDistance(play) ? ` · ${downDistance(play)}` : ""}
             {play.yardline_100 != null ? ` at ${spot(play)}` : ""}
           </span>
-          <span className="yb-field-team">
+          <span
+            className={`yb-field-team${play.posteam === data.home.team_id ? " has-ball" : ""}`}
+            style={teamTheme(data.home.team_id)}
+          >
             <strong>{play.home_score ?? 0}</strong> {data.home.team_id}{" "}
             <TeamLogo team={data.home.team_id} size={18} />
           </span>
@@ -385,7 +410,7 @@ export function FieldView({ data }: { data: GamePlaysResponse }) {
               <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--chart)" />
             </marker>
           </defs>
-          <FieldLines />
+          <FieldLines posteam={play.posteam} defteam={play.defteam} />
           {shape && <PlayMark key={play.play_id} play={play} shape={shape} />}
           {play.posteam && (
             <text className="yb-field-direction" x={GOAL_L + 8} y={H - 12} aria-hidden="true">
