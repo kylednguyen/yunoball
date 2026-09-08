@@ -4,7 +4,7 @@ import type { LeaderboardsResponse, Leaderboard } from "@yunoball/types";
 import { q } from "../db/pool.js";
 import { ApiError } from "../lib/errors.js";
 import { headshotUrl } from "../lib/espn.js";
-import { loadedSeasons } from "../repositories/seasons.js";
+import { statSeasons } from "../repositories/seasons.js";
 
 // key -> [label, unit]. Column name == key (allowlisted, safe to interpolate).
 const PLAYER_CATEGORIES: [string, string, string][] = [
@@ -76,8 +76,8 @@ async function playerBoard(
 export async function getLeaderboards(opts: {
   season?: number; category?: string; team?: string; position?: string; limit: number;
 }): Promise<LeaderboardsResponse> {
-  const seasons = await loadedSeasons();
-  if (seasons.length === 0) throw new ApiError(503, "No seasons loaded.");
+  const seasons = await statSeasons();
+  if (seasons.length === 0) throw new ApiError(503, "No player stats loaded.");
   const target = opts.season ?? seasons[0]!;
   if (opts.season !== undefined && !seasons.includes(opts.season)) {
     throw new ApiError(404, `Season ${opts.season} not loaded.`);

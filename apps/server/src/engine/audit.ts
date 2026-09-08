@@ -73,7 +73,10 @@ async function draftMaxSeason(): Promise<number | null> {
 async function loadedSeasonSet(): Promise<number[] | null> {
   if (loadedSeasons && Date.now() - loadedSeasons.at < PROBE_TTL_MS) return loadedSeasons.value;
   try {
-    const rows = await q<{ season: number }>("SELECT season FROM seasons ORDER BY season");
+    const rows = await q<{ season: number }>(
+      `SELECT DISTINCT season FROM player_season_stats
+       WHERE season_type = 'REG' ORDER BY season`,
+    );
     loadedSeasons = { value: rows.map((r) => Number(r.season)), at: Date.now() };
   } catch {
     loadedSeasons = { value: null, at: Date.now() }; // never block an answer on a failed probe

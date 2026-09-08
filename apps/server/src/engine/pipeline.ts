@@ -103,7 +103,12 @@ async function getLatestSeason(): Promise<number | null> {
     return latestSeason.value;
   }
   try {
-    const rows = await q<{ latest: number | null }>("SELECT MAX(season) AS latest FROM seasons");
+    // Newest season that actually has stats — a schedule-only season (next
+    // year's fixtures, published months early) would resolve "this season" to
+    // a year the warehouse can't answer anything about.
+    const rows = await q<{ latest: number | null }>(
+      "SELECT MAX(season) AS latest FROM player_season_stats WHERE season_type = 'REG'",
+    );
     latestSeason = { value: rows[0]?.latest ?? null, at: Date.now() };
   } catch {
     latestSeason = { value: null, at: Date.now() };

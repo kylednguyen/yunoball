@@ -21,7 +21,16 @@ export async function getGames(season?: number, week?: number): Promise<GamesRes
       [targetSeason],
     )
   ).map((r) => r.week);
-  const targetWeek = week ?? weeks.at(-1)!;
+  const played = (
+    await q<{ week: number }>(
+      `SELECT MAX(week) AS week FROM games
+       WHERE season = $1 AND home_score IS NOT NULL AND away_score IS NOT NULL`,
+      [targetSeason],
+    )
+  )[0]?.week;
+  // The latest week with a result. Falling back to the last scheduled week
+  // would open an in-progress season on fixtures nobody has played.
+  const targetWeek = week ?? played ?? weeks[0]!;
   if (!weeks.includes(targetWeek)) {
     throw new ApiError(404, `Week ${targetWeek} not loaded for ${targetSeason}.`);
   }
