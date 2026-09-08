@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { TeamLogo } from "../components/TeamLogo";
-import { Badge, PageHeader, SectionHeader } from "../components/ui";
+import { Badge, PageHeader, SeasonPicker, SectionHeader } from "../components/ui";
 import { friendlyError } from "../lib/api";
 import { formatRank, formatRecord } from "../lib/format";
 import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
@@ -12,7 +12,7 @@ import { useSeasonParam, useStandings, useTitle } from "../lib/hooks";
  *  standings endpoint so this page needs no API of its own. */
 export default function TeamsPage() {
   useTitle("Teams");
-  const [season] = useSeasonParam();
+  const [season, setSeason] = useSeasonParam();
   const { data, error, loading } = useStandings(season);
 
   return (
@@ -24,6 +24,11 @@ export default function TeamsPage() {
             { label: "Teams" },
           ]}
           title="Teams"
+          controls={
+            data && (
+              <SeasonPicker season={data.season} seasons={data.seasons} onChange={setSeason} />
+            )
+          }
           filters={
             data && (
               <nav className="yb-conf-nav" aria-label="Conference navigation">

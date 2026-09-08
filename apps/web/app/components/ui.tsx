@@ -1,6 +1,7 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 
 import { Crumbs, type Crumb } from "./Crumbs";
+import { Dropdown } from "./Dropdown";
 
 export type InfoItem = {
   label: string;
@@ -34,6 +35,29 @@ export function Surface({
     <Tag className={classes} {...props}>
       {children}
     </Tag>
+  );
+}
+
+/** The one season control. Every season-aware endpoint returns the seasons it
+ * holds, so the options are the warehouse's real coverage rather than a guess;
+ * the choice lives in the URL, which keeps a view shareable and back-navigable. */
+export function SeasonPicker({
+  season,
+  seasons,
+  onChange,
+}: {
+  season: number;
+  seasons: number[];
+  onChange: (season: number) => void;
+}) {
+  if (seasons.length < 2) return null;
+  return (
+    <Dropdown
+      ariaLabel="Select season"
+      value={String(season)}
+      onChange={(v) => onChange(Number(v))}
+      options={seasons.map((s) => ({ value: String(s), label: `${s} season` }))}
+    />
   );
 }
 

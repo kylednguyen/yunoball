@@ -8,7 +8,7 @@ import { Headshot } from "../components/Headshot";
 import { BoardSkeleton } from "../components/Skeleton";
 import { SortTable } from "../components/SortTable";
 import { TeamLogo } from "../components/TeamLogo";
-import { PageHeader } from "../components/ui";
+import { PageHeader, SeasonPicker } from "../components/ui";
 import { useLeaderboards, useSeasonParam, useStandings, useStrParam, useTitle } from "../lib/hooks";
 import { friendlyError } from "../lib/api";
 import { formatPct, formatSigned, formatStatValue } from "../lib/format";
@@ -24,7 +24,7 @@ const TEAM_TAB = "team_rankings";
  */
 export default function LeadersPage() {
   useTitle("League leaders");
-  const [season] = useSeasonParam();
+  const [season, setSeason] = useSeasonParam();
   const [activeKey, setActiveKey] = useState<string | null>(null);
   // Filters live in the URL — shareable and stable across back-navigation.
   const [team, setTeam] = useStrParam("team", "ALL");
@@ -67,6 +67,11 @@ export default function LeadersPage() {
             { label: "Leaders" },
           ]}
           title="League Leaders"
+          controls={
+            data && (
+              <SeasonPicker season={data.season} seasons={data.seasons} onChange={setSeason} />
+            )
+          }
         />
 
         {error && (

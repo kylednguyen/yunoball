@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { GameCard } from "../components/GameCard";
 import { Performers } from "../components/Performers";
-import { PageHeader, SectionHeader } from "../components/ui";
+import { PageHeader, SeasonPicker, SectionHeader } from "../components/ui";
 import {
   friendlyError,
   fetchGames,
@@ -21,7 +21,7 @@ export default function ScoresPage() {
   useTitle("Scores");
   const [data, setData] = useState<GamesResponse | null>(null);
   // Season/week live in the URL: refresh, share and back-nav keep the view.
-  const [season] = useNumParam("season");
+  const [season, setSeason] = useNumParam("season");
   const [week, setWeek] = useNumParam("week");
   const [performers, setPerformers] = useState<PerformersResponse | null>(null);
   const [performersFailed, setPerformersFailed] = useState(false);
@@ -76,6 +76,20 @@ export default function ScoresPage() {
       <main id="main" className="yb-page">
         <PageHeader
           title="Scores"
+          controls={
+            data && (
+              <SeasonPicker
+                season={data.season}
+                seasons={data.seasons}
+                onChange={(s) => {
+                  // A week number means nothing across seasons — drop it and
+                  // let the API resolve the new season's default week.
+                  setWeek(undefined);
+                  setSeason(s);
+                }}
+              />
+            )
+          }
           filters={
             data && (
               <div className="yb-week-rail-wrap">

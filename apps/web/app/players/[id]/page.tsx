@@ -11,7 +11,7 @@ import { Dropdown } from "../../components/Dropdown";
 import { Headshot } from "../../components/Headshot";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
-import { EntityHero, InfoGrid, SectionHeader, StatSummary } from "../../components/ui";
+import { EntityHero, InfoGrid, SeasonPicker, SectionHeader, StatSummary } from "../../components/ui";
 import { usePlayer, usePlayerSplits, useSeasonParam, useTitle } from "../../lib/hooks";
 import { weekLabel } from "../../lib/format";
 import { teamTheme } from "../../lib/teamTheme";
@@ -491,6 +491,9 @@ export default function PlayerPage() {
   const hasPlayoffs = (profile?.postseasons.length ?? 0) > 0 || postLog.length > 0;
   const gameLog = season ? regLog.filter((g) => g.season === season) : regLog;
   const logSeasons = [...new Set(regLog.map((g) => g.season))];
+  // Seasons the player actually has a stat line for — the identity card's
+  // season control offers those and nothing else.
+  const profileSeasons = profile?.seasons.map((s) => s.season) ?? [];
   const playerAge = ageFrom(profile?.bio.birth_date ?? null);
   const bioItems = profile
     ? [
@@ -578,6 +581,15 @@ export default function PlayerPage() {
                     </span>
                   ) : null}
                 </>
+              }
+              utilities={
+                profileSeasons.length > 0 && (
+                  <SeasonPicker
+                    season={latest?.season ?? profileSeasons[0]!}
+                    seasons={profileSeasons}
+                    onChange={setSeason}
+                  />
+                )
               }
             />
 

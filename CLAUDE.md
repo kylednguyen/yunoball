@@ -7,15 +7,20 @@ numbers computed from nflverse data.
 
 ## The rule
 
-**Before making any change, open [docs/ENGINEERING.md](docs/ENGINEERING.md)
-and follow its routing table.** It routes each change type to its canonical
-doc — [design-language.md](docs/design-language.md) for anything visual,
-[components.md](docs/components.md) for components,
-[ARCHITECTURE.md](docs/ARCHITECTURE.md) / [DEPLOYMENT.md](docs/DEPLOYMENT.md)
-for structure and deploys — and holds the engine, ingest, and wire-type rules
-inline. Consult the routed doc before editing; if your change conflicts with
-it, apply the change AND update the doc in the same commit. A canonical doc
-that drifts is worse than no doc.
+**Before making any change, open the doc that owns it.** Consult it before
+editing; if your change conflicts with it, apply the change AND update the doc
+in the same commit. A canonical doc that drifts is worse than no doc.
+
+| Changing…                              | Read first                                       |
+| -------------------------------------- | ------------------------------------------------ |
+| Anything visual (tokens, `yb-*`, CSS)  | [docs/DESIGN_BRIEF.md](docs/DESIGN_BRIEF.md)     |
+| Components and page composition        | [docs/FRONTEND_SPEC.md](docs/FRONTEND_SPEC.md)   |
+| Routes, navigation, page flow          | [docs/APP_FLOW.md](docs/APP_FLOW.md)             |
+| Engine (`src/engine/`), parsing, SQL   | [docs/TDD.md](docs/TDD.md)                       |
+| Schema, ingest, warehouse tables       | [docs/BACKEND_SCHEMA.md](docs/BACKEND_SCHEMA.md) |
+| Structure, module boundaries           | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     |
+| Deploys, hosting, env                  | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)         |
+| Scope, product decisions               | [docs/PRD.md](docs/PRD.md)                       |
 
 ## Hard invariants (the ones that break things)
 
@@ -26,5 +31,17 @@ that drifts is worse than no doc.
 - Wire-format changes touch server + `packages/types` + web **together**.
 - Style only with tokens/`yb-*` classes; team colors only via `teamTheme()`.
 
-Everything else — commands, verification battery, conventions, doc
-maintenance — is in [docs/ENGINEERING.md](docs/ENGINEERING.md).
+## Verification battery
+
+Green before every commit. The e2e suite needs the local stack up (`docker
+compose up -d`, `pnpm db:migrate`, then an ingest) — CI runs the same battery
+plus a real nflverse ingest.
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm knip
+pnpm --filter @yunoball/server test
+pnpm e2e                # Playwright, boots both dev servers itself
+pnpm build:web          # never while a dev server is running
+```

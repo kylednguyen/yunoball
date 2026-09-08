@@ -9,7 +9,8 @@ answer.
 - **Search** — ask anything; answers come from typed QuerySpecs, never hallucinated
 - **Scores & Results** (`/scores`) — week-by-week finals
 - **Standings** (`/standings`) — W-L, points, streaks, computed live from game results
-- **Leaderboards** (`/leaderboards`) — season leaders as dense stat tables
+- **Leaders** (`/leaders`) — season leaders as dense stat tables, filterable by
+  team and position, plus whole-league team rankings
 - **Fantasy** (`/fantasy`) — build a PPR lineup from real season production
 - **Assistant** (`/assistant`) — a tool-routing agent over the same trusted endpoints
 

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Headshot } from "../../components/Headshot";
 import { SortTable } from "../../components/SortTable";
 import { TeamLogo } from "../../components/TeamLogo";
-import { EntityHero, SectionHeader } from "../../components/ui";
+import { EntityHero, SeasonPicker, SectionHeader } from "../../components/ui";
 import { useSeasonParam, useStandings, useTeam, useTitle } from "../../lib/hooks";
 import { teamTheme } from "../../lib/teamTheme";
 import { formatPct, weekLabel } from "../../lib/format";
@@ -128,7 +128,7 @@ function DivisionStandings({ team, standings }: { team: TeamProfile; standings: 
 
 export default function TeamPage() {
   const params = useParams<{ teamId: string }>();
-  const [season] = useSeasonParam();
+  const [season, setSeason] = useSeasonParam();
   const { data: team, error, loading } = useTeam(params?.teamId, season);
   const { data: standings, error: standingsError } = useStandings(season);
   const [activeTab, setActiveTab] = useState("#leaders");
@@ -196,6 +196,9 @@ export default function TeamPage() {
                 </span>
                 <span className={streakClass}>{team.record.streak} streak</span>
               </>
+            }
+            utilities={
+              <SeasonPicker season={team.season} seasons={team.seasons} onChange={setSeason} />
             }
           />
 

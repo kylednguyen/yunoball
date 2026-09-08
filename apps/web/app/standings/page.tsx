@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { TeamLogo } from "../components/TeamLogo";
-import { PageHeader } from "../components/ui";
+import { PageHeader, SeasonPicker } from "../components/ui";
 import { friendlyError } from "../lib/api";
 import type { ConferenceStandings } from "../lib/api";
 import { divisionShortName, formatPct } from "../lib/format";
@@ -18,7 +18,7 @@ import { teamTheme } from "../lib/teamTheme";
  *  in its team's colors and links to the team page. */
 export default function StandingsPage() {
   useTitle("Standings");
-  const [season] = useSeasonParam();
+  const [season, setSeason] = useSeasonParam();
   const { data, error, loading } = useStandings(season);
   const [tab, setTab] = useState("AFC");
 
@@ -34,6 +34,11 @@ export default function StandingsPage() {
           { label: "Standings" },
         ]}
         title="Standings"
+        controls={
+          data && (
+            <SeasonPicker season={data.season} seasons={data.seasons} onChange={setSeason} />
+          )
+        }
       />
 
       {error && (

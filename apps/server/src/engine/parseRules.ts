@@ -705,11 +705,25 @@ const UNSUPPORTED: [RegExp, string][] = [
     "Pressure stats beyond sacks aren't tracked yet. Sacks, tackles, forced fumbles and passes defended are.",
   ],
   [
-    // Advanced metrics needing play-by-play or proprietary models. Simple
-    // rates (yards per carry/attempt/reception, catch rate, per-game) and
-    // air yards ARE computed — see the ratio stats and perGame modifier.
-    /\b(qbr|third down|red ?zone|time of possession|dvoa|win probability|turnovers? forced)\b/,
+    // Proprietary models. Simple rates (yards per carry/attempt/reception,
+    // catch rate, per-game) and air yards ARE computed — see the ratio stats
+    // and the perGame modifier.
+    /\b(qbr|dvoa|win probability)\b/,
     "QBR, DVOA and win probability are proprietary models and aren't tracked. EPA, CPOE, success rate, passer rating and the standard rates ARE computed.",
+  ],
+  [
+    // Situational splits need down/distance and field position, which only
+    // play-by-play carries; the warehouse stores box-score grain.
+    /\b(red ?zone|third down|fourth down|goal ?line|two[- ]minute)\b/,
+    "Situational splits (red zone, third/fourth down) need play-by-play down-and-distance, which isn't stored — the warehouse is box-score grain. Season and game totals, and the primetime/weather/home-away splits, are queryable.",
+  ],
+  [
+    /\btime of possession\b/,
+    "Time of possession isn't published in the nflverse team stats the warehouse loads. Team points, yards, turnovers and per-drive scoring are.",
+  ],
+  [
+    /\bturnovers? forced\b/,
+    "Forced-turnover totals aren't queryable as a team unit yet. Interceptions, forced fumbles and passes defended are, per player.",
   ],
   [
     /\b(offense|offensive|defense|defensive|which team)\b/,
