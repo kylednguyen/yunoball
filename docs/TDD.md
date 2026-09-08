@@ -146,8 +146,13 @@ Machinery:
   one answer. The key enumerates every executor-relevant field (notably
   `playerId`, since display names collide).
 - **Durable:** `answer_cache` persists every answer under its `share_id`
-  (deterministic SHA-256 prefix), TTL `ANSWER_CACHE_TTL_SECONDS` (24h
-  default), powering permanent `/a/` share pages.
+  (deterministic SHA-256 prefix), powering permanent `/a/` share pages. It is
+  a snapshot store with no TTL — a share link keeps working — and every
+  recompute of the same question overwrites its row.
+- `ANSWER_CACHE_TTL_SECONDS` (1h default) bounds the **hot** tiers only. It is
+  deliberately shorter than the gap between ingests: the warehouse changes
+  under a long-running API, and an answer that outlives its data is a wrong
+  number.
 
 ### 4.6 Entity resolution
 
@@ -188,7 +193,7 @@ assistant routes intents to these same services and reports its tool steps
 | `READONLY_DATABASE_URL` | read-only role for engine SQL | falls back to `DATABASE_URL` |
 | `CORS_ORIGINS` | allowed browser origins | localhost dev ports |
 | `RATE_LIMIT_PER_MINUTE` | per-IP cap on `/api/search` + `/api/agent` (0 = off) | 30 |
-| `ANSWER_CACHE_TTL_SECONDS` | durable answer TTL | 86400 |
+| `ANSWER_CACHE_TTL_SECONDS` | hot answer-cache TTL | 3600 |
 | `LOG_LEVEL` | pino level | info |
 | `NEXT_PUBLIC_API_URL` | (web) API origin | — |
 

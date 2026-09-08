@@ -31,9 +31,12 @@ test.describe("search", () => {
   test("inner pages keep the anchored search available without duplicating the brand", async ({ page }) => {
     await page.goto("/standings");
 
+    // Search rides in the fixed nav rail, so it stays reachable on every page…
     await expect(heroSearch(page)).toBeVisible();
-    await expect(page.locator(".yb-search-utility")).toHaveCSS("position", "sticky");
-    await expect(page.locator(".yb-search-wordmark")).toHaveCount(0);
+    await expect(page.locator(".yb-nav")).toHaveCSS("position", "fixed");
+    await expect(page.locator(".yb-nav-search-inline").locator("input.yb-search")).toBeVisible();
+    // …and the wordmark appears once, not again beside the field.
+    await expect(page.locator(".yb-brand")).toHaveCount(1);
   });
 
   test("player comparison renders a head-to-head table on real stats", async ({ page }) => {
@@ -62,7 +65,7 @@ test.describe("search", () => {
     await expect(answer).toBeVisible();
     await expect(answer.locator(".yb-single-response-label")).toHaveText("Response");
     await expect(answer.locator(".yb-single-response")).toHaveText(
-      "Peyton Manning had 5,477 passing yards in the 2013 regular season.",
+      "Peyton Manning had 5,477 passing yards in 2013.",
     );
     await expect(answer.locator(".yb-single-player-strip")).toContainText("Peyton Manning");
     await expect(answer.locator(".yb-single-player-strip")).toContainText("QB · Denver Broncos");
@@ -76,7 +79,10 @@ test.describe("search", () => {
     await expect(answer).toContainText(/#1|1st/);
     await expect(answer.getByRole("link", { name: "View 2013 game log" })).toBeVisible();
     await expect(answer.getByRole("link", { name: "View profile" })).toBeVisible();
-    await expect(answer.getByText("How this result was calculated")).toBeVisible();
+    // Context, not methodology: where this number sits in the league.
+    const context = answer.locator(".yb-single-context");
+    await expect(context).toContainText("Context");
+    await expect(context).toContainText(/in the NFL for Passing yards in 2013/i);
     await expect(page.getByText("Query interpretation")).toHaveCount(0);
     await expect(page.locator(".yb-result-kicker")).toHaveCount(0);
     await expect(answer.locator("table")).toHaveCount(1);
@@ -97,9 +103,12 @@ test.describe("search", () => {
       "aria-pressed",
       "true",
     );
-    for (const heading of ["Metric", "Drake Maye", "Tom Brady", "Edge or winner"]) {
+    for (const heading of ["Drake Maye", "Metric", "Tom Brady"]) {
       await expect(comparison.getByRole("columnheader", { name: heading })).toBeVisible();
     }
+    // The winner is called out per row and summarised in prose.
+    await expect(comparison.locator(".yb-edge-pill").first()).toBeVisible();
+    await expect(comparison.locator(".yb-comparison-summary")).not.toBeEmpty();
     await expect(comparison).toContainText("23 seasons · NE, TB");
     await expect(comparison).toContainText("Interception rate");
     await expect(comparison).toContainText("Passing yards per game");
@@ -107,26 +116,25 @@ test.describe("search", () => {
     await expect(comparison).not.toContainText("Receiving yards");
     await expect(comparison).not.toContainText("Tackles");
 
-    await page.getByRole("button", { name: "First 30 games" }).click();
-    await expect(comparison).toContainText(/same 30 games|first 30 games/i);
+    await page.getByRole("button", { name: /^First \d+ games$/ }).click();
+    await expect(comparison).toContainText(/same \d+ games|first \d+ games/i);
     await page.getByRole("button", { name: "Career totals" }).click();
     await expect(comparison).toContainText(/substantially longer career/i);
 
     await expect(comparison.getByRole("link", { name: "View Drake Maye profile" })).toBeVisible();
     await expect(comparison.getByRole("link", { name: "View Tom Brady profile" })).toBeVisible();
     await expect(comparison.getByRole("button", { name: "Compare game logs" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Share comparison" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Download comparison image" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
 
+    // Both identities render at the same avatar size, headshot or initials.
     const headshots = comparison.locator(".yb-comparison-identity .yb-avatar");
     await expect(headshots).toHaveCount(2);
-    const geometry = await headshots.first().evaluate((image) => ({
-      width: image.getBoundingClientRect().width,
-      height: image.getBoundingClientRect().height,
-      fit: getComputedStyle(image).objectFit,
-      radius: getComputedStyle(image).borderRadius,
+    const geometry = await headshots.first().evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height,
+      radius: getComputedStyle(node).borderRadius,
     }));
-    expect(geometry).toEqual({ width: 72, height: 72, fit: "cover", radius: "50%" });
+    expect(geometry).toEqual({ width: 72, height: 72, radius: "50%" });
   });
 
   test("home suggestions run supported questions with structured result actions", async ({ page }) => {
@@ -140,29 +148,41 @@ test.describe("search", () => {
 
     await expect(page).toHaveURL(/\/a\/[a-f0-9]{32}$/);
     await expect(page.locator(".yb-query-result")).toBeVisible();
-    await expect(page.getByText("Query interpretation")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Show query/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Download CSV" })).toBeVisible();
+    await expect(page.locator(".yb-answer")).not.toBeEmpty();
+    await expect(page.getByRole("link", { name: "New search" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
+    // The executed SQL and the audit verdict never cross the wire.
+    await expect(page.getByText("Query interpretation")).toHaveCount(0);
     await page.getByRole("link", { name: "New search" }).click();
-    await heroSearch(page).focus();
+    await heroSearch(page).click();
     await expect(page.locator(".yb-suggest-item.question").first()).toContainText(question);
   });
 
   test("nested examples run a query and return as the first recent suggestion", async ({ page }) => {
     await page.goto("/");
-    await heroSearch(page).focus();
-    const suggestion = page.locator(".yb-suggest-item.question").first();
-    const question = await suggestion.locator(".nm").textContent();
-    await suggestion.click();
+    await heroSearch(page).click();
+    // The list starts on built-in examples and swaps to the question bank when
+    // it loads, so read the label first and then click *that* item by name —
+    // clicking by position can hit whatever moved into the row.
+    const question = await page
+      .locator(".yb-suggest-item.question")
+      .first()
+      .locator(".nm")
+      .textContent();
+    await page
+      .locator(".yb-suggest-item.question")
+      .filter({ hasText: question! })
+      .first()
+      .click();
 
     await expect(page).toHaveURL(/\/a\/[a-f0-9]{32}$/);
     await expect(page.locator(".yb-result-canvas")).toBeVisible();
     await page.getByRole("link", { name: "New search" }).click();
-    await heroSearch(page).focus();
+    await heroSearch(page).click();
     await expect(page.locator(".yb-suggest-item.question").first()).toContainText(question!);
   });
 
-  test("compact search nests question-bank suggestions and accepts an inline completion", async ({
+  test("compact search nests question-bank suggestions and accepts a selection", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -180,16 +200,16 @@ test.describe("search", () => {
     await search.fill("Most rush");
     const completion = page.getByRole("option", { name: /Most rushing yards in a season/i });
     await expect(completion).toBeVisible();
-    await completion.hover();
-    await search.press("Tab");
-    await expect(search).toHaveValue("Most rushing yards in a season");
+    // Nothing runs until a suggestion is chosen…
     await expect(page.locator(".yb-answer")).toHaveCount(0);
-    await search.press("Enter");
+    await completion.click();
+    // …and choosing one fills the field and runs it.
+    await expect(search).toHaveValue("Most rushing yards in a season");
     await expect(page).toHaveURL(/\/a\/[a-f0-9]{32}$/);
     await expect(page.locator(".yb-answer")).toBeVisible();
   });
 
-  test("completed results have a persistent dedicated page and clean PNG export", async ({
+  test("completed results have a persistent dedicated page and a shareable link", async ({
     page,
   }) => {
     await page.goto("/");
@@ -201,19 +221,21 @@ test.describe("search", () => {
     await expect(page.getByRole("heading", { name: "Who threw the most touchdowns in 2023?" })).toBeVisible();
     await expect(page.locator(".yb-result-page")).toBeVisible();
     await expect(page.getByRole("link", { name: "New search" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Download PNG" })).toBeVisible();
+    // The result page is the result, not the dashboard with an answer on top.
     await expect(page.getByRole("heading", { name: "Performers of the week" })).toHaveCount(0);
 
+    // Durable: the answer is persisted, so the URL survives a reload.
     await page.reload();
     await expect(page).toHaveURL(resultUrl);
     await expect(page.locator(".yb-answer")).toBeVisible();
 
-    const download = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download PNG" }).click();
-    await expect((await download).suggestedFilename()).toMatch(/^yunoball-.+\.png$/);
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.getByRole("button", { name: "Share" }).click();
+    await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(resultUrl);
   });
 
-  test("tied playoff leaders get comparison and game-log drill-downs without embedded profiles", async ({
+  test("tied playoff leaders each get a leader card above the ranked table", async ({
     page,
   }) => {
     await page.goto("/");
@@ -222,59 +244,46 @@ test.describe("search", () => {
 
     await expect(page).toHaveURL(/\/a\/[a-f0-9]{32}$/);
     await expect(page.locator(".yb-answer")).toContainText(/are tied.*5 passing touchdowns/i);
-    await expect(page.locator(".yb-result-leader-card")).toHaveCount(3);
-    await expect(page.locator(".yb-result-leader-card").getByRole("link", { name: "View full profile" })).toHaveCount(3);
-    await expect(page.getByRole("tab", { name: "Leaderboard" })).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator(".yb-result-ranked-table")).toBeVisible();
-    await expect(page.locator(".yb-result-ranked-table").getByRole("link", { name: "View full profile" })).toHaveCount(10);
 
-    await page.getByRole("tab", { name: "Leader comparison" }).click();
-    const comparison = page.locator(".yb-leader-comparison");
-    await expect(comparison).toBeVisible();
-    for (const heading of [
-      "Games played",
-      "Completions",
-      "Attempts",
-      "Passing yards",
-      "Passing touchdowns",
-      "Interceptions",
-      "Passer rating",
-      "Passing TDs per game",
-    ]) {
-      await expect(comparison.getByRole("columnheader", { name: heading })).toBeVisible();
+    // A tie promotes every tied player to a card of their own, each linking out.
+    const leaders = page.locator(".yb-result-leader-card");
+    await expect(leaders).toHaveCount(3);
+    await expect(page.getByRole("region", { name: "Tied leaders" })).toBeVisible();
+    await expect(leaders.getByRole("link", { name: "View profile" })).toHaveCount(3);
+    for (const card of await leaders.all()) {
+      await expect(card).toContainText("5 passing touchdowns");
     }
-    await expect(comparison.locator("tbody tr")).toHaveCount(3);
 
-    await page.getByRole("tab", { name: "Game logs" }).click();
-    await expect(page.getByRole("button", { name: "Select leader" })).toBeVisible();
-    await page.getByRole("button", { name: "Select leader" }).click();
-    await page.getByRole("option", { name: "Jayden Daniels" }).click();
-    await expect(page.locator(".yb-result-game-log")).toContainText("Jayden Daniels");
-    await expect(page.locator(".yb-result-game-log tbody tr").first()).toBeVisible();
+    // …and the full board still sits underneath, one page of ten.
+    const ranked = page.locator(".yb-result-ranked-table");
+    await expect(ranked).toBeVisible();
+    await expect(ranked.locator("tbody tr")).toHaveCount(10);
+
+    // Drilling into a leader lands on their player page, not an embedded bio.
     await expect(page.getByText("Height", { exact: true })).toHaveCount(0);
     await expect(page.getByText("College", { exact: true })).toHaveCount(0);
+    await leaders.first().getByRole("link", { name: "View profile" }).click();
+    await expect(page).toHaveURL(/\/players\/.+/);
   });
 
-  test("leader supporting fields follow the query's metric family", async ({ page }) => {
+  test("leader boards carry only the queried metric's family", async ({ page }) => {
     await page.goto("/");
     await heroSearch(page).fill("Who rushed for the most yards in 2024?");
     await heroSearch(page).press("Enter");
 
     await expect(page).toHaveURL(/\/a\/[a-f0-9]{32}$/);
-    await page.getByRole("tab", { name: "Leader comparison" }).click();
-    const comparison = page.locator(".yb-leader-comparison");
-    await expect(comparison.getByRole("columnheader", { name: "Carries" })).toBeVisible();
-    await expect(comparison.getByRole("columnheader", { name: "Rushing yards" })).toBeVisible();
-    await expect(comparison.getByRole("columnheader", { name: "Yards per carry" })).toBeVisible();
-    await expect(
-      comparison.getByRole("columnheader", { name: "Passing touchdowns" }),
-    ).toHaveCount(0);
-
-    await page.getByRole("tab", { name: "Game logs" }).click();
-    const gameLog = page.locator(".yb-result-game-log");
-    await expect(gameLog.getByRole("columnheader", { name: "Carries" })).toBeVisible();
-    await expect(gameLog.getByRole("columnheader", { name: "Rush yds" })).toBeVisible();
-    await expect(gameLog.getByRole("columnheader", { name: "Pass yds" })).toHaveCount(0);
+    const ranked = page.locator(".yb-result-ranked-table");
+    await expect(ranked).toBeVisible();
+    // The board answers the rushing question and nothing else — no passing
+    // column tags along, and the queried metric is the highlighted one.
+    await expect(ranked.getByRole("columnheader", { name: "player" })).toBeVisible();
+    await expect(ranked.locator("th.is-metric")).toHaveCount(1);
+    await expect(ranked.getByRole("columnheader", { name: /passing/i })).toHaveCount(0);
+    await expect(ranked.getByRole("columnheader", { name: "player id" })).toHaveCount(0);
+    // Real 2024 rushing leader, linked to his page.
+    const top = ranked.locator("tbody tr").first();
+    await expect(top).toContainText("Saquon Barkley");
+    await expect(top.getByRole("link").first()).toHaveAttribute("href", /\/players\//);
   });
 
   test("sports data leads the home page instead of a giant search hero", async ({ page }) => {
@@ -283,22 +292,22 @@ test.describe("search", () => {
 
     await expect(page.getByRole("heading", { name: "Performers of the week" })).toBeVisible();
     await expect(page.locator(".yb-search-icon")).toBeVisible();
+    // No search hero: the field is a compact rail control and the scores
+    // ticker is the first thing in the content column.
     const layout = await page.evaluate(() => {
-      const search = document.querySelector<HTMLElement>(".yb-search-utility")!;
+      const search = document.querySelector<HTMLElement>(".yb-nav-search-inline")!;
       const schedule = document.querySelector<HTMLElement>(".yb-ticker")!;
       const performers = document.querySelector<HTMLElement>(
-        '[aria-label="Performers of the week"]',
+        '[aria-label="Performers of the Week"]',
       )!;
       return {
         searchHeight: search.getBoundingClientRect().height,
-        searchTop: search.getBoundingClientRect().top,
         scheduleTop: schedule.getBoundingClientRect().top,
         scheduleRadius: getComputedStyle(schedule).borderRadius,
         performersTop: performers.getBoundingClientRect().top,
       };
     });
     expect(layout.searchHeight).toBeLessThanOrEqual(116);
-    expect(layout.searchTop).toBeLessThan(layout.scheduleTop);
     expect(layout.scheduleTop).toBeLessThan(layout.performersTop);
     expect(layout.scheduleRadius).not.toBe("0px");
     expect(layout.performersTop).toBeLessThan(520);

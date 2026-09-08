@@ -161,8 +161,13 @@ const PBP_CSV = [
     rush_touchdown: "1", yards_gained: "8", desc: "Ghost TD." }),
 ];
 
+// Seasons the fake upstream has not published — set per test to exercise the
+// September case, where the current season's release files don't exist yet.
+const unpublished = new Set<string>();
+
 vi.mock("../src/ingest/providers/nflverse.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("../src/ingest/providers/nflverse.js")>();
+  const missing = (url: string) => [...unpublished].some((marker) => url.includes(marker));
   const byUrl = (url: string): Record<string, string>[] => {
     if (url.includes("teams_colors_logos")) return TEAMS_CSV;
     if (url.includes("schedules/games")) return SCHED_CSV;
@@ -174,12 +179,16 @@ vi.mock("../src/ingest/providers/nflverse.js", async (importOriginal) => {
     if (url.includes("pbp/play_by_play_")) return PBP_CSV;
     throw new Error(`no fixture for ${url}`);
   };
+  const stream = async function* (url: string) {
+    yield* byUrl(url);
+  };
   return {
     ...original,
     allRows: async (url: string) => byUrl(url),
-    rows: async function* (url: string) {
-      yield* byUrl(url);
-    },
+    // The real provider returns null for a release asset nflverse hasn't
+    // published; `unpublished` makes a fixture URL behave that way.
+    optionalRows: async (url: string) => (missing(url) ? null : byUrl(url)),
+    optionalRowStream: async (url: string) => (missing(url) ? null : stream(url)),
   };
 });
 
@@ -399,6 +408,47 @@ describe("run mechanics", () => {
     }
     // Validation findings still surface in dry-run mode.
     expect(ctx.skipped.get("players: roster row without a stable gsis id")).toBe(1);
+  });
+
+  // Regression: `--all` spans every season since 1999, and from September the
+  // current one is in that list before nflverse has published its stats files.
+  // A 404 used to abort the whole step, so a full-history load wrote no player
+  // stats at all — for any season.
+  it("skips a season upstream hasn't published and still loads the rest", async () => {
+    const ctx = new Ctx(pool);
+    await p.loadTeams(ctx);
+    await p.loadSeasons(ctx, [2023]);
+    await p.loadPlayers(ctx, [2023]);
+    await p.loadRosters(ctx, [2023]);
+    await p.loadGames(ctx, [2023]);
+
+    unpublished.add("_2024");
+    try {
+      const weekly = await p.loadPlayerGameStats(ctx, [2023, 2024]);
+      const seasonal = await p.loadPlayerSeasonStats(ctx, [2023, 2024]);
+      expect(weekly).toBeGreaterThan(0);
+      expect(seasonal).toBeGreaterThan(0);
+    } finally {
+      unpublished.delete("_2024");
+    }
+    const seasons = (
+      await all("SELECT DISTINCT season FROM player_season_stats ORDER BY season")
+    ).map((r) => r.season);
+    expect(seasons).toEqual([2023]);
+  });
+
+  // …but every season missing is upstream moving the release path, which must
+  // fail loudly instead of quietly emptying the warehouse.
+  it("fails loudly when no season is published at all", async () => {
+    const ctx = new Ctx(pool);
+    unpublished.add("stats_player_week_");
+    try {
+      await expect(p.loadPlayerGameStats(ctx, [2023, 2024])).rejects.toThrow(
+        /no season published upstream/i,
+      );
+    } finally {
+      unpublished.delete("stats_player_week_");
+    }
   });
 
   it("re-running is idempotent", async () => {

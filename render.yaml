@@ -23,6 +23,7 @@ services:
       - key: RATE_LIMIT_PER_MINUTE
         value: "30"          # per-IP cap on POST /api/search and /api/agent (0 disables)
       - key: ANSWER_CACHE_TTL_SECONDS
-        value: "86400"       # TTL for cached answers in answer_cache (24h)
+        value: "3600"        # hot answer cache (1h) — below the weekly ingest gap,
+                             # so an answer never outlives the data behind it
       - key: LOG_LEVEL
         value: "info"        # pino log level: fatal|error|warn|info|debug|trace|silent

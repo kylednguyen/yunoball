@@ -31,6 +31,7 @@ export function SearchSuggest({
   autoFocus,
   inputRef: externalRef,
   suggestions = [],
+  recent = [],
   children,
 }: {
   value: string;
@@ -42,6 +43,9 @@ export function SearchSuggest({
   autoFocus?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
   suggestions?: string[];
+  /** Questions this visitor has already asked. They lead the list whenever
+   * they match — your own last search should never rank below a suggestion. */
+  recent?: string[];
   children?: ReactNode;
 }) {
   const router = useRouter();
@@ -76,12 +80,14 @@ export function SearchSuggest({
     };
   }, [q]);
 
+  const matches = (item: string) => item.toLowerCase().includes(q.toLowerCase());
   const questionSuggestions = q
     ? [
+        ...recent.filter(matches),
         ...(sug && sug.query.trim() === q ? sug.questions : []),
-        ...suggestions.filter((item) => item.toLowerCase().includes(q.toLowerCase())),
+        ...suggestions.filter(matches),
       ]
-    : suggestions;
+    : [...recent, ...suggestions];
   const items: Item[] = [...new Set(questionSuggestions)].slice(0, 6).map((label) => ({
     kind: "question" as const,
     label,
@@ -170,6 +176,10 @@ export function SearchSuggest({
           setHi(-1);
           setOpen(true);
         }}
+        // Clicking a field that already has focus fires no focus event, so
+        // after a navigation (which closes the popup but leaves focus behind)
+        // the suggestions would stay hidden until you typed.
+        onClick={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={onKeyDown}
       />

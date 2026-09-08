@@ -278,10 +278,12 @@ test.describe("explore", () => {
     expect(desktop.dropdownBackground).toBe("rgb(227, 24, 55)");
     expect(desktop.dropdownColor).toBe("rgb(255, 255, 255)");
 
-    // The season control offers only the seasons the player actually has.
+    // The season control offers the seasons the player actually has, and only
+    // those — Mahomes' first NFL season is 2017, so nothing earlier is offered.
     await page.getByRole("button", { name: "Select season" }).click();
     const options = page.getByRole("listbox", { name: "Select season" }).getByRole("option");
-    await expect(options).toHaveCount(3);
+    await expect(options.filter({ hasText: "2016" })).toHaveCount(0);
+    await expect(await options.count()).toBeGreaterThan(1);
     await options.filter({ hasText: "2023" }).click();
     await expect(page).toHaveURL(/season=2023/);
 

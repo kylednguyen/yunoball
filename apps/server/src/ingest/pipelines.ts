@@ -15,7 +15,9 @@ import {
 import { logger } from "../lib/logger.js";
 import type { Ctx } from "./context.js";
 import { upsert } from "./upsert.js";
-import { allRows, assets, rows as streamRows } from "./providers/nflverse.js";
+import {
+  allRows, assets, optionalRowStream, optionalRows,
+} from "./providers/nflverse.js";
 import type { CsvRow } from "./providers/nflverse.js";
 
 /** Guard against upstream schema drift. A pipeline reads columns by name; if
@@ -230,10 +232,30 @@ async function gameIdLookup(years: number[]): Promise<Map<string, string>> {
   return lookup;
 }
 
+/** A season whose release file nflverse hasn't published yet (the current one,
+ * before its first games) is skipped, not fatal — otherwise every September the
+ * whole step dies and twenty-six loaded seasons get no stats at all. Every
+ * season missing is a different story: that's an upstream path change, and it
+ * must fail loudly rather than quietly emptying the warehouse. */
+function assertSomeSeasonsPublished(step: string, loaded: number[], years: number[]): void {
+  if (loaded.length > 0 || years.length === 0) return;
+  throw new Error(
+    `${step}: no season published upstream (tried ${years[0]}-${years[years.length - 1]}) — ` +
+    "the nflverse release path has probably changed",
+  );
+}
+
 export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<number> {
   const lookup = await gameIdLookup(years);
   const raw: CsvRow[] = [];
-  for (const year of years) raw.push(...(await allRows(assets.weeklyStats(year))));
+  const loaded: number[] = [];
+  for (const year of years) {
+    const yearRows = await optionalRows(assets.weeklyStats(year));
+    if (!yearRows) continue;
+    raw.push(...yearRows);
+    loaded.push(year);
+  }
+  assertSomeSeasonsPublished("player_game_stats", loaded, years);
 
   checkColumns(
     raw[0],
@@ -312,9 +334,12 @@ export async function loadPlayerSeasonStats(ctx: Ctx, years: number[]): Promise<
     (lvl) => !ctx.seasonType || ctx.seasonType === (lvl === "reg" ? "REG" : "POST"),
   );
   let rows: Record<string, unknown>[] = [];
+  const loaded: number[] = [];
   for (const year of years) {
     for (const level of levels) {
-      const raw = await allRows(assets.seasonStats(year, level));
+      const raw = await optionalRows(assets.seasonStats(year, level));
+      if (!raw) continue;
+      if (!loaded.includes(year)) loaded.push(year);
       rows.push(
         ...raw.map((r) => ({
           player_id: r.player_id ?? "",
@@ -350,6 +375,7 @@ export async function loadPlayerSeasonStats(ctx: Ctx, years: number[]): Promise<
       );
     }
   }
+  assertSomeSeasonsPublished("player_season_stats", loaded, years);
   rows = ctx.drop(rows, (r) => r.player_id !== "", "player_season_stats",
     "missing player id", (r) => String(r.season));
   const players = await ctx.known("players", "player_id");
@@ -436,6 +462,7 @@ function tdKind(r: CsvRow, tdTeam: string | null): string {
  * ~1.5k scoring rows). Streamed per year; each batch commits independently. */
 export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<number> {
   let total = 0;
+  const loaded: number[] = [];
   const games = await ctx.known("games", "game_id");
   const players = await ctx.known("players", "player_id");
   const teams = await ctx.known("teams", "team_id");
@@ -481,7 +508,9 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
     };
 
     let columnsChecked = false;
-    for await (const r of streamRows(assets.pbp(year))) {
+    const pbp = await optionalRowStream(assets.pbp(year));
+    if (!pbp) continue;
+    for await (const r of pbp) {
       // First row of each year's file: verify the columns this step reads
       // still exist upstream (per year — the pbp schema varies by era).
       if (!columnsChecked) {
@@ -569,7 +598,9 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
       );
     }
     logger.info({ year, advanced: advRows.length }, "scoring_plays + advanced: season complete");
+    loaded.push(year);
   }
+  assertSomeSeasonsPublished("scoring_plays", loaded, years);
   return total;
 }
 

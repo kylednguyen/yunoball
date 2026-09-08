@@ -45,7 +45,11 @@ export const config = {
   // Drives Express's req.ip so the rate limiter can't be fooled by a spoofed
   // X-Forwarded-For. 0 = trust none (direct connections / local dev).
   trustProxy: int(process.env.TRUST_PROXY_HOPS, 1),
-  answerCacheTtlSeconds: int(process.env.ANSWER_CACHE_TTL_SECONDS, 60 * 60 * 24),
+  // Hot-cache TTL. Deliberately shorter than the gap between ingests: the
+  // warehouse changes under a long-running API (weekly ingest, in-season stat
+  // corrections), and a cached answer that outlives its data is a wrong
+  // number, which is the one thing this app promises not to serve.
+  answerCacheTtlSeconds: int(process.env.ANSWER_CACHE_TTL_SECONDS, 60 * 60),
   // Requests per client IP per minute on POST /api/search and /api/agent
   // (0 disables).
   rateLimitPerMinute: int(process.env.RATE_LIMIT_PER_MINUTE, 30),
