@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   fetchBoxScore,
+  fetchGamePlays,
   fetchLeaderboards,
   fetchPlayer,
   fetchPlayerSplits,
   fetchStandings,
   fetchTeam,
   type BoxScore,
+  type GamePlaysResponse,
   type PlayerProfile,
   type PlayerSplits,
   type TeamProfile,
@@ -61,6 +63,9 @@ export const usePlayer = (playerId: string | undefined): ApiState<PlayerProfile 
 
 export const useBoxScore = (gameId: string | undefined): ApiState<BoxScore | null> =>
   useApi(() => (gameId ? fetchBoxScore(gameId) : Promise.resolve(null)), [gameId]);
+
+export const useGamePlays = (gameId: string | undefined): ApiState<GamePlaysResponse | null> =>
+  useApi(() => (gameId ? fetchGamePlays(gameId) : Promise.resolve(null)), [gameId]);
 
 export const usePlayerSplits = (
   playerId: string | undefined,

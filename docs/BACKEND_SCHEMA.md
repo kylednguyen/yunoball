@@ -13,13 +13,14 @@ player_season_stats   ├── player_game_stats    (player × game)
    │                  ├── player_game_advanced (pbp aggregates)
    ▼                  ├── team_game_stats      (team × game)
 players ◄─────────────┴── scoring_plays        (touchdown events)
+games   ◄──────────────── plays                (every play, field geometry)
 
 app tables: answer_cache · query_audit        history: draft_picks
 ```
 
 - **Dimensions:** `seasons`, `teams`, `players`, `games`
 - **Facts:** `player_game_stats`, `team_game_stats`, `player_game_advanced`,
-  `scoring_plays`
+  `scoring_plays`, `plays`
 - **Rollups:** `player_season_stats`
 - **App:** `answer_cache` (durable shareable answers), `query_audit`
   (per-question audit log)
@@ -92,6 +93,23 @@ Touchdown events only (~1.4k rows/season vs ~50k pbp rows): `game_id`,
 `yards`. Powers first/last-TD questions, longest-TD lookups, and the
 player-page touchdown log. Indexed by player and game.
 
+### plays — PK play_id (game_id + play number)
+Every play of every loaded game (~50k rows/season), with the geometry the
+game page's field view draws from: `play_no` (ordering), `drive`, `qtr`,
+`down`, `ydstogo`, `clock`, `seconds_remaining`, `posteam`/`defteam`
+(current-franchise ids, no FK — kickoffs and no-play rows may carry
+neither), `yardline_100` (offense's frame), `play_type`, `yards_gained`,
+`air_yards`, `yards_after_catch`, `pass_length`, `pass_location`,
+`run_location`, `run_gap`, outcome booleans (`complete_pass`,
+`interception`, `sack`, `scramble`, `touchdown`, `fumble_lost`,
+`first_down`, `penalty`), `field_goal_result`, `kick_distance`, the three
+participant ids and names (no FK — pbp names players the dimension may
+lack), `home_score`/`away_score` after the play, `epa`, `description`.
+Rows with no `play_type` (game start, quarter ends) are not plays and are
+not stored; `no_play` rows are, so a drive reads whole. Indexed
+`(game_id, play_no)`; read only by `/api/games/:id/plays`. See
+[PLAY_VIEW.md](PLAY_VIEW.md).
+
 ### draft_picks — PK (season, pick)
 nflverse draft history 1980+: round, pick, `team_id` (normalized to current
 franchise), `player_id` (gsis when available — joins `players`),
@@ -124,6 +142,7 @@ Indexes exist for the query shapes the engine actually emits:
 | Game-log joins | `pgs_game_idx`, `pga_game_idx`, `tgs_game_idx` |
 | Name lookup fallback | `players_full_name_idx` |
 | TD timeline per player/game | `scoring_plays_player_idx`, `scoring_plays_game_idx` |
+| One game's plays, in order | `plays_game_idx (game_id, play_no)` |
 
 ## 5. Ingestion → schema mapping
 
@@ -135,7 +154,10 @@ Indexes exist for the query shapes the engine actually emits:
   failure isolation.
 - Play-by-play is distilled at ingest into `scoring_plays` (TD events),
   `player_game_advanced` (EPA/success/CPOE), TD `yards`, and per-game
-  `drives` — full pbp is never stored.
+  `drives`; the separate `plays` step stores every play with its field
+  geometry (the columns the field view needs, not the full 370-column
+  release row). A release file nflverse hasn't published yet (the current
+  season, before its first games) is skipped, not fatal.
 - ESPN headshot ids come from a separate standalone CLI
   (`apps/server/src/cli/fetchEspnIds.ts`) into `apps/server/data/espn_ids.json`.
 

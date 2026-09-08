@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { Crumbs } from "../../components/Crumbs";
+import { FieldView } from "../../components/FieldView";
 import { Headshot } from "../../components/Headshot";
 import { TeamLogo } from "../../components/TeamLogo";
 import { Surface } from "../../components/ui";
-import { useBoxScore, useStrParam, useTitle } from "../../lib/hooks";
+import { useBoxScore, useGamePlays, useStrParam, useTitle } from "../../lib/hooks";
 import { weekLabel } from "../../lib/format";
 import { passerRating } from "../../lib/rating";
 import { friendlyError } from "../../lib/api";
@@ -426,9 +427,43 @@ function BoxScoreTab({ box }: { box: BoxScore }) {
   );
 }
 
+// ---- Plays (field view) ---------------------------------------------------------
+
+function PlaysTab({ gameId }: { gameId: string }) {
+  const { data, error, loading } = useGamePlays(gameId);
+  if (loading && !data) {
+    return <div className="yb-skel" style={{ height: 420, borderRadius: "var(--r-xl)" }} />;
+  }
+  if (error) {
+    return (
+      <div className="yb-state error" role="alert">
+        <h2>Couldn’t load the plays</h2>
+        <p>{friendlyError(error)}</p>
+      </div>
+    );
+  }
+  if (!data || data.plays.length === 0) {
+    return (
+      <div className="yb-state">
+        <h2>No play-by-play yet</h2>
+        <p>
+          nflverse publishes a game’s plays after it ends, and the warehouse picks them up on
+          its next ingest. Box score and summary are above.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <Surface as="section" className="yb-game-plays" aria-label="Play by play">
+      <h2>Play by Play</h2>
+      <FieldView data={data} />
+    </Surface>
+  );
+}
+
 // ---- The screen -----------------------------------------------------------------
 
-export function GameExperience({ tab }: { tab: "summary" | "box" }) {
+export function GameExperience({ tab }: { tab: "summary" | "box" | "plays" }) {
   const params = useParams<{ gameId: string }>();
   const gameId = params?.gameId ? decodeURIComponent(params.gameId) : undefined;
   const { data: box, error, loading } = useBoxScore(gameId);
@@ -479,6 +514,9 @@ export function GameExperience({ tab }: { tab: "summary" | "box" }) {
             <Link href={`/games/${encodeURIComponent(box.game_id)}/box`} aria-current={tab === "box" ? "true" : undefined}>
               Box Score
             </Link>
+            <Link href={`/games/${encodeURIComponent(box.game_id)}/plays`} aria-current={tab === "plays" ? "true" : undefined}>
+              Plays
+            </Link>
           </nav>
 
           {tab === "summary" ? (
@@ -489,8 +527,10 @@ export function GameExperience({ tab }: { tab: "summary" | "box" }) {
               <ScoringLog box={box} />
               <GameInfo box={box} />
             </div>
-          ) : (
+          ) : tab === "box" ? (
             <BoxScoreTab box={box} />
+          ) : (
+            <PlaysTab gameId={box.game_id} />
           )}
         </>
       )}

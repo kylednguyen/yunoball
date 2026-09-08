@@ -435,6 +435,71 @@ export interface BoxScore {
   away: BoxScoreTeam;
 }
 
+// ---- Play-by-play (field view) ----
+
+/** One play with the geometry needed to draw it. Field position is always
+ * in the offense's frame: `yardline_100` is yards to the goal line the
+ * possession team is driving toward, so the line of scrimmage sits at
+ * 100 − yardline_100 yards from its own goal line. Passes land `air_yards`
+ * past the line, then run `yards_after_catch`; the total is `yards_gained`. */
+export interface GamePlay {
+  play_id: string;
+  /** nflverse play number within the game — ordering key. */
+  play_no: number;
+  drive: number | null;
+  qtr: number | null;
+  down: number | null;
+  ydstogo: number | null;
+  /** Game clock at the snap, "MM:SS". */
+  clock: string | null;
+  posteam: string | null;
+  defteam: string | null;
+  yardline_100: number | null;
+  /** pass | run | punt | kickoff | field_goal | extra_point | qb_kneel |
+   * qb_spike | no_play */
+  play_type: string | null;
+  yards_gained: number | null;
+  air_yards: number | null;
+  yards_after_catch: number | null;
+  pass_length: "short" | "deep" | null;
+  pass_location: "left" | "middle" | "right" | null;
+  run_location: "left" | "middle" | "right" | null;
+  run_gap: "end" | "tackle" | "guard" | null;
+  complete_pass: boolean;
+  interception: boolean;
+  sack: boolean;
+  scramble: boolean;
+  touchdown: boolean;
+  fumble_lost: boolean;
+  first_down: boolean;
+  penalty: boolean;
+  field_goal_result: string | null;
+  kick_distance: number | null;
+  passer: string | null;
+  rusher: string | null;
+  receiver: string | null;
+  passer_id: string | null;
+  rusher_id: string | null;
+  receiver_id: string | null;
+  /** Score after the play. */
+  home_score: number | null;
+  away_score: number | null;
+  epa: number | null;
+  description: string | null;
+}
+
+export interface GamePlaysResponse {
+  game_id: string;
+  season: number;
+  week: number;
+  home: GameTeam;
+  away: GameTeam;
+  /** Chronological. Empty when the game's play-by-play isn't ingested yet
+   * (nflverse publishes it after the game, and the warehouse loads it on the
+   * next ingest) — the UI says so rather than drawing nothing silently. */
+  plays: GamePlay[];
+}
+
 /** One touchdown event from the scoring log. */
 export interface ScoringPlay {
   game_id: string;

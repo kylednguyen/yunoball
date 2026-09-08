@@ -10,7 +10,7 @@
 | `/` | Home: search box + dashboard (score ticker, top performers, standings snapshot, leaders) | `/api/games`, `/api/games/performers`, `/api/standings`, `/api/leaderboards` |
 | `/a/[shareId]` | Persisted answer page (the shareable result) | `GET /api/search/answer/:shareId` |
 | `/scores` | Week-by-week finals with season/week pickers | `/api/games` |
-| `/games/[gameId]` | Box score — both teams' player stat lines | `/api/games/:gameId/boxscore` |
+| `/games/[gameId]` | Game summary; `/box` the full box score; `/plays` the field view — every play drawn on the field with a stepper and drive list | `/api/games/:gameId/boxscore`, `/api/games/:gameId/plays` |
 | `/standings` | Conference → division standings, season picker | `/api/standings` |
 | `/leaderboards` | Season stat leader boards (dense tables) | `/api/leaderboards` |
 | `/leaders` | Leaders overview | `/api/leaderboards` |

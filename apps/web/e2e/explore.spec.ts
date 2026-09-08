@@ -117,6 +117,46 @@ test.describe("explore", () => {
     await expect(page.getByRole("heading", { name: "Scoring Log" })).toBeVisible();
   });
 
+  test("the plays tab draws each play on the field and steps through the game", async ({ page }) => {
+    // Super Bowl LIX — PHI 40, KC 22. Every play comes from nflverse pbp.
+    await page.goto("/games/2024_22_KC_PHI/plays");
+    await expect(page.getByRole("link", { name: "Plays" })).toHaveAttribute("aria-current", "true");
+    const field = page.locator("svg.yb-field");
+    await expect(field).toBeVisible();
+
+    // The drive list is the numbers beside the picture: every play, grouped.
+    const drives = page.locator(".yb-field-drive");
+    expect(await drives.count()).toBeGreaterThan(10);
+    const rows = page.locator(".yb-field-row");
+    expect(await rows.count()).toBeGreaterThan(120);
+
+    // Pick a completed pass by its recorded text and check the drawing:
+    // an arc to the catch point, a catch mark, and the scoreline is real.
+    const completion = rows.filter({ hasText: /pass .* to .* for \d+ yards/ }).first();
+    await completion.click();
+    await expect(completion).toHaveAttribute("aria-pressed", "true");
+    await expect(field.locator(".yb-field-arc:not(.is-incomplete)")).toHaveCount(1);
+    await expect(field.locator(".yb-field-catch")).toHaveCount(1);
+    await expect(field.locator(".yb-field-los")).toHaveCount(1);
+    await expect(page.locator(".yb-field-scoreline")).toContainText("KC");
+    await expect(page.locator(".yb-field-scoreline")).toContainText("PHI");
+
+    // A run draws as an arrow, and the caption carries the yardage.
+    // nflverse writes runs as "S.Barkley left tackle to KC 44 for 4 yards" or
+    // "… up the middle to …".
+    const run = rows.filter({ hasText: /((left|right) (end|tackle|guard)|up the middle) to [A-Z]+ \d+ for -?\d+ yard/ }).first();
+    await run.click();
+    await expect(field.locator(".yb-field-run")).toHaveCount(1);
+    await expect(page.locator(".yb-field-yards")).toContainText(/yds?/);
+
+    // The stepper walks the same list; the final play carries the final score.
+    await page.getByRole("button", { name: "Next play" }).click();
+    await expect(page.locator(".yb-field-count")).toContainText(/Play \d+ of \d+/);
+    await rows.last().click();
+    await expect(page.locator(".yb-field-scoreline")).toContainText("40");
+    await expect(page.locator(".yb-field-scoreline")).toContainText("22");
+  });
+
   test("fantasy page labels production honestly and exposes explicit optimizer", async ({ page }) => {
     await page.goto("/fantasy?season=2023");
 

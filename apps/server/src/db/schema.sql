@@ -304,3 +304,52 @@ CREATE INDEX IF NOT EXISTS pss_team_season_idx
     ON player_season_stats (team_id, season);
 CREATE INDEX IF NOT EXISTS games_season_type_idx
     ON games (season, season_type);
+
+-- Every play, with the geometry the field view draws from. Kept alongside
+-- scoring_plays (which stays the small TD-only table the engine queries):
+-- ~50k rows/season, indexed by game so a game page reads one slice.
+-- yardline_100 is in the offense's frame (yards to the goal line the
+-- possession team is driving toward), matching nflverse.
+CREATE TABLE IF NOT EXISTS plays (
+    play_id            varchar PRIMARY KEY,  -- game_id + play number
+    game_id            varchar NOT NULL REFERENCES games (game_id),
+    play_no            integer NOT NULL,     -- nflverse play_id: ordering key
+    drive              smallint,
+    qtr                smallint,
+    down               smallint,
+    ydstogo            smallint,
+    clock              varchar,              -- "MM:SS" at the snap
+    seconds_remaining  integer,              -- in the game
+    posteam            varchar,              -- current-franchise ids, no FK: kickoffs
+    defteam            varchar,              --   and no_play rows can carry neither
+    yardline_100       smallint,
+    play_type          varchar,
+    yards_gained       smallint,
+    air_yards          smallint,
+    yards_after_catch  smallint,
+    pass_length        varchar,              -- short | deep
+    pass_location      varchar,              -- left | middle | right
+    run_location       varchar,              -- left | middle | right
+    run_gap            varchar,              -- end | tackle | guard
+    complete_pass      boolean NOT NULL DEFAULT false,
+    interception       boolean NOT NULL DEFAULT false,
+    sack               boolean NOT NULL DEFAULT false,
+    scramble           boolean NOT NULL DEFAULT false,
+    touchdown          boolean NOT NULL DEFAULT false,
+    fumble_lost        boolean NOT NULL DEFAULT false,
+    first_down         boolean NOT NULL DEFAULT false,
+    penalty            boolean NOT NULL DEFAULT false,
+    field_goal_result  varchar,
+    kick_distance      smallint,
+    passer_player_id   varchar,              -- gsis ids, no FK: the pbp names
+    rusher_player_id   varchar,              --   players the dimension may lack
+    receiver_player_id varchar,
+    passer_name        varchar,
+    rusher_name        varchar,
+    receiver_name      varchar,
+    home_score         smallint,             -- score after the play
+    away_score         smallint,
+    epa                real,
+    description        text
+);
+CREATE INDEX IF NOT EXISTS plays_game_idx ON plays (game_id, play_no);

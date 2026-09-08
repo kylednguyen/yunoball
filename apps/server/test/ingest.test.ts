@@ -128,6 +128,13 @@ function pbp(over: Record<string, string>) {
     pass_touchdown: "0", rush_touchdown: "0", return_touchdown: "0", interception: "0",
     qtr: "1", play_type: "run", desc: "", epa: "", success: "", cpoe: "", drive: "",
     passer_player_id: "", rusher_player_id: "", receiver_player_id: "",
+    down: "", ydstogo: "", yardline_100: "", time: "", game_seconds_remaining: "",
+    defteam: "", air_yards: "", yards_after_catch: "", pass_length: "",
+    pass_location: "", run_location: "", run_gap: "", complete_pass: "",
+    sack: "", qb_scramble: "", fumble_lost: "", first_down: "", penalty: "",
+    field_goal_result: "", kick_distance: "", passer_player_name: "",
+    rusher_player_name: "", receiver_player_name: "",
+    total_home_score: "", total_away_score: "",
     ...over,
   };
 }
@@ -159,6 +166,28 @@ const PBP_CSV = [
   // Scorer not in the players dimension — dropped loudly, no FK violation.
   pbp({ play_id: "70", td_player_id: "P_GHOST", td_team: "KC",
     rush_touchdown: "1", yards_gained: "8", desc: "Ghost TD." }),
+  // ---- Non-scoring plays, for the field view ----
+  // The game-start marker: no play_type, so it is not a play.
+  pbp({ play_id: "1", touchdown: "0", play_type: "", posteam: "", time: "15:00",
+    game_seconds_remaining: "3600", total_home_score: "0", total_away_score: "0" }),
+  // A completed pass: 9 in the air, 6 after the catch, first down.
+  pbp({ play_id: "80", touchdown: "0", play_type: "pass", posteam: "OAK", defteam: "KC",
+    drive: "2", qtr: "1", down: "2", ydstogo: "9", yardline_100: "76", time: "10:07",
+    game_seconds_remaining: "3307", yards_gained: "15", air_yards: "9",
+    yards_after_catch: "6", pass_length: "short", pass_location: "middle",
+    complete_pass: "1", first_down: "1", passer_player_id: "P_ADAMS",
+    passer_player_name: "D.Adams", receiver_player_id: "P_MAHOMES",
+    receiver_player_name: "P.Mahomes", total_home_score: "7", total_away_score: "0",
+    epa: "1.234", desc: "D.Adams pass short middle to P.Mahomes for 15 yards." }),
+  // A run off left tackle for a loss.
+  pbp({ play_id: "90", touchdown: "0", play_type: "run", posteam: "OAK", defteam: "KC",
+    drive: "2", qtr: "1", down: "1", ydstogo: "10", yardline_100: "61", time: "09:30",
+    yards_gained: "-2", run_location: "left", run_gap: "tackle",
+    rusher_player_id: "P_ADAMS", rusher_player_name: "D.Adams",
+    total_home_score: "7", total_away_score: "0", desc: "D.Adams left tackle for -2 yards." }),
+  // A game whose schedule row isn't loaded — dropped loudly.
+  pbp({ play_id: "5", game_id: "2023_01_GHOST_KC", touchdown: "0", play_type: "run",
+    yardline_100: "50" }),
 ];
 
 // Seasons the fake upstream has not published — set per test to exercise the
@@ -381,6 +410,46 @@ describe("scoring plays (pbp distillation)", () => {
       { play_id: "2023_01_OAK_KC_60", player_id: "P_MAHOMES", yards: 3, td_kind: "other" },
     ]);
     expect(ctx.skipped.get("scoring_plays: scorer not in players dimension")).toBe(1);
+  });
+});
+
+describe("plays (field geometry)", () => {
+  it("stores every real play with its geometry and skips the non-plays", async () => {
+    const ctx = new Ctx(pool);
+    await loadAll(ctx);
+    const n = await p.loadPlays(ctx, [2023]);
+    // Seven TD fixtures + the pass + the run; the game-start marker has no
+    // play_type and the ghost game has no schedule row.
+    expect(n).toBe(9);
+    expect(ctx.skipped.get("plays: game not ingested (run games first)")).toBe(1);
+
+    const rows = await all(
+      `SELECT play_no, play_type, posteam, defteam, yardline_100, yards_gained, air_yards,
+              yards_after_catch, pass_location, run_location, run_gap, complete_pass,
+              first_down, passer_name, receiver_name, rusher_name, home_score, away_score,
+              clock, epa
+       FROM plays WHERE play_no IN (80, 90) ORDER BY play_no`,
+    );
+    expect(rows).toEqual([
+      {
+        play_no: 80, play_type: "pass", posteam: "LV", defteam: "KC", yardline_100: 76,
+        yards_gained: 15, air_yards: 9, yards_after_catch: 6, pass_location: "middle",
+        run_location: null, run_gap: null, complete_pass: true, first_down: true,
+        passer_name: "D.Adams", receiver_name: "P.Mahomes", rusher_name: null,
+        home_score: 7, away_score: 0, clock: "10:07", epa: 1.234,
+      },
+      {
+        play_no: 90, play_type: "run", posteam: "LV", defteam: "KC", yardline_100: 61,
+        yards_gained: -2, air_yards: null, yards_after_catch: null, pass_location: null,
+        run_location: "left", run_gap: "tackle", complete_pass: false, first_down: false,
+        passer_name: null, receiver_name: null, rusher_name: "D.Adams",
+        home_score: 7, away_score: 0, clock: "09:30", epa: null,
+      },
+    ]);
+    // Ordering key is the pbp play number, and the slice is per game.
+    const order = (await all("SELECT play_no FROM plays WHERE game_id = '2023_01_OAK_KC' ORDER BY play_no"))
+      .map((r) => r.play_no);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 });
 

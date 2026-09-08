@@ -20,6 +20,7 @@ in the same commit. A canonical doc that drifts is worse than no doc.
 | Schema, ingest, warehouse tables       | [docs/BACKEND_SCHEMA.md](docs/BACKEND_SCHEMA.md) |
 | Structure, module boundaries           | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)     |
 | Deploys, hosting, env                  | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)         |
+| Play-by-play, the field view, live data | [docs/PLAY_VIEW.md](docs/PLAY_VIEW.md)          |
 | Scope, product decisions               | [docs/PRD.md](docs/PRD.md)                       |
 
 ## Hard invariants (the ones that break things)

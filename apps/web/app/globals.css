@@ -4595,3 +4595,268 @@ a.yb-game-team:hover {
     grid-column: 1 / -1;
   }
 }
+
+/* ---- Field view (game page › Plays) -------------------------------------
+   The field is drawn in neutral surfaces — turf is a raised surface, lines
+   are the strong border, end zones the soft surface — so it sits inside the
+   quiet theme. Only the marks carry colour: the possession team's --chart
+   (scoped by teamTheme on the stage), semantic success/danger for outcomes,
+   and the accent for the line to gain. */
+.yb-field-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.yb-field-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.yb-field-scoreline {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+.yb-field-scoreline .yb-field-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+}
+.yb-field-scoreline .yb-field-team:last-child {
+  justify-content: flex-end;
+}
+.yb-field-scoreline strong {
+  font-size: var(--fs-body-lg);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.yb-field-situation {
+  text-align: center;
+  white-space: nowrap;
+}
+.yb-field {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.yb-field-num text {
+  fill: var(--faint);
+  opacity: 0.35;
+  font-size: 34px; /* SVG user units, not a type-scale size */
+  font-weight: 750;
+  text-anchor: middle;
+}
+.yb-field-direction {
+  fill: var(--accent-ink);
+  font-size: 22px; /* SVG user units */
+  font-weight: 700;
+}
+.yb-field-los {
+  stroke: var(--text);
+  stroke-width: 3;
+  opacity: 0.7;
+}
+.yb-field-ltg {
+  stroke: var(--accent);
+  stroke-width: 3;
+  opacity: 0.85;
+}
+.yb-field-ball {
+  fill: var(--text);
+}
+.yb-field-arc,
+.yb-field-run,
+.yb-field-yac,
+.yb-field-kick {
+  fill: none;
+  stroke: var(--chart);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* Draw-in: the path is dashed to its own length and the offset unwinds. */
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: yb-field-draw 700ms var(--ease) forwards;
+}
+.yb-field-arc.is-incomplete {
+  stroke-dasharray: 10 12;
+  stroke-dashoffset: 0;
+  animation: none;
+  opacity: 0.6;
+}
+.yb-field-arc.is-picked {
+  stroke: var(--danger);
+  opacity: 0.9;
+}
+.yb-field-run.is-loss {
+  stroke: var(--danger);
+}
+.yb-field-yac {
+  stroke-width: 4;
+  animation-delay: 300ms;
+}
+.yb-field-kick {
+  stroke-width: 3;
+  stroke-dasharray: 6 8;
+  stroke-dashoffset: 0;
+  animation: none;
+  opacity: 0.7;
+}
+.yb-field-kick.is-good {
+  stroke: var(--success);
+}
+.yb-field-kick.is-miss {
+  stroke: var(--danger);
+}
+.yb-field-catch {
+  fill: var(--chart);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+.yb-field-catch.is-miss {
+  fill: var(--bg-soft);
+  stroke: var(--chart);
+}
+.yb-field-catch.is-picked {
+  fill: var(--danger);
+}
+@keyframes yb-field-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yb-field-arc,
+  .yb-field-run,
+  .yb-field-yac {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+.yb-field-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-height: 28px;
+}
+.yb-field-caption .yb-badge {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+.yb-field-yards {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.yb-field-who {
+  color: var(--muted);
+}
+.yb-field-desc {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+.yb-field-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.yb-field-count {
+  font-size: var(--fs-small);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.yb-field-drives {
+  max-height: 420px;
+  overflow-y: auto;
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  padding: 4px 0;
+}
+.yb-field-drive h3 {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px 6px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  background: var(--bg-soft);
+}
+.yb-field-row {
+  display: grid;
+  grid-template-columns: 68px 58px minmax(0, 1fr) 56px;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  padding: 7px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-small);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.yb-field-row:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.yb-field-row.is-on {
+  background: var(--elevated);
+  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--chart);
+}
+.yb-field-row .dd,
+.yb-field-row .sp {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.yb-field-row .tx {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yb-field-row .yd {
+  text-align: right;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.yb-field-row.is-success .yd {
+  color: var(--success);
+}
+.yb-field-row.is-danger .yd,
+.yb-field-row.is-danger .tx {
+  color: var(--danger-text);
+}
+.yb-field-note {
+  margin: 0;
+  font-size: var(--fs-caption);
+  color: var(--faint);
+}
+@media (max-width: 640px) {
+  .yb-field-row {
+    grid-template-columns: 58px minmax(0, 1fr) 48px;
+  }
+  .yb-field-row .sp {
+    display: none;
+  }
+  .yb-field-situation {
+    white-space: normal;
+  }
+}

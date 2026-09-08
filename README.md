@@ -7,7 +7,10 @@ from one authoritative warehouse that shows you the exact query behind every
 answer.
 
 - **Search** — ask anything; answers come from typed QuerySpecs, never hallucinated
-- **Scores & Results** (`/scores`) — week-by-week finals
+- **Scores & Results** (`/scores`) — week-by-week finals; every game has a
+  summary, a box score and a **Plays** tab that draws each play on the field
+  from nflverse play-by-play (see `docs/PLAY_VIEW.md` for why it is a replay,
+  not a live feed)
 - **Standings** (`/standings`) — W-L, points, streaks, computed live from game results
 - **Leaders** (`/leaders`) — season leaders as dense stat tables, filterable by
   team and position, plus whole-league team rankings

@@ -26,7 +26,7 @@ const FIRST_SEASON = 1999;
 const STEPS = [
   "teams", "seasons", "players", "player_ids", "rosters", "games",
   "player_game_stats", "player_season_stats", "team_game_stats",
-  "scoring_plays", "draft_picks",
+  "scoring_plays", "plays", "draft_picks",
 ] as const;
 type Step = (typeof STEPS)[number];
 
@@ -106,6 +106,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     player_season_stats: () => p.loadPlayerSeasonStats(ctx, years),
     team_game_stats: () => p.loadTeamGameStats(ctx, years),
     scoring_plays: () => p.loadScoringPlays(ctx, years),
+    plays: () => p.loadPlays(ctx, years),
     draft_picks: () => p.loadDraftPicks(ctx),
   };
 

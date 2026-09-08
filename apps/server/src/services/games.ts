@@ -1,6 +1,6 @@
 /** Scores & results by season/week, plus performers of the week. */
 
-import type { GamesResponse, PerformersResponse } from "@yunoball/types";
+import type { GamePlay, GamePlaysResponse, GamesResponse, PerformersResponse } from "@yunoball/types";
 import { q } from "../db/pool.js";
 import { ApiError } from "../lib/errors.js";
 import { headshotUrl } from "../lib/espn.js";
@@ -306,5 +306,103 @@ export async function getBoxScore(gameId: string): Promise<BoxScore> {
     }),
     home: side(g.home_team, g.home_name, g.home_nick, g.home_score),
     away: side(g.away_team, g.away_name, g.away_nick, g.away_score),
+  };
+}
+
+/** Every play of one game, chronological, with the geometry the field view
+ * draws from. An ingested game with no plays yet returns an empty list — the
+ * client says so; it must not be a 404, which would read as "no such game". */
+export async function getGamePlays(gameId: string): Promise<GamePlaysResponse> {
+  const games = await q<{
+    game_id: string; season: number; week: number;
+    home_team: string; home_name: string; home_nick: string | null; home_score: number | null;
+    away_team: string; away_name: string; away_nick: string | null; away_score: number | null;
+  }>(
+    `SELECT g.game_id, g.season, g.week,
+            g.home_team, ht.name AS home_name, ht.nickname AS home_nick, g.home_score,
+            g.away_team, aw.name AS away_name, aw.nickname AS away_nick, g.away_score
+     FROM games g
+     JOIN teams ht ON ht.team_id = g.home_team
+     JOIN teams aw ON aw.team_id = g.away_team
+     WHERE g.game_id = $1`,
+    [gameId],
+  );
+  const g = games[0];
+  if (!g) throw new ApiError(404, "Game not found.");
+
+  const rows = await q<{
+    play_id: string; play_no: number; drive: number | null; qtr: number | null;
+    down: number | null; ydstogo: number | null; clock: string | null;
+    posteam: string | null; defteam: string | null; yardline_100: number | null;
+    play_type: string | null; yards_gained: number | null; air_yards: number | null;
+    yards_after_catch: number | null; pass_length: GamePlay["pass_length"];
+    pass_location: GamePlay["pass_location"]; run_location: GamePlay["run_location"];
+    run_gap: GamePlay["run_gap"]; complete_pass: boolean; interception: boolean;
+    sack: boolean; scramble: boolean; touchdown: boolean; fumble_lost: boolean;
+    first_down: boolean; penalty: boolean; field_goal_result: string | null;
+    kick_distance: number | null; passer_name: string | null; rusher_name: string | null;
+    receiver_name: string | null; passer_player_id: string | null;
+    rusher_player_id: string | null; receiver_player_id: string | null;
+    home_score: number | null; away_score: number | null; epa: number | null;
+    description: string | null;
+  }>(
+    `SELECT play_id, play_no, drive, qtr, down, ydstogo, clock, posteam, defteam,
+            yardline_100, play_type, yards_gained, air_yards, yards_after_catch,
+            pass_length, pass_location, run_location, run_gap, complete_pass,
+            interception, sack, scramble, touchdown, fumble_lost, first_down, penalty,
+            field_goal_result, kick_distance, passer_name, rusher_name, receiver_name,
+            passer_player_id, rusher_player_id, receiver_player_id,
+            home_score, away_score, epa, description
+     FROM plays WHERE game_id = $1
+     ORDER BY play_no`,
+    [gameId],
+  );
+
+  return {
+    game_id: g.game_id,
+    season: g.season,
+    week: g.week,
+    home: { team_id: g.home_team, name: g.home_name, nickname: g.home_nick, score: g.home_score },
+    away: { team_id: g.away_team, name: g.away_name, nickname: g.away_nick, score: g.away_score },
+    plays: rows.map((r) => ({
+      play_id: r.play_id,
+      play_no: r.play_no,
+      drive: r.drive,
+      qtr: r.qtr,
+      down: r.down,
+      ydstogo: r.ydstogo,
+      clock: r.clock,
+      posteam: r.posteam,
+      defteam: r.defteam,
+      yardline_100: r.yardline_100,
+      play_type: r.play_type,
+      yards_gained: r.yards_gained,
+      air_yards: r.air_yards,
+      yards_after_catch: r.yards_after_catch,
+      pass_length: r.pass_length,
+      pass_location: r.pass_location,
+      run_location: r.run_location,
+      run_gap: r.run_gap,
+      complete_pass: r.complete_pass,
+      interception: r.interception,
+      sack: r.sack,
+      scramble: r.scramble,
+      touchdown: r.touchdown,
+      fumble_lost: r.fumble_lost,
+      first_down: r.first_down,
+      penalty: r.penalty,
+      field_goal_result: r.field_goal_result,
+      kick_distance: r.kick_distance,
+      passer: r.passer_name,
+      rusher: r.rusher_name,
+      receiver: r.receiver_name,
+      passer_id: r.passer_player_id,
+      rusher_id: r.rusher_player_id,
+      receiver_id: r.receiver_player_id,
+      home_score: r.home_score,
+      away_score: r.away_score,
+      epa: r.epa == null ? null : round(r.epa, 3),
+      description: r.description,
+    })),
   };
 }
