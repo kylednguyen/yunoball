@@ -1727,6 +1727,7 @@ table.yb-table th.num .yb-th-sort {
 }
 .yb-player-profile .yb-avatar.portrait.fallback {
   aspect-ratio: 3400 / 2450;
+  font-size: var(--fs-hero); /* the preset's width-scaled initials run large in a wide box */
 }
 .yb-player-profile .yb-entity-hero-copy {
   order: 1;

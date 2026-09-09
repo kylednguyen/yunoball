@@ -19,7 +19,10 @@ const HEADSHOT_SCALES: Record<
   card: { width: 52, height: 52, variant: "avatar" },
   feature: { width: 68, height: 68, variant: "avatar" },
   comparison: { width: 72, height: 72, variant: "avatar" },
-  profile: { width: 196, height: 246, variant: "portrait" },
+  // nflverse headshots are 3400 × 2450 — wider than tall. The preset carries
+  // that ratio so the <img> box is right before the bytes arrive, and the
+  // initials fallback is the same box as the image it stands in for.
+  profile: { width: 300, height: 216, variant: "portrait" },
 };
 
 /** Resize at the CDN edge instead of shipping the full source image — the
