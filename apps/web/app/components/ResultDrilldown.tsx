@@ -37,7 +37,12 @@ export function ResultDrilldown({ result, leaderboard }: { result: AnswerResult;
 
   return (
     <section className="yb-result-drilldown" aria-label="Result">
-      <div className="yb-result-leaders" aria-label={leaders.length > 1 ? "Tied leaders" : "Leader"}>
+      {/* A section, not a div: an aria-label on a div names nothing, so the
+          "tied leaders" framing never reached assistive tech. */}
+      <section
+        className="yb-result-leaders"
+        aria-label={leaders.length > 1 ? "Tied leaders" : "Leader"}
+      >
         {leaders.map((row) => {
           const id = String(row.player_id);
           const profile = profileById.get(id);
@@ -59,7 +64,7 @@ export function ResultDrilldown({ result, leaderboard }: { result: AnswerResult;
             </article>
           );
         })}
-      </div>
+      </section>
       <div className="yb-result-ranked-table">{leaderboard}</div>
     </section>
   );

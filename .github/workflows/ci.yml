@@ -63,14 +63,25 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
-      # Real nflverse data — the e2e suite asserts facts from 2022 (Mahomes'
-      # QB1 season), 2023 (leaders, standings, scores) and 2024 (season
-      # switch), so ingest exactly that window. A few MB per season.
-      - run: pnpm ingest:nfl --season 2022 --season 2023 --season 2024
+      # Real nflverse data, the whole warehouse — the same shape production
+      # runs on. The suite asserts career-spanning facts (Brady's 23 seasons,
+      # Manning's 2013 record) that a three-season window cannot produce, and
+      # a narrower CI warehouse would only prove the UI works on data no user
+      # will ever see. ~8 minutes. The per-play table is the one step that
+      # costs as much again (~18 s a season), and the suite only draws one
+      # 2024 game, so it loads that season alone.
+      - run: pnpm ingest:nfl --all --skip plays
+      - run: pnpm ingest:nfl --season 2024 --only plays
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
+      # The suite runs against the production build, not `next dev` — see the
+      # webServer note in playwright.config.ts. The origin is baked in at build
+      # time and the build refuses to run without one.
+      - run: pnpm build:web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
       # Playwright boots both servers itself (playwright.config.ts webServer):
-      # the Express API on :4000 and next dev on :3000.
+      # the Express API on :4000 and `next start` on :3000.
       - run: pnpm e2e
         working-directory: apps/web
       - uses: actions/upload-artifact@v4

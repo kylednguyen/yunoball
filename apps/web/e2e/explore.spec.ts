@@ -5,7 +5,7 @@ test.describe("explore", () => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Primary" });
     await expect(nav.getByText("Sports", { exact: true })).toBeVisible();
-    for (const label of ["NFL", "Scores", "Glossary", "Fantasy Builder AI"]) {
+    for (const label of ["NFL", "Scores", "Glossary", "Fantasy Builder"]) {
       await expect(nav.getByRole("link", { name: label, exact: true })).toBeVisible();
     }
     for (const removed of ["Search", "Teams", "Standings", "Leaders", "Fantasy", "Assistant"]) {
@@ -13,7 +13,7 @@ test.describe("explore", () => {
     }
     await expect(page.getByRole("heading", { name: "Performers of the week" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Division leaders" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Top fantasy performers" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Fantasy Leaders" })).toBeVisible();
   });
 
   test("team list drills into a season-aware team page and out to a player", async ({ page }) => {
@@ -26,10 +26,10 @@ test.describe("explore", () => {
     await expect(page.getByRole("region", { name: "San Francisco 49ers profile" })).toContainText(
       "12-5",
     );
-    await expect(page.getByText("Team leaders")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Team Leaders" })).toBeVisible();
 
     // Leaders card → player page, carrying the season along.
-    await page.locator(".yb-leader-card").first().click();
+    await page.locator(".yb-team-leader").first().click();
     await expect(page).toHaveURL(/\/players\/.+season=2023/);
   });
 
@@ -47,7 +47,7 @@ test.describe("explore", () => {
 
   test("standings rows link to team pages with the season preserved", async ({ page }) => {
     await page.goto("/standings?season=2023");
-    await page.getByRole("link", { name: /Buffalo Bills/ }).click();
+    await page.getByRole("link", { name: /Bills/ }).first().click();
 
     await expect(page).toHaveURL(/\/teams\/BUF\?season=2023/);
     await expect(page.locator(".yb-entity-hero")).toContainText("11-6");
@@ -58,9 +58,12 @@ test.describe("explore", () => {
     await expect(page.getByRole("heading", { name: "League Leaders" })).toBeVisible();
 
     await page.getByRole("button", { name: "Select leaderboard category" }).click();
-    await page.getByRole("option", { name: "Rushing Yards" }).click();
-    await page.getByRole("button", { name: "Filter by position" }).click();
-    await page.getByRole("option", { name: "RB" }).click();
+    // Board labels come from the API, which cases them as sentences.
+    await page.getByRole("option", { name: "Rushing yards" }).click();
+    await page
+      .getByRole("group", { name: "Filter by position" })
+      .getByRole("button", { name: "RB", exact: true })
+      .click();
     await expect(page.locator(".yb-board-top")).toContainText("Christian McCaffrey");
 
     await page.getByRole("button", { name: "Select leaderboard category" }).click();
@@ -107,9 +110,64 @@ test.describe("explore", () => {
     expect(winnerTheme.accent).not.toBe("");
 
     await firstFinal.getByRole("link", { name: "Full box score" }).click();
-    await expect(page.locator(".yb-boxscore-summary")).toBeVisible();
-    await expect(page.locator(".yb-boxscore-summary .yb-boxscore-row")).toHaveCount(2);
-    await expect(page.locator(".yb-team-box")).toHaveCount(2);
+    const gameHead = page.locator(".yb-game-head");
+    await expect(gameHead).toBeVisible();
+    await expect(gameHead.locator(".yb-game-team-row")).toHaveCount(2);
+    await expect(page.getByRole("heading", { name: "Team Comparison" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Scoring Log" })).toBeVisible();
+  });
+
+  test("the plays tab condenses the game into drives and draws each play", async ({ page }) => {
+    // Super Bowl LIX — PHI 40, KC 22. Every play comes from nflverse pbp.
+    await page.goto("/games/2024_22_KC_PHI/plays");
+    await expect(page.getByRole("link", { name: "Plays" })).toHaveAttribute("aria-current", "true");
+    const field = page.locator("svg.yb-field");
+    await expect(field).toBeVisible();
+
+    // One tab per drive, each carrying how it ended; only the active drive's
+    // plays are listed, with the drive's own numbers in its heading.
+    const tabs = page.getByRole("tablist", { name: "Drives" }).getByRole("tab");
+    expect(await tabs.count()).toBeGreaterThan(10);
+    await expect(tabs.filter({ hasText: "Touchdown" }).first()).toBeVisible();
+    const panel = page.getByRole("tabpanel");
+    await expect(panel.locator("h3")).toContainText(/\d+ plays? · -?\d+ yds?/);
+    const rows = panel.locator(".yb-field-row");
+    expect(await rows.count()).toBeLessThan(30);
+
+    // Open touchdown drives until one holds a completed pass, then pick it by
+    // its recorded text: an arc to the catch point, a catch mark, a real
+    // scoreline. (A drive can score on the ground alone.)
+    const completion = rows.filter({ hasText: /pass .* to .* for \d+ yards/ }).first();
+    const tdTabs = tabs.filter({ hasText: "Touchdown" });
+    for (let t = 0; t < (await tdTabs.count()); t++) {
+      await tdTabs.nth(t).click();
+      await expect(panel.locator("h3")).toContainText("Touchdown");
+      if ((await completion.count()) > 0) break;
+    }
+    await completion.click();
+    await expect(completion).toHaveAttribute("aria-pressed", "true");
+    await expect(field.locator(".yb-field-arc:not(.is-incomplete)")).toHaveCount(1);
+    await expect(field.locator(".yb-field-catch")).toHaveCount(1);
+    await expect(field.locator(".yb-field-los")).toHaveCount(1);
+    await expect(page.locator(".yb-field-scoreline")).toContainText("KC");
+    await expect(page.locator(".yb-field-scoreline")).toContainText("PHI");
+
+    // A run draws as an arrow, and the caption carries the yardage. nflverse
+    // writes runs as "S.Barkley left tackle to KC 44 for 4 yards".
+    const run = rows.filter({ hasText: /((left|right) (end|tackle|guard)|up the middle) to [A-Z]+ \d+ for -?\d+ yard/ }).first();
+    await run.click();
+    await expect(field.locator(".yb-field-run")).toHaveCount(1);
+    await expect(page.locator(".yb-field-yards")).toContainText(/yds?/);
+
+    // The stepper walks every play and the active tab follows it across a
+    // drive boundary; the last drive's last play carries the final score.
+    await page.getByRole("button", { name: "Next play" }).click();
+    await expect(page.locator(".yb-field-count")).toContainText(/Play \d+ of \d+/);
+    await tabs.last().click();
+    await panel.locator(".yb-field-row").last().click();
+    await expect(tabs.last()).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(".yb-field-scoreline")).toContainText("40");
+    await expect(page.locator(".yb-field-scoreline")).toContainText("22");
   });
 
   test("fantasy page labels production honestly and exposes explicit optimizer", async ({ page }) => {
@@ -146,7 +204,7 @@ test.describe("explore", () => {
   });
 
   test("player game logs use the player's positional stat family", async ({ page }) => {
-    await page.goto("/players/00-0036875?season=2025"); // Rhamondre Stevenson
+    await page.goto("/players/00-0036875?season=2023"); // Rhamondre Stevenson
     await page.getByRole("tab", { name: "Game Log" }).click();
     const table = page.locator("table").first();
     for (const heading of ["Carries", "Rush yds", "Rush TD", "Rec", "Rec yds", "Rec TD"]) {
@@ -163,56 +221,51 @@ test.describe("explore", () => {
     await expect(profile).toBeVisible();
     await expect(profile.getByRole("heading", { name: "Patrick Mahomes" })).toBeVisible();
     await expect(profile).toContainText("Kansas City Chiefs");
-    await expect(page.getByRole("region", { name: "2022 season summary" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Career summary" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "2022 Season Summary" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Career Summary" })).toBeVisible();
+    // Team identity rides on the accent tokens the hero publishes; the card
+    // itself stays on the app canvas and the current season's summary is the
+    // one surface painted in the team's colour.
     const themedPresentation = await page.evaluate(() => {
       const profile = document.querySelector<HTMLElement>(".yb-entity-hero")!;
       const summaries = Array.from(document.querySelectorAll<HTMLElement>(".yb-stat-summary"));
-      const headshot = profile.querySelector<HTMLImageElement>("img.yb-avatar")!;
       const media = profile.querySelector<HTMLElement>(".yb-entity-hero-media")!;
+      // The headshot is an <img> once the CDN answers and an initials <span>
+      // when it doesn't; both occupy the same portrait box, which is the part
+      // the layout depends on.
+      const headshot = profile.querySelector<HTMLElement>(".yb-avatar")!;
       const headshotRect = headshot.getBoundingClientRect();
       return {
         profileBackground: getComputedStyle(profile).backgroundColor,
         profileBorder: getComputedStyle(profile).borderTopWidth,
+        profileAccent: getComputedStyle(profile).getPropertyValue("--accent").trim(),
         summaryBackgrounds: summaries.map((summary) => getComputedStyle(summary).backgroundColor),
         summaryBorders: summaries.map((summary) => getComputedStyle(summary).borderTopWidth),
         summaryValueColor: getComputedStyle(
           summaries[0]!.querySelector(".yb-stat-summary-value")!,
         ).color,
-        headshotSrc: headshot.currentSrc || headshot.src,
+        headshotPortrait: headshot.classList.contains("portrait"),
         headshotWidth: headshotRect.width,
         headshotHeight: headshotRect.height,
-        headshotFit: getComputedStyle(headshot).objectFit,
-        headshotRadius: getComputedStyle(headshot).borderRadius,
         mediaBorder: getComputedStyle(media).borderTopWidth,
         mediaBackground: getComputedStyle(media).backgroundColor,
         mediaRadius: getComputedStyle(media).borderRadius,
       };
     });
-    expect(themedPresentation.profileBackground).toBe("rgb(227, 24, 55)");
+    expect(themedPresentation.profileBackground).toBe("rgb(10, 12, 17)");
     expect(themedPresentation.profileBorder).toBe("0px");
-    expect(themedPresentation.summaryBackgrounds).toEqual([
-      "rgb(227, 24, 55)",
-      "rgb(227, 24, 55)",
-    ]);
+    expect(themedPresentation.profileAccent).toBe("#E31837"); // Chiefs red
+    expect(themedPresentation.summaryBackgrounds[0]).toBe("rgb(227, 24, 55)");
     expect(themedPresentation.summaryBorders).toEqual(["0px", "0px"]);
     expect(themedPresentation.summaryValueColor).toBe("rgb(255, 255, 255)");
-    expect(themedPresentation.headshotSrc).toContain("w=588");
-    expect(themedPresentation.headshotSrc).not.toContain("h=");
-    expect(themedPresentation.headshotWidth).toBe(196);
-    expect(themedPresentation.headshotHeight).toBe(246);
-    expect(themedPresentation.headshotFit).toBe("contain");
-    expect(themedPresentation.headshotRadius).toBe("0px");
+    expect(themedPresentation.headshotPortrait).toBe(true);
+    // One box whether the CDN answered or the initials stood in: 300 wide at
+    // the 3400 × 2450 ratio nflverse headshots ship in (≈ 216 tall).
+    expect(themedPresentation.headshotWidth).toBe(300);
+    expect(Math.abs(themedPresentation.headshotHeight - 300 * (2450 / 3400))).toBeLessThan(1.5);
     expect(themedPresentation.mediaBorder).toBe("0px");
     expect(themedPresentation.mediaBackground).toBe("rgba(0, 0, 0, 0)");
     expect(themedPresentation.mediaRadius).toBe("0px");
-    await expect
-      .poll(() =>
-        profile.locator("img.yb-avatar").evaluate((image: HTMLImageElement) =>
-          image.complete && image.naturalWidth > 0,
-        ),
-      )
-      .toBe(true);
 
     const desktopColumns = await page.locator(".yb-profile-workspace").evaluate((node) =>
       getComputedStyle(node).gridTemplateColumns,
@@ -250,8 +303,8 @@ test.describe("explore", () => {
     }));
     expect(mobileTabs.height).toBeLessThanOrEqual(46);
     expect(Math.min(...mobileTabs.buttonHeights)).toBeGreaterThanOrEqual(44);
-    const mobileHeadshotWidth = await profile.locator("img.yb-avatar").evaluate(
-      (image) => image.getBoundingClientRect().width,
+    const mobileHeadshotWidth = await profile.locator(".yb-avatar").evaluate(
+      (node) => node.getBoundingClientRect().width,
     );
     expect(mobileHeadshotWidth).toBeGreaterThanOrEqual(110);
   });
@@ -262,39 +315,42 @@ test.describe("explore", () => {
     await page.goto("/players/00-0033873?season=2022");
     await expect(page.locator(".yb-player-profile")).toBeVisible();
 
+    // The bio grid sits below the identity card rather than inside it, so it
+    // aligns to the page gutter; the card's own season control is themed.
     const desktop = await page.evaluate(() => {
       const profile = document.querySelector<HTMLElement>(".yb-player-profile")!;
-      const copy = profile.querySelector<HTMLElement>(".yb-entity-hero-copy")!;
-      const details = profile.querySelector<HTMLElement>(".yb-info-grid")!;
+      const details = document.querySelector<HTMLElement>(".yb-player-bio")!;
       const dropdown = profile.querySelector<HTMLElement>(".yb-dd-btn")!;
       return {
-        copyX: copy.getBoundingClientRect().x,
+        profileX: profile.getBoundingClientRect().x,
         detailsX: details.getBoundingClientRect().x,
         dropdownBackground: getComputedStyle(dropdown).backgroundColor,
         dropdownColor: getComputedStyle(dropdown).color,
       };
     });
-    expect(Math.abs(desktop.copyX - desktop.detailsX)).toBeLessThanOrEqual(1);
-    expect(desktop.dropdownBackground).toBe("rgb(177, 19, 43)");
+    expect(Math.abs(desktop.profileX - desktop.detailsX)).toBeLessThanOrEqual(1);
+    expect(desktop.dropdownBackground).toBe("rgb(227, 24, 55)");
     expect(desktop.dropdownColor).toBe("rgb(255, 255, 255)");
 
+    // The season control offers the seasons the player actually has, and only
+    // those — Mahomes' first NFL season is 2017, so nothing earlier is offered.
     await page.getByRole("button", { name: "Select season" }).click();
-    const menuBackground = await page
-      .getByRole("listbox", { name: "Select season" })
-      .evaluate((node) => getComputedStyle(node).backgroundColor);
-    expect(menuBackground).toBe("rgb(177, 19, 43)");
+    const options = page.getByRole("listbox", { name: "Select season" }).getByRole("option");
+    await expect(options.filter({ hasText: "2016" })).toHaveCount(0);
+    await expect(await options.count()).toBeGreaterThan(1);
+    await options.filter({ hasText: "2023" }).click();
+    await expect(page).toHaveURL(/season=2023/);
 
     await page.setViewportSize({ width: 390, height: 844 });
     const mobile = await page.evaluate(() => {
       const profile = document.querySelector<HTMLElement>(".yb-player-profile")!;
-      const details = profile.querySelector<HTMLElement>(".yb-info-grid")!;
+      const details = document.querySelector<HTMLElement>(".yb-player-bio")!;
       return {
         profileX: profile.getBoundingClientRect().x,
         detailsX: details.getBoundingClientRect().x,
-        padding: Number.parseFloat(getComputedStyle(profile).paddingLeft),
       };
     });
-    expect(Math.abs(mobile.detailsX - mobile.profileX - mobile.padding)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mobile.detailsX - mobile.profileX)).toBeLessThanOrEqual(1);
   });
 
   test("team detail uses the shared entity profile hierarchy", async ({ page }) => {
@@ -304,7 +360,8 @@ test.describe("explore", () => {
     await expect(profile).toBeVisible();
     await expect(profile.getByRole("heading", { name: "San Francisco 49ers" })).toBeVisible();
     await expect(profile).toContainText("NFC West");
-    await expect(page.getByRole("region", { name: "2023 season summary" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Team stats" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Team leaders" })).toBeVisible();
   });
 
   test("profile card headers use sentence case", async ({ page }) => {
@@ -312,7 +369,7 @@ test.describe("explore", () => {
     await expect(page.getByRole("region", { name: "Patrick Mahomes profile" })).toBeVisible();
 
     const transforms = await page.evaluate(() =>
-      [".yb-entity-eyebrow", ".yb-info-grid dt", ".yb-stat-summary dt"].map((selector) =>
+      [".yb-entity-title", ".yb-info-grid dt", ".yb-stat-summary dt"].map((selector) =>
         getComputedStyle(document.querySelector(selector)!).textTransform,
       ),
     );

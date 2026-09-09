@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Headshot } from "../components/Headshot";
-import { PageHeader } from "../components/ui";
+import { PageHeader, SeasonPicker } from "../components/ui";
 import {
   friendlyError, fetchFantasyPlayers, type FantasyPlayer, type FantasyPlayersResponse } from "../lib/api";
 
@@ -50,7 +50,7 @@ function statLine(p: FantasyPlayer): string {
 export default function FantasyPage() {
   useTitle("Fantasy lineup builder");
   const [data, setData] = useState<FantasyPlayersResponse | null>(null);
-  const [season] = useSeasonParam();
+  const [season, setSeason] = useSeasonParam();
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");
   const [query, setQuery] = useState("");
   const [lineup, setLineup] = useState<Lineup>({});
@@ -154,6 +154,11 @@ export default function FantasyPage() {
       <main id="main" className="yb-page">
         <PageHeader
           title="Fantasy Lineup Builder"
+          controls={
+            data && (
+              <SeasonPicker season={data.season} seasons={data.seasons} onChange={setSeason} />
+            )
+          }
           action={<div className="yb-format-lock" aria-label="Scoring format">PPR scoring</div>}
         />
 

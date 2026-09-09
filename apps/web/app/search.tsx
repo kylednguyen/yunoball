@@ -31,7 +31,10 @@ export function Search() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recents, setRecents] = useState<string[]>([]);
-  const [examples, setExamples] = useState<string[]>(FALLBACK_EXAMPLES);
+  // Empty until the question bank answers. Seeding the built-in list and then
+  // swapping it out reshuffles the popup under the pointer, so a click can
+  // land on whatever moved into that row; the built-ins are the failure path.
+  const [examples, setExamples] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
 
@@ -74,11 +77,7 @@ export function Search() {
     let active = true;
     fetchExamples(8)
       .then((items) => active && setExamples(items.map((i) => i.question)))
-      .catch(() => {
-        if (active) {
-          setExamples(FALLBACK_EXAMPLES);
-        }
-      });
+      .catch(() => active && setExamples(FALLBACK_EXAMPLES));
     return () => {
       active = false;
     };
@@ -135,7 +134,8 @@ export function Search() {
           inputClass="yb-search"
           ariaLabel="Search NFL stats, players, and teams"
           inputRef={inputRef}
-          suggestions={[...recents, ...examples]}
+          recent={recents}
+          suggestions={examples}
         >
           <button
             type="button"

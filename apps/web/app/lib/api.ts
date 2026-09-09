@@ -8,6 +8,7 @@ import type {
   BoxScore,
   ChatTurn,
   ExampleQuestion,
+  GamePlaysResponse,
   PlayerSplits,
   FantasyPlayersResponse,
   GamesResponse,
@@ -33,6 +34,8 @@ export type {
   ExampleQuestion,
   FantasyPlayer,
   FantasyPlayersResponse,
+  GamePlay,
+  GamePlaysResponse,
   GameRow,
   GamesResponse,
   LeaderboardsResponse,
@@ -201,6 +204,10 @@ export function fetchPlayer(playerId: string): Promise<PlayerProfile | null> {
 
 export function fetchBoxScore(gameId: string): Promise<BoxScore | null> {
   return getJsonOr404<BoxScore>(`/api/games/${encodeURIComponent(gameId)}/boxscore`);
+}
+
+export function fetchGamePlays(gameId: string): Promise<GamePlaysResponse | null> {
+  return getJsonOr404<GamePlaysResponse>(`/api/games/${encodeURIComponent(gameId)}/plays`);
 }
 
 export async function fetchPlayerSplits(

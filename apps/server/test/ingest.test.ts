@@ -128,6 +128,13 @@ function pbp(over: Record<string, string>) {
     pass_touchdown: "0", rush_touchdown: "0", return_touchdown: "0", interception: "0",
     qtr: "1", play_type: "run", desc: "", epa: "", success: "", cpoe: "", drive: "",
     passer_player_id: "", rusher_player_id: "", receiver_player_id: "",
+    down: "", ydstogo: "", yardline_100: "", time: "", game_seconds_remaining: "",
+    defteam: "", air_yards: "", yards_after_catch: "", pass_length: "",
+    pass_location: "", run_location: "", run_gap: "", complete_pass: "",
+    sack: "", qb_scramble: "", fumble_lost: "", first_down: "", penalty: "",
+    field_goal_result: "", kick_distance: "", passer_player_name: "",
+    rusher_player_name: "", receiver_player_name: "",
+    total_home_score: "", total_away_score: "",
     ...over,
   };
 }
@@ -159,10 +166,37 @@ const PBP_CSV = [
   // Scorer not in the players dimension — dropped loudly, no FK violation.
   pbp({ play_id: "70", td_player_id: "P_GHOST", td_team: "KC",
     rush_touchdown: "1", yards_gained: "8", desc: "Ghost TD." }),
+  // ---- Non-scoring plays, for the field view ----
+  // The game-start marker: no play_type, so it is not a play.
+  pbp({ play_id: "1", touchdown: "0", play_type: "", posteam: "", time: "15:00",
+    game_seconds_remaining: "3600", total_home_score: "0", total_away_score: "0" }),
+  // A completed pass: 9 in the air, 6 after the catch, first down.
+  pbp({ play_id: "80", touchdown: "0", play_type: "pass", posteam: "OAK", defteam: "KC",
+    drive: "2", qtr: "1", down: "2", ydstogo: "9", yardline_100: "76", time: "10:07",
+    game_seconds_remaining: "3307", yards_gained: "15", air_yards: "9",
+    yards_after_catch: "6", pass_length: "short", pass_location: "middle",
+    complete_pass: "1", first_down: "1", passer_player_id: "P_ADAMS",
+    passer_player_name: "D.Adams", receiver_player_id: "P_MAHOMES",
+    receiver_player_name: "P.Mahomes", total_home_score: "7", total_away_score: "0",
+    epa: "1.234", desc: "D.Adams pass short middle to P.Mahomes for 15 yards." }),
+  // A run off left tackle for a loss.
+  pbp({ play_id: "90", touchdown: "0", play_type: "run", posteam: "OAK", defteam: "KC",
+    drive: "2", qtr: "1", down: "1", ydstogo: "10", yardline_100: "61", time: "09:30",
+    yards_gained: "-2", run_location: "left", run_gap: "tackle",
+    rusher_player_id: "P_ADAMS", rusher_player_name: "D.Adams",
+    total_home_score: "7", total_away_score: "0", desc: "D.Adams left tackle for -2 yards." }),
+  // A game whose schedule row isn't loaded — dropped loudly.
+  pbp({ play_id: "5", game_id: "2023_01_GHOST_KC", touchdown: "0", play_type: "run",
+    yardline_100: "50" }),
 ];
+
+// Seasons the fake upstream has not published — set per test to exercise the
+// September case, where the current season's release files don't exist yet.
+const unpublished = new Set<string>();
 
 vi.mock("../src/ingest/providers/nflverse.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("../src/ingest/providers/nflverse.js")>();
+  const missing = (url: string) => [...unpublished].some((marker) => url.includes(marker));
   const byUrl = (url: string): Record<string, string>[] => {
     if (url.includes("teams_colors_logos")) return TEAMS_CSV;
     if (url.includes("schedules/games")) return SCHED_CSV;
@@ -174,12 +208,16 @@ vi.mock("../src/ingest/providers/nflverse.js", async (importOriginal) => {
     if (url.includes("pbp/play_by_play_")) return PBP_CSV;
     throw new Error(`no fixture for ${url}`);
   };
+  const stream = async function* (url: string) {
+    yield* byUrl(url);
+  };
   return {
     ...original,
     allRows: async (url: string) => byUrl(url),
-    rows: async function* (url: string) {
-      yield* byUrl(url);
-    },
+    // The real provider returns null for a release asset nflverse hasn't
+    // published; `unpublished` makes a fixture URL behave that way.
+    optionalRows: async (url: string) => (missing(url) ? null : byUrl(url)),
+    optionalRowStream: async (url: string) => (missing(url) ? null : stream(url)),
   };
 });
 
@@ -375,6 +413,46 @@ describe("scoring plays (pbp distillation)", () => {
   });
 });
 
+describe("plays (field geometry)", () => {
+  it("stores every real play with its geometry and skips the non-plays", async () => {
+    const ctx = new Ctx(pool);
+    await loadAll(ctx);
+    const n = await p.loadPlays(ctx, [2023]);
+    // Seven TD fixtures + the pass + the run; the game-start marker has no
+    // play_type and the ghost game has no schedule row.
+    expect(n).toBe(9);
+    expect(ctx.skipped.get("plays: game not ingested (run games first)")).toBe(1);
+
+    const rows = await all(
+      `SELECT play_no, play_type, posteam, defteam, yardline_100, yards_gained, air_yards,
+              yards_after_catch, pass_location, run_location, run_gap, complete_pass,
+              first_down, passer_name, receiver_name, rusher_name, home_score, away_score,
+              clock, epa
+       FROM plays WHERE play_no IN (80, 90) ORDER BY play_no`,
+    );
+    expect(rows).toEqual([
+      {
+        play_no: 80, play_type: "pass", posteam: "LV", defteam: "KC", yardline_100: 76,
+        yards_gained: 15, air_yards: 9, yards_after_catch: 6, pass_location: "middle",
+        run_location: null, run_gap: null, complete_pass: true, first_down: true,
+        passer_name: "D.Adams", receiver_name: "P.Mahomes", rusher_name: null,
+        home_score: 7, away_score: 0, clock: "10:07", epa: 1.234,
+      },
+      {
+        play_no: 90, play_type: "run", posteam: "LV", defteam: "KC", yardline_100: 61,
+        yards_gained: -2, air_yards: null, yards_after_catch: null, pass_location: null,
+        run_location: "left", run_gap: "tackle", complete_pass: false, first_down: false,
+        passer_name: null, receiver_name: null, rusher_name: "D.Adams",
+        home_score: 7, away_score: 0, clock: "09:30", epa: null,
+      },
+    ]);
+    // Ordering key is the pbp play number, and the slice is per game.
+    const order = (await all("SELECT play_no FROM plays WHERE game_id = '2023_01_OAK_KC' ORDER BY play_no"))
+      .map((r) => r.play_no);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+});
+
 describe("run mechanics", () => {
   it("season-type filter REG excludes playoff rows end to end", async () => {
     const ctx = new Ctx(pool, false, "REG");
@@ -399,6 +477,47 @@ describe("run mechanics", () => {
     }
     // Validation findings still surface in dry-run mode.
     expect(ctx.skipped.get("players: roster row without a stable gsis id")).toBe(1);
+  });
+
+  // Regression: `--all` spans every season since 1999, and from September the
+  // current one is in that list before nflverse has published its stats files.
+  // A 404 used to abort the whole step, so a full-history load wrote no player
+  // stats at all — for any season.
+  it("skips a season upstream hasn't published and still loads the rest", async () => {
+    const ctx = new Ctx(pool);
+    await p.loadTeams(ctx);
+    await p.loadSeasons(ctx, [2023]);
+    await p.loadPlayers(ctx, [2023]);
+    await p.loadRosters(ctx, [2023]);
+    await p.loadGames(ctx, [2023]);
+
+    unpublished.add("_2024");
+    try {
+      const weekly = await p.loadPlayerGameStats(ctx, [2023, 2024]);
+      const seasonal = await p.loadPlayerSeasonStats(ctx, [2023, 2024]);
+      expect(weekly).toBeGreaterThan(0);
+      expect(seasonal).toBeGreaterThan(0);
+    } finally {
+      unpublished.delete("_2024");
+    }
+    const seasons = (
+      await all("SELECT DISTINCT season FROM player_season_stats ORDER BY season")
+    ).map((r) => r.season);
+    expect(seasons).toEqual([2023]);
+  });
+
+  // …but every season missing is upstream moving the release path, which must
+  // fail loudly instead of quietly emptying the warehouse.
+  it("fails loudly when no season is published at all", async () => {
+    const ctx = new Ctx(pool);
+    unpublished.add("stats_player_week_");
+    try {
+      await expect(p.loadPlayerGameStats(ctx, [2023, 2024])).rejects.toThrow(
+        /no season published upstream/i,
+      );
+    } finally {
+      unpublished.delete("stats_player_week_");
+    }
   });
 
   it("re-running is idempotent", async () => {

@@ -9,13 +9,15 @@
 import {
   float, int, str, team, SEASON_TYPE, TEAM_MAP,
   draftPickRow, gameRow, playerGameStatsRow, playerIdMapRow, playerRow,
-  playerSeasonStatsRow, playerGameAdvancedRow, rosterRow, scoringPlayRow,
+  playerSeasonStatsRow, playerGameAdvancedRow, playRow, rosterRow, scoringPlayRow,
   seasonRow, teamGameStatsRow, teamRow,
 } from "./normalize.js";
 import { logger } from "../lib/logger.js";
 import type { Ctx } from "./context.js";
 import { upsert } from "./upsert.js";
-import { allRows, assets, rows as streamRows } from "./providers/nflverse.js";
+import {
+  allRows, assets, optionalRowStream, optionalRows,
+} from "./providers/nflverse.js";
 import type { CsvRow } from "./providers/nflverse.js";
 
 /** Guard against upstream schema drift. A pipeline reads columns by name; if
@@ -230,10 +232,30 @@ async function gameIdLookup(years: number[]): Promise<Map<string, string>> {
   return lookup;
 }
 
+/** A season whose release file nflverse hasn't published yet (the current one,
+ * before its first games) is skipped, not fatal — otherwise every September the
+ * whole step dies and twenty-six loaded seasons get no stats at all. Every
+ * season missing is a different story: that's an upstream path change, and it
+ * must fail loudly rather than quietly emptying the warehouse. */
+function assertSomeSeasonsPublished(step: string, loaded: number[], years: number[]): void {
+  if (loaded.length > 0 || years.length === 0) return;
+  throw new Error(
+    `${step}: no season published upstream (tried ${years[0]}-${years[years.length - 1]}) — ` +
+    "the nflverse release path has probably changed",
+  );
+}
+
 export async function loadPlayerGameStats(ctx: Ctx, years: number[]): Promise<number> {
   const lookup = await gameIdLookup(years);
   const raw: CsvRow[] = [];
-  for (const year of years) raw.push(...(await allRows(assets.weeklyStats(year))));
+  const loaded: number[] = [];
+  for (const year of years) {
+    const yearRows = await optionalRows(assets.weeklyStats(year));
+    if (!yearRows) continue;
+    raw.push(...yearRows);
+    loaded.push(year);
+  }
+  assertSomeSeasonsPublished("player_game_stats", loaded, years);
 
   checkColumns(
     raw[0],
@@ -312,9 +334,12 @@ export async function loadPlayerSeasonStats(ctx: Ctx, years: number[]): Promise<
     (lvl) => !ctx.seasonType || ctx.seasonType === (lvl === "reg" ? "REG" : "POST"),
   );
   let rows: Record<string, unknown>[] = [];
+  const loaded: number[] = [];
   for (const year of years) {
     for (const level of levels) {
-      const raw = await allRows(assets.seasonStats(year, level));
+      const raw = await optionalRows(assets.seasonStats(year, level));
+      if (!raw) continue;
+      if (!loaded.includes(year)) loaded.push(year);
       rows.push(
         ...raw.map((r) => ({
           player_id: r.player_id ?? "",
@@ -350,6 +375,7 @@ export async function loadPlayerSeasonStats(ctx: Ctx, years: number[]): Promise<
       );
     }
   }
+  assertSomeSeasonsPublished("player_season_stats", loaded, years);
   rows = ctx.drop(rows, (r) => r.player_id !== "", "player_season_stats",
     "missing player id", (r) => String(r.season));
   const players = await ctx.known("players", "player_id");
@@ -436,6 +462,7 @@ function tdKind(r: CsvRow, tdTeam: string | null): string {
  * ~1.5k scoring rows). Streamed per year; each batch commits independently. */
 export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<number> {
   let total = 0;
+  const loaded: number[] = [];
   const games = await ctx.known("games", "game_id");
   const players = await ctx.known("players", "player_id");
   const teams = await ctx.known("teams", "team_id");
@@ -481,7 +508,9 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
     };
 
     let columnsChecked = false;
-    for await (const r of streamRows(assets.pbp(year))) {
+    const pbp = await optionalRowStream(assets.pbp(year));
+    if (!pbp) continue;
+    for await (const r of pbp) {
       // First row of each year's file: verify the columns this step reads
       // still exist upstream (per year — the pbp schema varies by era).
       if (!columnsChecked) {
@@ -569,7 +598,113 @@ export async function loadScoringPlays(ctx: Ctx, years: number[]): Promise<numbe
       );
     }
     logger.info({ year, advanced: advRows.length }, "scoring_plays + advanced: season complete");
+    loaded.push(year);
   }
+  assertSomeSeasonsPublished("scoring_plays", loaded, years);
+  return total;
+}
+
+const PLAY_BATCH = 4_000;
+const flag = (v: string | undefined): boolean => v === "1";
+const SIDES = new Set(["left", "middle", "right"]);
+const GAPS = new Set(["end", "tackle", "guard"]);
+const enumOr = (v: string | undefined, allowed: Set<string>): string | null =>
+  v && allowed.has(v) ? v : null;
+
+/** Every play with its field geometry, from the same pbp release the scoring
+ * step distils. Rows without a play_type (game start, quarter ends, the
+ * "END GAME" marker) aren't plays and are skipped; no_play rows (penalties,
+ * timeouts) are kept so a drive reads whole. Streamed per year, batch
+ * commits, one table slice per game. */
+export async function loadPlays(ctx: Ctx, years: number[]): Promise<number> {
+  let total = 0;
+  const loaded: number[] = [];
+  const games = await ctx.known("games", "game_id");
+
+  for (const year of years) {
+    let batch: Record<string, unknown>[] = [];
+    const flush = async () => {
+      let rows = batch;
+      batch = [];
+      rows = ctx.drop(rows, (r) => games.has(r.game_id as string), "plays",
+        "game not ingested (run games first)", (r) => String(r.game_id));
+      total += await upsert(ctx, "plays", rows, ["play_id"], playRow);
+    };
+
+    let columnsChecked = false;
+    const pbp = await optionalRowStream(assets.pbp(year));
+    if (!pbp) continue;
+    for await (const r of pbp) {
+      if (!columnsChecked) {
+        columnsChecked = true;
+        checkColumns(
+          r,
+          `play_by_play_${year}`,
+          ["game_id", "play_id", "season_type", "play_type", "yardline_100", "posteam", "desc"],
+          [
+            "drive", "qtr", "down", "ydstogo", "time", "game_seconds_remaining", "defteam",
+            "yards_gained", "air_yards", "yards_after_catch", "pass_length", "pass_location",
+            "run_location", "run_gap", "complete_pass", "interception", "sack", "qb_scramble",
+            "touchdown", "fumble_lost", "first_down", "penalty", "field_goal_result",
+            "kick_distance", "passer_player_id", "rusher_player_id", "receiver_player_id",
+            "passer_player_name", "rusher_player_name", "receiver_player_name",
+            "total_home_score", "total_away_score", "epa",
+          ],
+        );
+      }
+      if (ctx.seasonType && SEASON_TYPE[r.season_type ?? ""] !== ctx.seasonType) continue;
+      const playType = str(r.play_type);
+      const playNo = int(r.play_id);
+      if (!playType || playNo == null || !r.game_id) continue;
+      batch.push({
+        play_id: `${r.game_id}_${playNo}`,
+        game_id: r.game_id,
+        play_no: playNo,
+        drive: int(r.drive),
+        qtr: int(r.qtr),
+        down: int(r.down),
+        ydstogo: int(r.ydstogo),
+        clock: str(r.time),
+        seconds_remaining: int(r.game_seconds_remaining),
+        posteam: r.posteam ? team(r.posteam) : null,
+        defteam: r.defteam ? team(r.defteam) : null,
+        yardline_100: int(r.yardline_100),
+        play_type: playType,
+        yards_gained: int(r.yards_gained),
+        air_yards: int(r.air_yards),
+        yards_after_catch: int(r.yards_after_catch),
+        pass_length: enumOr(r.pass_length, new Set(["short", "deep"])),
+        pass_location: enumOr(r.pass_location, SIDES),
+        run_location: enumOr(r.run_location, SIDES),
+        run_gap: enumOr(r.run_gap, GAPS),
+        complete_pass: flag(r.complete_pass),
+        interception: flag(r.interception),
+        sack: flag(r.sack),
+        scramble: flag(r.qb_scramble),
+        touchdown: flag(r.touchdown),
+        fumble_lost: flag(r.fumble_lost),
+        first_down: flag(r.first_down),
+        penalty: flag(r.penalty),
+        field_goal_result: str(r.field_goal_result),
+        kick_distance: int(r.kick_distance),
+        passer_player_id: str(r.passer_player_id),
+        rusher_player_id: str(r.rusher_player_id),
+        receiver_player_id: str(r.receiver_player_id),
+        passer_name: str(r.passer_player_name),
+        rusher_name: str(r.rusher_player_name),
+        receiver_name: str(r.receiver_player_name),
+        home_score: int(r.total_home_score),
+        away_score: int(r.total_away_score),
+        epa: float(r.epa),
+        description: str(r.desc),
+      });
+      if (batch.length >= PLAY_BATCH) await flush();
+    }
+    await flush();
+    loaded.push(year);
+    logger.info({ year }, "plays: season complete");
+  }
+  assertSomeSeasonsPublished("plays", loaded, years);
   return total;
 }
 

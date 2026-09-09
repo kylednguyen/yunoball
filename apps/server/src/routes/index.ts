@@ -14,6 +14,7 @@ routes.get("/api/leaderboards", c.leaderboards);
 routes.get("/api/games", c.games);
 routes.get("/api/games/performers", c.performers);
 routes.get("/api/games/:gameId/boxscore", c.boxScore);
+routes.get("/api/games/:gameId/plays", c.gamePlays);
 routes.get("/api/standings", c.standings);
 routes.get("/api/fantasy/players", c.fantasyPlayers);
 routes.get("/api/players/:playerId", c.playerProfile);

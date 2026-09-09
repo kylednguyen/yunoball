@@ -53,6 +53,7 @@ const DRAFT_MIN_SEASON = 1980;
 // Cheap probes cached for the process lifetime of a few minutes.
 const PROBE_TTL_MS = 10 * 60 * 1000;
 let draftMax: { value: number | null; at: number } | null = null;
+let loadedSeasons: { value: number[] | null; at: number } | null = null;
 const seasonComplete = new Map<number, { value: boolean; at: number }>();
 
 async function draftMaxSeason(): Promise<number | null> {
@@ -64,6 +65,34 @@ async function draftMaxSeason(): Promise<number | null> {
     draftMax = { value: null, at: Date.now() };
   }
   return draftMax.value;
+}
+
+/** The seasons actually present in the warehouse. Coverage is a set, not a
+ * range: a deploy that has ingested only some seasons must say so rather than
+ * report an unloaded year as a season in which nothing happened. */
+async function loadedSeasonSet(): Promise<number[] | null> {
+  if (loadedSeasons && Date.now() - loadedSeasons.at < PROBE_TTL_MS) return loadedSeasons.value;
+  try {
+    const rows = await q<{ season: number }>(
+      `SELECT DISTINCT season FROM player_season_stats
+       WHERE season_type = 'REG' ORDER BY season`,
+    );
+    loadedSeasons = { value: rows.map((r) => Number(r.season)), at: Date.now() };
+  } catch {
+    loadedSeasons = { value: null, at: Date.now() }; // never block an answer on a failed probe
+  }
+  return loadedSeasons.value;
+}
+
+/** "2022–2024" for contiguous coverage, "2019, 2022–2024" when it has gaps. */
+function describeSeasons(seasons: number[]): string {
+  const runs: [number, number][] = [];
+  for (const s of seasons) {
+    const last = runs[runs.length - 1];
+    if (last && s === last[1] + 1) last[1] = s;
+    else runs.push([s, s]);
+  }
+  return runs.map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(", ");
 }
 
 /** A season counts as complete once its Super Bowl (max POST week) has a
@@ -517,6 +546,17 @@ export async function audit(spec0: QuerySpec, ctx: AuditCtx): Promise<AuditOutco
         reason:
           `The ${spec.season} season isn't in the warehouse yet; ` +
           `the newest loaded season is ${ctx.latestSeason}.`,
+      });
+    }
+    // Inside the covered range but never ingested: an unloaded season must
+    // read as missing data, not as a season in which nobody did anything.
+    const loaded = await loadedSeasonSet();
+    if (loaded && loaded.length > 0 && !loaded.includes(spec.season)) {
+      confidence.season = 0.9;
+      return done("no_matching_data", {
+        reason:
+          `The ${spec.season} season isn't loaded in this warehouse; ` +
+          `loaded seasons are ${describeSeasons(loaded)}.`,
       });
     }
   }

@@ -112,6 +112,11 @@ colors. Unknown team → no override (emerald stays).
 - Comparison charts accompany head-to-head answers; bars draw in over 700ms.
 - Tables are the primary viz: every chart has its numbers adjacent; CSV
   export always available.
+- The field view (game page › Plays) draws the field in neutral surfaces
+  (turf `--elevated`, lines `--border-strong`, end zones `--bg-soft`) and
+  reserves colour for marks: the possession team's `--chart`, semantic
+  success/danger for outcomes, `--accent` for the line to gain. Every play
+  drawn is listed beside it with its numbers.
 
 ## 8. Accessibility bars
 
