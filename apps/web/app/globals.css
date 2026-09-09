@@ -1716,15 +1716,17 @@ table.yb-table th.num .yb-th-sort {
   width: auto;
   height: auto;
 }
-/* The profile portrait is sized here, not by the component's inline preset —
+/* The profile headshot is sized here, not by the component's inline preset —
    !important so the initials fallback lands in the same box as a loaded
-   headshot instead of shrinking the card when a player has no image. */
+   headshot instead of reshaping the card when a player has no image. nflverse
+   headshots are 3400 × 2450, wider than tall; the fallback keeps that ratio so
+   a missing image changes what is in the box, never the box. */
 .yb-player-profile .yb-avatar.portrait {
   width: min(300px, 72vw) !important;
   height: auto !important;
 }
 .yb-player-profile .yb-avatar.portrait.fallback {
-  aspect-ratio: 196 / 246;
+  aspect-ratio: 3400 / 2450;
 }
 .yb-player-profile .yb-entity-hero-copy {
   order: 1;

@@ -259,9 +259,10 @@ test.describe("explore", () => {
     expect(themedPresentation.summaryBorders).toEqual(["0px", "0px"]);
     expect(themedPresentation.summaryValueColor).toBe("rgb(255, 255, 255)");
     expect(themedPresentation.headshotPortrait).toBe(true);
-    // One portrait box whether the CDN answered or the initials stood in.
+    // One box whether the CDN answered or the initials stood in: 300 wide at
+    // the 3400 × 2450 ratio nflverse headshots ship in (≈ 216 tall).
     expect(themedPresentation.headshotWidth).toBe(300);
-    expect(themedPresentation.headshotHeight).toBeGreaterThan(300);
+    expect(Math.abs(themedPresentation.headshotHeight - 300 * (2450 / 3400))).toBeLessThan(1.5);
     expect(themedPresentation.mediaBorder).toBe("0px");
     expect(themedPresentation.mediaBackground).toBe("rgba(0, 0, 0, 0)");
     expect(themedPresentation.mediaRadius).toBe("0px");
